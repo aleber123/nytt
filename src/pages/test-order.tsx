@@ -1,0 +1,2257 @@
+import { GetStaticProps } from 'next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
+import Head from 'next/head';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
+import { createOrderWithFiles } from '@/services/hybridOrderService';
+import { getCountryPricingRules, calculateOrderPrice, getAllActivePricingRules } from '@/firebase/pricingService';
+import { getPricingRule } from '@/services/mockPricingService';
+import { toast } from 'react-hot-toast';
+
+interface TestOrderPageProps {}
+
+export default function TestOrderPage({}: TestOrderPageProps) {
+  const { t } = useTranslation('common');
+  const router = useRouter();
+  const [currentQuestion, setCurrentQuestion] = useState(1);
+  const [answers, setAnswers] = useState({
+    country: '',
+    documentType: '',
+    services: [] as string[],
+    quantity: 1,
+    expedited: false,
+    documentSource: '', // 'original' or 'upload'
+    pickupService: false, // New: pickup service option
+    pickupAddress: { // New: pickup address
+      street: '',
+      postalCode: '',
+      city: ''
+    },
+    scannedCopies: false, // New: scanned copies option
+    uploadedFiles: [] as File[],
+    customerInfo: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      address: '',
+      postalCode: '',
+      city: ''
+    },
+    shippingMethod: '', // New: selected shipping method
+    paymentMethod: ''
+  });
+
+  // Hague Convention countries (apostille available)
+  const hagueConventionCountries = [
+    'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
+    'AT', 'BE', 'CH', 'CZ', 'EE', 'GR', 'HU', 'IE', 'IS', 'LI', 'LT', 'LU',
+    'LV', 'MT', 'PT', 'SK', 'SI', 'BG', 'HR', 'CY', 'RO', 'TR', 'AU', 'CA',
+    'JP', 'KR', 'MX', 'NZ', 'ZA'
+  ];
+
+  // Popular countries sorted by selection frequency (most popular first)
+  // Mix of Hague Convention countries (HC) and non-Hague countries (require embassy legalization)
+  const popularCountries = [
+    { code: 'US', name: 'USA', flag: '🇺🇸', popularity: 95 }, // HC
+    { code: 'GB', name: 'Storbritannien', flag: '🇬🇧', popularity: 85 }, // HC
+    { code: 'DE', name: 'Tyskland', flag: '🇩🇪', popularity: 80 }, // HC
+    { code: 'SE', name: 'Sverige', flag: '🇸🇪', popularity: 75 }, // HC
+    { code: 'TH', name: 'Thailand', flag: '🇹🇭', popularity: 72 }, // Non-HC (embassy required)
+    { code: 'NO', name: 'Norge', flag: '🇳🇴', popularity: 70 }, // HC
+    { code: 'DK', name: 'Danmark', flag: '🇩🇰', popularity: 65 }, // HC
+    { code: 'FI', name: 'Finland', flag: '🇫🇮', popularity: 60 }, // HC
+    { code: 'VN', name: 'Vietnam', flag: '🇻🇳', popularity: 58 }, // Non-HC (embassy required)
+    { code: 'FR', name: 'Frankrike', flag: '🇫🇷', popularity: 55 }, // HC
+    { code: 'IR', name: 'Iran', flag: '🇮🇷', popularity: 52 }, // Non-HC (embassy required)
+    { code: 'ES', name: 'Spanien', flag: '🇪🇸', popularity: 50 }, // HC
+    { code: 'IT', name: 'Italien', flag: '🇮🇹', popularity: 45 }, // HC
+    { code: 'BD', name: 'Bangladesh', flag: '🇧🇩', popularity: 42 }, // Non-HC (embassy required)
+    { code: 'NL', name: 'Nederländerna', flag: '🇳🇱', popularity: 40 }, // HC
+    { code: 'LK', name: 'Sri Lanka', flag: '🇱🇰', popularity: 38 }, // Non-HC (embassy required)
+    { code: 'PL', name: 'Polen', flag: '🇵🇱', popularity: 35 }, // HC
+    { code: 'CA', name: 'Kanada', flag: '🇨🇦', popularity: 30 }, // HC
+    { code: 'AU', name: 'Australien', flag: '🇦🇺', popularity: 25 }, // HC
+    { code: 'TR', name: 'Turkiet', flag: '🇹🇷', popularity: 20 } // HC
+  ];
+
+  const allCountries = [
+    // Afrika (54 länder)
+    { code: 'DZ', name: 'Algeriet', flag: '🇩🇿' },
+    { code: 'AO', name: 'Angola', flag: '🇦🇴' },
+    { code: 'BJ', name: 'Benin', flag: '🇧🇯' },
+    { code: 'BW', name: 'Botswana', flag: '🇧🇼' },
+    { code: 'BF', name: 'Burkina Faso', flag: '🇧🇫' },
+    { code: 'BI', name: 'Burundi', flag: '🇧🇮' },
+    { code: 'CV', name: 'Kap Verde', flag: '🇨🇻' },
+    { code: 'CM', name: 'Kamerun', flag: '🇨🇲' },
+    { code: 'CF', name: 'Centralafrikanska republiken', flag: '🇨🇫' },
+    { code: 'TD', name: 'Tchad', flag: '🇹🇩' },
+    { code: 'KM', name: 'Komorerna', flag: '🇰🇲' },
+    { code: 'CG', name: 'Kongo-Brazzaville', flag: '🇨🇬' },
+    { code: 'CD', name: 'Kongo-Kinshasa', flag: '🇨🇩' },
+    { code: 'CI', name: 'Elfenbenskusten', flag: '🇨🇮' },
+    { code: 'DJ', name: 'Djibouti', flag: '🇩🇯' },
+    { code: 'EG', name: 'Egypten', flag: '🇪🇬' },
+    { code: 'GQ', name: 'Ekvatorialguinea', flag: '🇬🇶' },
+    { code: 'ER', name: 'Eritrea', flag: '🇪🇷' },
+    { code: 'SZ', name: 'Eswatini', flag: '🇸🇿' },
+    { code: 'ET', name: 'Etiopien', flag: '🇪🇹' },
+    { code: 'GA', name: 'Gabon', flag: '🇬🇦' },
+    { code: 'GM', name: 'Gambia', flag: '🇬🇲' },
+    { code: 'GH', name: 'Ghana', flag: '🇬🇭' },
+    { code: 'GN', name: 'Guinea', flag: '🇬🇳' },
+    { code: 'GW', name: 'Guinea-Bissau', flag: '🇬🇼' },
+    { code: 'KE', name: 'Kenya', flag: '🇰🇪' },
+    { code: 'LS', name: 'Lesotho', flag: '🇱🇸' },
+    { code: 'LR', name: 'Liberia', flag: '🇱🇷' },
+    { code: 'LY', name: 'Libyen', flag: '🇱🇾' },
+    { code: 'MG', name: 'Madagaskar', flag: '🇲🇬' },
+    { code: 'MW', name: 'Malawi', flag: '🇲🇼' },
+    { code: 'ML', name: 'Mali', flag: '🇲🇱' },
+    { code: 'MR', name: 'Mauretanien', flag: '🇲🇷' },
+    { code: 'MU', name: 'Mauritius', flag: '🇲🇺' },
+    { code: 'MA', name: 'Marocko', flag: '🇲🇦' },
+    { code: 'MZ', name: 'Moçambique', flag: '🇲🇿' },
+    { code: 'NA', name: 'Namibia', flag: '🇳🇦' },
+    { code: 'NE', name: 'Niger', flag: '🇳🇪' },
+    { code: 'NG', name: 'Nigeria', flag: '🇳🇬' },
+    { code: 'RW', name: 'Rwanda', flag: '🇷🇼' },
+    { code: 'ST', name: 'São Tomé och Príncipe', flag: '🇸🇹' },
+    { code: 'SN', name: 'Senegal', flag: '🇸🇳' },
+    { code: 'SC', name: 'Seychellerna', flag: '🇸🇨' },
+    { code: 'SL', name: 'Sierra Leone', flag: '🇸🇱' },
+    { code: 'SO', name: 'Somalia', flag: '🇸🇴' },
+    { code: 'ZA', name: 'Sydafrika', flag: '🇿🇦' },
+    { code: 'SS', name: 'Sydsudan', flag: '🇸🇸' },
+    { code: 'SD', name: 'Sudan', flag: '🇸🇩' },
+    { code: 'TZ', name: 'Tanzania', flag: '🇹🇿' },
+    { code: 'TG', name: 'Togo', flag: '🇹🇬' },
+    { code: 'TN', name: 'Tunisien', flag: '🇹🇳' },
+    { code: 'UG', name: 'Uganda', flag: '🇺🇬' },
+    { code: 'ZM', name: 'Zambia', flag: '🇿🇲' },
+    { code: 'ZW', name: 'Zimbabwe', flag: '🇿🇼' },
+
+    // Asien (48 länder)
+    { code: 'AF', name: 'Afghanistan', flag: '🇦🇫' },
+    { code: 'AM', name: 'Armenien', flag: '🇦🇲' },
+    { code: 'AZ', name: 'Azerbajdzjan', flag: '🇦🇿' },
+    { code: 'BH', name: 'Bahrain', flag: '🇧🇭' },
+    { code: 'BD', name: 'Bangladesh', flag: '🇧🇩' },
+    { code: 'BT', name: 'Bhutan', flag: '🇧🇹' },
+    { code: 'BN', name: 'Brunei', flag: '🇧🇳' },
+    { code: 'KH', name: 'Kambodja', flag: '🇰🇭' },
+    { code: 'CN', name: 'Kina', flag: '🇨🇳' },
+    { code: 'CY', name: 'Cypern', flag: '🇨🇾' },
+    { code: 'GE', name: 'Georgien', flag: '🇬🇪' },
+    { code: 'IN', name: 'Indien', flag: '🇮🇳' },
+    { code: 'ID', name: 'Indonesien', flag: '🇮🇩' },
+    { code: 'IR', name: 'Iran', flag: '🇮🇷' },
+    { code: 'IQ', name: 'Irak', flag: '🇮🇶' },
+    { code: 'IL', name: 'Israel', flag: '🇮🇱' },
+    { code: 'JP', name: 'Japan', flag: '🇯🇵' },
+    { code: 'JO', name: 'Jordanien', flag: '🇯🇴' },
+    { code: 'KZ', name: 'Kazakstan', flag: '🇰🇿' },
+    { code: 'KW', name: 'Kuwait', flag: '🇰🇼' },
+    { code: 'KG', name: 'Kirgizistan', flag: '🇰🇬' },
+    { code: 'LA', name: 'Laos', flag: '🇱🇦' },
+    { code: 'LB', name: 'Libanon', flag: '🇱🇧' },
+    { code: 'MY', name: 'Malaysia', flag: '🇲🇾' },
+    { code: 'MV', name: 'Maldiverna', flag: '🇲🇻' },
+    { code: 'MN', name: 'Mongoliet', flag: '🇲🇳' },
+    { code: 'MM', name: 'Myanmar', flag: '🇲🇲' },
+    { code: 'NP', name: 'Nepal', flag: '🇳🇵' },
+    { code: 'KP', name: 'Nordkorea', flag: '🇰🇵' },
+    { code: 'OM', name: 'Oman', flag: '🇴🇲' },
+    { code: 'PK', name: 'Pakistan', flag: '🇵🇰' },
+    { code: 'PS', name: 'Palestina', flag: '🇵🇸' },
+    { code: 'PH', name: 'Filippinerna', flag: '🇵🇭' },
+    { code: 'QA', name: 'Qatar', flag: '🇶🇦' },
+    { code: 'SA', name: 'Saudiarabien', flag: '🇸🇦' },
+    { code: 'SG', name: 'Singapore', flag: '🇸🇬' },
+    { code: 'KR', name: 'Sydkorea', flag: '🇰🇷' },
+    { code: 'LK', name: 'Sri Lanka', flag: '🇱🇰' },
+    { code: 'SY', name: 'Syrien', flag: '🇸🇾' },
+    { code: 'TW', name: 'Taiwan', flag: '🇹🇼' },
+    { code: 'TJ', name: 'Tadzjikistan', flag: '🇹🇯' },
+    { code: 'TH', name: 'Thailand', flag: '🇹🇭' },
+    { code: 'TL', name: 'Östtimor', flag: '🇹🇱' },
+    { code: 'TR', name: 'Turkiet', flag: '🇹🇷' },
+    { code: 'TM', name: 'Turkmenistan', flag: '🇹🇲' },
+    { code: 'AE', name: 'Förenade Arabemiraten', flag: '🇦🇪' },
+    { code: 'UZ', name: 'Uzbekistan', flag: '🇺🇿' },
+    { code: 'VN', name: 'Vietnam', flag: '🇻🇳' },
+    { code: 'YE', name: 'Jemen', flag: '🇾🇪' },
+
+    // Europa (44 länder)
+    { code: 'AL', name: 'Albanien', flag: '🇦🇱' },
+    { code: 'AD', name: 'Andorra', flag: '🇦🇩' },
+    { code: 'AT', name: 'Österrike', flag: '🇦🇹' },
+    { code: 'BY', name: 'Vitryssland', flag: '🇧🇾' },
+    { code: 'BE', name: 'Belgien', flag: '🇧🇪' },
+    { code: 'BA', name: 'Bosnien och Hercegovina', flag: '🇧🇦' },
+    { code: 'BG', name: 'Bulgarien', flag: '🇧🇬' },
+    { code: 'HR', name: 'Kroatien', flag: '🇭🇷' },
+    { code: 'CY', name: 'Cypern', flag: '🇨🇾' },
+    { code: 'CZ', name: 'Tjeckien', flag: '🇨🇿' },
+    { code: 'DK', name: 'Danmark', flag: '🇩🇰' },
+    { code: 'EE', name: 'Estland', flag: '🇪🇪' },
+    { code: 'FI', name: 'Finland', flag: '🇫🇮' },
+    { code: 'FR', name: 'Frankrike', flag: '🇫🇷' },
+    { code: 'DE', name: 'Tyskland', flag: '🇩🇪' },
+    { code: 'GR', name: 'Grekland', flag: '🇬🇷' },
+    { code: 'HU', name: 'Ungern', flag: '🇭🇺' },
+    { code: 'IS', name: 'Island', flag: '🇮🇸' },
+    { code: 'IE', name: 'Irland', flag: '🇮🇪' },
+    { code: 'IT', name: 'Italien', flag: '🇮🇹' },
+    { code: 'LV', name: 'Lettland', flag: '🇱🇻' },
+    { code: 'LI', name: 'Liechtenstein', flag: '🇱🇮' },
+    { code: 'LT', name: 'Litauen', flag: '🇱🇹' },
+    { code: 'LU', name: 'Luxemburg', flag: '🇱🇺' },
+    { code: 'MT', name: 'Malta', flag: '🇲🇹' },
+    { code: 'MD', name: 'Moldavien', flag: '🇲🇩' },
+    { code: 'MC', name: 'Monaco', flag: '🇲🇨' },
+    { code: 'ME', name: 'Montenegro', flag: '🇲🇪' },
+    { code: 'NL', name: 'Nederländerna', flag: '🇳🇱' },
+    { code: 'MK', name: 'Nordmakedonien', flag: '🇲🇰' },
+    { code: 'NO', name: 'Norge', flag: '🇳🇴' },
+    { code: 'PL', name: 'Polen', flag: '🇵🇱' },
+    { code: 'PT', name: 'Portugal', flag: '🇵🇹' },
+    { code: 'RO', name: 'Rumänien', flag: '🇷🇴' },
+    { code: 'RU', name: 'Ryssland', flag: '🇷🇺' },
+    { code: 'SM', name: 'San Marino', flag: '🇸🇲' },
+    { code: 'RS', name: 'Serbien', flag: '🇷🇸' },
+    { code: 'SK', name: 'Slovakien', flag: '🇸🇰' },
+    { code: 'SI', name: 'Slovenien', flag: '🇸🇮' },
+    { code: 'ES', name: 'Spanien', flag: '🇪🇸' },
+    { code: 'SE', name: 'Sverige', flag: '🇸🇪' },
+    { code: 'CH', name: 'Schweiz', flag: '🇨🇭' },
+    { code: 'UA', name: 'Ukraina', flag: '🇺🇦' },
+    { code: 'GB', name: 'Storbritannien', flag: '🇬🇧' },
+    { code: 'VA', name: 'Vatikanstaten', flag: '🇻🇦' },
+
+    // Nordamerika (23 länder)
+    { code: 'AG', name: 'Antigua och Barbuda', flag: '🇦🇬' },
+    { code: 'BS', name: 'Bahamas', flag: '🇧🇸' },
+    { code: 'BB', name: 'Barbados', flag: '🇧🇧' },
+    { code: 'BZ', name: 'Belize', flag: '🇧🇿' },
+    { code: 'CA', name: 'Kanada', flag: '🇨🇦' },
+    { code: 'CR', name: 'Costa Rica', flag: '🇨🇷' },
+    { code: 'CU', name: 'Kuba', flag: '🇨🇺' },
+    { code: 'DM', name: 'Dominica', flag: '🇩🇲' },
+    { code: 'DO', name: 'Dominikanska republiken', flag: '🇩🇴' },
+    { code: 'SV', name: 'El Salvador', flag: '🇸🇻' },
+    { code: 'GD', name: 'Grenada', flag: '🇬🇩' },
+    { code: 'GT', name: 'Guatemala', flag: '🇬🇹' },
+    { code: 'HT', name: 'Haiti', flag: '🇭🇹' },
+    { code: 'HN', name: 'Honduras', flag: '🇭🇳' },
+    { code: 'JM', name: 'Jamaica', flag: '🇯🇲' },
+    { code: 'MX', name: 'Mexiko', flag: '🇲🇽' },
+    { code: 'NI', name: 'Nicaragua', flag: '🇳🇮' },
+    { code: 'PA', name: 'Panama', flag: '🇵🇦' },
+    { code: 'KN', name: 'Saint Kitts och Nevis', flag: '🇰🇳' },
+    { code: 'LC', name: 'Saint Lucia', flag: '🇱🇨' },
+    { code: 'VC', name: 'Saint Vincent och Grenadinerna', flag: '🇻🇨' },
+    { code: 'TT', name: 'Trinidad och Tobago', flag: '🇹🇹' },
+    { code: 'US', name: 'USA', flag: '🇺🇸' },
+
+    // Sydamerika (12 länder)
+    { code: 'AR', name: 'Argentina', flag: '🇦🇷' },
+    { code: 'BO', name: 'Bolivia', flag: '🇧🇴' },
+    { code: 'BR', name: 'Brasilien', flag: '🇧🇷' },
+    { code: 'CL', name: 'Chile', flag: '🇨🇱' },
+    { code: 'CO', name: 'Colombia', flag: '🇨🇴' },
+    { code: 'EC', name: 'Ecuador', flag: '🇪🇨' },
+    { code: 'GY', name: 'Guyana', flag: '🇬🇾' },
+    { code: 'PY', name: 'Paraguay', flag: '🇵🇾' },
+    { code: 'PE', name: 'Peru', flag: '🇵🇪' },
+    { code: 'SR', name: 'Surinam', flag: '🇸🇷' },
+    { code: 'UY', name: 'Uruguay', flag: '🇺🇾' },
+    { code: 'VE', name: 'Venezuela', flag: '🇻🇪' },
+
+    // Oceanien (14 länder)
+    { code: 'AU', name: 'Australien', flag: '🇦🇺' },
+    { code: 'FJ', name: 'Fiji', flag: '🇫🇯' },
+    { code: 'KI', name: 'Kiribati', flag: '🇰🇮' },
+    { code: 'MH', name: 'Marshallöarna', flag: '🇲🇭' },
+    { code: 'FM', name: 'Mikronesiska federationen', flag: '🇫🇲' },
+    { code: 'NR', name: 'Nauru', flag: '🇳🇷' },
+    { code: 'NZ', name: 'Nya Zeeland', flag: '🇳🇿' },
+    { code: 'PW', name: 'Palau', flag: '🇵🇼' },
+    { code: 'PG', name: 'Papua Nya Guinea', flag: '🇵🇬' },
+    { code: 'WS', name: 'Samoa', flag: '🇼🇸' },
+    { code: 'SB', name: 'Salomonöarna', flag: '🇸🇧' },
+    { code: 'TO', name: 'Tonga', flag: '🇹🇴' },
+    { code: 'TV', name: 'Tuvalu', flag: '🇹🇻' },
+    { code: 'VU', name: 'Vanuatu', flag: '🇻🇺' },
+
+    // Övriga
+    { code: 'other', name: 'Annat land', flag: '🌍' }
+  ];
+
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredCountries = allCountries.filter(country => {
+    if (!countrySearch.trim()) return false;
+
+    const searchTerm = countrySearch.toLowerCase().trim();
+    const countryName = country.name.toLowerCase();
+    const countryCode = country.code.toLowerCase();
+
+    // Prioritize countries that START with the search term
+    if (countryName.startsWith(searchTerm)) return true;
+    if (countryCode.startsWith(searchTerm)) return true;
+
+    // Then include countries that CONTAIN the search term (but with lower priority)
+    if (countryName.includes(searchTerm)) return true;
+    if (countryCode.includes(searchTerm)) return true;
+
+    return false;
+  }).sort((a, b) => {
+    const searchTerm = countrySearch.toLowerCase().trim();
+    const aName = a.name.toLowerCase();
+    const bName = b.name.toLowerCase();
+    const aCode = a.code.toLowerCase();
+    const bCode = b.code.toLowerCase();
+
+    // Sort by priority: starts with > contains
+    const aStartsWith = aName.startsWith(searchTerm) || aCode.startsWith(searchTerm);
+    const bStartsWith = bName.startsWith(searchTerm) || bCode.startsWith(searchTerm);
+
+    if (aStartsWith && !bStartsWith) return -1;
+    if (!aStartsWith && bStartsWith) return 1;
+
+    // If both start with or both contain, sort alphabetically
+    return a.name.localeCompare(b.name);
+  });
+
+  const isHagueConventionCountry = (countryCode: string) => {
+    return hagueConventionCountries.includes(countryCode);
+  };
+
+  const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+  const [loadingShipping, setLoadingShipping] = useState(false);
+
+  // Load services when country changes
+  useEffect(() => {
+    if (answers.country) {
+      loadAvailableServices(answers.country);
+    }
+  }, [answers.country]);
+
+  // Load shipping options
+  useEffect(() => {
+    loadShippingOptions();
+  }, []);
+
+  const loadAvailableServices = async (countryCode: string) => {
+    try {
+      setLoadingServices(true);
+      const isHagueCountry = isHagueConventionCountry(countryCode);
+
+      // Try to load standard services from Sweden (SE) first
+      try {
+        const standardPricingRules = await getCountryPricingRules('SE');
+        console.log('✅ Loaded standard services from Sweden:', standardPricingRules.length, 'rules');
+
+        // Also try to load country-specific embassy services
+        let countrySpecificRules: any[] = [];
+        try {
+          countrySpecificRules = await getCountryPricingRules(countryCode);
+          console.log('✅ Loaded country-specific services:', countrySpecificRules.length, 'rules');
+        } catch (countryError) {
+          console.log('⚠️ No country-specific services found for', countryCode);
+        }
+
+        // Combine standard services with country-specific services
+        const allPricingRules = [...standardPricingRules, ...countrySpecificRules];
+
+        if (allPricingRules && allPricingRules.length > 0) {
+          console.log('🔍 All pricing rules:', allPricingRules.map(r => ({ id: r.id, serviceType: r.serviceType, basePrice: r.basePrice })));
+
+          // Convert pricing rules to service objects with proper pricing logic
+          const servicesFromFirebase = allPricingRules.map(rule => {
+            // Apply "Från" pricing for variable services
+            let displayPrice = `${rule.basePrice} kr`;
+            if (rule.serviceType === 'embassy' || rule.serviceType === 'translation' || rule.serviceType === 'ud') {
+              // For variable pricing services, show "Från" format
+              const serviceRules = allPricingRules.filter(r => r.serviceType === rule.serviceType);
+              const minPrice = Math.min(...serviceRules.map(r => r.basePrice));
+              displayPrice = `Från ${minPrice} kr`;
+            }
+
+            return {
+              id: rule.serviceType,
+              name: getServiceName(rule.serviceType),
+              description: getServiceDescription(rule.serviceType, isHagueCountry),
+              price: displayPrice,
+              available: true,
+              processingTime: rule.processingTime?.standard || 5
+            };
+          });
+
+          console.log('🔄 Services from Firebase:', servicesFromFirebase.map(s => ({ id: s.id, price: s.price })));
+
+          // Add embassy service for non-Hague countries if not already in pricing rules
+          if (!isHagueCountry && !allPricingRules.some(r => r.serviceType === 'embassy')) {
+            servicesFromFirebase.push({
+              id: 'embassy',
+              name: 'Ambassadlegalisering',
+              description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige',
+              price: 'Från 1295 kr',
+              available: true,
+              processingTime: 14
+            });
+          }
+
+          // Add UD service for non-Hague countries if not already in pricing rules
+          if (!isHagueCountry && !allPricingRules.some(r => r.serviceType === 'ud')) {
+            servicesFromFirebase.push({
+              id: 'ud',
+              name: 'Utrikesdepartementet',
+              description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer',
+              price: 'Från 795 kr',
+              available: true,
+              processingTime: 7
+            });
+          }
+
+          setAvailableServices(servicesFromFirebase);
+          return;
+        }
+      } catch (firebaseError) {
+        console.log('⚠️ Firebase pricing failed, using mock data:', firebaseError instanceof Error ? firebaseError.message : String(firebaseError));
+      }
+
+      // Fallback to mock pricing service
+      console.log('📊 Using mock pricing service');
+
+      // Core services that should always be available (using admin panel prices)
+      const coreServices = [
+        {
+          id: 'chamber',
+          name: 'Handelskammarens legalisering',
+          description: 'Legaliserng av handelsdokument genom Handelskammaren',
+          price: '2400 kr',
+          available: true
+        },
+        {
+          id: 'notarization',
+          name: 'Notarisering',
+          description: 'Officiell notarisering av dokument',
+          price: '1300 kr',
+          available: true
+        },
+        {
+          id: 'translation',
+          name: 'Auktoriserad översättning',
+          description: 'Översättning av dokument',
+          price: 'Från 1450 kr', // Use "Från" format for translation
+          available: true
+        }
+      ];
+
+      // Additional services based on country type (using admin panel prices)
+      const additionalServices = [
+        {
+          id: 'ud',
+          name: 'Utrikesdepartementet',
+          description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer',
+          price: 'Från 1750 kr', // Use "Från" format for UD
+          available: !isHagueCountry
+        },
+        {
+          id: 'embassy',
+          name: 'Ambassadlegalisering',
+          description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige',
+          price: 'Från 1295 kr',
+          available: !isHagueCountry
+        },
+        {
+          id: 'apostille',
+          name: 'Apostille',
+          description: 'För länder som är anslutna till Haagkonventionen',
+          price: '950 kr',
+          available: isHagueCountry
+        }
+      ];
+
+      const availableServicesList = [...coreServices, ...additionalServices.filter(service => service.available)];
+      setAvailableServices(availableServicesList);
+
+    } catch (error) {
+      console.error('❌ Error loading services:', error);
+      // Final fallback - ensure core services are always available
+      const isHagueCountry = isHagueConventionCountry(countryCode);
+      const fallbackServices = [
+        { id: 'chamber', name: 'Handelskammarens legalisering', description: 'Legaliserng av handelsdokument genom Handelskammaren', price: '2400 kr', available: true },
+        { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '1300 kr', available: true },
+        { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: 'Från 1450 kr', available: true }
+      ];
+
+      // Add country-specific services (using admin panel prices)
+      if (!isHagueCountry) {
+        fallbackServices.push(
+          { id: 'ud', name: 'Utrikesdepartementet', description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer', price: 'Från 1750 kr', available: true },
+          { id: 'embassy', name: 'Ambassadlegalisering', description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige', price: 'Från 1295 kr', available: true }
+        );
+      } else {
+        fallbackServices.push(
+          { id: 'apostille', name: 'Apostille', description: 'För länder som är anslutna till Haagkonventionen', price: '950 kr', available: true }
+        );
+      }
+
+      setAvailableServices(fallbackServices);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const loadShippingOptions = async () => {
+    try {
+      setLoadingShipping(true);
+      const allRules = await getAllActivePricingRules();
+
+      // Filter to only shipping services
+      const shippingRules = allRules.filter(rule =>
+        ['postnord-rek', 'postnord-express', 'dhl-europe', 'dhl-worldwide', 'dhl-pre-12', 'dhl-pre-9', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(rule.serviceType) &&
+        rule.countryCode === 'GLOBAL'
+      );
+
+      // Convert to shipping options format
+      const shippingOptionsFromFirebase = shippingRules.map(rule => ({
+        id: rule.serviceType,
+        name: getShippingServiceName(rule.serviceType),
+        description: getShippingServiceDescription(rule.serviceType),
+        price: `${rule.basePrice} kr`,
+        provider: getShippingProvider(rule.serviceType),
+        estimatedDelivery: getShippingDeliveryTime(rule.serviceType)
+      }));
+
+      console.log('✅ Loaded shipping options:', shippingOptionsFromFirebase.length, 'options');
+      setShippingOptions(shippingOptionsFromFirebase);
+
+    } catch (error) {
+      console.error('❌ Error loading shipping options:', error);
+      // Use default shipping options if Firebase fails
+      const defaultShippingOptions = [
+        { id: 'postnord-rek', name: 'PostNord REK', description: 'Rekommenderat brev - spårbart och försäkrat', price: '85 kr', provider: 'PostNord', estimatedDelivery: '2-5 arbetsdagar' },
+        { id: 'postnord-express', name: 'PostNord Express', description: 'Expressleverans inom Sverige', price: '150 kr', provider: 'PostNord', estimatedDelivery: '1-2 arbetsdagar' },
+        { id: 'dhl-europe', name: 'DHL Europe', description: 'DHL leverans inom Europa', price: '250 kr', provider: 'DHL', estimatedDelivery: '2-4 arbetsdagar' },
+        { id: 'dhl-worldwide', name: 'DHL Worldwide', description: 'DHL internationell leverans', price: '450 kr', provider: 'DHL', estimatedDelivery: '3-7 arbetsdagar' },
+        { id: 'dhl-pre-12', name: 'DHL Pre 12', description: 'Leverans före klockan 12:00 nästa arbetsdag', price: '350 kr', provider: 'DHL', estimatedDelivery: 'Nästa arbetsdag före 12:00' },
+        { id: 'dhl-pre-9', name: 'DHL Pre 9', description: 'Leverans före klockan 09:00 nästa arbetsdag', price: '450 kr', provider: 'DHL', estimatedDelivery: 'Nästa arbetsdag före 09:00' },
+        { id: 'stockholm-city', name: 'Stockholm City Courier', description: 'Lokal budservice inom Stockholm', price: '120 kr', provider: 'Lokal', estimatedDelivery: 'Samma dag (före 16:00)' },
+        { id: 'stockholm-express', name: 'Stockholm Express', description: 'Expressleverans inom Stockholm samma dag', price: '180 kr', provider: 'Lokal', estimatedDelivery: '2-4 timmar' },
+        { id: 'stockholm-sameday', name: 'Stockholm Same Day', description: 'Samma dags leverans inom Stockholm', price: '250 kr', provider: 'Lokal', estimatedDelivery: 'Inom 2 timmar' }
+      ];
+      setShippingOptions(defaultShippingOptions);
+      toast.error('Kunde inte ladda fraktalternativ från Firebase - använder standardalternativ');
+    } finally {
+      setLoadingShipping(false);
+    }
+  };
+
+  const getShippingServiceName = (serviceType: string) => {
+    const names: { [key: string]: string } = {
+      'postnord-rek': 'PostNord REK',
+      'postnord-express': 'PostNord Express',
+      'dhl-europe': 'DHL Europe',
+      'dhl-worldwide': 'DHL Worldwide',
+      'dhl-pre-12': 'DHL Pre 12',
+      'dhl-pre-9': 'DHL Pre 9',
+      'stockholm-city': 'Stockholm City Courier',
+      'stockholm-express': 'Stockholm Express',
+      'stockholm-sameday': 'Stockholm Same Day'
+    };
+    return names[serviceType] || serviceType;
+  };
+
+  const getShippingServiceDescription = (serviceType: string) => {
+    const descriptions: { [key: string]: string } = {
+      'postnord-rek': 'Rekommenderat brev - spårbart och försäkrat',
+      'postnord-express': 'Expressleverans inom Sverige',
+      'dhl-europe': 'DHL leverans inom Europa',
+      'dhl-worldwide': 'DHL internationell leverans',
+      'dhl-pre-12': 'Leverans före klockan 12:00 nästa arbetsdag',
+      'dhl-pre-9': 'Leverans före klockan 09:00 nästa arbetsdag',
+      'stockholm-city': 'Lokal budservice inom Stockholm',
+      'stockholm-express': 'Expressleverans inom Stockholm samma dag',
+      'stockholm-sameday': 'Samma dags leverans inom Stockholm'
+    };
+    return descriptions[serviceType] || '';
+  };
+
+  const getShippingProvider = (serviceType: string) => {
+    if (serviceType.startsWith('postnord')) return 'PostNord';
+    if (serviceType.startsWith('dhl')) return 'DHL';
+    if (serviceType.startsWith('stockholm')) return 'Lokal';
+    return 'Övrigt';
+  };
+
+  const getShippingDeliveryTime = (serviceType: string) => {
+    const deliveryTimes: { [key: string]: string } = {
+      'postnord-rek': '2-5 arbetsdagar',
+      'postnord-express': '1-2 arbetsdagar',
+      'dhl-europe': '2-4 arbetsdagar',
+      'dhl-worldwide': '3-7 arbetsdagar',
+      'dhl-pre-12': 'Nästa arbetsdag före 12:00',
+      'dhl-pre-9': 'Nästa arbetsdag före 09:00',
+      'stockholm-city': 'Samma dag (före 16:00)',
+      'stockholm-express': '2-4 timmar',
+      'stockholm-sameday': 'Inom 2 timmar'
+    };
+    return deliveryTimes[serviceType] || 'Varierar';
+  };
+
+  const getServiceName = (serviceType: string) => {
+    const names: { [key: string]: string } = {
+      apostille: 'Apostille',
+      notarization: 'Notarisering',
+      embassy: 'Ambassadlegalisering',
+      ud: 'Utrikesdepartementet',
+      translation: 'Auktoriserad översättning',
+      chamber: 'Handelskammarens legalisering'
+    };
+    return names[serviceType] || serviceType;
+  };
+
+  const getServiceDescription = (serviceType: string, isHagueCountry: boolean) => {
+    const descriptions: { [key: string]: string } = {
+      apostille: 'För länder som är anslutna till Haagkonventionen',
+      notarization: 'Officiell notarisering av dokument',
+      embassy: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige',
+      ud: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer',
+      translation: 'Översättning av dokument',
+      chamber: 'Legaliserng av handelsdokument genom Handelskammaren'
+    };
+    return descriptions[serviceType] || '';
+  };
+
+  const getAvailableServices = (countryCode: string) => {
+    return availableServices;
+  };
+
+  // Handle clicking outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowCountryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleCountrySelect = (countryCode: string) => {
+    setAnswers(prev => ({ ...prev, country: countryCode }));
+    setCountrySearch(allCountries.find(c => c.code === countryCode)?.name || '');
+    setShowCountryDropdown(false);
+
+    // Track country selection for future popularity ranking
+    console.log(`Country selected: ${countryCode}`);
+
+    setCurrentQuestion(2);
+  };
+
+  const handleCustomCountrySubmit = () => {
+    if (countrySearch.trim() && !answers.country) {
+      // Create a custom country entry
+      const customCountry = {
+        code: 'custom',
+        name: countrySearch.trim(),
+        flag: '🌍'
+      };
+      setAnswers(prev => ({ ...prev, country: 'custom' }));
+      setShowCountryDropdown(false);
+      setCurrentQuestion(2);
+    }
+  };
+
+  const renderQuestion1 = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Vilket land ska dokumentet användas i?
+        </h1>
+        <p className="text-lg text-gray-600">
+          Detta hjälper oss att rekommendera rätt legaliseringstjänster för ditt dokument.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="relative" ref={dropdownRef}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Sök efter land
+          </label>
+          <input
+            type="text"
+            value={countrySearch}
+            onChange={(e) => {
+              setCountrySearch(e.target.value);
+              setShowCountryDropdown(true);
+            }}
+            onFocus={() => setShowCountryDropdown(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && countrySearch.trim() && filteredCountries.length === 0) {
+                handleCustomCountrySubmit();
+              }
+            }}
+            placeholder="Sök land (t.ex. 'ku' visar Kuwait, 'qa' visar Qatar)..."
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-lg"
+          />
+
+          {showCountryDropdown && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredCountries.length > 0 ? (
+                filteredCountries.slice(0, 10).map((country) => (
+                  <button
+                    key={country.code}
+                    onClick={() => {
+                      handleCountrySelect(country.code);
+                      setCountrySearch(country.name);
+                      setShowCountryDropdown(false);
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 flex items-center"
+                  >
+                    <span className="text-2xl mr-3">{country.flag}</span>
+                    <span className="text-gray-900">{country.name}</span>
+                    {isHagueConventionCountry(country.code) && (
+                      <span className="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                        Haagkonventionen
+                      </span>
+                    )}
+                  </button>
+                ))
+              ) : countrySearch.trim() ? (
+                <button
+                  onClick={handleCustomCountrySubmit}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 flex items-center"
+                >
+                  <span className="text-2xl mr-3">🌍</span>
+                  <span className="text-gray-900">Använd "{countrySearch}" som land</span>
+                  <span className="ml-auto text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    Annat land
+                  </span>
+                </button>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        {/* Popular countries quick select */}
+        {!answers.country && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Populära länder
+            </h3>
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {popularCountries.map((country) => (
+                <button
+                  key={country.code}
+                  onClick={() => handleCountrySelect(country.code)}
+                  className="flex flex-col items-center p-3 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <span className="text-2xl mb-1">{country.flag}</span>
+                  <span className="text-xs font-medium text-gray-900 text-center">
+                    {country.name}
+                  </span>
+                  {isHagueConventionCountry(country.code) && (
+                    <span className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded mt-1">
+                      Apostille
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Apostille tillgänglig för Haagkonventionsländer
+            </p>
+          </div>
+        )}
+
+        {answers.country && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <span className="text-2xl mr-3">
+                {allCountries.find(c => c.code === answers.country)?.flag}
+              </span>
+              <div>
+                <div className="font-medium text-green-900">
+                  {allCountries.find(c => c.code === answers.country)?.name}
+                </div>
+                <div className="text-sm text-green-700">
+                  {isHagueConventionCountry(answers.country)
+                    ? 'Land anslutet till Haagkonventionen - Apostille tillgänglig'
+                    : 'Ambassadlegalisering rekommenderas'
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between">
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            Tillbaka till startsidan
+          </button>
+          {answers.country && (
+            <button
+              onClick={() => setCurrentQuestion(2)}
+              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            >
+              Nästa →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderQuestion2 = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Vilken typ av dokument behöver du legalisera?
+        </h1>
+        <p className="text-lg text-gray-600">
+          Välj den dokumenttyp som bäst matchar ditt behov.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {[
+          { id: 'birthCertificate', name: 'Födelsebevis', icon: '👶' },
+          { id: 'marriageCertificate', name: 'Vigselbevis', icon: '💍' },
+          { id: 'diploma', name: 'Examensbevis', icon: '🎓' },
+          { id: 'commercial', name: 'Handelsdokument', icon: '📄' },
+          { id: 'powerOfAttorney', name: 'Fullmakt', icon: '✍️' },
+          { id: 'other', name: 'Annat dokument', icon: '📋' }
+        ].map((docType) => (
+          <button
+            key={docType.id}
+            onClick={() => {
+              setAnswers(prev => ({ ...prev, documentType: docType.id }));
+              setCurrentQuestion(3);
+            }}
+            className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 flex items-center"
+          >
+            <span className="text-2xl mr-4">{docType.icon}</span>
+            <span className="text-lg font-medium text-gray-900">{docType.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-8 flex justify-between">
+        <button
+          onClick={() => setCurrentQuestion(1)}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          ← Tillbaka
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderQuestion3 = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Vilka tjänster behöver du?
+        </h1>
+        <p className="text-lg text-gray-600">
+          Baserat på ditt valda land rekommenderar vi följande tjänster.
+        </p>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center">
+          <span className="text-2xl mr-3">
+            {allCountries.find(c => c.code === answers.country)?.flag}
+          </span>
+          <div>
+            <div className="font-medium text-blue-900">
+              Valt land: {allCountries.find(c => c.code === answers.country)?.name}
+            </div>
+            <div className="text-sm text-blue-700">
+              Dokumenttyp: {answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
+                           answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+                           answers.documentType === 'diploma' ? 'Examensbevis' :
+                           answers.documentType === 'commercial' ? 'Handelsdokument' :
+                           answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {!isHagueConventionCountry(answers.country) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <span className="text-2xl mr-3">ℹ️</span>
+            <div>
+              <h4 className="font-medium text-amber-900 mb-2">Process för icke-Haagkonventionsländer</h4>
+              <div className="text-sm text-amber-800 space-y-1">
+                <div><strong>Steg 1:</strong> Välj mellan Handelskammarens legalisering eller Notarisering</div>
+                <div><strong>Steg 2:</strong> Legaliserng på svenska UD</div>
+                <div><strong>Steg 3:</strong> Slutlig legalisering på ambassaden</div>
+              </div>
+              <p className="text-xs text-amber-700 mt-2">
+                <strong>Tips:</strong> Handelskammarens legalisering rekommenderas för företagsdokument, medan notarisering passar bättre för personliga dokument.
+              </p>
+              <p className="text-xs text-amber-700 mt-2">
+                Alla tre steg krävs för att dokumentet ska vara giltigt i det valda landet.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {getAvailableServices(answers.country).map((service) => {
+          const isSelected = answers.services.includes(service.id);
+          return (
+            <div
+              key={service.id}
+              onClick={() => {
+                if (isSelected) {
+                  setAnswers(prev => ({
+                    ...prev,
+                    services: prev.services.filter(s => s !== service.id)
+                  }));
+                } else {
+                  setAnswers(prev => ({
+                    ...prev,
+                    services: [...prev.services, service.id]
+                  }));
+                }
+              }}
+              className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                isSelected
+                  ? 'border-primary-500 bg-primary-50 shadow-md'
+                  : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">{service.name}</h3>
+                  <p className="text-gray-600 mb-2">{service.description}</p>
+                  <span className="text-primary-600 font-medium">{service.price}</span>
+                  {service.id === 'apostille' && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                        🌍 Rekommenderas för Haagkonventionsländer
+                      </span>
+                    </div>
+                  )}
+                  {service.id === 'chamber' && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                        🏢 Steg 1: Handelskammaren
+                      </span>
+                      <p className="text-xs text-gray-600 mt-1">För handelsdokument och företagscertifikat</p>
+                    </div>
+                  )}
+                  {service.id === 'notarization' && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                        📝 Steg 1: Notarisering
+                      </span>
+                      <p className="text-xs text-gray-600 mt-1">För personliga dokument och allmänna legaliseringar</p>
+                    </div>
+                  )}
+                  {service.id === 'ud' && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                        🏛️ Steg 2: UD Sverige
+                      </span>
+                    </div>
+                  )}
+                  {service.id === 'embassy' && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                        🏛️ Steg 3: Ambassad
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="ml-4 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      // Prevent event bubbling when clicking checkbox directly
+                      e.stopPropagation();
+                      if (e.target.checked) {
+                        setAnswers(prev => ({
+                          ...prev,
+                          services: [...prev.services, service.id]
+                        }));
+                      } else {
+                        setAnswers(prev => ({
+                          ...prev,
+                          services: prev.services.filter(s => s !== service.id)
+                        }));
+                      }
+                    }}
+                    className="h-5 w-5 text-primary-600 rounded focus:ring-primary-500 pointer-events-none"
+                    readOnly
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 flex justify-between">
+        <button
+          onClick={() => setCurrentQuestion(2)}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          ← Tillbaka
+        </button>
+        <button
+          onClick={() => setCurrentQuestion(4)}
+          disabled={answers.services.length === 0}
+          className={`px-6 py-2 rounded-md font-medium ${
+            answers.services.length > 0
+              ? 'bg-primary-600 text-white hover:bg-primary-700'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          Fortsätt →
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderQuestion4 = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Hur många dokument behöver du?
+        </h1>
+        <p className="text-lg text-gray-600">
+          Ange antal dokument som ska legaliseras.
+        </p>
+      </div>
+
+      <div className="flex items-center justify-center space-x-4 mb-8">
+        <button
+          onClick={() => setAnswers(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
+          className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-primary-500 hover:bg-primary-50"
+        >
+          <span className="text-2xl">−</span>
+        </button>
+
+        <div className="text-center">
+          <div className="text-4xl font-bold text-primary-600 mb-2">{answers.quantity}</div>
+          <div className="text-gray-600">dokument</div>
+        </div>
+
+        <button
+          onClick={() => setAnswers(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))}
+          className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-primary-500 hover:bg-primary-50"
+        >
+          <span className="text-2xl">+</span>
+        </button>
+      </div>
+
+
+      <div className="mt-8 flex justify-between">
+        <button
+          onClick={() => setCurrentQuestion(3)}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          ← Tillbaka
+        </button>
+        <button
+          onClick={() => setCurrentQuestion(5)}
+          className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+        >
+          Nästa steg →
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderQuestion5 = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Har du originaldokument eller behöver du ladda upp kopior?
+        </h1>
+        <p className="text-lg text-gray-600">
+          Vi behöver veta om du har fysiska originaldokument eller om du vill ladda upp digitala kopior för legalisering.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <span className="text-2xl mr-3">📄</span>
+            <div>
+              <div className="font-medium text-blue-900">
+                Du har valt: {answers.quantity} dokument
+              </div>
+              <div className="text-sm text-blue-700">
+                Detta påverkar antalet filer du kan ladda upp
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <button
+            onClick={() => {
+              setAnswers(prev => ({ ...prev, documentSource: 'original', uploadedFiles: [] }));
+              setCurrentQuestion(6);
+            }}
+            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+              answers.documentSource === 'original' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            }`}
+          >
+            <div className="flex items-center">
+              <span className="text-3xl mr-4">📋</span>
+              <div className="text-left">
+                <div className="text-lg font-medium text-gray-900">Originaldokument</div>
+                <div className="text-gray-600">Jag har fysiska originaldokument som jag skickar per post</div>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => {
+              setAnswers(prev => ({ ...prev, documentSource: 'upload' }));
+              setCurrentQuestion(6);
+            }}
+            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+              answers.documentSource === 'upload' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            }`}
+          >
+            <div className="flex items-center">
+              <span className="text-3xl mr-4">📤</span>
+              <div className="text-left">
+                <div className="text-lg font-medium text-gray-900">Ladda upp dokument</div>
+                <div className="text-gray-600">Jag vill ladda upp digitala kopior för legalisering</div>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-8 flex justify-between">
+        <button
+          onClick={() => setCurrentQuestion(4)}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          ← Tillbaka
+        </button>
+        {answers.documentSource && (
+          <button
+            onClick={() => setCurrentQuestion(6)}
+            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          >
+            Nästa steg →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderQuestion6 = () => {
+    // Only show pickup service step if original documents are selected
+    if (answers.documentSource !== 'original') {
+      // Skip to scanned copies step
+      setCurrentQuestion(7);
+      return null;
+    }
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Önskar du att vi hämtar dina dokument?
+          </h1>
+          <p className="text-lg text-gray-600">
+            Vi kan komma och hämta dina originaldokument hemma eller på jobbet
+          </p>
+        </div>
+
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <span className="text-2xl mr-3">🚚</span>
+            <div>
+              <div className="font-medium text-green-900">
+                Dokumenthämtning från 450 kr
+              </div>
+              <div className="text-sm text-green-700">
+                Priset varierar beroende på avstånd och område
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <button
+            onClick={() => {
+              setAnswers(prev => ({
+                ...prev,
+                pickupService: false,
+                pickupAddress: { street: '', postalCode: '', city: '' }
+              }));
+              setCurrentQuestion(7);
+            }}
+            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+              answers.pickupService === false ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            }`}
+          >
+            <div className="flex items-center">
+              <span className="text-3xl mr-4">📮</span>
+              <div className="text-left">
+                <div className="text-lg font-medium text-gray-900">Nej tack, jag skickar själv</div>
+                <div className="text-gray-600">Jag föredrar att posta dokumenten själv</div>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => {
+              setAnswers(prev => ({ ...prev, pickupService: true }));
+              setCurrentQuestion(7); // Go to pickup address step
+            }}
+            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+              answers.pickupService === true ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            }`}
+          >
+            <div className="flex items-center">
+              <span className="text-3xl mr-4">🚚</span>
+              <div className="text-left">
+                <div className="text-lg font-medium text-gray-900">Ja tack, hämta mina dokument</div>
+                <div className="text-gray-600">Lägg till hämtning</div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="mt-8 flex justify-between">
+          <button
+            onClick={() => setCurrentQuestion(5)}
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            ← Tillbaka
+          </button>
+          {answers.pickupService !== undefined && (
+            <button
+              onClick={() => setCurrentQuestion(7)}
+              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            >
+              Nästa steg →
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderQuestion7 = () => {
+    // Only show pickup address step if pickup service is selected
+    if (!answers.pickupService) {
+      // Skip to scanned copies step
+      setCurrentQuestion(8);
+      return null;
+    }
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            📍 Uppgifter för dokumenthämtning
+          </h1>
+          <p className="text-lg text-gray-600">
+            Ange adress där vi ska hämta dina dokument
+          </p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <span className="text-2xl mr-3">🚚</span>
+            <div>
+              <div className="font-medium text-blue-900">
+                Dokumenthämtning beställd
+              </div>
+              <div className="text-sm text-blue-700">
+                Vi kommer att kontakta dig inom 24 timmar för att boka tid för hämtning
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Gatuadress *
+            </label>
+            <input
+              type="text"
+              value={answers.pickupAddress.street}
+              onChange={(e) => setAnswers(prev => ({
+                ...prev,
+                pickupAddress: { ...prev.pickupAddress, street: e.target.value }
+              }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Ange din gatuadress..."
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Postnummer *
+              </label>
+              <input
+                type="text"
+                value={answers.pickupAddress.postalCode}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  pickupAddress: { ...prev.pickupAddress, postalCode: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="123 45"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ort *
+              </label>
+              <input
+                type="text"
+                value={answers.pickupAddress.city}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  pickupAddress: { ...prev.pickupAddress, city: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Stockholm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-between">
+          <button
+            onClick={() => setCurrentQuestion(6)}
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            ← Tillbaka
+          </button>
+          <button
+            onClick={() => setCurrentQuestion(8)}
+            disabled={!answers.pickupAddress.street || !answers.pickupAddress.postalCode || !answers.pickupAddress.city}
+            className={`px-6 py-2 rounded-md font-medium ${
+              answers.pickupAddress.street && answers.pickupAddress.postalCode && answers.pickupAddress.city
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Nästa steg →
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderQuestion8 = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Önskar du scannade kopior av ditt dokument?
+        </h1>
+        <p className="text-lg text-gray-600">
+          Vi kan skanna dina originaldokument och skicka digitala kopior till dig
+        </p>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center">
+          <span className="text-2xl mr-3">📄</span>
+          <div>
+            <div className="font-medium text-blue-900">
+              Du har valt: {answers.quantity} dokument
+            </div>
+            <div className="text-sm text-blue-700">
+              Scannade kopior kostar 200 kr per dokument
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <button
+          onClick={() => {
+            setAnswers(prev => ({ ...prev, scannedCopies: false }));
+            setCurrentQuestion(9);
+          }}
+          className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+            answers.scannedCopies === false ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-center">
+            <span className="text-3xl mr-4">❌</span>
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">Nej tack</div>
+              <div className="text-gray-600">Jag behöver inga scannade kopior</div>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => {
+            setAnswers(prev => ({ ...prev, scannedCopies: true }));
+            setCurrentQuestion(9);
+          }}
+          className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+            answers.scannedCopies === true ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-center">
+            <span className="text-3xl mr-4">✅</span>
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">Ja tack</div>
+              <div className="text-gray-600">Lägg till scannade kopior (+200 kr per dokument)</div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div className="mt-8 flex justify-between">
+        <button
+          onClick={() => {
+            // Go back to step 7 if pickup service, otherwise step 6 if original documents, otherwise step 5
+            if (answers.pickupService) {
+              setCurrentQuestion(7);
+            } else if (answers.documentSource === 'original') {
+              setCurrentQuestion(6);
+            } else {
+              setCurrentQuestion(5);
+            }
+          }}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+        >
+          ← Tillbaka
+        </button>
+        {answers.scannedCopies !== undefined && (
+          <button
+            onClick={() => setCurrentQuestion(9)}
+            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          >
+            Fortsätt →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderQuestion9 = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Dina uppgifter
+        </h1>
+        <p className="text-lg text-gray-600">
+          Fyll i dina kontaktuppgifter så att vi kan behandla din beställning
+        </p>
+      </div>
+
+      {/* Order Summary */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-semibold text-blue-900 mb-4">
+          📋 Beställningssammanfattning
+        </h3>
+
+        <div className="space-y-3">
+          {/* Country and Document Type */}
+          <div className="flex justify-between items-center py-2 border-b border-blue-200">
+            <span className="text-gray-700">Land:</span>
+            <span className="font-medium text-gray-900">
+              {allCountries.find(c => c.code === answers.country)?.name} {allCountries.find(c => c.code === answers.country)?.flag}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center py-2 border-b border-blue-200">
+            <span className="text-gray-700">Dokumenttyp:</span>
+            <span className="font-medium text-gray-900">
+              {answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
+               answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+               answers.documentType === 'diploma' ? 'Examensbevis' :
+               answers.documentType === 'commercial' ? 'Handelsdokument' :
+               answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center py-2 border-b border-blue-200">
+            <span className="text-gray-700">Antal dokument:</span>
+            <span className="font-medium text-gray-900">{answers.quantity} st</span>
+          </div>
+
+          {/* Selected Services */}
+          <div className="py-2">
+            <span className="text-gray-700 font-medium">Valda tjänster:</span>
+            <div className="mt-2 space-y-1">
+              {answers.services.map((serviceId) => {
+                const service = availableServices.find(s => s.id === serviceId);
+                return service ? (
+                  <div key={serviceId} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">• {service.name}</span>
+                    <span className="font-medium text-gray-900">{service.price}</span>
+                  </div>
+                ) : null;
+              })}
+            </div>
+          </div>
+
+          {/* Additional Services */}
+          {answers.expedited && (
+            <div className="flex justify-between items-center py-2 border-b border-blue-200">
+              <span className="text-gray-700">Expressbehandling:</span>
+              <span className="font-medium text-gray-900">500 kr</span>
+            </div>
+          )}
+
+          {answers.pickupService && (
+            <div className="flex justify-between items-center py-2 border-b border-blue-200">
+              <span className="text-gray-700">Dokumenthämtning:</span>
+              <span className="font-medium text-gray-900">Från 450 kr</span>
+            </div>
+          )}
+
+          {answers.scannedCopies && (
+            <div className="flex justify-between items-center py-2 border-b border-blue-200">
+              <span className="text-gray-700">Scannade kopior ({answers.quantity} st):</span>
+              <span className="font-medium text-gray-900">{200 * answers.quantity} kr</span>
+            </div>
+          )}
+
+          {/* Total Price */}
+          <div className="flex justify-between items-center py-3 border-t-2 border-blue-300 bg-blue-100 -mx-6 px-6 rounded-b-lg">
+            <span className="text-lg font-semibold text-blue-900">Totalbelopp:</span>
+            <span className="text-xl font-bold text-blue-900">
+              {(() => {
+                // Calculate total price
+                let total = 0;
+
+                // Add service prices
+                answers.services.forEach(serviceId => {
+                  const service = availableServices.find(s => s.id === serviceId);
+                  if (service && service.price) {
+                    // Extract numeric value from price string (e.g., "2000 kr" -> 2000)
+                    const priceMatch = service.price.match(/(\d+)/);
+                    if (priceMatch) {
+                      total += parseInt(priceMatch[1]) * answers.quantity;
+                    }
+                  }
+                });
+
+                // Add additional fees
+                if (answers.expedited) total += 500;
+                if (answers.pickupService) total += 450; // Updated pickup service base price
+                if (answers.scannedCopies) total += 200 * answers.quantity;
+
+                return `${total.toLocaleString()} kr`;
+              })()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Information based on document source - only show if not pickup service */}
+      {answers.documentSource === 'original' && !answers.pickupService && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+          <div className="flex items-start">
+            <span className="text-3xl mr-4">📮</span>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-red-900 mb-2">
+                📍 Skicka dina originaldokument till denna adress:
+              </h3>
+              <div className="bg-white border border-red-200 rounded-lg p-4 mb-3">
+                <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
+                <div className="text-gray-700">Att: Dokumenthantering</div>
+                <div className="text-gray-700">Kungsgatan 12</div>
+                <div className="text-gray-700">111 43 Stockholm</div>
+                <div className="text-gray-700">Sverige</div>
+              </div>
+              <div className="text-sm text-red-800 space-y-1">
+                <div><strong>⚠️ Viktigt:</strong> Skicka endast originaldokument - inga kopior accepteras</div>
+                <div><strong>📦 Förpackning:</strong> Använd rekommenderat brev eller paket</div>
+                <div><strong>🕒 Leveranstid:</strong> 2-5 arbetsdagar beroende på PostNord</div>
+                <div><strong>📞 Frågor:</strong> Kontakta oss på 08-123 45 67</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {answers.documentSource === 'upload' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+          <div className="flex items-start">
+            <span className="text-3xl mr-4">📤</span>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                📤 Dina uppladdade dokument
+              </h3>
+              <div className="text-sm text-blue-800 space-y-1">
+                <div><strong>✅ Status:</strong> Dina dokument har laddats upp och är klara för bearbetning</div>
+                <div><strong>🕒 Bearbetningstid:</strong> 5-10 arbetsdagar från mottagande</div>
+                <div><strong>📧 Uppföljning:</strong> Du får e-post när dina dokument är klara</div>
+                <div><strong>📞 Support:</strong> Kontakta oss om du har frågor: 08-123 45 67</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {answers.documentSource === 'upload' ? (
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <span className="text-2xl mr-3">📎</span>
+              <div>
+                <div className="font-medium text-green-900">
+                  Ladda upp {answers.quantity} dokument
+                </div>
+                <div className="text-sm text-green-700">
+                  Tillåtna format: PDF, JPG, PNG (max 10MB per fil)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {Array.from({ length: answers.quantity }, (_, index) => (
+              <div key={index} className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary-500 transition-colors">
+                <div className="text-center">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setAnswers(prev => {
+                          const newFiles = [...prev.uploadedFiles];
+                          newFiles[index] = file;
+                          return { ...prev, uploadedFiles: newFiles };
+                        });
+                      }
+                    }}
+                    className="hidden"
+                    id={`file-upload-${index}`}
+                  />
+                  <label
+                    htmlFor={`file-upload-${index}`}
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <span className="text-4xl mb-2">📄</span>
+                    <span className="text-lg font-medium text-gray-900 mb-1">
+                      Dokument {index + 1}
+                    </span>
+                    {answers.uploadedFiles[index] ? (
+                      <span className="text-sm text-green-600 font-medium">
+                        ✓ {answers.uploadedFiles[index].name}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-600">
+                        Klicka för att välja fil
+                      </span>
+                    )}
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-between">
+            <button
+              onClick={() => setCurrentQuestion(8)}
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              ← Tillbaka
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  console.log('📤 Submitting order with files...');
+
+                  // Calculate pricing - try Firebase first, then mock
+                  let pricingResult;
+                  try {
+                    // Try Firebase pricing first
+                    pricingResult = await calculateOrderPrice({
+                      country: answers.country,
+                      services: answers.services,
+                      quantity: answers.quantity,
+                      expedited: answers.expedited,
+                      deliveryMethod: answers.documentSource === 'original' ? 'post' : 'digital'
+                    });
+                    console.log('✅ Used Firebase pricing for order calculation');
+                  } catch (firebaseError) {
+                    console.log('⚠️ Firebase pricing failed, using mock calculation:', firebaseError instanceof Error ? firebaseError.message : String(firebaseError));
+
+                    // Fallback to mock pricing calculation
+                    let totalPrice = 0;
+                    for (const serviceId of answers.services) {
+                      try {
+                        const pricingRule = await getPricingRule('GLOBAL', serviceId);
+                        if (pricingRule) {
+                          totalPrice += pricingRule.basePrice;
+                        } else {
+                          // Use default prices if mock service fails (matching admin panel)
+                          const defaultPrices: { [key: string]: number } = {
+                            'chamber': 2400,
+                            'notarization': 1300,
+                            'translation': 1450,
+                            'ud': 1750,
+                            'embassy': 1295,
+                            'apostille': 950
+                          };
+                          totalPrice += defaultPrices[serviceId] || 1000;
+                        }
+                      } catch (mockError) {
+                        console.log('Mock pricing also failed for', serviceId);
+                        // Use default prices (matching admin panel)
+                        const defaultPrices: { [key: string]: number } = {
+                          'chamber': 2400,
+                          'notarization': 1300,
+                          'translation': 1450,
+                          'ud': 1750,
+                          'embassy': 1295,
+                          'apostille': 950
+                        };
+                        totalPrice += defaultPrices[serviceId] || 1000;
+                      }
+                    }
+                    totalPrice *= answers.quantity;
+
+                    // Add scanned copies cost (200 kr per document)
+                    const scannedCopiesCost = answers.scannedCopies ? 200 * answers.quantity : 0;
+
+                    const additionalFees = (answers.expedited ? 500 : 0) + scannedCopiesCost;
+                    pricingResult = {
+                      basePrice: totalPrice,
+                      additionalFees,
+                      totalPrice: totalPrice + additionalFees,
+                      breakdown: []
+                    };
+                  }
+
+                  // Prepare order data
+                  const orderData = {
+                    country: answers.country,
+                    documentType: answers.documentType,
+                    services: answers.services,
+                    quantity: answers.quantity,
+                    expedited: answers.expedited,
+                    documentSource: answers.documentSource,
+                    scannedCopies: answers.scannedCopies,
+                    customerInfo: answers.customerInfo,
+                    paymentMethod: answers.paymentMethod,
+                    totalPrice: pricingResult.totalPrice,
+                    pricingBreakdown: pricingResult.breakdown
+                  };
+
+                  // Submit order with files
+                  const orderId = await createOrderWithFiles(orderData, answers.uploadedFiles);
+
+                  console.log('✅ Order submitted successfully:', orderId);
+
+                  // Show beautiful success toast
+                  toast.success(
+                    <div className="text-center">
+                      <div className="font-bold text-lg mb-2">🎉 Beställning skickad!</div>
+                      <div className="text-sm">
+                        <strong>Ordernummer:</strong> {orderId}<br/>
+                        <span className="text-green-600">✓ Filer har laddats upp till Firebase Storage</span>
+                      </div>
+                    </div>,
+                    {
+                      duration: 6000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        fontSize: '16px',
+                        maxWidth: '400px'
+                      }
+                    }
+                  );
+
+                  // Redirect to confirmation page after a short delay
+                  setTimeout(() => {
+                    router.push(`/bekraftelse?orderId=${orderId}`);
+                  }, 2000);
+
+                } catch (error) {
+                  console.error('❌ Error submitting order:', error);
+
+                  // Show beautiful error toast
+                  toast.error(
+                    <div className="text-center">
+                      <div className="font-bold text-lg mb-2">❌ Ett fel uppstod</div>
+                      <div className="text-sm">
+                        Kunde inte skicka beställning.<br/>
+                        <span className="text-red-200">Försök igen eller kontakta support</span>
+                      </div>
+                    </div>,
+                    {
+                      duration: 5000,
+                      style: {
+                        background: '#EF4444',
+                        color: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        fontSize: '16px',
+                        maxWidth: '400px'
+                      }
+                    }
+                  );
+                }
+              }}
+              disabled={answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file)}
+              className={`px-6 py-2 rounded-md font-medium ${
+                answers.uploadedFiles.length === answers.quantity && answers.uploadedFiles.every(file => file)
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Skicka beställning med filer
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Förnamn *
+              </label>
+              <input
+                type="text"
+                value={answers.customerInfo.firstName}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  customerInfo: { ...prev.customerInfo, firstName: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Ange ditt förnamn"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Efternamn *
+              </label>
+              <input
+                type="text"
+                value={answers.customerInfo.lastName}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  customerInfo: { ...prev.customerInfo, lastName: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Ange ditt efternamn"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              E-postadress *
+            </label>
+            <input
+              type="email"
+              value={answers.customerInfo.email}
+              onChange={(e) => setAnswers(prev => ({
+                ...prev,
+                customerInfo: { ...prev.customerInfo, email: e.target.value }
+              }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="din@email.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Telefonnummer *
+            </label>
+            <input
+              type="tel"
+              value={answers.customerInfo.phone}
+              onChange={(e) => setAnswers(prev => ({
+                ...prev,
+                customerInfo: { ...prev.customerInfo, phone: e.target.value }
+              }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="+46 70 123 45 67"
+            />
+          </div>
+
+          <div className="mt-8 flex justify-between">
+            <button
+              onClick={() => setCurrentQuestion(8)}
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              ← Tillbaka
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  console.log('📤 Submitting order without files...');
+
+                  // Calculate pricing - try Firebase first, then mock
+                  let pricingResult;
+                  try {
+                    // Try Firebase pricing first
+                    pricingResult = await calculateOrderPrice({
+                      country: answers.country,
+                      services: answers.services,
+                      quantity: answers.quantity,
+                      expedited: answers.expedited,
+                      deliveryMethod: answers.documentSource === 'original' ? 'post' : 'digital'
+                    });
+                    console.log('✅ Used Firebase pricing for order calculation');
+                  } catch (firebaseError) {
+                    console.log('⚠️ Firebase pricing failed, using mock calculation:', firebaseError instanceof Error ? firebaseError.message : String(firebaseError));
+
+                    // Fallback to mock pricing calculation
+                    let totalPrice = 0;
+                    for (const serviceId of answers.services) {
+                      try {
+                        const pricingRule = await getPricingRule('GLOBAL', serviceId);
+                        if (pricingRule) {
+                          totalPrice += pricingRule.basePrice;
+                        } else {
+                          // Use default prices if mock service fails
+                          const defaultPrices: { [key: string]: number } = {
+                            'chamber': 2400,
+                            'notarization': 1300,
+                            'translation': 1450,
+                            'ud': 1750,
+                            'embassy': 1295,
+                            'apostille': 950
+                          };
+                          totalPrice += defaultPrices[serviceId] || 1000;
+                        }
+                      } catch (mockError) {
+                        console.log('Mock pricing also failed for', serviceId);
+                        // Use default prices (matching admin panel)
+                        const defaultPrices: { [key: string]: number } = {
+                          'chamber': 2400,
+                          'notarization': 1300,
+                          'translation': 1450,
+                          'ud': 1750,
+                          'embassy': 1295,
+                          'apostille': 950
+                        };
+                        totalPrice += defaultPrices[serviceId] || 1000;
+                      }
+                    }
+                    totalPrice *= answers.quantity;
+
+                    // Add scanned copies cost (200 kr per document)
+                    const scannedCopiesCost = answers.scannedCopies ? 200 * answers.quantity : 0;
+
+                    const additionalFees = (answers.expedited ? 500 : 0) + scannedCopiesCost;
+                    pricingResult = {
+                      basePrice: totalPrice,
+                      additionalFees,
+                      totalPrice: totalPrice + additionalFees,
+                      breakdown: []
+                    };
+                  }
+
+                  // Prepare order data
+                  const orderData = {
+                    country: answers.country,
+                    documentType: answers.documentType,
+                    services: answers.services,
+                    quantity: answers.quantity,
+                    expedited: answers.expedited,
+                    documentSource: answers.documentSource,
+                    scannedCopies: answers.scannedCopies,
+                    customerInfo: answers.customerInfo,
+                    paymentMethod: answers.paymentMethod,
+                    totalPrice: pricingResult.totalPrice,
+                    pricingBreakdown: pricingResult.breakdown
+                  };
+
+                  // Submit order without files
+                  const orderId = await createOrderWithFiles(orderData, []);
+
+                  console.log('✅ Order submitted successfully:', orderId);
+
+                  // Show beautiful success toast
+                  toast.success(
+                    <div className="text-center">
+                      <div className="font-bold text-lg mb-2">🎉 Beställning skickad!</div>
+                      <div className="text-sm">
+                        <strong>Ordernummer:</strong> {orderId}<br/>
+                        <span className="text-blue-200">📬 Du kommer att få instruktioner för att skicka dina fysiska dokument</span>
+                      </div>
+                    </div>,
+                    {
+                      duration: 6000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        fontSize: '16px',
+                        maxWidth: '400px'
+                      }
+                    }
+                  );
+
+                  // Redirect to confirmation page after a short delay
+                  setTimeout(() => {
+                    router.push(`/bekraftelse?orderId=${orderId}`);
+                  }, 2000);
+
+                } catch (error) {
+                  console.error('❌ Error submitting order:', error);
+
+                  // Show beautiful error toast
+                  toast.error(
+                    <div className="text-center">
+                      <div className="font-bold text-lg mb-2">❌ Ett fel uppstod</div>
+                      <div className="text-sm">
+                        Kunde inte skicka beställning.<br/>
+                        <span className="text-red-200">Försök igen eller kontakta support</span>
+                      </div>
+                    </div>,
+                    {
+                      duration: 5000,
+                      style: {
+                        background: '#EF4444',
+                        color: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        fontSize: '16px',
+                        maxWidth: '400px'
+                      }
+                    }
+                  );
+                }
+              }}
+              disabled={!answers.customerInfo.firstName || !answers.customerInfo.lastName || !answers.customerInfo.email || !answers.customerInfo.phone}
+              className={`px-6 py-2 rounded-md font-medium ${
+                answers.customerInfo.firstName && answers.customerInfo.lastName && answers.customerInfo.email && answers.customerInfo.phone
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Skicka beställning
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderQuestion10 = () => {
+    if (loadingShipping) {
+      return (
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Laddar fraktalternativ...
+            </h1>
+          </div>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            🚚 Hur vill du få dina dokument returnerade?
+          </h1>
+          <p className="text-lg text-gray-600">
+            Välj hur du vill att dina legaliserade dokument ska levereras tillbaka till dig
+          </p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <span className="text-2xl mr-3">📦</span>
+            <div>
+              <div className="font-medium text-blue-900">
+                Dina dokument kommer att returneras till:
+              </div>
+              <div className="text-sm text-blue-700">
+                {answers.customerInfo.firstName} {answers.customerInfo.lastName}<br/>
+                {answers.customerInfo.address}<br/>
+                {answers.customerInfo.postalCode} {answers.customerInfo.city}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {shippingOptions.map((option) => {
+            const isSelected = answers.shippingMethod === option.id;
+            return (
+              <div
+                key={option.id}
+                onClick={() => {
+                  setAnswers(prev => ({ ...prev, shippingMethod: option.id }));
+                }}
+                className={`border-2 rounded-lg p-6 cursor-pointer transition-all duration-200 ${
+                  isSelected
+                    ? 'border-primary-500 bg-primary-50 shadow-md'
+                    : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <h3 className="text-lg font-medium text-gray-900 mr-3">{option.name}</h3>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        option.provider === 'PostNord' ? 'bg-blue-100 text-blue-800' :
+                        option.provider === 'DHL' ? 'bg-red-100 text-red-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {option.provider}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 mb-3">{option.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <span className="text-primary-600 font-medium text-lg">{option.price}</span>
+                        <span className="text-sm text-gray-500">• {option.estimatedDelivery}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ml-4 flex-shrink-0">
+                    <input
+                      type="radio"
+                      checked={isSelected}
+                      onChange={() => setAnswers(prev => ({ ...prev, shippingMethod: option.id }))}
+                      className="h-5 w-5 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 flex justify-between">
+          <button
+            onClick={() => setCurrentQuestion(9)}
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            ← Tillbaka
+          </button>
+          <button
+            onClick={() => setCurrentQuestion(11)}
+            disabled={!answers.shippingMethod}
+            className={`px-6 py-2 rounded-md font-medium ${
+              answers.shippingMethod
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Nästa steg →
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <Head>
+        <title>Test Order - Legaliseringstjänst</title>
+        <meta name="description" content="Test version of our order flow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
+      <main className="bg-gray-50 py-10 min-h-screen">
+        <div className="container mx-auto px-4">
+          {/* Progress indicator */}
+          <div className="max-w-2xl mx-auto mb-8">
+            <div className="flex items-center justify-center space-x-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((step) => (
+                <div key={step} className="flex items-center">
+                  <button
+                    onClick={() => {
+                      // Allow navigation to completed steps or current step
+                      if (step <= currentQuestion) {
+                        setCurrentQuestion(step);
+                      }
+                    }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
+                      step < currentQuestion
+                        ? 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-110 cursor-pointer shadow-md'
+                        : step === currentQuestion
+                        ? 'bg-primary-600 text-white ring-2 ring-primary-300 ring-offset-2 scale-110 shadow-lg'
+                        : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    }`}
+                    disabled={step > currentQuestion}
+                  >
+                    {step}
+                  </button>
+                  {step < 9 && (
+                    <div className={`w-12 h-1 mx-2 transition-colors duration-200 ${
+                      step < currentQuestion ? 'bg-primary-600' : 'bg-gray-300'
+                    }`} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="text-center mt-4">
+              <span className="text-sm text-gray-600">
+                Steg {currentQuestion} av 9
+              </span>
+              <p className="text-xs text-gray-500 mt-1">
+                Klicka på ett tidigare steg för att gå tillbaka
+              </p>
+            </div>
+          </div>
+
+          {/* Render current question */}
+          {currentQuestion === 1 && renderQuestion1()}
+          {currentQuestion === 2 && renderQuestion2()}
+          {currentQuestion === 3 && renderQuestion3()}
+          {currentQuestion === 4 && renderQuestion4()}
+          {currentQuestion === 5 && renderQuestion5()}
+          {currentQuestion === 6 && renderQuestion6()}
+          {currentQuestion === 7 && renderQuestion7()}
+          {currentQuestion === 8 && renderQuestion8()}
+          {currentQuestion === 9 && renderQuestion9()}
+        </div>
+      </main>
+    </>
+  );
+}
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+    },
+  };
+};

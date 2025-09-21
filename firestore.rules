@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow anyone to read pricing data
+    match /pricing/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // Allow order creation (customers can create orders anonymously)
+    // But require authentication for reading/updating orders
+    match /orders/{orderId} {
+      allow create: if true; // Allow anonymous order creation
+      allow read: if true; // TEMPORARILY allow anonymous reads for testing
+      allow update: if true; // TEMPORARILY allow anonymous updates for testing
+      allow delete: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+    }
+
+    // Allow anyone to read static content
+    match /content/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Allow anonymous access to counters for order number generation
+    match /counters/{document} {
+      allow read, write: if true; // Allow anonymous access for order numbering
+    }
+  }
+}
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow ALL operations for testing (temporary - will be restricted later)
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

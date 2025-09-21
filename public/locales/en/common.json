@@ -1,0 +1,427 @@
+{
+  "accessibility": {
+    "skipToContent": "Skip to content",
+    "mainNav": "Main navigation",
+    "homeLogo": "Go to homepage",
+    "switchToSwedish": "Switch to Swedish",
+    "switchToEnglish": "Switch to English",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "selectService": "Select service",
+    "breadcrumbs": "Breadcrumbs",
+    "errorTitle": "Error",
+    "errorSubtitle": "Error details",
+    "orderNumberLabel": "Order number",
+    "emailLabel": "Email address",
+    "submitButton": "Submit",
+    "tryAgainButton": "Try again",
+    "contactSupportLink": "Contact support",
+    "returnHomeLink": "Return to homepage",
+    "refreshPageButton": "Refresh page"
+  },
+  "common": {
+    "back": "Back",
+    "continue": "Continue",
+    "yes": "Yes",
+    "no": "No",
+    "item": "document",
+    "items": "documents",
+    "processing": "Processing...",
+    "backToHome": "Back to homepage",
+    "loading": "Loading...",
+    "readMore": "Read more"
+  },
+  "nav": {
+    "home": "Home",
+    "services": "Services",
+    "countries": "Countries",
+    "prices": "Prices",
+    "about": "About us",
+    "contact": "Contact",
+    "order": "Order now"
+  },
+  "home": {
+    "title": "Legalization Service - Fast and easy document legalization",
+    "description": "We help you with document legalization for use abroad. Fast, easy, and secure.",
+    "servicesTitle": "Our services",
+    "allServices": "View all services",
+    "processTitle": "How it works",
+    "processSubtitle": "Our process is simple and efficient to save you time and hassle",
+    "ctaTitle": "Ready to order?",
+    "ctaText": "We help you with the legalization of your documents quickly and easily",
+    "ctaButton": "Order now"
+  },
+  "hero": {
+    "title": "Document legalization for use abroad",
+    "subtitle": "We help you with apostille, notarization, and embassy legalization. Fast, easy, and secure.",
+    "cta": "Order now"
+  },
+  "services": {
+    "pageTitle": "Our Services",
+    "pageIntro": "We offer a range of document legalization services to meet your needs",
+    "apostille": {
+      "title": "Apostille",
+      "description": "Legalization of documents for use in countries that are part of the Hague Convention",
+      "longDescription": "Apostille is a simplified certification process for documents that will be used in countries that are part of the 1961 Hague Convention. This certification verifies the authenticity of the signature, the capacity in which the person signing the document acted, and the identity of any stamp or seal on the document.",
+      "price": "From 895 kr",
+      "timeframe": "5-7 business days"
+    },
+    "notarization": {
+      "title": "Notarization",
+      "description": "Notarization of documents by a notary public for legal validity",
+      "longDescription": "Notarization is the process where a notary public certifies and attests to the authenticity of signatures on documents. This service is often required for legal documents, affidavits, and other important papers to verify their legitimacy and prevent fraud.",
+      "price": "From 695 kr",
+      "timeframe": "3-5 business days"
+    },
+    "embassy": {
+      "title": "Embassy Legalization",
+      "description": "Legalization of documents through embassy or consulate for use in specific countries",
+      "longDescription": "Embassy legalization is required for documents that will be used in countries that are not part of the Hague Convention. This process involves getting your documents certified by the embassy or consulate of the country where they will be used, after they have been authenticated by the appropriate authorities in your home country.",
+      "price": "From 1295 kr",
+      "timeframe": "7-14 business days"
+    },
+    "translation": {
+      "title": "Authorized Translation",
+      "description": "Translation of documents by authorized translators for official use",
+      "longDescription": "Our authorized translation service provides official translations of your documents by certified translators. These translations are legally recognized and can be used for official purposes such as immigration, education, business, and legal matters in foreign countries.",
+      "price": "From 995 kr",
+      "timeframe": "5-10 business days"
+    },
+    "ud": {
+      "title": "Foreign Ministry Legalization",
+      "description": "Legalization of documents by the Swedish Ministry for Foreign Affairs",
+      "longDescription": "This service involves the legalization of documents by the Swedish Ministry for Foreign Affairs (UD). This is often required as a step before embassy legalization or for documents that need official government verification for use abroad.",
+      "price": "From 1095 kr",
+      "timeframe": "5-7 business days"
+    },
+    "details": {
+      "process": "Process",
+      "price": "Price",
+      "timeframe": "Timeframe",
+      "documents": "Eligible Documents",
+      "countries": "Applicable Countries",
+      "orderButton": "Order"
+    }
+  },
+  "process": {
+    "step1": {
+      "title": "Order online",
+      "description": "Fill out our simple order form and select your desired service"
+    },
+    "step2": {
+      "title": "Payment",
+      "description": "Choose your payment method and complete your order"
+    },
+    "step3": {
+      "title": "We process your documents",
+      "description": "Our experts ensure your documents are properly legalized"
+    },
+    "step4": {
+      "title": "Receive your legalized documents",
+      "description": "We deliver your legalized documents according to your chosen delivery method"
+    }
+  },
+  "documents": {
+    "birthCertificate": "Birth Certificate",
+    "marriageCertificate": "Marriage Certificate",
+    "diploma": "Diploma",
+    "commercialDocuments": "Commercial Documents",
+    "powerOfAttorney": "Power of Attorney",
+    "other": "Other document"
+  },
+  "order": {
+    "title": "Order legalization",
+    "description": "Fill out the form below to order legalization of your documents",
+    "selectService": "Select service",
+    "selectServiceDescription": "Choose the service that best suits your needs",
+    "steps": {
+      "service": "Select service",
+      "serviceDesc": "Choose what type of legalization you need",
+      "details": "Your details",
+      "detailsDesc": "Fill in information about you and your documents",
+      "review": "Review",
+      "reviewDesc": "Check your order",
+      "payment": "Payment",
+      "paymentDesc": "Complete your order"
+    },
+    "form": {
+      "documentDetails": "Document information",
+      "documentType": "Document type",
+      "selectDocumentType": "Select document type",
+      "country": "Country",
+      "selectCountry": "Select country",
+      "quantity": "Number of documents",
+      "expedited": "Express service (+500 kr)",
+      "customerInfo": "Your information",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "postalCode": "Postal code",
+      "city": "City",
+      "deliveryMethod": "Delivery method",
+      "deliveryDigital": "Digital delivery (PDF, no extra cost)",
+      "deliveryPost": "Regular mail (+50 kr)",
+      "deliveryExpress": "Express mail (+150 kr)",
+      "errors": {
+        "documentTypeRequired": "You must select a document type",
+        "countryRequired": "You must select a country",
+        "quantityRequired": "You must specify the number of documents",
+        "firstNameRequired": "You must enter your first name",
+        "lastNameRequired": "You must enter your last name",
+        "emailInvalid": "You must enter a valid email address",
+        "phoneRequired": "You must enter your phone number",
+        "addressRequired": "You must enter your address",
+        "postalCodeRequired": "You must enter your postal code",
+        "cityRequired": "You must enter your city",
+        "deliveryMethodRequired": "You must select a delivery method"
+      }
+    },
+    "summary": {
+      "title": "Review your order",
+      "description": "Check that all information is correct before proceeding to payment",
+      "orderDetails": "Order information",
+      "service": "Service",
+      "documentType": "Document type",
+      "quantity": "Quantity",
+      "expedited": "Express service",
+      "deliveryMethod": "Delivery method",
+      "estimatedDelivery": "Estimated delivery",
+      "customerInfo": "Your information",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "pricing": "Pricing details",
+      "expeditedFee": "Express service",
+      "expressDelivery": "Express mail",
+      "standardDelivery": "Regular mail",
+      "total": "Total",
+      "vat": "Including VAT (25%)"
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Choose payment method to complete your order",
+      "card": "Pay by card",
+      "swish": "Pay with Swish",
+      "invoice": "Invoice (14 days)"
+    }
+  },
+  "footer": {
+    "title": "Footer",
+    "description": "We help you with document legalization for use abroad. Fast, easy, and secure.",
+    "rights": "All rights reserved.",
+    "services": {
+      "title": "Services",
+      "apostille": "Apostille",
+      "notarization": "Notarization",
+      "embassy": "Embassy legalization",
+      "translation": "Authorized translation"
+    },
+    "support": {
+      "title": "Support",
+      "faq": "FAQ",
+      "contact": "Contact us",
+      "pricing": "Pricing",
+      "delivery": "Delivery times"
+    },
+    "company": {
+      "title": "Company",
+      "about": "About us",
+      "careers": "Careers",
+      "blog": "Blog",
+      "press": "Press"
+    },
+    "legal": {
+      "title": "Legal information",
+      "privacy": "Privacy policy",
+      "terms": "Terms",
+      "accessibility": "Accessibility",
+      "cookies": "Cookies"
+    }
+  },
+  "confirmation": {
+    "title": "Order Confirmation",
+    "description": "Thank you for your order with Legalization Service",
+    "thankYou": "Thank you for your order!",
+    "orderReceived": "We have received your order and will process it as soon as possible.",
+    "orderDetails": "Order Details",
+    "orderNumber": "Order Number",
+    "orderStatus": "Order Status",
+    "services": "Services",
+    "customerInfo": "Customer Information",
+    "deliveryAddress": "Delivery Address",
+    "totalAmount": "Total Amount",
+    "paymentMethod": "Payment Method",
+    "emailSent": "A confirmation has been sent to your email.",
+    "trackOrder": "Track your order",
+    "noOrder": "No order found",
+    "noOrderDescription": "We could not find any order with the specified ID number.",
+    "error": "An error occurred",
+    "loading": "Loading order information..."
+  },
+  "testimonials": {
+    "title": "What our customers say",
+    "subtitle": "Here are some testimonials from our satisfied customers",
+    "readMore": "Read more testimonials",
+    "person1": {
+      "name": "Anna Johansson",
+      "role": "Business Owner",
+      "content": "Amazing service! I needed to get my documents legalized quickly for a business trip to China and everything went smoothly and professionally."
+    },
+    "person2": {
+      "name": "Erik Svensson",
+      "role": "Student",
+      "content": "I needed to get my diploma apostilled for studies abroad. The process was simple and the staff was very helpful in explaining all the steps."
+    },
+    "person3": {
+      "name": "Maria Lindgren",
+      "role": "Lawyer",
+      "content": "As a lawyer, I really appreciate the thoroughness and professionalism that Legalization Service shows in their work. Highly recommended!"
+    }
+  },
+  "countries": {
+    "title": "Countries",
+    "subtitle": "Find legalization requirements by country",
+    "allCountries": "All Countries",
+    "europe": "Europe",
+    "asia": "Asia",
+    "africa": "Africa",
+    "northAmerica": "North America",
+    "southAmerica": "South America",
+    "oceania": "Oceania",
+    "filterByRegion": "Filter by region",
+    "search": "Search",
+    "searchPlaceholder": "Search for a country...",
+    "learnMore": "Learn more",
+    "processingTime": "Processing time",
+    "requirements": "Requirements",
+    "documentTypes": "Document types",
+    "noResults": "No countries found matching your criteria.",
+    "resetFilters": "Reset filters",
+    "hagueConvention": "Hague Convention",
+    "nonHagueConvention": "Non-Hague",
+    "legalizationProcess": "Legalization Process",
+    "process": "Process",
+    "clearFilters": "Clear filters",
+    "serviceTypes": "Service Types",
+    "apostilleCountries": "For Hague Convention countries",
+    "embassyCountries": "For non-Hague Convention countries"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Find answers to the most common questions about our legalization services",
+    "question1": "What is the difference between apostille and embassy legalization?",
+    "answer1": "Apostille is a simplified legalization process for countries that are part of the 1961 Hague Convention. Embassy legalization is required for countries that are not part of the convention and involves legalizing the document through the specific country's embassy or consulate.",
+    "question2": "How long does the legalization process take?",
+    "answer2": "The standard process typically takes 5-7 business days for apostille and 7-14 business days for embassy legalization. We also offer express services for urgent matters.",
+    "question3": "What documents can be legalized?",
+    "answer3": "We can help with the legalization of most types of documents, including academic certificates, birth certificates, marriage certificates, company documents, powers of attorney, and many other official documents.",
+    "question4": "Do I need to send original documents?",
+    "answer4": "Yes, original documents are usually required for legalization. In some cases, notarized copies may be accepted. Contact us for specific advice for your case.",
+    "question5": "Can I track my order?",
+    "answer5": "Yes, once your order has been confirmed, you will receive an order number that you can use to track the status of your order via our order status page.",
+    "moreQuestions": "Can't find the answer to your question?",
+    "contactUs": "Contact us"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "subtitle": "We apologize for the inconvenience",
+    "orderNumberLabel": "Order number",
+    "orderNumberPlaceholder": "Enter your order number",
+    "emailLabel": "Email address",
+    "submitButton": "Check status",
+    "tryAgain": "Try again",
+    "contactSupport": "Contact support",
+    "errorMessage": "An unexpected error occurred",
+    "description": "We've encountered an error processing your request",
+    "technicalDetails": "Technical details",
+    "reportIssue": "Report this issue",
+    "returnHome": "Return to homepage",
+    "serviceUnavailable": "Service temporarily unavailable",
+    "maintenanceMessage": "We're currently performing maintenance",
+    "retryLater": "Please try again later",
+    "networkError": "Network connection error",
+    "notFoundTitle": "Page not found",
+    "notFoundSubtitle": "404 Error",
+    "notFoundDescription": "The page you are looking for doesn't exist or has been moved.",
+    "serverErrorTitle": "Server error",
+    "serverErrorSubtitle": "500 Error",
+    "serverErrorDescription": "We're experiencing some technical difficulties. Please try again later.",
+    "checkConnection": "Please check your internet connection",
+    "refresh": "Refresh page"
+  },
+  "about": {
+    "title": "About Us",
+    "description": "Learn more about Legalization Service and our work with document legalization for international use.",
+    "missionTitle": "Our Mission",
+    "missionText": "Legalization Service is your reliable partner for document legalization. We simplify the process of making your documents valid for international use by offering professional services in apostille, notarization and embassy legalization.",
+    "missionText2": "Our goal is to make the often complicated legalization process as simple and stress-free as possible for our customers, whether you are an individual, company or organization.",
+    "experienceTitle": "Our Experience",
+    "experienceText": "With many years of experience in document management and international legalization, we have helped thousands of customers get their documents correctly legalized for use in over 100 countries worldwide.",
+    "experienceText2": "Our team of experts has deep knowledge of different countries' requirements and conventions, ensuring that your documents are handled correctly according to applicable international standards.",
+    "qualityTitle": "Quality and Security",
+    "qualityText": "We always prioritize quality and security in our work. All our processes follow strict quality standards and we only use certified and authorized services to ensure that your documents are correctly legalized.",
+    "qualityText2": "Your privacy and document security are of the highest priority to us. We handle all documents with the utmost care and follow all applicable data protection regulations.",
+    "servicesTitle": "Our Services",
+    "contactTitle": "Contact Us",
+    "contactText": "Do you have questions about our services or need help with legalization of your documents? Don't hesitate to contact us.",
+    "contactButton": "Contact Us",
+    "orderButton": "Order Now"
+  },
+  "prices": {
+    "title": "Prices - Legalization Service",
+    "description": "See our competitive prices for document legalization. Transparent pricing without hidden fees.",
+    "subtitle": "Transparent pricing without hidden fees",
+    "servicesTitle": "Our Services",
+    "additionalTitle": "Additional Services",
+    "infoTitle": "Important Information",
+    "info1": "All prices are excluding VAT (25%)",
+    "info2": "Prices may vary depending on document type and complexity",
+    "info3": "Digital delivery is free for most services",
+    "info4": "Contact us for quotes for larger volumes or special cases",
+    "orderButton": "Order",
+    "ctaTitle": "Ready to order?",
+    "ctaText": "Get your documents legalized quickly and easily. Contact us today to get started.",
+    "ctaButton": "Order Now",
+    "contactButton": "Contact Us"
+  },
+  "contact": {
+    "pageTitle": "Contact Us - Legalization Service",
+    "pageDescription": "Contact us for questions about document legalization. We help you with apostille, notarization and embassy legalization.",
+    "title": "Contact Us",
+    "infoTitle": "Contact Information",
+    "addressTitle": "Address",
+    "contactTitle": "Contact",
+    "phone": "Phone",
+    "email": "Email",
+    "hoursTitle": "Opening Hours",
+    "weekdays": "Monday-Friday",
+    "weekend": "Saturday-Sunday",
+    "closed": "Closed",
+    "findUs": "Find Us",
+    "mapPlaceholder": "Map will be displayed here",
+    "formTitle": "Send a Message",
+    "thankYou": "Thank you for your message!",
+    "responseMessage": "We will get back to you as soon as possible, usually within 24 hours on weekdays.",
+    "form": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "subject": "Subject",
+      "message": "Message",
+      "selectSubject": "Select subject",
+      "otherSubject": "Other matter",
+      "privacyConsent": "I agree to the processing of my data according to the",
+      "privacyPolicy": "privacy policy",
+      "send": "Send message",
+      "nameRequired": "Name is required",
+      "nameMinLength": "Name must be at least 2 characters",
+      "emailRequired": "Email address is required",
+      "emailInvalid": "Please enter a valid email address",
+      "subjectRequired": "Subject is required",
+      "messageRequired": "Message is required"
+    }
+  }
+}

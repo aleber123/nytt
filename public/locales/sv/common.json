@@ -1,0 +1,425 @@
+{
+  "accessibility": {
+    "skipToContent": "Hoppa till innehåll",
+    "mainNav": "Huvudnavigering",
+    "homeLogo": "Gå till startsidan",
+    "switchToSwedish": "Byt till svenska",
+    "switchToEnglish": "Byt till engelska",
+    "openMenu": "Öppna meny",
+    "closeMenu": "Stäng meny",
+    "selectService": "Välj tjänst"
+  },
+  "common": {
+    "back": "Tillbaka",
+    "continue": "Fortsätt",
+    "yes": "Ja",
+    "no": "Nej",
+    "item": "dokument",
+    "items": "dokument",
+    "processing": "Bearbetar...",
+    "backToHome": "Tillbaka till startsidan",
+    "loading": "Laddar...",
+    "readMore": "Läs mer"
+  },
+  "nav": {
+    "home": "Hem",
+    "services": "Tjänster",
+    "countries": "Länder",
+    "prices": "Priser",
+    "about": "Om oss",
+    "contact": "Kontakt",
+    "order": "Beställ nu"
+  },
+  "home": {
+    "title": "Legaliseringstjänst - Snabb och enkel legalisering av dokument",
+    "description": "Vi hjälper dig med legalisering av dokument för användning utomlands. Snabbt, enkelt och säkert.",
+    "servicesTitle": "Våra tjänster",
+    "allServices": "Se alla tjänster",
+    "processTitle": "Så här fungerar det",
+    "processSubtitle": "Vår process är enkel och effektiv för att spara dig tid och besvär",
+    "ctaTitle": "Redo att beställa?",
+    "ctaText": "Vi hjälper dig med legalisering av dina dokument snabbt och enkelt",
+    "ctaButton": "Beställ nu"
+  },
+  "hero": {
+    "title": "Legalisering av dokument för användning utomlands",
+    "subtitle": "Vi hjälper dig med apostille, notarisering och ambassadlegalisering. Snabbt, enkelt och säkert.",
+    "cta": "Beställ nu"
+  },
+  "services": {
+    "pageTitle": "Våra tjänster",
+    "pageIntro": "Välj rätt tjänst för dina behov",
+    "compareTitle": "Jämför våra tjänster",
+    "helpTitle": "Osäker vilken tjänst du behöver?",
+    "helpText": "Kontakta oss så hjälper vi dig att välja rätt legaliseringstjänst för dina dokument och destination.",
+    "contactButton": "Kontakta oss",
+    "orderButton": "Starta beställning",
+    "chooseService": "Välj tjänst",
+    "fromPrice": "Från",
+    "deliveryTime": "Leveranstid",
+    "apostille": {
+      "title": "Apostille",
+      "description": "Legalisering av dokument för användning i länder som är anslutna till Haagkonventionen",
+      "longDescription": "Apostille är en förenklad certifieringsprocess för dokument som kommer att användas i länder som är anslutna till 1961 års Haagkonvention. Denna certifiering verifierar äktheten av underskriften, den kapacitet i vilken personen som undertecknade dokumentet agerade, och identiteten på alla stämplar eller sigill på dokumentet.",
+      "price": "Från 645 kr",
+      "timeframe": "5-7 arbetsdagar"
+    },
+    "notarization": {
+      "title": "Notarisering",
+      "description": "Notarisering av dokument av notarius publicus för juridisk giltighet",
+      "longDescription": "Notarisering är processen där en notarius publicus certifierar och intygar äktheten av underskrifter på dokument. Denna tjänst krävs ofta för juridiska dokument, tillägg, och andra viktiga papper för att verifiera deras legitimitet och förhindra bedrägeri.",
+      "price": "Från 695 kr",
+      "timeframe": "3-5 arbetsdagar"
+    },
+    "embassy": {
+      "title": "Ambassadlegalisering",
+      "description": "Legalisering av dokument via ambassad eller konsulat för användning i specifika länder",
+      "longDescription": "Ambassadlegalisering krävs för dokument som kommer att användas i länder som inte är anslutna till Haagkonventionen. Denna process innebär att få dina dokument certifierade av ambassaden eller konsulatet för det land där de kommer att användas, efter att de har autentiserats av behöriga myndigheter i ditt hemland.",
+      "price": "Från 1295 kr",
+      "timeframe": "7-14 arbetsdagar"
+    },
+    "translation": {
+      "title": "Auktoriserad översättning",
+      "description": "Översättning av dokument av auktoriserade översättare för officiellt bruk",
+      "longDescription": "Vår auktoriserade översättningstjänst tillhandahåller officiella översättningar av dina dokument av certifierade översättare. Dessa översättningar är juridiskt erkända och kan användas för officiella ändamål såsom immigration, utbildning, affärer och juridiska frågor i utländska länder.",
+      "price": "Från 995 kr",
+      "timeframe": "5-10 arbetsdagar"
+    },
+    "ud": {
+      "title": "Utrikesdepartementets legalisering",
+      "description": "Legalisering av dokument av Sveriges Utrikesdepartement",
+      "longDescription": "Denna tjänst innebär legalisering av dokument av Sveriges Utrikesdepartement (UD). Detta krävs ofta som ett steg före ambassadlegalisering eller för dokument som behöver officiell myndighetsverifiering för användning utomlands.",
+      "price": "Från 795 kr",
+      "timeframe": "5-7 arbetsdagar"
+    },
+    "details": {
+      "process": "Process",
+      "price": "Pris",
+      "timeframe": "Tidsram",
+      "documents": "Berättigade dokument",
+      "countries": "Tillämpliga länder",
+      "orderButton": "Beställ"
+    }
+  },
+  "process": {
+    "step1": {
+      "title": "Beställ online",
+      "description": "Fyll i vårt enkla beställningsformulär och välj önskad tjänst"
+    },
+    "step2": {
+      "title": "Betala",
+      "description": "Välj betalningsmetod och slutför din beställning"
+    },
+    "step3": {
+      "title": "Vi hanterar dina dokument",
+      "description": "Våra experter ser till att dina dokument blir korrekt legaliserade"
+    },
+    "step4": {
+      "title": "Få dina legaliserade dokument",
+      "description": "Vi levererar dina legaliserade dokument enligt vald leveransmetod"
+    }
+  },
+  "documents": {
+    "birthCertificate": "Födelsebevis",
+    "marriageCertificate": "Vigselbevis",
+    "diploma": "Examensbevis",
+    "commercialDocuments": "Handelsdokument",
+    "powerOfAttorney": "Fullmakt",
+    "other": "Annat dokument"
+  },
+  "order": {
+    "title": "Beställ legalisering",
+    "description": "Fyll i formuläret nedan för att beställa legalisering av dina dokument",
+    "selectService": "Välj tjänst",
+    "selectServiceDescription": "Välj den tjänst som passar dina behov bäst",
+    "steps": {
+      "service": "Välj tjänst",
+      "serviceDesc": "Välj vilken typ av legalisering du behöver",
+      "details": "Dina uppgifter",
+      "detailsDesc": "Fyll i information om dig och dina dokument",
+      "review": "Granska",
+      "reviewDesc": "Kontrollera din beställning",
+      "payment": "Betalning",
+      "paymentDesc": "Slutför din beställning"
+    },
+    "form": {
+      "documentDetails": "Dokumentinformation",
+      "documentType": "Dokumenttyp",
+      "selectDocumentType": "Välj dokumenttyp",
+      "country": "Land",
+      "selectCountry": "Välj land",
+      "quantity": "Antal dokument",
+      "expedited": "Expresstjänst (+500 kr)",
+      "customerInfo": "Dina uppgifter",
+      "firstName": "Förnamn",
+      "lastName": "Efternamn",
+      "email": "E-post",
+      "phone": "Telefon",
+      "address": "Adress",
+      "postalCode": "Postnummer",
+      "city": "Ort",
+      "deliveryMethod": "Leveranssätt",
+      "deliveryDigital": "Digital leverans (PDF, ingen extra kostnad)",
+      "deliveryPost": "Vanlig post (+50 kr)",
+      "deliveryExpress": "Expresspost (+150 kr)",
+      "errors": {
+        "documentTypeRequired": "Du måste välja en dokumenttyp",
+        "countryRequired": "Du måste välja ett land",
+        "quantityRequired": "Du måste ange antal dokument",
+        "firstNameRequired": "Du måste ange ditt förnamn",
+        "lastNameRequired": "Du måste ange ditt efternamn",
+        "emailInvalid": "Du måste ange en giltig e-postadress",
+        "phoneRequired": "Du måste ange ditt telefonnummer",
+        "addressRequired": "Du måste ange din adress",
+        "postalCodeRequired": "Du måste ange ditt postnummer",
+        "cityRequired": "Du måste ange din ort",
+        "deliveryMethodRequired": "Du måste välja ett leveranssätt"
+      }
+    },
+    "summary": {
+      "title": "Granska din beställning",
+      "description": "Kontrollera att all information är korrekt innan du fortsätter till betalning",
+      "orderDetails": "Beställningsinformation",
+      "service": "Tjänst",
+      "documentType": "Dokumenttyp",
+      "quantity": "Antal",
+      "expedited": "Expresstjänst",
+      "deliveryMethod": "Leveranssätt",
+      "estimatedDelivery": "Beräknad leverans",
+      "customerInfo": "Dina uppgifter",
+      "name": "Namn",
+      "email": "E-post",
+      "phone": "Telefon",
+      "address": "Adress",
+      "pricing": "Prisuppgifter",
+      "expeditedFee": "Expresstjänst",
+      "expressDelivery": "Expresspost",
+      "standardDelivery": "Vanlig post",
+      "total": "Totalt",
+      "vat": "Varav moms (25%)"
+    },
+    "payment": {
+      "title": "Betalning",
+      "description": "Välj betalningsmetod för att slutföra din beställning",
+      "card": "Betala med kort",
+      "swish": "Betala med Swish",
+      "invoice": "Faktura (14 dagar)"
+    }
+  },
+  "footer": {
+    "title": "Sidfot",
+    "description": "Vi hjälper dig med legalisering av dokument för användning utomlands. Snabbt, enkelt och säkert.",
+    "rights": "Alla rättigheter förbehållna.",
+    "services": {
+      "title": "Tjänster",
+      "apostille": "Apostille",
+      "notarization": "Notarisering",
+      "embassy": "Ambassadlegalisering",
+      "translation": "Auktoriserad översättning"
+    },
+    "support": {
+      "title": "Support",
+      "faq": "Vanliga frågor",
+      "contact": "Kontakta oss",
+      "pricing": "Priser",
+      "delivery": "Leveranstider"
+    },
+    "company": {
+      "title": "Företag",
+      "about": "Om oss",
+      "careers": "Karriär",
+      "blog": "Blogg",
+      "press": "Press"
+    },
+    "legal": {
+      "title": "Juridisk information",
+      "privacy": "Integritetspolicy",
+      "terms": "Villkor",
+      "accessibility": "Tillgänglighet",
+      "cookies": "Cookies"
+    }
+  },
+  "confirmation": {
+    "title": "Orderbekräftelse",
+    "description": "Tack för din beställning hos Legaliseringstjänst",
+    "thankYou": "Tack för din beställning!",
+    "orderReceived": "Vi har tagit emot din beställning och kommer att behandla den så snart som möjligt.",
+    "orderDetails": "Orderdetaljer",
+    "orderNumber": "Ordernummer",
+    "orderStatus": "Orderstatus",
+    "services": "Tjänster",
+    "customerInfo": "Kunduppgifter",
+    "deliveryAddress": "Leveransadress",
+    "totalAmount": "Totalt belopp",
+    "paymentMethod": "Betalningsmetod",
+    "emailSent": "En bekräftelse har skickats till din e-post.",
+    "trackOrder": "Spåra din order",
+    "noOrder": "Ingen order hittades",
+    "noOrderDescription": "Vi kunde inte hitta någon order med det angivna ID-numret.",
+    "error": "Ett fel uppstod",
+    "loading": "Laddar orderinformation..."
+  },
+  "about": {
+    "title": "Om oss",
+    "description": "Läs mer om Legaliseringstjänst och vårt arbete med dokumentlegalisering för internationell användning.",
+    "missionTitle": "Vårt uppdrag",
+    "missionText": "Legaliseringstjänst är din pålitliga partner för dokumentlegalisering. Vi förenklar processen att få dina dokument giltiga för internationell användning genom att erbjuda professionella tjänster inom apostille, notarisering och ambassadlegalisering.",
+    "missionText2": "Vårt mål är att göra den ofta komplicerade legaliseringsprocessen så enkel och stressfri som möjligt för våra kunder, oavsett om du är en privatperson, företag eller organisation.",
+    "experienceTitle": "Vår erfarenhet",
+    "experienceText": "Med många års erfarenhet inom dokumenthantering och internationell legalisering har vi hjälpt tusentals kunder att få sina dokument korrekt legaliserade för användning i över 100 länder världen över.",
+    "experienceText2": "Vårt team av experter har djup kunskap om olika länders krav och konventioner, vilket säkerställer att dina dokument blir korrekt behandlade enligt gällande internationella standarder.",
+    "qualityTitle": "Kvalitet och säkerhet",
+    "qualityText": "Vi prioriterar alltid kvalitet och säkerhet i vårt arbete. Alla våra processer följer strikta kvalitetsstandarder och vi använder endast certifierade och auktoriserade tjänster för att säkerställa att dina dokument blir korrekt legaliserade.",
+    "qualityText2": "Din integritet och dokumentens säkerhet är av högsta prioritet för oss. Vi hanterar alla dokument med största omsorg och följer alla gällande dataskyddsregler.",
+    "servicesTitle": "Våra tjänster",
+    "contactTitle": "Kontakta oss",
+    "contactText": "Har du frågor om våra tjänster eller behöver hjälp med legalisering av dina dokument? Tveka inte att kontakta oss.",
+    "contactButton": "Kontakta oss",
+    "orderButton": "Beställ nu"
+  },
+  "prices": {
+    "title": "Priser - Legaliseringstjänst",
+    "description": "Se våra konkurrenskraftiga priser för dokumentlegalisering. Transparent prissättning utan dolda avgifter.",
+    "subtitle": "Transparent prissättning utan dolda avgifter",
+    "servicesTitle": "Våra tjänster",
+    "additionalTitle": "Tilläggstjänster",
+    "infoTitle": "Viktig information",
+    "info1": "Alla priser är exklusive moms (25%)",
+    "info2": "Priserna kan variera beroende på dokumenttyp och komplexitet",
+    "info3": "Digital leverans är kostnadsfri för de flesta tjänster",
+    "info4": "Kontakta oss för offert vid större volymer eller specialfall",
+    "orderButton": "Beställ",
+    "ctaTitle": "Redo att beställa?",
+    "ctaText": "Få dina dokument legaliserade snabbt och enkelt. Kontakta oss idag för att komma igång.",
+    "ctaButton": "Beställ nu",
+    "contactButton": "Kontakta oss"
+  },
+  "contact": {
+    "pageTitle": "Kontakta oss - Legaliseringstjänst",
+    "pageDescription": "Kontakta oss för frågor om legalisering av dokument. Vi hjälper dig med apostille, notarisering och ambassadlegalisering.",
+    "title": "Kontakta oss",
+    "infoTitle": "Kontaktinformation",
+    "addressTitle": "Adress",
+    "contactTitle": "Kontakt",
+    "phone": "Telefon",
+    "email": "E-post",
+    "hoursTitle": "Öppettider",
+    "weekdays": "Måndag-fredag",
+    "weekend": "Lördag-söndag",
+    "closed": "Stängt",
+    "findUs": "Hitta till oss",
+    "mapPlaceholder": "Karta kommer att visas här",
+    "formTitle": "Skicka ett meddelande",
+    "thankYou": "Tack för ditt meddelande!",
+    "responseMessage": "Vi återkommer till dig så snart som möjligt, vanligtvis inom 24 timmar under vardagar.",
+    "form": {
+      "name": "Namn",
+      "email": "E-post",
+      "phone": "Telefon",
+      "subject": "Ämne",
+      "message": "Meddelande",
+      "selectSubject": "Välj ämne",
+      "otherSubject": "Annat ärende",
+      "privacyConsent": "Jag godkänner att mina uppgifter behandlas enligt",
+      "privacyPolicy": "integritetspolicyn",
+      "send": "Skicka meddelande",
+      "nameRequired": "Namn är obligatoriskt",
+      "nameMinLength": "Namnet måste vara minst 2 tecken",
+      "emailRequired": "E-postadress är obligatorisk",
+      "emailInvalid": "Ange en giltig e-postadress",
+      "subjectRequired": "Ämne är obligatoriskt",
+      "messageRequired": "Meddelande är obligatoriskt"
+    }
+  },
+  "testimonials": {
+    "title": "Vad våra kunder säger",
+    "subtitle": "Här är några omdömen från våra nöjda kunder",
+    "readMore": "Läs fler omdömen",
+    "person1": {
+      "name": "Anna Johansson",
+      "role": "Företagare",
+      "content": "Fantastisk service! Jag behövde få mina dokument legaliserade snabbt för en affärsresa till Kina och allt gick smidigt och professionellt."
+    },
+    "person2": {
+      "name": "Erik Svensson",
+      "role": "Student",
+      "content": "Jag behövde få mitt examensbevis apostillerat för studier utomlands. Processen var enkel och personalen var mycket hjälpsamma med att förklara alla steg."
+    },
+    "person3": {
+      "name": "Maria Lindgren",
+      "role": "Advokat",
+      "content": "Som advokat uppskattar jag verkligen den grundlighet och professionalism som Legaliseringstjänst visar i sitt arbete. Högst rekommenderat!"
+    }
+  },
+  "countries": {
+    "title": "Länder",
+    "subtitle": "Hitta legaliseringskrav per land",
+    "allCountries": "Alla länder",
+    "europe": "Europa",
+    "asia": "Asien",
+    "africa": "Afrika",
+    "northAmerica": "Nordamerika",
+    "southAmerica": "Sydamerika",
+    "oceania": "Oceanien",
+    "filterByRegion": "Filtrera efter region",
+    "search": "Sök",
+    "searchPlaceholder": "Sök efter ett land...",
+    "learnMore": "Läs mer",
+    "processingTime": "Handläggningstid",
+    "requirements": "Krav",
+    "documentTypes": "Dokumenttyper",
+    "noResults": "Inga länder hittades som matchar dina kriterier.",
+    "resetFilters": "Återställ filter",
+    "hagueConvention": "Haagkonventionen",
+    "nonHagueConvention": "Ej Haagkonventionen",
+    "legalizationProcess": "Legaliseringsprocess",
+    "process": "Process",
+    "clearFilters": "Rensa filter",
+    "serviceTypes": "Tjänstetyper",
+    "apostilleCountries": "För Haagkonventionsländer",
+    "embassyCountries": "För icke-Haagkonventionsländer"
+  },
+  "faq": {
+    "title": "Vanliga frågor",
+    "subtitle": "Hitta svar på de vanligaste frågorna om våra legaliseringstjänster",
+    "question1": "Vad är skillnaden mellan apostille och ambassadlegalisering?",
+    "answer1": "Apostille är en förenklad legaliseringsprocess för länder som är anslutna till 1961 års Haagkonvention. Ambassadlegalisering krävs för länder som inte är anslutna till konventionen och innebär legalisering genom det specifika landets ambassad eller konsulat.",
+    "question2": "Hur lång tid tar legaliseringsprocessen?",
+    "answer2": "Den standardprocess tar vanligtvis 5-7 arbetsdagar för apostille och 7-14 arbetsdagar för ambassadlegalisering. Vi erbjuder även expresstjänster för brådskande ärenden.",
+    "question3": "Vilka dokument kan legaliseras?",
+    "answer3": "Vi kan hjälpa till med legalisering av de flesta typer av dokument, inklusive akademiska certifikat, födelsebevis, vigselbevis, företagsdokument, fullmakter och många andra officiella dokument.",
+    "question4": "Behöver jag skicka originaldokument?",
+    "answer4": "Ja, originaldokument krävs vanligtvis för legalisering. I vissa fall kan notariebestyrkta kopior accepteras. Kontakta oss för specifika råd för ditt fall.",
+    "question5": "Kan jag spåra min beställning?",
+    "answer5": "Ja, när din beställning har bekräftats får du ett ordernummer som du kan använda för att spåra statusen på din beställning via vår ordersida.",
+    "moreQuestions": "Hittar du inte svaret på din fråga?",
+    "contactUs": "Kontakta oss"
+  },
+  "errorBoundary": {
+    "title": "Något gick fel",
+    "subtitle": "Vi ber om ursäkt för besväret",
+    "orderNumberLabel": "Ordernummer",
+    "orderNumberPlaceholder": "Ange ditt ordernummer",
+    "emailLabel": "E-postadress",
+    "submitButton": "Skicka",
+    "tryAgain": "Försök igen",
+    "contactSupport": "Kontakta support",
+    "errorMessage": "Ett oväntat fel inträffade",
+    "description": "Vi har stött på ett fel när vi behandlade din förfrågan",
+    "technicalDetails": "Tekniska detaljer",
+    "reportIssue": "Rapportera detta problem",
+    "returnHome": "Återgå till startsidan",
+    "serviceUnavailable": "Tjänsten är tillfälligt otillgänglig",
+    "maintenanceMessage": "Vi utför för närvarande underhåll",
+    "retryLater": "Försök igen senare",
+    "networkError": "Nätverksanslutningsfel",
+    "notFoundTitle": "Sidan hittades inte",
+    "notFoundSubtitle": "404 Fel",
+    "notFoundDescription": "Sidan du letar efter finns inte eller har flyttats.",
+    "serverErrorTitle": "Serverfel",
+    "serverErrorSubtitle": "500 Fel",
+    "serverErrorDescription": "Vi upplever några tekniska svårigheter. Försök igen senare.",
+    "checkConnection": "Kontrollera din internetanslutning",
+    "refresh": "Uppdatera sidan"
+  }
+}

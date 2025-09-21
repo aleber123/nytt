@@ -1,0 +1,19 @@
+<svg width="220" height="50" viewBox="0 0 220 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modern logo shape with document and stamp -->
+  <rect x="5" y="5" width="40" height="40" rx="8" fill="#0369a1"/>
+  
+  <!-- Document shape -->
+  <rect x="12" y="10" width="20" height="25" rx="2" fill="white"/>
+  
+  <!-- Document lines -->
+  <line x1="16" y1="15" x2="28" y2="15" stroke="#0369a1" stroke-width="1.5"/>
+  <line x1="16" y1="19" x2="28" y2="19" stroke="#0369a1" stroke-width="1.5"/>
+  <line x1="16" y1="23" x2="24" y2="23" stroke="#0369a1" stroke-width="1.5"/>
+  
+  <!-- Stamp/seal -->
+  <circle cx="27" cy="30" r="7" fill="#0ea5e9" stroke="white" stroke-width="1.5"/>
+  <path d="M24 30L26 32L30 28" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Text as path to avoid font issues - "Legaliseringstjänst" -->
+  <path d="M55 30h2v-12h-2v12zm10-0.5c3.3 0 5-2.2 5-6s-1.7-6-5-6-5 2.2-5 6 1.7 6 5 6zm0-2c-1.8 0-2.8-1.5-2.8-4s1-4 2.8-4 2.8 1.5 2.8 4-1 4-2.8 4zm14 2.5v-2h-5v-3h4v-2h-4v-3h5v-2h-7v12h7zm10-0.5c3.3 0 5-2.2 5-6s-1.7-6-5-6-5 2.2-5 6 1.7 6 5 6zm0-2c-1.8 0-2.8-1.5-2.8-4s1-4 2.8-4 2.8 1.5 2.8 4-1 4-2.8 4zm14 2.5v-2h-5v-3h4v-2h-4v-3h5v-2h-7v12h7zm6 0v-10h3v-2h-8v2h3v10h2zm8 0v-5h1l3 5h2.3l-3.2-5.2c1.6-0.7 2.4-2 2.4-3.8 0-2.5-1.5-4-4.5-4h-4v13h3zm0-7v-3h1.3c1.2 0 1.7 0.7 1.7 1.5s-0.5 1.5-1.7 1.5h-1.3zm14 7v-5h1l3 5h2.3l-3.2-5.2c1.6-0.7 2.4-2 2.4-3.8 0-2.5-1.5-4-4.5-4h-4v13h3zm0-7v-3h1.3c1.2 0 1.7 0.7 1.7 1.5s-0.5 1.5-1.7 1.5h-1.3zm14 7v-10h3v-2h-8v2h3v10h2zm6 0v-12h-2v12h2zm10-0.5c3.3 0 5-2.2 5-6s-1.7-6-5-6-5 2.2-5 6 1.7 6 5 6zm0-2c-1.8 0-2.8-1.5-2.8-4s1-4 2.8-4 2.8 1.5 2.8 4-1 4-2.8 4zm14 2.5v-2h-5v-3h4v-2h-4v-3h5v-2h-7v12h7zm8 0v-5h1l3 5h2.3l-3.2-5.2c1.6-0.7 2.4-2 2.4-3.8 0-2.5-1.5-4-4.5-4h-4v13h3zm0-7v-3h1.3c1.2 0 1.7 0.7 1.7 1.5s-0.5 1.5-1.7 1.5h-1.3z" fill="#0369a1"/>
+</svg>

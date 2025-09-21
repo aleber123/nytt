@@ -1,0 +1,209 @@
+{
+  "accessibility": {
+    "skipToContent": "Skip to content",
+    "mainNav": "Main navigation",
+    "homeLogo": "Go to homepage",
+    "switchToSwedish": "Switch to Swedish",
+    "switchToEnglish": "Switch to English",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "selectService": "Select service"
+  },
+  "common": {
+    "back": "Back",
+    "continue": "Continue",
+    "yes": "Yes",
+    "no": "No",
+    "item": "document",
+    "items": "documents"
+  },
+  "nav": {
+    "home": "Home",
+    "services": "Services",
+    "countries": "Countries",
+    "prices": "Prices",
+    "about": "About us",
+    "contact": "Contact",
+    "order": "Order now"
+  },
+  "home": {
+    "title": "Legalization Service - Fast and easy document legalization",
+    "description": "We help you with document legalization for use abroad. Fast, easy, and secure.",
+    "servicesTitle": "Our services",
+    "allServices": "View all services",
+    "processTitle": "How it works",
+    "processSubtitle": "Our process is simple and efficient to save you time and hassle",
+    "ctaTitle": "Ready to order?",
+    "ctaText": "We help you with the legalization of your documents quickly and easily",
+    "ctaButton": "Order now"
+  },
+  "hero": {
+    "title": "Document legalization for use abroad",
+    "subtitle": "We help you with apostille, notarization, and embassy legalization. Fast, easy, and secure.",
+    "cta": "Order now"
+  },
+  "services": {
+    "apostille": {
+      "title": "Apostille",
+      "description": "Legalization of documents for use in countries that are part of the Hague Convention",
+      "price": "From 895 kr",
+      "timeframe": "5-7 business days"
+    },
+    "notarization": {
+      "title": "Notarization",
+      "description": "Notarization of documents by a notary public for legal validity",
+      "price": "From 695 kr",
+      "timeframe": "3-5 business days"
+    },
+    "embassy": {
+      "title": "Embassy Legalization",
+      "description": "Legalization of documents through embassy or consulate for use in specific countries",
+      "price": "From 1295 kr",
+      "timeframe": "7-14 business days"
+    },
+    "translation": {
+      "title": "Authorized Translation",
+      "description": "Translation of documents by authorized translators for official use",
+      "price": "From 995 kr",
+      "timeframe": "5-10 business days"
+    }
+  },
+  "process": {
+    "step1": {
+      "title": "Order online",
+      "description": "Fill out our simple order form and select your desired service"
+    },
+    "step2": {
+      "title": "Payment",
+      "description": "Choose your payment method and complete your order"
+    },
+    "step3": {
+      "title": "We process your documents",
+      "description": "Our experts ensure your documents are properly legalized"
+    },
+    "step4": {
+      "title": "Receive your legalized documents",
+      "description": "We deliver your legalized documents according to your chosen delivery method"
+    }
+  },
+  "documents": {
+    "birthCertificate": "Birth Certificate",
+    "marriageCertificate": "Marriage Certificate",
+    "diploma": "Diploma",
+    "commercialDocuments": "Commercial Documents",
+    "powerOfAttorney": "Power of Attorney",
+    "other": "Other document"
+  },
+  "order": {
+    "title": "Order legalization",
+    "description": "Fill out the form below to order legalization of your documents",
+    "selectService": "Select service",
+    "selectServiceDescription": "Choose the service that best suits your needs",
+    "steps": {
+      "service": "Select service",
+      "serviceDesc": "Choose what type of legalization you need",
+      "details": "Your details",
+      "detailsDesc": "Fill in information about you and your documents",
+      "review": "Review",
+      "reviewDesc": "Check your order",
+      "payment": "Payment",
+      "paymentDesc": "Complete your order"
+    },
+    "form": {
+      "documentDetails": "Document information",
+      "documentType": "Document type",
+      "selectDocumentType": "Select document type",
+      "country": "Country",
+      "selectCountry": "Select country",
+      "quantity": "Number of documents",
+      "expedited": "Express service (+500 kr)",
+      "customerInfo": "Your information",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "postalCode": "Postal code",
+      "city": "City",
+      "deliveryMethod": "Delivery method",
+      "deliveryDigital": "Digital delivery (PDF, no extra cost)",
+      "deliveryPost": "Regular mail (+50 kr)",
+      "deliveryExpress": "Express mail (+150 kr)",
+      "errors": {
+        "documentTypeRequired": "You must select a document type",
+        "countryRequired": "You must select a country",
+        "quantityRequired": "You must specify the number of documents",
+        "firstNameRequired": "You must enter your first name",
+        "lastNameRequired": "You must enter your last name",
+        "emailInvalid": "You must enter a valid email address",
+        "phoneRequired": "You must enter your phone number",
+        "addressRequired": "You must enter your address",
+        "postalCodeRequired": "You must enter your postal code",
+        "cityRequired": "You must enter your city",
+        "deliveryMethodRequired": "You must select a delivery method"
+      }
+    },
+    "summary": {
+      "title": "Review your order",
+      "description": "Check that all information is correct before proceeding to payment",
+      "orderDetails": "Order information",
+      "service": "Service",
+      "documentType": "Document type",
+      "quantity": "Quantity",
+      "expedited": "Express service",
+      "deliveryMethod": "Delivery method",
+      "estimatedDelivery": "Estimated delivery",
+      "customerInfo": "Your information",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "pricing": "Pricing details",
+      "expeditedFee": "Express service",
+      "expressDelivery": "Express mail",
+      "standardDelivery": "Regular mail",
+      "total": "Total",
+      "vat": "Including VAT (25%)"
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Choose payment method to complete your order",
+      "card": "Pay by card",
+      "swish": "Pay with Swish",
+      "invoice": "Invoice (14 days)"
+    }
+  },
+  "footer": {
+    "title": "Footer",
+    "description": "We help you with document legalization for use abroad. Fast, easy, and secure.",
+    "rights": "All rights reserved.",
+    "services": {
+      "title": "Services",
+      "apostille": "Apostille",
+      "notarization": "Notarization",
+      "embassy": "Embassy Legalization",
+      "translation": "Authorized Translation"
+    },
+    "support": {
+      "title": "Support",
+      "faq": "FAQ",
+      "contact": "Contact us",
+      "pricing": "Pricing",
+      "delivery": "Delivery times"
+    },
+    "company": {
+      "title": "Company",
+      "about": "About us",
+      "careers": "Careers",
+      "blog": "Blog",
+      "press": "Press"
+    },
+    "legal": {
+      "title": "Legal information",
+      "privacy": "Privacy policy",
+      "terms": "Terms",
+      "accessibility": "Accessibility",
+      "cookies": "Cookies"
+    }
+  }
+}
