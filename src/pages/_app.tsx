@@ -5,6 +5,7 @@ import Layout from '@/components/layout/Layout';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/error';
+import CookieBanner from '@/components/CookieBanner';
 import '../i18n'; // Import i18n configuration
 
 function MyApp({ Component, pageProps }: AppProps) {
@@ -25,6 +26,7 @@ function MyApp({ Component, pageProps }: AppProps) {
             }}
           />
         </Layout>
+        <CookieBanner />
       </AuthProvider>
     </ErrorBoundary>
   );

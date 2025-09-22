@@ -114,7 +114,7 @@ export default function Home() {
             </div>
             
             <div className="text-center mt-10">
-              <Link href="/tjanster" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+              <Link href="/tjanster" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button">
                 {t('home.allServices')}
               </Link>
             </div>

@@ -4,5 +4,10 @@
     "location": "europe-north1",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs18",
+    "region": "europe-north1"
   }
 }

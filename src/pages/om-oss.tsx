@@ -18,7 +18,7 @@ const AboutPage: React.FC = () => {
         />
       </Head>
 
-      <div className="bg-primary-700 py-12">
+      <div className="bg-custom-page-header py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
             {t('about.title') || 'Om oss'}
@@ -115,13 +115,13 @@ const AboutPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/kontakt"
-                  className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
                 >
                   {t('about.contactButton') || 'Kontakta oss'}
                 </Link>
                 <Link
                   href="/bestall"
-                  className="inline-flex items-center justify-center px-6 py-3 border border-primary-600 text-base font-medium rounded-md text-primary-600 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="inline-flex items-center justify-center px-6 py-3 border border-custom-button text-base font-medium rounded-md text-custom-button bg-white hover:bg-custom-button/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
                 >
                   {t('about.orderButton') || 'Beställ nu'}
                 </Link>

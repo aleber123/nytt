@@ -8,6 +8,8 @@ import { createOrderWithFiles } from '@/services/hybridOrderService';
 import { getCountryPricingRules, calculateOrderPrice, getAllActivePricingRules } from '@/firebase/pricingService';
 import { getPricingRule } from '@/services/mockPricingService';
 import { toast } from 'react-hot-toast';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 interface TestOrderPageProps {}
 
@@ -447,11 +449,27 @@ export default function TestOrderPage({}: TestOrderPageProps) {
              };
            });
 
-           // Sort services so translation always appears last
+           // Sort services by step order: steg 1, steg 2, steg 3, then translation last
+           const getStepOrder = (serviceId: string) => {
+             const stepOrders: { [key: string]: number } = {
+               'chamber': 1,      // Steg 1: Handelskammaren
+               'notarization': 1, // Steg 1: Notarisering
+               'ud': 2,           // Steg 2: UD Sverige
+               'embassy': 3,      // Steg 3: Ambassad
+               'apostille': 1,    // Steg 1: Apostille (for Hague countries)
+               'translation': 4   // Last: Auktoriserad översättning
+             };
+             return stepOrders[serviceId] || 99;
+           };
+
            const sortedServices = servicesFromFirebase.sort((a, b) => {
-             if (a.id === 'translation') return 1;  // Translation goes to end
-             if (b.id === 'translation') return -1; // Other services come before translation
-             return 0; // Keep original order for other services
+             const stepA = getStepOrder(a.id);
+             const stepB = getStepOrder(b.id);
+             if (stepA !== stepB) {
+               return stepA - stepB;
+             }
+             // If same step, maintain original order
+             return 0;
            });
 
            console.log('🔄 Services from Firebase (filtered & sorted):', sortedServices.map(s => ({ id: s.id, price: s.price })));
@@ -535,11 +553,27 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         ];
       }
 
-      // Sort services so translation always appears last
+      // Sort services by step order: steg 1, steg 2, steg 3, then translation last
+      const getStepOrder = (serviceId: string) => {
+        const stepOrders: { [key: string]: number } = {
+          'chamber': 1,      // Steg 1: Handelskammaren
+          'notarization': 1, // Steg 1: Notarisering
+          'ud': 2,           // Steg 2: UD Sverige
+          'embassy': 3,      // Steg 3: Ambassad
+          'apostille': 1,    // Steg 1: Apostille (for Hague countries)
+          'translation': 4   // Last: Auktoriserad översättning
+        };
+        return stepOrders[serviceId] || 99;
+      };
+
       const sortedServicesList = availableServicesList.sort((a, b) => {
-        if (a.id === 'translation') return 1;  // Translation goes to end
-        if (b.id === 'translation') return -1; // Other services come before translation
-        return 0; // Keep original order for other services
+        const stepA = getStepOrder(a.id);
+        const stepB = getStepOrder(b.id);
+        if (stepA !== stepB) {
+          return stepA - stepB;
+        }
+        // If same step, maintain original order
+        return 0;
       });
 
       setAvailableServices(sortedServicesList);
@@ -568,11 +602,27 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         ];
       }
 
-      // Sort services so translation always appears last
+      // Sort services by step order: steg 1, steg 2, steg 3, then translation last
+      const getStepOrder = (serviceId: string) => {
+        const stepOrders: { [key: string]: number } = {
+          'chamber': 1,      // Steg 1: Handelskammaren
+          'notarization': 1, // Steg 1: Notarisering
+          'ud': 2,           // Steg 2: UD Sverige
+          'embassy': 3,      // Steg 3: Ambassad
+          'apostille': 1,    // Steg 1: Apostille (for Hague countries)
+          'translation': 4   // Last: Auktoriserad översättning
+        };
+        return stepOrders[serviceId] || 99;
+      };
+
       const sortedFallbackServices = fallbackServices.sort((a, b) => {
-        if (a.id === 'translation') return 1;  // Translation goes to end
-        if (b.id === 'translation') return -1; // Other services come before translation
-        return 0; // Keep original order for other services
+        const stepA = getStepOrder(a.id);
+        const stepB = getStepOrder(b.id);
+        if (stepA !== stepB) {
+          return stepA - stepB;
+        }
+        // If same step, maintain original order
+        return 0;
       });
 
       setAvailableServices(sortedFallbackServices);
@@ -822,7 +872,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               }
             }}
             placeholder="Sök land (t.ex. 'ku' visar Kuwait, 'qa' visar Qatar)..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-lg"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button text-lg"
           />
 
           {showCountryDropdown && (
@@ -874,7 +924,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 <button
                   key={country.code}
                   onClick={() => handleCountrySelect(country.code)}
-                  className="flex flex-col items-center p-3 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="flex flex-col items-center p-3 border-2 border-gray-200 rounded-lg hover:border-custom-button hover:bg-custom-button-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
                 >
                   <span className="text-2xl mb-1">{country.flag}</span>
                   <span className="text-xs font-medium text-gray-900 text-center">
@@ -925,7 +975,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           {answers.country && (
             <button
               onClick={() => setCurrentQuestion(2)}
-              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
             >
               Nästa →
             </button>
@@ -961,7 +1011,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers(prev => ({ ...prev, documentType: docType.id }));
               setCurrentQuestion(3);
             }}
-            className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 flex items-center"
+            className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-custom-button hover:bg-custom-button-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button flex items-center"
           >
             <span className="text-2xl mr-4">{docType.icon}</span>
             <span className="text-lg font-medium text-gray-900">{docType.name}</span>
@@ -1054,15 +1104,15 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               }}
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
                 isSelected
-                  ? 'border-primary-500 bg-primary-50 shadow-md'
-                  : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                  ? 'border-custom-button bg-custom-button-bg shadow-md'
+                  : 'border-gray-200 hover:border-custom-button-light hover:bg-gray-50'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="text-lg font-medium text-gray-900 mb-1">{service.name}</h3>
                   <p className="text-gray-600 mb-2">{service.description}</p>
-                  <span className="text-primary-600 font-medium">{service.price}</span>
+                  <span className="text-custom-button font-medium">{service.price}</span>
                   {service.id === 'apostille' && (
                     <div className="mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
@@ -1120,7 +1170,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                         }));
                       }
                     }}
-                    className="h-5 w-5 text-primary-600 rounded focus:ring-primary-500 pointer-events-none"
+                    className="h-5 w-5 accent-custom-button rounded focus:ring-custom-button pointer-events-none"
                     readOnly
                   />
                 </div>
@@ -1142,7 +1192,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           disabled={answers.services.length === 0}
           className={`px-6 py-2 rounded-md font-medium ${
             answers.services.length > 0
-              ? 'bg-primary-600 text-white hover:bg-primary-700'
+              ? 'bg-custom-button text-white hover:bg-custom-button-hover'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
@@ -1172,13 +1222,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         </button>
 
         <div className="text-center">
-          <div className="text-4xl font-bold text-primary-600 mb-2">{answers.quantity}</div>
+          <div className="text-4xl font-bold text-custom-button mb-2">{answers.quantity}</div>
           <div className="text-gray-600">dokument</div>
         </div>
 
         <button
           onClick={() => setAnswers(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))}
-          className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-primary-500 hover:bg-primary-50"
+          className="w-12 h-12 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-custom-button hover:bg-custom-button-bg"
         >
           <span className="text-2xl">+</span>
         </button>
@@ -1194,7 +1244,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         </button>
         <button
           onClick={() => setCurrentQuestion(5)}
-          className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
         >
           Nästa steg →
         </button>
@@ -1234,8 +1284,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers(prev => ({ ...prev, documentSource: 'original', uploadedFiles: [] }));
               setCurrentQuestion(6);
             }}
-            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              answers.documentSource === 'original' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+              answers.documentSource === 'original' ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
             }`}
           >
             <div className="flex items-center">
@@ -1256,8 +1306,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               }));
               setCurrentQuestion(6);
             }}
-            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              answers.documentSource === 'upload' ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+              answers.documentSource === 'upload' ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
             }`}
           >
             <div className="flex items-center">
@@ -1281,7 +1331,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         {answers.documentSource && (
           <button
             onClick={() => setCurrentQuestion(6)}
-            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
           >
             Nästa steg →
           </button>
@@ -1338,8 +1388,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               }));
               setCurrentQuestion(7);
             }}
-            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              answers.pickupService === false ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+              answers.pickupService === false ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
             }`}
           >
             <div className="flex items-center">
@@ -1356,8 +1406,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers(prev => ({ ...prev, pickupService: true }));
               setCurrentQuestion(7); // Go to pickup address step
             }}
-            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              answers.pickupService === true ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+              answers.pickupService === true ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
             }`}
           >
             <div className="flex items-center">
@@ -1380,7 +1430,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           {answers.pickupService !== undefined && (
             <button
               onClick={() => setCurrentQuestion(7)}
-              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
             >
               Nästa steg →
             </button>
@@ -1439,7 +1489,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 ...prev,
                 pickupAddress: { ...prev.pickupAddress, street: e.target.value }
               }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
               placeholder="Ange din gatuadress..."
               required
             />
@@ -1457,7 +1507,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   ...prev,
                   pickupAddress: { ...prev.pickupAddress, postalCode: e.target.value }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
                 placeholder="123 45"
               />
             </div>
@@ -1472,7 +1522,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   ...prev,
                   pickupAddress: { ...prev.pickupAddress, city: e.target.value }
                 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
                 placeholder="Stockholm"
               />
             </div>
@@ -1491,7 +1541,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             disabled={!answers.pickupAddress.street || !answers.pickupAddress.postalCode || !answers.pickupAddress.city}
             className={`px-6 py-2 rounded-md font-medium ${
               answers.pickupAddress.street && answers.pickupAddress.postalCode && answers.pickupAddress.city
-                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
@@ -1540,8 +1590,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers(prev => ({ ...prev, scannedCopies: false }));
               setCurrentQuestion(10);
             }}
-            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              answers.scannedCopies === false ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+              answers.scannedCopies === false ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
             }`}
           >
             <div className="flex items-center">
@@ -1558,8 +1608,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers(prev => ({ ...prev, scannedCopies: true }));
               setCurrentQuestion(10);
             }}
-            className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-              answers.scannedCopies === true ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+            className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+              answers.scannedCopies === true ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
             }`}
           >
             <div className="flex items-center">
@@ -1591,7 +1641,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           {answers.scannedCopies !== undefined && (
             <button
               onClick={() => setCurrentQuestion(10)}
-              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
             >
               Fortsätt →
             </button>
@@ -1660,7 +1710,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
           <div className="space-y-4">
             {Array.from({ length: answers.quantity }, (_, index) => (
-              <div key={index} className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary-500 transition-colors">
+              <div key={index} className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-custom-button transition-colors">
                 <div className="text-center">
                   <input
                     type="file"
@@ -1715,7 +1765,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               disabled={answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file)}
               className={`px-6 py-2 rounded-md font-medium ${
                 answers.uploadedFiles.length === answers.quantity && answers.uploadedFiles.every(file => file)
-                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -1836,7 +1886,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               disabled={!answers.customerInfo.firstName || !answers.customerInfo.lastName || !answers.customerInfo.email || !answers.customerInfo.phone}
               className={`px-6 py-2 rounded-md font-medium ${
                 answers.customerInfo.firstName && answers.customerInfo.lastName && answers.customerInfo.email && answers.customerInfo.phone
-                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -1887,8 +1937,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 setAnswers(prev => ({ ...prev, returnService: service.id }));
                 setCurrentQuestion(11); // Go to final step
               }}
-              className={`w-full p-6 border-2 rounded-lg hover:border-primary-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                answers.returnService === service.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+              className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+                answers.returnService === service.id ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -1905,7 +1955,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-semibold text-primary-600">{service.price}</div>
+                  <div className="text-lg font-semibold text-custom-button">{service.price}</div>
                   <div className="text-xs text-gray-500">{service.provider}</div>
                 </div>
               </div>
@@ -2274,6 +2324,49 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
               console.log('✅ Order submitted successfully:', orderId);
 
+              // Send email notification (save to Firestore for external processing, same as contact form)
+              try {
+                const emailData = {
+                  name: 'Order Notification',
+                  email: 'noreply@legaliseringstjanst.se',
+                  phone: '',
+                  subject: `Ny beställning mottagen - Order #${orderId}`,
+                  message: `
+Ny beställning har mottagits!
+
+Ordernummer: ${orderId}
+Kund: ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}
+E-post: ${answers.customerInfo.email}
+Telefon: ${answers.customerInfo.phone}
+
+Land: ${allCountries.find(c => c.code === answers.country)?.name}
+Dokumenttyp: ${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
+             answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+             answers.documentType === 'diploma' ? 'Examensbevis' :
+             answers.documentType === 'commercial' ? 'Handelsdokument' :
+             answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+Antal dokument: ${answers.quantity}
+
+Valda tjänster: ${answers.services.join(', ')}
+Totalbelopp: ${pricingResult.totalPrice} kr
+
+Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
+Returfrakt: ${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}
+
+${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
+                  `.trim(),
+                  orderId: orderId,
+                  createdAt: Timestamp.now(),
+                  status: 'unread'
+                };
+
+                await addDoc(collection(db, 'contactMessages'), emailData);
+                console.log('📧 Email notification queued for order:', orderId);
+              } catch (emailError) {
+                console.error('❌ Failed to queue email notification:', emailError);
+                // Don't block the order flow if email notification fails
+              }
+
               // Show beautiful success toast
               toast.success(
                 <div className="text-center">
@@ -2358,19 +2451,19 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                       }
                     }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
-                      step < currentQuestion || (step === 11 && currentQuestion >= 10)
-                        ? 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-110 cursor-pointer shadow-md'
+                      step < currentQuestion
+                        ? 'bg-custom-button text-white hover:bg-custom-button-hover hover:scale-110 cursor-pointer shadow-md'
                         : step === currentQuestion
-                        ? 'bg-primary-600 text-white ring-2 ring-primary-300 ring-offset-2 scale-110 shadow-lg'
+                        ? 'bg-custom-button text-white ring-2 ring-custom-button-light ring-offset-2 scale-110 shadow-lg'
                         : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                     }`}
                     disabled={step > currentQuestion && step > 11}
                   >
-                    {step}
+                    {step < currentQuestion ? '✓' : step}
                   </button>
                   {step < 11 && (
                     <div className={`w-12 h-1 mx-2 transition-colors duration-200 ${
-                      step < currentQuestion || (step === 10 && currentQuestion >= 10) ? 'bg-primary-600' : 'bg-gray-300'
+                      step < currentQuestion || (step === 10 && currentQuestion >= 10) ? 'bg-custom-button' : 'bg-gray-300'
                     }`} />
                   )}
                 </div>

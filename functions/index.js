@@ -6,7 +6,7 @@ const nodemailer = require('nodemailer');
 admin.initializeApp();
 
 // Configure nodemailer with Gmail (you'll need to set up app password)
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: functions.config().email.user, // Set this in Firebase config

@@ -49,8 +49,8 @@ const Header: React.FC = () => {
                 href={item.href}
                 className={`text-base font-medium px-1 py-2 transition-colors duration-200 ${
                   router.pathname === item.href
-                    ? 'text-primary-700 border-b-2 border-primary-700 font-semibold'
-                    : 'text-gray-700 hover:text-primary-700 hover:border-b-2 hover:border-primary-300'
+                    ? 'text-custom-button border-b-2 border-custom-button font-semibold'
+                    : 'text-gray-700 hover:text-custom-button hover:border-b-2 hover:border-custom-button/50'
                 }`}
                 aria-current={router.pathname === item.href ? 'page' : undefined}
               >
@@ -64,8 +64,8 @@ const Header: React.FC = () => {
               <button
                 onClick={() => changeLanguage('sv')}
                 className={`p-2 rounded-md transition-colors duration-200 ${
-                  i18n.language === 'sv' 
-                    ? 'bg-primary-100 text-primary-700 font-medium' 
+                  i18n.language === 'sv'
+                    ? 'bg-custom-button/10 text-custom-button font-medium'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 aria-label={t('accessibility.switchToSwedish')}
@@ -76,8 +76,8 @@ const Header: React.FC = () => {
               <button
                 onClick={() => changeLanguage('en')}
                 className={`p-2 rounded-md transition-colors duration-200 ${
-                  i18n.language === 'en' 
-                    ? 'bg-primary-100 text-primary-700 font-medium' 
+                  i18n.language === 'en'
+                    ? 'bg-custom-button/10 text-custom-button font-medium'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 aria-label={t('accessibility.switchToEnglish')}
@@ -89,7 +89,7 @@ const Header: React.FC = () => {
             
             <Link
               href="/bestall"
-              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-all duration-200 hover:shadow"
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button shadow-sm transition-all duration-200 hover:shadow"
             >
               {t('nav.order')}
             </Link>
@@ -99,7 +99,7 @@ const Header: React.FC = () => {
           <div className="md:hidden flex items-center">
             <button
               type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-primary-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-custom-button hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-custom-button"
               aria-controls="mobile-menu"
               aria-expanded={isMenuOpen}
               onClick={toggleMenu}
@@ -127,8 +127,8 @@ const Header: React.FC = () => {
               href={item.href}
               className={`block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 ${
                 router.pathname === item.href
-                  ? 'bg-primary-100 text-primary-700 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-100 hover:text-primary-700'
+                  ? 'text-custom-button bg-custom-button/5 font-semibold'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-custom-button'
               }`}
               aria-current={router.pathname === item.href ? 'page' : undefined}
             >
@@ -141,8 +141,8 @@ const Header: React.FC = () => {
               <button
                 onClick={() => changeLanguage('sv')}
                 className={`p-2 rounded-md transition-colors duration-200 ${
-                  i18n.language === 'sv' 
-                    ? 'bg-primary-100 text-primary-700 font-medium' 
+                  i18n.language === 'sv'
+                    ? 'bg-custom-button/10 text-custom-button font-medium'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 aria-label={t('accessibility.switchToSwedish')}
@@ -153,8 +153,8 @@ const Header: React.FC = () => {
               <button
                 onClick={() => changeLanguage('en')}
                 className={`p-2 rounded-md transition-colors duration-200 ${
-                  i18n.language === 'en' 
-                    ? 'bg-primary-100 text-primary-700 font-medium' 
+                  i18n.language === 'en'
+                    ? 'bg-custom-button/10 text-custom-button font-medium'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
                 aria-label={t('accessibility.switchToEnglish')}
@@ -166,7 +166,7 @@ const Header: React.FC = () => {
             
             <Link
               href="/bestall"
-              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-all duration-200 hover:shadow"
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button shadow-sm transition-all duration-200 hover:shadow"
             >
               {t('nav.order')}
             </Link>

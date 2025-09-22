@@ -601,16 +601,114 @@ async function testAdminFileDisplay() {
   }
 }
 
-// Test that directly adds file data to order (bypassing storage upload)
-async function testDirectFileData() {
-  console.log('\n🔧 Testing direct file data addition to order...\n');
+// Test with a real PDF file
+async function testRealPDFFile() {
+  console.log('\n📄 Testing with a real PDF file...\n');
+
+  const fs = require('fs');
+  const path = require('path');
 
   try {
+    // Look for existing PDF files in the project
+    const projectDir = path.join(__dirname);
+    const pdfFiles = fs.readdirSync(projectDir).filter(file => file.endsWith('.pdf'));
+
+    let pdfPath;
+    let pdfBuffer;
+
+    if (pdfFiles.length > 0) {
+      // Use existing PDF file
+      pdfPath = path.join(projectDir, pdfFiles[0]);
+      pdfBuffer = fs.readFileSync(pdfPath);
+      console.log(`✅ Found existing PDF: ${pdfFiles[0]} (${(pdfBuffer.length / 1024).toFixed(0)} KB)`);
+    } else {
+      // Create a real PDF file using a simple PDF structure
+      pdfPath = path.join(projectDir, 'test-document.pdf');
+
+      // Create a minimal valid PDF
+      const pdfContent = Buffer.from(
+        '%PDF-1.4\n' +
+        '1 0 obj\n' +
+        '<<\n' +
+        '/Type /Catalog\n' +
+        '/Pages 2 0 R\n' +
+        '>>\n' +
+        'endobj\n' +
+        '2 0 obj\n' +
+        '<<\n' +
+        '/Type /Pages\n' +
+        '/Kids [3 0 R]\n' +
+        '/Count 1\n' +
+        '>>\n' +
+        'endobj\n' +
+        '3 0 obj\n' +
+        '<<\n' +
+        '/Type /Page\n' +
+        '/Parent 2 0 R\n' +
+        '/MediaBox [0 0 612 792]\n' +
+        '/Contents 4 0 R\n' +
+        '/Resources << /Font << /F1 5 0 R >> >>\n' +
+        '>>\n' +
+        'endobj\n' +
+        '4 0 obj\n' +
+        '<<\n' +
+        '/Length 85\n' +
+        '>>\n' +
+        'stream\n' +
+        'BT\n' +
+        '/F1 12 Tf\n' +
+        '100 700 Td\n' +
+        '(Test Document - Real PDF) Tj\n' +
+        '100 680 Td\n' +
+        '(Created for file upload testing) Tj\n' +
+        'ET\n' +
+        'endstream\n' +
+        'endobj\n' +
+        '5 0 obj\n' +
+        '<<\n' +
+        '/Type /Font\n' +
+        '/Subtype /Type1\n' +
+        '/BaseFont /Helvetica\n' +
+        '>>\n' +
+        'endobj\n' +
+        'xref\n' +
+        '0 6\n' +
+        '0000000000 65535 f \n' +
+        '0000000009 00000 n \n' +
+        '0000000058 00000 n \n' +
+        '0000000115 00000 n \n' +
+        '0000000274 00000 n \n' +
+        '0000000377 00000 n \n' +
+        'trailer\n' +
+        '<<\n' +
+        '/Size 6\n' +
+        '/Root 1 0 R\n' +
+        '>>\n' +
+        'startxref\n' +
+        '475\n' +
+        '%%EOF'
+      );
+
+      fs.writeFileSync(pdfPath, pdfContent);
+      pdfBuffer = pdfContent;
+      console.log(`✅ Created real PDF file: test-document.pdf (${(pdfBuffer.length / 1024).toFixed(0)} KB)`);
+    }
+
+    // Create File-like object for upload
+    const mockFile = {
+      name: path.basename(pdfPath),
+      size: pdfBuffer.length,
+      type: 'application/pdf',
+      arrayBuffer: () => Promise.resolve(pdfBuffer),
+      stream: () => require('stream').Readable.from(pdfBuffer),
+      buffer: pdfBuffer
+    };
+
     // Create order data
     const orderData = {
       country: 'SE',
       services: ['apostille'],
-      quantity: 2,
+      quantity: 1,
       expedited: false,
       deliveryMethod: 'digital',
       scannedCopies: false,
@@ -627,21 +725,21 @@ async function testDirectFileData() {
         }
       ],
       customerInfo: {
-        firstName: 'Direct',
-        lastName: 'FileTest',
-        email: 'direct-file@example.com',
+        firstName: 'Real',
+        lastName: 'PDFTest',
+        email: 'real-pdf@example.com',
         phone: '+46 70 123 45 67',
-        address: 'Direct File Testgatan 123',
+        address: 'Real PDF Testgatan 123',
         postalCode: '114 35',
         city: 'Stockholm'
       },
       paymentMethod: 'invoice',
-      totalPrice: 1790, // 2 x 895 = 1790
+      totalPrice: 980, // 895 + 85
       pricingBreakdown: [
         {
           service: 'apostille',
-          basePrice: 1790,
-          quantity: 2,
+          basePrice: 895,
+          quantity: 1,
           unitPrice: 895
         },
         {
@@ -650,91 +748,353 @@ async function testDirectFileData() {
           description: 'PostNord REK'
         }
       ],
-      invoiceReference: 'DIRECT-FILE-DATA-TEST',
-      additionalNotes: 'Test order with direct file data addition',
-      // Add file data directly to order
-      uploadedFiles: [
-        {
-          originalName: 'birth-certificate.pdf',
-          size: 2457600, // 2.4 MB
-          type: 'application/pdf',
-          downloadURL: 'https://firebasestorage.googleapis.com/v0/b/legapp-2720a.firebasestorage.app/o/documents%2FDIRECT001%2Fbirth-certificate.pdf?alt=media',
-          storagePath: 'documents/DIRECT001/birth-certificate.pdf',
-          uploadedAt: new Date().toISOString()
-        },
-        {
-          originalName: 'marriage-license.pdf',
-          size: 1843200, // 1.8 MB
-          type: 'application/pdf',
-          downloadURL: 'https://firebasestorage.googleapis.com/v0/b/legapp-2720a.firebasestorage.app/o/documents%2FDIRECT001%2Fmarriage-license.pdf?alt=media',
-          storagePath: 'documents/DIRECT001/marriage-license.pdf',
-          uploadedAt: new Date().toISOString()
-        }
-      ],
-      filesUploaded: true,
-      filesUploadedAt: new Date().toISOString()
+      invoiceReference: 'REAL-PDF-FILE-TEST',
+      additionalNotes: `Test order with real PDF file: ${mockFile.name} (${(mockFile.size / 1024).toFixed(0)} KB)`
     };
 
-    // Create order with file data directly
-    const { createOrder } = require('./src/services/hybridOrderService');
-    const orderId = await createOrder(orderData);
+    // Try to create order with real PDF file upload
+    const { createOrderWithFiles } = require('./src/services/hybridOrderService');
+    console.log(`📤 Attempting to upload real PDF file: ${mockFile.name} (${(mockFile.size / 1024).toFixed(0)} KB)`);
 
-    console.log(`✅ Order created with direct file data: ${orderId}`);
+    const orderId = await createOrderWithFiles(orderData, [mockFile]);
 
-    // Retrieve and verify
+    console.log(`✅ Order created with real PDF upload attempt: ${orderId}`);
+
+    // Retrieve and check if file was uploaded
     const retrievedOrder = await getOrderById(orderId);
 
-    if (retrievedOrder && retrievedOrder.uploadedFiles) {
-      console.log(`✅ SUCCESS: Order has ${retrievedOrder.uploadedFiles.length} uploaded file(s)`);
-      retrievedOrder.uploadedFiles.forEach((file, index) => {
-        console.log(`   📄 File ${index + 1}: ${file.originalName} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
-        console.log(`      Type: ${file.type}`);
-        console.log(`      URL: ${file.downloadURL}`);
-      });
-    } else {
-      console.log('❌ FAILURE: No uploaded files found in order data');
+    if (retrievedOrder) {
+      console.log('📋 Order data keys:', Object.keys(retrievedOrder));
+      console.log('📎 Files uploaded flag:', retrievedOrder.filesUploaded);
+      console.log('🕒 Files uploaded at:', retrievedOrder.filesUploadedAt);
+
+      if (retrievedOrder.uploadedFiles && retrievedOrder.uploadedFiles.length > 0) {
+        console.log(`✅ SUCCESS: Order has ${retrievedOrder.uploadedFiles.length} uploaded file(s)`);
+        retrievedOrder.uploadedFiles.forEach((file, index) => {
+          console.log(`   📄 File ${index + 1}: ${file.originalName} (${(file.size / 1024).toFixed(0)} KB)`);
+          console.log(`      Type: ${file.type}`);
+          console.log(`      Storage Path: ${file.storagePath}`);
+          if (file.downloadURL) {
+            console.log(`      Download URL: ${file.downloadURL.substring(0, 80)}...`);
+          }
+        });
+      } else {
+        console.log('❌ FAILURE: No uploaded files found in order data');
+        console.log('   This means Firebase Storage upload failed');
+        console.log('   Check Firebase Storage rules and permissions');
+      }
     }
 
-    console.log('\n🎯 Direct File Data Test Summary:');
-    console.log('   ✅ Order created with file metadata');
-    console.log('   ✅ Files should be visible in admin interface');
+    // Clean up created test file
+    if (!pdfFiles.length > 0 && fs.existsSync(pdfPath)) {
+      fs.unlinkSync(pdfPath);
+      console.log('🧹 Cleaned up test PDF file');
+    }
+
+    console.log('\n🎯 Real PDF File Test Summary:');
+    console.log(`   Order ID: ${orderId}`);
+    console.log(`   PDF File: ${mockFile.name} (${(mockFile.size / 1024).toFixed(0)} KB)`);
     console.log(`   🔗 Admin URL: http://localhost:3000/admin/orders/${orderId}`);
-    console.log('   📎 Click on "Filer" tab to see uploaded files');
+    console.log('   📎 Check the "Filer" tab in admin to see if the real PDF appears');
 
     return {
       success: retrievedOrder?.uploadedFiles?.length > 0,
       orderId,
       adminUrl: `http://localhost:3000/admin/orders/${orderId}`,
-      fileCount: retrievedOrder?.uploadedFiles?.length || 0
+      hasFiles: retrievedOrder?.uploadedFiles?.length > 0,
+      pdfFile: mockFile.name,
+      pdfSize: mockFile.size
     };
 
   } catch (error) {
-    console.error('❌ Direct file data test failed:', error);
+    console.error('❌ Real PDF file test failed:', error);
     throw error;
   }
 }
 
-// Run the tests
+// Comprehensive test that includes admin interface verification
+async function testCompleteFileUploadFlow() {
+  console.log('\n🔬 COMPREHENSIVE FILE UPLOAD TEST - ADMIN INTERFACE VERIFICATION\n');
+
+  try {
+    // Step 1: Create real PDF file
+    const fs = require('fs');
+    const path = require('path');
+
+    const pdfPath = path.join(__dirname, 'test-document.pdf');
+    const pdfContent = Buffer.from(
+      '%PDF-1.4\n' +
+      '1 0 obj\n' +
+      '<<\n' +
+      '/Type /Catalog\n' +
+      '/Pages 2 0 R\n' +
+      '>>\n' +
+      'endobj\n' +
+      '2 0 obj\n' +
+      '<<\n' +
+      '/Type /Pages\n' +
+      '/Kids [3 0 R]\n' +
+      '/Count 1\n' +
+      '>>\n' +
+      'endobj\n' +
+      '3 0 obj\n' +
+      '<<\n' +
+      '/Type /Page\n' +
+      '/Parent 2 0 R\n' +
+      '/MediaBox [0 0 612 792]\n' +
+      '/Contents 4 0 R\n' +
+      '/Resources << /Font << /F1 5 0 R >> >>\n' +
+      '>>\n' +
+      'endobj\n' +
+      '4 0 obj\n' +
+      '<<\n' +
+      '/Length 85\n' +
+      '>>\n' +
+      'stream\n' +
+      'BT\n' +
+      '/F1 12 Tf\n' +
+      '100 700 Td\n' +
+      '(Test Document - Admin Verification) Tj\n' +
+      '100 680 Td\n' +
+      '(Uploaded for admin interface testing) Tj\n' +
+      'ET\n' +
+      'endstream\n' +
+      'endobj\n' +
+      '5 0 obj\n' +
+      '<<\n' +
+      '/Type /Font\n' +
+      '/Subtype /Type1\n' +
+      '/BaseFont /Helvetica\n' +
+      '>>\n' +
+      'endobj\n' +
+      'xref\n' +
+      '0 6\n' +
+      '0000000000 65535 f \n' +
+      '0000000009 00000 n \n' +
+      '0000000058 00000 n \n' +
+      '0000000115 00000 n \n' +
+      '0000000274 00000 n \n' +
+      '0000000377 00000 n \n' +
+      'trailer\n' +
+      '<<\n' +
+      '/Size 6\n' +
+      '/Root 1 0 R\n' +
+      '>>\n' +
+      'startxref\n' +
+      '475\n' +
+      '%%EOF'
+    );
+
+    fs.writeFileSync(pdfPath, pdfContent);
+    const pdfBuffer = pdfContent;
+
+    console.log('✅ Step 1: Created valid PDF file for testing');
+
+    // Create File-like object
+    const mockFile = {
+      name: 'test-document.pdf',
+      size: pdfBuffer.length,
+      type: 'application/pdf',
+      arrayBuffer: () => Promise.resolve(pdfBuffer),
+      stream: () => require('stream').Readable.from(pdfBuffer),
+      buffer: pdfBuffer
+    };
+
+    // Step 2: Create order data
+    const orderData = {
+      country: 'SE',
+      services: ['apostille'],
+      quantity: 1,
+      expedited: false,
+      deliveryMethod: 'digital',
+      scannedCopies: false,
+      pickupService: false,
+      returnService: 'postnord-rek',
+      returnServices: [
+        {
+          id: 'postnord-rek',
+          name: 'PostNord REK',
+          price: '85 kr',
+          provider: 'PostNord',
+          estimatedDelivery: '2-5 arbetsdagar',
+          available: true
+        }
+      ],
+      customerInfo: {
+        firstName: 'Admin',
+        lastName: 'VerificationTest',
+        email: 'admin-verification@example.com',
+        phone: '+46 70 123 45 67',
+        address: 'Admin Verification Testgatan 123',
+        postalCode: '114 35',
+        city: 'Stockholm'
+      },
+      paymentMethod: 'invoice',
+      totalPrice: 980,
+      pricingBreakdown: [
+        {
+          service: 'apostille',
+          basePrice: 895,
+          quantity: 1,
+          unitPrice: 895
+        },
+        {
+          service: 'return_service',
+          fee: 85,
+          description: 'PostNord REK'
+        }
+      ],
+      invoiceReference: 'ADMIN-FILE-VERIFICATION-TEST',
+      additionalNotes: 'Test order for admin interface file verification'
+    };
+
+    console.log('✅ Step 2: Prepared order data with PDF file');
+
+    // Step 3: Attempt file upload
+    const { createOrderWithFiles } = require('./src/services/hybridOrderService');
+    console.log('📤 Step 3: Attempting file upload to Firebase Storage...');
+
+    const orderId = await createOrderWithFiles(orderData, [mockFile]);
+
+    console.log(`✅ Step 4: Order created: ${orderId}`);
+
+    // Step 4: Verify upload results
+    const { getOrderById } = require('./src/services/hybridOrderService');
+    const retrievedOrder = await getOrderById(orderId);
+
+    console.log('🔍 Step 5: Analyzing upload results...');
+
+    const uploadSuccess = retrievedOrder?.uploadedFiles?.length > 0;
+    const adminUrl = `http://localhost:3000/admin/orders/${orderId}`;
+
+    console.log('\n' + '='.repeat(80));
+    console.log('📊 COMPREHENSIVE TEST RESULTS');
+    console.log('='.repeat(80));
+
+    console.log(`\n📋 Order ID: ${orderId}`);
+    console.log(`📧 Customer: ${orderData.customerInfo.firstName} ${orderData.customerInfo.lastName}`);
+    console.log(`📄 PDF File: ${mockFile.name} (${(mockFile.size / 1024).toFixed(0)} KB)`);
+    console.log(`💰 Total Price: ${orderData.totalPrice} kr`);
+
+    console.log('\n🔍 FIREBASE ANALYSIS:');
+    console.log(`   Firestore Order Created: ✅`);
+    console.log(`   Firestore Order Updated: ${retrievedOrder ? '✅' : '❌'}`);
+    console.log(`   Storage Upload Attempted: ✅`);
+    console.log(`   Storage Upload Success: ${uploadSuccess ? '✅' : '❌'}`);
+
+    if (retrievedOrder) {
+      console.log(`   Files in Order Data: ${retrievedOrder.uploadedFiles?.length || 0}`);
+      console.log(`   Files Uploaded Flag: ${retrievedOrder.filesUploaded}`);
+      console.log(`   Upload Error: ${retrievedOrder.uploadError || 'None'}`);
+    }
+
+    console.log('\n🎯 ADMIN INTERFACE VERIFICATION:');
+    console.log(`   🔗 Admin URL: ${adminUrl}`);
+    console.log('   📎 Go to admin → Orders → Click order → "Filer" tab');
+    console.log(`   👀 Expected: ${uploadSuccess ? 'PDF file visible with download link' : 'No files (upload failed)'}`);
+
+    console.log('\n🔧 TROUBLESHOOTING GUIDE:');
+    if (!uploadSuccess) {
+      console.log('   ❌ PDF Upload Failed - Possible Causes:');
+      console.log('      1. Firebase Storage Rules: Check Console → Storage → Rules');
+      console.log('         Required: allow read, write: if true;');
+      console.log('      2. Firebase Project: Ensure Storage is enabled');
+      console.log('      3. Authentication: May need user login');
+      console.log('      4. Network: Check internet connection');
+      console.log('      5. CORS: Storage bucket CORS settings');
+
+      console.log('\n   🛠️  IMMEDIATE FIX - Update Storage Rules:');
+      console.log('      rules_version = \'2\';');
+      console.log('      service firebase.storage {');
+      console.log('        match /b/{bucket}/o {');
+      console.log('          match /{allPaths=**} {');
+      console.log('            allow read, write, create, update, delete: if true;');
+      console.log('          }');
+      console.log('        }');
+      console.log('      }');
+    } else {
+      console.log('   ✅ PDF Upload Succeeded!');
+      console.log('   🎉 Admin interface should show the uploaded PDF');
+    }
+
+    console.log('\n' + '='.repeat(80));
+    console.log('📝 MANUAL VERIFICATION STEPS:');
+    console.log('='.repeat(80));
+    console.log('1. Open browser: http://localhost:3000');
+    console.log('2. Go to Admin section');
+    console.log('3. Find order:', orderId);
+    console.log('4. Click on the order');
+    console.log('5. Click "Filer" tab');
+    console.log('6. Verify PDF file appears with:');
+    console.log('   - File name: test-document.pdf');
+    console.log('   - File size: ~1 KB');
+    console.log('   - Download button/link');
+    console.log('='.repeat(80));
+
+    // Clean up
+    if (fs.existsSync(pdfPath)) {
+      fs.unlinkSync(pdfPath);
+      console.log('🧹 Cleaned up test PDF file');
+    }
+
+    return {
+      success: uploadSuccess,
+      orderId,
+      adminUrl,
+      pdfFile: mockFile.name,
+      pdfSize: mockFile.size,
+      uploadError: retrievedOrder?.uploadError,
+      filesUploaded: retrievedOrder?.filesUploaded
+    };
+
+  } catch (error) {
+    console.error('\n💥 Comprehensive test failed:', error);
+    console.log('\n🔍 ERROR ANALYSIS:');
+    console.log('   Error Type:', error.constructor.name);
+    console.log('   Error Code:', error.code || 'N/A');
+    console.log('   Error Message:', error.message);
+
+    if (error.code === 'storage/unauthorized') {
+      console.log('\n   🎯 DIAGNOSIS: Firebase Storage Permissions Issue');
+      console.log('   💡 SOLUTION: Update Storage Rules to allow uploads');
+    } else if (error.code === 'permission-denied') {
+      console.log('\n   🎯 DIAGNOSIS: Firestore Permissions Issue');
+      console.log('   💡 SOLUTION: Update Firestore Rules to allow updates');
+    }
+
+    throw error;
+  }
+}
+
+// Run the comprehensive test
 if (require.main === module) {
-  testDirectFileData()
+  testCompleteFileUploadFlow()
     .then((result) => {
-      console.log('\n🏁 Direct file data test completed!');
-      console.log('📊 Summary:');
+      console.log('\n🏁 COMPREHENSIVE FILE UPLOAD TEST COMPLETED');
+      console.log('\n📋 FINAL SUMMARY:');
+      console.log(`   Order ID: ${result.orderId}`);
+      console.log(`   Admin URL: ${result.adminUrl}`);
+      console.log(`   Upload Success: ${result.success ? '✅ YES' : '❌ NO'}`);
+
       if (result.success) {
-        console.log(`   ✅ SUCCESS: ${result.fileCount} files added to order`);
-        console.log('   ✅ Files should be visible in admin interface');
-        console.log('   ✅ Admin interface file display is working correctly');
+        console.log('   🎉 PDF file should be visible in admin "Filer" tab!');
+        console.log('   ✅ File upload functionality is working');
       } else {
-        console.log('   ❌ FAILURE: Files not added to order data');
+        console.log('   ⚠️  PDF upload failed - check Firebase Storage rules');
+        console.log('   🔧 Update Storage rules and run test again');
       }
-      console.log(`   🔗 View order: ${result.adminUrl}`);
-      console.log('\n💡 Go to the admin interface and check the "Filer" tab');
-      console.log('💡 This proves the admin interface works when file data is present');
+
+      console.log('\n💡 Next: Go to admin interface and verify PDF appears in "Filer" tab');
     })
     .catch((error) => {
-      console.error('\n💥 Direct file data test failed:', error);
-      console.log('\n🔧 This indicates Firestore permissions issue');
-      console.log('   Check that Firestore rules allow order creation');
+      console.error('\n💥 Test execution failed');
+      console.log('\n🔧 Critical Issues to Fix:');
+      console.log('   1. Firebase Storage Rules (most likely)');
+      console.log('   2. Firebase Authentication');
+      console.log('   3. Network connectivity');
+      console.log('   4. Firebase project configuration');
+
+      console.log('\n📞 For immediate help: Update Storage rules to "allow read, write: if true;"');
       process.exit(1);
     });
 }

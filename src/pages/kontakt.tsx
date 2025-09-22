@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import { useForm } from 'react-hook-form';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 interface ContactFormData {
   name: string;
@@ -16,12 +19,50 @@ interface ContactFormData {
 const ContactPage: React.FC = () => {
   const { t } = useTranslation('common');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const { register, handleSubmit, formState: { errors } } = useForm<ContactFormData>();
 
-  const onSubmit = (data: ContactFormData) => {
-    // Här skulle API-anrop för att skicka formuläret implementeras
-    console.log('Form data:', data);
-    setIsSubmitted(true);
+  // reCAPTCHA callback
+  const onRecaptchaChange = (token: string | null) => {
+    // Token is handled automatically by the component
+  };
+
+  const onSubmit = async (data: ContactFormData) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    // Check reCAPTCHA
+    const recaptchaToken = recaptchaRef.current?.getValue();
+    if (!recaptchaToken) {
+      setSubmitError('Vänligen verifiera att du inte är en robot genom att slutföra reCAPTCHA.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      // Save contact message to Firestore
+      const contactMessage = {
+        ...data,
+        recaptchaToken,
+        createdAt: Timestamp.now(),
+        status: 'unread'
+      };
+
+      await addDoc(collection(db, 'contactMessages'), contactMessage);
+
+      console.log('Contact message saved:', contactMessage);
+      setIsSubmitted(true);
+
+      // Reset reCAPTCHA
+      recaptchaRef.current?.reset();
+    } catch (error) {
+      console.error('Error saving contact message:', error);
+      setSubmitError('Ett fel uppstod när meddelandet skulle skickas. Försök igen senare.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -34,7 +75,7 @@ const ContactPage: React.FC = () => {
         />
       </Head>
 
-      <div className="bg-primary-700 py-12">
+      <div className="bg-custom-page-header py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
             {t('contact.title') || 'Kontakta oss'}
@@ -55,7 +96,7 @@ const ContactPage: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
             {/* Kontaktinformation */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-2xl font-heading font-bold text-gray-900 mb-6">
                 {t('contact.infoTitle') || 'Kontaktinformation'}
               </h2>
@@ -63,7 +104,7 @@ const ContactPage: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-6 w-6 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -83,7 +124,7 @@ const ContactPage: React.FC = () => {
 
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-6 w-6 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
@@ -100,7 +141,7 @@ const ContactPage: React.FC = () => {
 
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-6 w-6 text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
@@ -134,7 +175,7 @@ const ContactPage: React.FC = () => {
             </div>
 
             {/* Kontaktformulär */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-2xl font-heading font-bold text-gray-900 mb-6">
                 {t('contact.formTitle') || 'Skicka ett meddelande'}
               </h2>
@@ -155,6 +196,22 @@ const ContactPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              ) : submitError ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                  <div className="flex items-center">
+                    <svg className="h-6 w-6 text-red-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h3 className="text-lg font-medium text-red-800 mb-1">
+                        Ett fel uppstod
+                      </h3>
+                      <p className="text-red-700 text-sm">
+                        {submitError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
                   <div>
@@ -164,7 +221,7 @@ const ContactPage: React.FC = () => {
                     <input
                       type="text"
                       id="name"
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.name ? 'border-red-500' : ''
                       }`}
                       placeholder="Ange ditt fullständiga namn"
@@ -189,7 +246,7 @@ const ContactPage: React.FC = () => {
                     <input
                       type="email"
                       id="email"
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.email ? 'border-red-500' : ''
                       }`}
                       placeholder="din@email.com"
@@ -217,7 +274,7 @@ const ContactPage: React.FC = () => {
                     <input
                       type="tel"
                       id="phone"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
                       placeholder="+46 70 123 45 67"
                       {...register('phone')}
                     />
@@ -229,7 +286,7 @@ const ContactPage: React.FC = () => {
                     </label>
                     <select
                       id="subject"
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.subject ? 'border-red-500' : ''
                       }`}
                       {...register('subject', { required: 'Välj ett ämne' })}
@@ -257,7 +314,7 @@ const ContactPage: React.FC = () => {
                     <textarea
                       id="message"
                       rows={5}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.message ? 'border-red-500' : ''
                       }`}
                       placeholder="Beskriv ditt ärende och dina frågor..."
@@ -278,14 +335,14 @@ const ContactPage: React.FC = () => {
                         id="privacy"
                         name="privacy"
                         type="checkbox"
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
                         required
                       />
                     </div>
                     <div className="ml-3 text-sm">
                       <label htmlFor="privacy" className="font-medium text-gray-700">
                         {t('contact.form.privacyConsent') || 'Jag godkänner att mina uppgifter behandlas enligt'}{' '}
-                        <a href="/integritetspolicy" className="text-primary-600 hover:text-primary-500">
+                        <a href="/integritetspolicy" className="text-custom-button hover:text-custom-button/80">
                           {t('contact.form.privacyPolicy') || 'integritetspolicyn'}
                         </a>
                       </label>
@@ -293,11 +350,31 @@ const ContactPage: React.FC = () => {
                   </div>
 
                   <div className="pt-4">
+                    {/* reCAPTCHA Widget */}
+                    <div className="mb-4">
+                      <ReCAPTCHA
+                        ref={recaptchaRef}
+                        sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+                        onChange={onRecaptchaChange}
+                      />
+                    </div>
+
                     <button
                       type="submit"
-                      className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      disabled={isSubmitting}
+                      className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {t('contact.form.send') || 'Skicka meddelande'}
+                      {isSubmitting ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Skickar...
+                        </>
+                      ) : (
+                        t('contact.form.send') || 'Skicka meddelande'
+                      )}
                     </button>
                   </div>
                 </form>
@@ -317,7 +394,7 @@ const ContactPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/bestall"
-              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
               Starta beställning
             </a>

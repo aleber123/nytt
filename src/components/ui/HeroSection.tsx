@@ -10,28 +10,19 @@ interface HeroSectionProps {
 
 const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, ctaLink }) => {
   return (
-    <section className="relative bg-gradient-to-r from-primary-700 to-primary-900 overflow-hidden">
-      {/* Bakgrundsmönster för visuellt intresse */}
-      <div className="absolute inset-0 opacity-10">
-        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <defs>
-            <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100" height="100" fill="url(#grid)" />
-        </svg>
-      </div>
+    <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/hero-background.jpg)' }}>
+      {/* Mörkt overlay för bättre textläsbarhet */}
+      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
       
       <div className="container mx-auto px-4 py-16 md:py-24 lg:py-32 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
-          <h1 
+          <h1
             className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-6"
             aria-label={title}
           >
             {title}
           </h1>
-          
+
           <p className="text-lg md:text-xl text-white/80 mb-10">
             {subtitle}
           </p>
@@ -39,7 +30,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, cta
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href={ctaLink}
-              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-primary-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
               aria-label={ctaText}
             >
               {ctaText}

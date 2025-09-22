@@ -126,7 +126,7 @@ const ArticlesPage: React.FC = () => {
         <link rel="canonical" href="https://legaliseringstjanst.se/artiklar" />
       </Head>
 
-      <div className="bg-primary-700 py-12">
+      <div className="bg-custom-page-header py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
             Kunskapsbank
@@ -153,8 +153,8 @@ const ArticlesPage: React.FC = () => {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   selectedCategory === category
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-custom-button text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-custom-button/10 hover:text-custom-button'
                 }`}
               >
                 {category}
@@ -168,14 +168,14 @@ const ArticlesPage: React.FC = () => {
           {filteredArticles.map((article) => (
             <article key={article.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded-full">
+                <span className="text-xs font-medium text-custom-button bg-custom-button/10 px-2 py-1 rounded-full">
                   {article.category}
                 </span>
                 <span className="text-xs text-gray-500">{article.readTime} läsning</span>
               </div>
 
               <h2 className="text-xl font-heading font-bold text-gray-900 mb-3 line-clamp-2">
-                <Link href={`/artiklar/${article.slug}`} className="hover:text-primary-600 transition-colors">
+                <Link href={`/artiklar/${article.slug}`} className="hover:text-custom-button transition-colors">
                   {article.title}
                 </Link>
               </h2>
@@ -198,7 +198,7 @@ const ArticlesPage: React.FC = () => {
                 </span>
                 <Link
                   href={`/artiklar/${article.slug}`}
-                  className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+                  className="text-custom-button hover:text-custom-button/80 font-medium text-sm"
                 >
                   Läs mer →
                 </Link>
@@ -218,13 +218,13 @@ const ArticlesPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/kontakt"
-              className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="inline-flex items-center justify-center px-6 py-3 border border-custom-button text-base font-medium rounded-md text-custom-button bg-white hover:bg-custom-button/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
               Kontakta oss
             </Link>
             <Link
               href="/bestall"
-              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
               Starta beställning
             </Link>

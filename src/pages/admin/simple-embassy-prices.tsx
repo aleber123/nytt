@@ -30,7 +30,7 @@ function SimpleEmbassyPricesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [bulkServiceFee, setBulkServiceFee] = useState(150);
+  const [bulkServiceFee, setBulkServiceFee] = useState(1200);
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   // Predefined countries with embassy services (Non-Hague Convention countries with embassies in Stockholm)
@@ -368,7 +368,11 @@ function SimpleEmbassyPricesPage() {
                 <span className="text-sm text-green-700 ml-2">kr</span>
               </div>
               <button
-                onClick={() => bulkUpdateServiceFee(bulkServiceFee)}
+                onClick={() => {
+                  if (window.confirm('Är du säker på att du vill uppdatera serviceavgiften för alla länder?')) {
+                    bulkUpdateServiceFee(bulkServiceFee);
+                  }
+                }}
                 disabled={bulkUpdating}
                 className={`px-4 py-2 rounded-md font-medium text-white ${
                   bulkUpdating
