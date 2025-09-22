@@ -11,6 +11,8 @@ import { Timestamp } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
+import { Invoice } from '@/services/invoiceService';
 
 // Define Order interface locally to match the updated interface
 interface ExtendedOrder extends Order {
@@ -46,11 +48,14 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedStatus, setEditedStatus] = useState<Order['status']>('pending');
-  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'files' | 'notes'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'files' | 'notes' | 'invoice'>('overview');
   const [newNote, setNewNote] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
   const [processingSteps, setProcessingSteps] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId) {
@@ -158,6 +163,9 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
         setEditedStatus(extendedOrder.status);
         setInternalNotes(extendedOrder.internalNotes || '');
         setProcessingSteps(extendedOrder.processingSteps || initializeProcessingSteps(extendedOrder));
+
+        // Fetch invoices for this order
+        await fetchInvoices();
       } else {
         setError('Order not found');
       }
@@ -166,6 +174,70 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
       setError('Failed to load order details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchInvoices = async () => {
+    try {
+      const invoicesData = await getInvoicesByOrderId(orderId);
+      setInvoices(invoicesData);
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+      // Don't set error state for invoices, just log it
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!order) return;
+
+    setCreatingInvoice(true);
+    try {
+      // Convert order to invoice
+      const invoice = await convertOrderToInvoice(order);
+
+      // Store the invoice
+      const invoiceId = await storeInvoice(invoice);
+
+      toast.success('Faktura skapad framgångsrikt');
+
+      // Refresh invoices list
+      await fetchInvoices();
+
+      // Switch to invoice tab
+      setActiveTab('invoice');
+    } catch (err) {
+      console.error('Error creating invoice:', err);
+      toast.error('Kunde inte skapa faktura');
+    } finally {
+      setCreatingInvoice(false);
+    }
+  };
+
+  const handleSendInvoice = async (invoice: Invoice) => {
+    setSendingInvoice(invoice.id!);
+    try {
+      const success = await sendInvoiceEmail(order!);
+      if (success) {
+        toast.success('Faktura skickad via e-post');
+      } else {
+        toast.error('Kunde inte skicka faktura via e-post');
+      }
+    } catch (err) {
+      console.error('Error sending invoice:', err);
+      toast.error('Kunde inte skicka faktura via e-post');
+    } finally {
+      setSendingInvoice(null);
+    }
+  };
+
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    try {
+      console.log('Starting PDF generation for invoice:', invoice.invoiceNumber);
+      await generateInvoicePDF(invoice);
+      toast.success('Faktura laddas ner');
+    } catch (err) {
+      console.error('Error downloading invoice:', err);
+      toast.error('Kunde inte ladda ner faktura');
     }
   };
 
@@ -291,15 +363,39 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'N/A';
 
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    try {
+      let date: Date;
 
-    return new Intl.DateTimeFormat('sv-SE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        // Firebase Timestamp
+        date = timestamp.toDate();
+      } else if (timestamp instanceof Date) {
+        // Already a Date object
+        date = timestamp;
+      } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+        // String or number timestamp
+        date = new Date(timestamp);
+      } else {
+        // Try to convert from object
+        date = new Date(timestamp);
+      }
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
+
+      return new Intl.DateTimeFormat('sv-SE', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (error) {
+      console.error('Error formatting date:', error, timestamp);
+      return 'N/A';
+    }
   };
 
   // Get status badge color
@@ -425,6 +521,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                     { id: 'overview', label: 'Översikt', icon: '📋' },
                     { id: 'processing', label: 'Bearbetning', icon: '⚙️' },
                     { id: 'files', label: 'Filer', icon: '📎' },
+                    { id: 'invoice', label: 'Faktura', icon: '🧾' },
                     { id: 'notes', label: 'Anteckningar', icon: '📝' }
                   ].map((tab) => (
                     <button
@@ -566,6 +663,38 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
                               <h3 className="text-lg font-medium mb-4">Snabba åtgärder</h3>
                               <div className="space-y-2">
+                                {invoices.length === 0 && (
+                                  <button
+                                    onClick={handleCreateInvoice}
+                                    disabled={creatingInvoice}
+                                    className="w-full flex items-center justify-center py-2 px-4 border border-primary-300 rounded-md text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 disabled:opacity-50"
+                                  >
+                                    {creatingInvoice ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+                                        Skapar faktura...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Skapa faktura
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                                {invoices.length > 0 && (
+                                  <button
+                                    onClick={() => setActiveTab('invoice')}
+                                    className="w-full flex items-center justify-center py-2 px-4 border border-primary-300 rounded-md text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Visa fakturor ({invoices.length})
+                                  </button>
+                                )}
                                 <Link
                                   href={`mailto:${order.customerInfo.email}?subject=Order ${orderId}`}
                                   className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
@@ -730,6 +859,148 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                           <p className="text-blue-700">{order.pickupAddress.street}</p>
                           <p className="text-blue-700">{order.pickupAddress.postalCode} {order.pickupAddress.city}</p>
                           <p className="text-blue-600 text-sm mt-2">Vi kommer att kontakta kunden inom 24 timmar för att boka tid för hämtning.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Invoice Tab */}
+                {activeTab === 'invoice' && (
+                  <div className="space-y-6">
+                    {/* Create Invoice Section */}
+                    {invoices.length === 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-medium text-blue-800 mb-2">Ingen faktura skapad än</h3>
+                            <p className="text-blue-700 mb-4">
+                              Skapa en faktura för denna order för att kunna skicka den till kunden och hålla koll på betalningar.
+                            </p>
+                            <button
+                              onClick={handleCreateInvoice}
+                              disabled={creatingInvoice}
+                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                            >
+                              {creatingInvoice ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Skapar faktura...
+                                </>
+                              ) : (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                  </svg>
+                                  Skapa faktura
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Existing Invoices */}
+                    {invoices.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-medium">Fakturor ({invoices.length})</h3>
+                          <button
+                            onClick={handleCreateInvoice}
+                            disabled={creatingInvoice}
+                            className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 flex items-center text-sm"
+                          >
+                            {creatingInvoice ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Skapar...
+                              </>
+                            ) : (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Ny faktura
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="space-y-4">
+                          {invoices.map((invoice) => (
+                            <div key={invoice.id} className="border border-gray-200 rounded-lg p-6 bg-white">
+                              <div className="flex items-start justify-between mb-4">
+                                <div>
+                                  <h4 className="text-xl font-bold text-gray-900">{invoice.invoiceNumber}</h4>
+                                  <p className="text-sm text-gray-600">
+                                    Skapad {formatDate(invoice.issueDate)} • Förfaller {formatDate(invoice.dueDate)}
+                                  </p>
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2 ${
+                                    invoice.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                                    invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                    invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                    invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {invoice.status === 'draft' ? 'Utkast' :
+                                     invoice.status === 'sent' ? 'Skickad' :
+                                     invoice.status === 'paid' ? 'Betald' :
+                                     invoice.status === 'overdue' ? 'Förfallen' :
+                                     invoice.status}
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-2xl font-bold text-gray-900">{invoice.totalAmount} kr</div>
+                                  <div className="text-sm text-gray-600">Inkl. moms</div>
+                                </div>
+                              </div>
+
+                              {/* Invoice Actions */}
+                              <div className="flex items-center space-x-3 pt-4 border-t border-gray-200">
+                                <button
+                                  onClick={() => handleDownloadInvoice(invoice)}
+                                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  Ladda ner PDF
+                                </button>
+
+                                <button
+                                  onClick={() => handleSendInvoice(invoice)}
+                                  disabled={sendingInvoice === invoice.id}
+                                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                  {sendingInvoice === invoice.id ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                                      Skickar...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                      </svg>
+                                      Skicka via e-post
+                                    </>
+                                  )}
+                                </button>
+
+                                <Link
+                                  href={`/admin/invoices/${invoice.id}`}
+                                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  Visa detaljer
+                                </Link>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}

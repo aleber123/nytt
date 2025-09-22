@@ -54,177 +54,314 @@ const getServices = (t: any, pricingRules: PricingRule[] = []): ServiceDetail[] 
       return `Från ${minPrice} kr`;
     }
 
-    // For fixed price services, show the most common price
-    const prices = serviceRules.map(rule => rule.basePrice);
-    const mostCommonPrice = prices.sort((a,b) =>
-      prices.filter(v => v === a).length - prices.filter(v => v === b).length
-    ).pop();
+    // For fixed price services, prioritize Swedish pricing, then show most common
+    if (serviceRules.length > 0) {
+      // First, try to find Swedish pricing
+      const swedishRule = serviceRules.find(rule => rule.countryCode === 'SE');
+      if (swedishRule) {
+        console.log('🇸🇪 Using Swedish pricing for', serviceType + ':', swedishRule.basePrice, 'kr');
+        return `${swedishRule.basePrice} kr`;
+      }
 
-    return `${mostCommonPrice} kr`;
+      // If no Swedish pricing, show the most common price
+      const prices = serviceRules.map(rule => rule.basePrice);
+      const mostCommonPrice = prices.sort((a,b) =>
+        prices.filter(v => v === a).length - prices.filter(v => v === b).length
+      ).pop();
+
+      console.log('🌍 Using most common pricing for', serviceType + ':', mostCommonPrice, 'kr');
+      return `${mostCommonPrice} kr`;
+    }
+
+    return 'Kontakta oss';
   };
   return [
     {
       id: 'apostille',
       title: t('services.apostille.title') || 'Apostille',
       description: t('services.apostille.description') || 'Internationell legalisering av dokument för länder anslutna till Haagkonventionen',
-      longDescription: t('services.apostille.longDescription') || 
-        'Apostille är en internationellt erkänd certifiering som bekräftar äktheten av dokument för användning i länder som är anslutna till Haagkonventionen från 1961. Denna process förenklar användningen av offentliga dokument utomlands genom att eliminera behovet av dubbel legalisering.',
+      longDescription: t('services.apostille.longDescription') ||
+        'Apostille är en internationellt erkänd certifiering enligt Haagkonventionen från 1961 som förenklar användningen av svenska officiella dokument utomlands. Apostillen bekräftar äktheten av underskrifter, stämplar och sigill på dokument, vilket eliminerar behovet av ytterligare legalisering i mottagarlandet. Detta gör det enklare och billigare att använda svenska dokument internationellt. Apostillen är en förenklad form av legalisering som ersätter den traditionella konsulära legaliseringen för dokument som ska användas i Haagkonventionsländer.',
       icon: 'document-check',
       price: getServicePrice('apostille'),
       timeframe: t('services.apostille.timeframe') || '2-4 arbetsdagar',
       countries: [
-        'Australien', 'Belgien', 'Brasilien', 'Danmark', 'Finland', 'Frankrike', 
-        'Italien', 'Japan', 'Kanada', 'Norge', 'Spanien', 'Storbritannien', 
-        'Tyskland', 'USA'
+        'Australien', 'Österrike', 'Azerbajdzjan', 'Bahamas', 'Bahrain', 'Barbados', 'Belgien', 'Belize', 'Botswana',
+        'Brasilien', 'Brunei', 'Bulgarien', 'Kap Verde', 'Chile', 'Colombia', 'Costa Rica', 'Kroatien', 'Cypern',
+        'Tjeckien', 'Danmark', 'Dominica', 'Dominikanska Republiken', 'Ecuador', 'El Salvador', 'Estland', 'Fiji',
+        'Finland', 'Frankrike', 'Georgien', 'Tyskland', 'Grekland', 'Grenada', 'Guatemala', 'Honduras', 'Ungern',
+        'Island', 'Indien', 'Irland', 'Israel', 'Italien', 'Japan', 'Jordanien', 'Kazakstan', 'Sydkorea', 'Lettland',
+        'Lesotho', 'Liberia', 'Liechtenstein', 'Litauen', 'Luxemburg', 'Malta', 'Marshallöarna', 'Mauritius',
+        'Mexiko', 'Moldavien', 'Monaco', 'Mongoliet', 'Montenegro', 'Marocko', 'Namibia', 'Nederländerna',
+        'Nya Zeeland', 'Nicaragua', 'Niue', 'Nordmakedonien', 'Norge', 'Oman', 'Palau', 'Panama', 'Paraguay',
+        'Peru', 'Filippinerna', 'Polen', 'Portugal', 'Qatar', 'Rumänien', 'Ryssland', 'Saint Kitts och Nevis',
+        'Saint Lucia', 'Saint Vincent och Grenadinerna', 'Samoa', 'San Marino', 'São Tomé och Príncipe',
+        'Saudiarabien', 'Serbien', 'Seychellerna', 'Singapore', 'Slovakien', 'Slovenien', 'Sydafrika', 'Spanien',
+        'Surinam', 'Swaziland', 'Sverige', 'Schweiz', 'Tadzjikistan', 'Tanzania', 'Tonga', 'Trinidad och Tobago',
+        'Turkiet', 'Turkmenistan', 'Ukraina', 'Förenade Arabemiraten', 'Storbritannien', 'USA', 'Uruguay',
+        'Uzbekistan', 'Vanuatu', 'Venezuela', 'Vietnam'
       ],
       documents: [
-        t('documents.birthCertificate') || 'Födelsebevis',
-        t('documents.marriageCertificate') || 'Vigselbevis',
-        t('documents.diploma') || 'Examensbevis',
-        t('documents.commercialDocuments') || 'Affärsdokument'
+        'Födelsebevis och dödsbevis',
+        'Vigselbevis och partnerskapsbevis',
+        'Skiljandehandlingar och äktenskapsförord',
+        'Examensbevis och betyg från universitet/högskolor',
+        'Medicinska intyg och journaler',
+        'Bouppteckningar och arvsskiften',
+        'Adoptionshandlingar',
+        'Namnändringshandlingar',
+        'Medborgarskapsbevis',
+        'Körkortsbevis och körkortskopior',
+        'Passhandlingar och ID-kort',
+        'Fullmakter och prokuror',
+        'Bolagshandlingar och registreringsbevis',
+        'Exportdokument och ursprungsintyg',
+        'Översättningar av officiella dokument',
+        'Intyg från myndigheter (Skatteverket, Försäkringskassan, etc.)',
+        'Polisintyg och domstolsdokument',
+        'Bankdokument och kontobesked',
+        'Pensionsintyg och försäkringsdokument'
       ],
       process: [
-        'Verifiering av dokumentets äkthet',
-        'Notarisering av dokumentet',
-        'Apostillestämpel från Utrikesdepartementet',
-        'Kvalitetskontroll',
-        'Leverans enligt önskemål'
+        'Granskning och verifiering av dokumentets äkthet och kompletthet',
+        'Notarisering av dokumentet hos notarius publicus (om inte redan notariebevisat)',
+        'Ansökan om apostille hos notarius publicus',
+        'Officiell apostillestämpel appliceras av notarius',
+        'Slutlig kvalitetskontroll av det apostillerade dokumentet',
+        'Säker leverans enligt dina önskemål (post, bud eller upphämtning)'
       ]
     },
     {
       id: 'notarisering',
       title: t('services.notarization.title') || 'Notarisering',
       description: t('services.notarization.description') || 'Notarisering av dokument av notarius publicus för juridisk giltighet',
-      longDescription: t('services.notarization.longDescription') || 
-        'Notarisering är en process där en notarius publicus bekräftar äktheten av dokument och signaturer. Detta ger dokumentet juridisk giltighet och trovärdighet, vilket är särskilt viktigt för dokument som ska användas i officiella sammanhang eller utomlands.',
+      longDescription: t('services.notarization.longDescription') ||
+        'Notarisering är en officiell process där en notarius publicus verifierar äktheten av underskrifter, dokument och identitet. Notarius publicus är en juridiskt utbildad tjänsteman som har myndighet att utföra officiella handlingar. Notarisering ger dokumentet extra juridisk styrka och trovärdighet, vilket är viktigt för dokument som ska användas i rättsliga sammanhang, fastighetstransaktioner eller internationell användning.',
       icon: 'seal',
       price: getServicePrice('notarization'),
       timeframe: t('services.notarization.timeframe') || '1-2 arbetsdagar',
       countries: [
-        'Alla länder'
+        'Alla länder - notarisering är internationellt erkänd'
       ],
       documents: [
-        t('documents.powerOfAttorney') || 'Fullmakter',
-        t('documents.commercialDocuments') || 'Affärsdokument',
-        'Testamenten',
-        'Intyg',
-        'Juridiska dokument'
+        'Fullmakter och prokuror',
+        'Avtal och kontrakt',
+        'Testamenten och arvsavtal',
+        'Bouppteckningar och arvsskiften',
+        'Äktenskapsförord och samboförord',
+        'Utlåtanden och intyg',
+        'Bolagshandlingar och firmahandlingar',
+        'Fastighetsdokument och tomträttsavtal',
+        'Utbildningsdokument och examensbevis',
+        'Medicinska intyg och vårdnadshandlingar',
+        'Adoptionshandlingar',
+        'Namnändringshandlingar',
+        'Pensionsavtal och försäkringsdokument',
+        'Bankdokument och kontobevis',
+        'Översättningsintyg'
       ],
       process: [
-        'Granskning av dokument',
-        'Personlig identifiering',
-        'Signering i närvaro av notarius publicus',
-        'Notariell bekräftelse',
-        'Leverans av notariserat dokument'
+        'Inledande granskning av dokumentets form och innehåll',
+        'Personlig identifiering av den som ska underteckna dokumentet',
+        'Verifiering av att personen förstår dokumentets innebörd och konsekvenser',
+        'Närvaro vid underskrift och bevittnande av denna',
+        'Officiell notariell stämpel och underskrift från notarius publicus',
+        'Registrering av handlingen i notariens protokoll',
+        'Utfärdande av notariebevis och leverans av det kompletta dokumentet'
       ]
     },
     {
       id: 'ambassadlegalisering',
       title: t('services.embassy.title') || 'Ambassadlegalisering',
       description: t('services.embassy.description') || 'Legalisering av dokument via ambassader för användning i specifika länder',
-      longDescription: t('services.embassy.longDescription') || 
-        'Ambassadlegalisering är en process där dokument legaliseras via ett lands ambassad eller konsulat för att bekräfta dokumentets giltighet för användning i det specifika landet. Detta krävs ofta för länder som inte är anslutna till Haagkonventionen.',
+      longDescription: t('services.embassy.longDescription') ||
+        'Ambassadlegalisering är en diplomatisk process där svenska dokument legaliseras genom ett utländskt lands ambassad eller konsulat i Sverige. Detta krävs för länder som inte är anslutna till Haagkonventionen och behöver en mer omfattande verifiering av dokumentens äkthet. Processen innefattar flera steg av officiell bekräftelse från svenska myndigheter följt av diplomatisk godkännande från destinationslandets representation.',
       icon: 'building',
       price: getServicePrice('embassy'),
       timeframe: t('services.embassy.timeframe') || '5-15 arbetsdagar',
       countries: [
-        'Kina', 'Ryssland', 'Förenade Arabemiraten', 'Saudiarabien', 
-        'Egypten', 'Indien', 'Vietnam', 'Thailand', 'Indonesien'
+        'Kina (Huvudstaden och provinser)', 'Ryssland', 'Förenade Arabemiraten', 'Saudiarabien',
+        'Egypten', 'Indien', 'Vietnam', 'Thailand', 'Indonesien', 'Malaysia', 'Singapore',
+        'Filippinerna', 'Japan (vissa regioner)', 'Sydkorea (vissa regioner)', 'Pakistan',
+        'Bangladesh', 'Sri Lanka', 'Nepal', 'Bhutan', 'Mongoliet', 'Kazakstan', 'Uzbekistan',
+        'Turkmenistan', 'Tadzjikistan', 'Kirgizistan', 'Afghanistan', 'Iran', 'Irak', 'Syrien',
+        'Libanon', 'Jordanien', 'Palestina', 'Israel (för vissa ändamål)', 'Turkiet', 'Georgien',
+        'Armenien', 'Azerbajdzjan', 'Albanien', 'Bosnien och Hercegovina', 'Kosovo', 'Makedonien',
+        'Montenegro', 'Serbien', 'Algeriet', 'Marocko', 'Tunisien', 'Libyen', 'Sudan', 'Etiopien',
+        'Eritrea', 'Djibouti', 'Somalia', 'Kenya', 'Tanzania', 'Uganda', 'Rwanda', 'Burundi',
+        'Angola', 'Moçambique', 'Zimbabwe', 'Zambia', 'Botswana', 'Namibia', 'Sydafrika',
+        'Lesotho', 'Swaziland', 'Madagaskar', 'Mauritius', 'Seychellerna', 'Komorerna',
+        'Brasilien (vissa delstater)', 'Argentina', 'Chile', 'Peru', 'Ecuador', 'Colombia',
+        'Venezuela', 'Panama', 'Costa Rica', 'Nicaragua', 'Honduras', 'El Salvador', 'Guatemala',
+        'Belize', 'Kuba', 'Dominikanska Republiken', 'Haiti', 'Jamaica', 'Trinidad och Tobago',
+        'Barbados', 'Bahamas', 'Guyana', 'Surinam', 'Franska Guyana'
       ],
       documents: [
-        'Affärsdokument',
-        'Exportdokument',
-        'Certifikat',
-        t('documents.diploma') || 'Examensbevis',
-        'Personliga dokument'
+        'Bolagshandlingar och registreringsbevis',
+        'Export- och importdokument',
+        'Handelsavtal och kontrakt',
+        'Fullmakter och prokuror',
+        'Fastighetsdokument',
+        'Bouppteckningar och arvshandlingar',
+        'Adoptionshandlingar',
+        'Äktenskaps- och skilsmässodokument',
+        'Födelse- och dödsbevis',
+        'Medicinska intyg och journaler',
+        'Utbildningsdokument och examensbevis',
+        'Arbetsintyg och anställningsavtal',
+        'Pensionsdokument',
+        'Bankdokument och kontobesked',
+        'Skattedokument och deklarationer',
+        'Tullhandlingar och certifikat',
+        'Körkortsbevis',
+        'Passhandlingar',
+        'Vårdnadshandlingar',
+        'Testamenten och arvsavtal'
       ],
       process: [
-        'Notarisering av dokumentet',
-        'Legalisering hos Utrikesdepartementet',
-        'Legalisering hos ambassaden för destinationslandet',
-        'Kvalitetskontroll',
-        'Leverans enligt önskemål'
+        'Förberedelse och granskning av dokument',
+        'Notarisering av dokumentet hos notarius publicus',
+        'Första legalisering hos Utrikesdepartementet (UD)',
+        'Ansökan om ambassadlegalisering hos aktuell ambassad',
+        'Diplomatisk granskning och godkännande från ambassaden',
+        'Eventuell andra legalisering om ambassaden kräver det',
+        'Slutlig kvalitetskontroll och paketering',
+        'Säker leverans enligt dina önskemål'
       ]
     },
     {
       id: 'oversattning',
       title: t('services.translation.title') || 'Auktoriserad översättning',
       description: t('services.translation.description') || 'Professionell översättning av dokument av auktoriserade översättare',
-      longDescription: t('services.translation.longDescription') || 
-        'Auktoriserad översättning utförs av en översättare som har blivit auktoriserad av Kammarkollegiet. Dessa översättningar är officiellt erkända och kan användas för juridiska, akademiska och officiella ändamål både i Sverige och internationellt.',
+      longDescription: t('services.translation.longDescription') ||
+        'Auktoriserad översättning är en officiell översättning utförd av en översättare som har auktorisation från Kammarkollegiet. Detta är den högsta kvalitetsstandarden för översättningar i Sverige och krävs ofta för dokument som ska användas i officiella sammanhang, rättsliga processer eller internationell kommunikation. Auktorisationen garanterar att översättaren har den nödvändiga kompetensen och följer strikta etiska riktlinjer.',
       icon: 'language',
       price: getServicePrice('translation'),
       timeframe: t('services.translation.timeframe') || '3-7 arbetsdagar',
       countries: [
-        'Alla länder'
+        'Alla länder - auktoriserade översättningar är internationellt erkända'
       ],
       documents: [
-        'Akademiska dokument',
-        'Juridiska dokument',
-        'Personliga dokument',
-        'Affärsdokument',
-        'Medicinska dokument'
+        'Födelse- och dödsbevis',
+        'Vigselbevis och skilsmässodokument',
+        'Examensbevis och betyg från universitet/högskolor',
+        'Medicinska journaler och intyg',
+        'Polisrapporter och domstolsdokument',
+        'Bolagshandlingar och årsredovisningar',
+        'Avtal och kontrakt',
+        'Fullmakter och prokuror',
+        'Testamenten och arvsavtal',
+        'Adoptionshandlingar',
+        'Pass och ID-handlingar',
+        'Körkortsbevis',
+        'Bankdokument och kontobesked',
+        'Skattedokument och deklarationer',
+        'Pensionsdokument och försäkringsavtal',
+        'Patentdokument och varumärkeshandlingar',
+        'Tekniska manualer och specifikationer',
+        'Marknadsföringsmaterial för officiell användning',
+        'Översättningar av tidigare översättningar'
       ],
       process: [
-        'Analys av källdokument',
-        'Översättning av auktoriserad översättare',
-        'Kvalitetsgranskning',
-        'Certifiering och stämpling',
-        'Leverans enligt önskemål'
+        'Analys av källdokumentets språk, innehåll och syfte',
+        'Tilldelning till auktoriserad översättare med rätt språkkombination',
+        'Professionell översättning med hänsyn till kulturella och juridiska nyanser',
+        'Kvalitetsgranskning av en andra auktoriserad översättare',
+        'Officiell certifiering och stämpling från Kammarkollegiet',
+        'Verifiering av översättningens korrekthet och kompletthet',
+        'Säker leverans av det översatta och certifierade dokumentet'
       ]
     },
     {
       id: 'handelskammaren',
       title: 'Handelskammarens legalisering',
       description: 'Legalisering av handelsdokument genom Handelskammaren',
-      longDescription: 'Handelskammarens legalisering är en officiell process där handelsdokument som fakturor, kontrakt och andra affärsdokument legaliseras genom Handelskammaren. Detta är särskilt viktigt för internationell handel och kräver ofta för företag som exporterar varor eller tjänster.',
+      longDescription: 'Handelskammarens legalisering är en specialiserad tjänst för företag och organisationer som bedriver internationell handel. Handelskammaren utfärdar officiella intyg och legaliseringar för handelsdokument, vilket krävs av många länder för tullformaliteter, banktransaktioner och affärsavtal. Denna tjänst är särskilt värdefull för exportföretag, importörer och internationella organisationer som behöver verifiera sina dokument för utländska myndigheter.',
       icon: 'building',
       price: getServicePrice('chamber'),
       timeframe: '5-7 arbetsdagar',
       countries: [
-        'Alla länder',
-        'Särskilt viktigt för export och internationell handel'
+        'Alla länder - särskilt viktigt för internationell handel',
+        'EU-länder (för vissa dokumenttyper)',
+        'Asien (Kina, Indien, Japan, Sydkorea)',
+        'Mellanöstern (Saudiarabien, UAE, Qatar)',
+        'Nordamerika (USA, Kanada)',
+        'Latinamerika (Brasilien, Mexiko, Argentina)',
+        'Afrika (Sydafrika, Nigeria, Egypten)'
       ],
       documents: [
-        'Fakturor',
-        'Kontrakt',
-        'Handelsdokument',
-        'Exportdokument',
-        'Företagscertifikat'
+        'Kommersiella fakturor och proformafakturor',
+        'Export- och importdokument',
+        'Kontrakt och avtal',
+        'Fullmakter och prokuror',
+        'Certifikat av ursprung',
+        'Företagscertifikat och registreringsbevis',
+        'Årsredovisningar och balansräkningar',
+        'Tullhandlingar och varudeklarationer',
+        'Transportdokument och försäkringsintyg',
+        'Kreditbrev och bankgarantier',
+        'Ursprungsintyg och preferensdokument',
+        'Tekniska specifikationer och manualer',
+        'Kvalitetscertifikat och analysintyg',
+        'Miljöcertifikat och hållbarhetsdokument',
+        'Patent- och varumärkesdokument'
       ],
       process: [
-        'Granskning av handelsdokument',
-        'Verifiering av företagsuppgifter',
-        'Handelskammarens stämpel och signatur',
-        'Officiell legalisering',
-        'Kvalitetskontroll och leverans'
+        'Granskning av alla handelsdokument och företagsuppgifter',
+        'Verifiering av företagets registrering och verksamhet',
+        'Kontroll av dokumentens överensstämmelse med handelsstandarder',
+        'Officiell legalisering och stämpling från Handelskammaren',
+        'Utfärdande av Handelskammarens intyg och certifikat',
+        'Slutlig kvalitetskontroll av alla handlingar',
+        'Säker leverans med spårning och försäkring'
       ]
     },
     {
       id: 'utrikesdepartementet',
       title: 'Utrikesdepartementet',
       description: 'Legalisering av dokument hos Utrikesdepartementet för internationell användning',
-      longDescription: 'Legalisering via Utrikesdepartementet är en officiell process där svenska dokument verifieras för användning utomlands. Detta är ett viktigt steg för att säkerställa att dokumenten accepteras av utländska myndigheter och institutioner, särskilt i länder som kräver ytterligare verifiering utöver apostille.',
+      longDescription: 'Utrikesdepartementets legalisering är en diplomatisk tjänst där svenska myndigheter officiellt bekräftar äktheten av dokument som ska användas utomlands. Detta är ofta ett nödvändigt steg innan ambassadlegalisering och krävs för många länder som behöver extra verifiering av svenska officiella dokument. UD:s legalisering är en viktig del av den svenska legaliseringskedjan och säkerställer att dokument möter internationella diplomatiska standarder.',
       icon: 'government',
       price: getServicePrice('ud'),
       timeframe: '3-5 arbetsdagar',
       countries: [
-        'Alla länder utanför EU',
-        'Länder som kräver särskild verifiering'
+        'Alla länder utanför EU och EES',
+        'Asien (Kina, Indien, Japan, Sydkorea, Vietnam)',
+        'Mellanöstern (Saudiarabien, UAE, Qatar, Kuwait)',
+        'Afrika (Egypten, Marocko, Algeriet, Tunisien)',
+        'Latinamerika (Brasilien, Mexiko, Argentina, Chile)',
+        'Östeuropa (Ryssland, Ukraina, Belarus)',
+        'Karibien och Stillahavsområdet'
       ],
       documents: [
-        'Bolagshandlingar',
-        'Exportdokument',
-        'Fullmakter',
-        'Officiella intyg',
-        'Akademiska dokument'
+        'Bolagshandlingar och företagsdokument',
+        'Export- och importcertifikat',
+        'Fullmakter och prokuror',
+        'Utlåtanden från myndigheter',
+        'Akademiska examensbevis och intyg',
+        'Medicinska licenser och certifikat',
+        'Juridiska dokument och avtal',
+        'Fastighetsdokument',
+        'Bouppteckningar och arvshandlingar',
+        'Adoptionshandlingar',
+        'Pass- och ID-kopior',
+        'Körkortsbevis',
+        'Polisintyg och domstolsdokument',
+        'Skattedokument och deklarationer',
+        'Pensionsdokument',
+        'Kultur- och utbildningsdokument',
+        'Veterinärmedicinska certifikat',
+        'Tekniska standardcertifikat'
       ],
       process: [
-        'Förberedelse av dokumentation',
-        'Notarisering av dokumentet',
-        'Inlämning till Utrikesdepartementet',
-        'Officiell legalisering',
-        'Kvalitetskontroll och leverans'
+        'Granskning och förberedelse av alla dokument',
+        'Notarisering av dokumentet (om inte redan gjort)',
+        'Ansökan om UD-legalisering med nödvändiga formulär',
+        'Inlämning till Utrikesdepartementets konsulära avdelning',
+        'Diplomatisk granskning och verifiering',
+        'Officiell UD-stämpel och underskrift',
+        'Återlämning av legaliserade dokument',
+        'Slutlig kontroll och säker leverans'
       ]
     }
   ];
@@ -244,9 +381,18 @@ const ServiceDetailPage: React.FC = () => {
       try {
         setLoading(true);
         const rules = await getAllActivePricingRules();
+        console.log('🔍 Loaded pricing rules:', rules.length, 'rules');
+        const apostilleRules = rules.filter(r => r.serviceType === 'apostille');
+        console.log('📋 Apostille rules found:', apostilleRules);
+
+        // Log specific pricing for debugging
+        if (apostilleRules.length > 0) {
+          console.log('💰 Apostille prices:', apostilleRules.map(r => `${r.countryName}: ${r.basePrice} kr`));
+        }
+
         setPricingRules(rules);
       } catch (error) {
-        console.error('Error fetching pricing data:', error);
+        console.error('❌ Error fetching pricing data:', error);
         // Use empty array if Firebase fails - component will handle gracefully
         setPricingRules([]);
       } finally {
@@ -281,7 +427,7 @@ const ServiceDetailPage: React.FC = () => {
         <Breadcrumbs />
         <h1 className="text-3xl font-heading font-bold text-gray-900 mb-6">Tjänst hittades inte</h1>
         <p className="text-gray-600 mb-6">Den begärda tjänsten kunde inte hittas.</p>
-        <Link href="/tjanster" className="text-primary-600 hover:text-primary-800 font-medium">
+        <Link href="/tjanster" className="text-custom-button hover:text-custom-button-hover font-medium">
           Tillbaka till tjänster
         </Link>
       </div>
@@ -292,15 +438,15 @@ const ServiceDetailPage: React.FC = () => {
   const renderIcon = (iconName: string) => {
     switch (iconName) {
       case 'document-check':
-        return <DocumentTextIcon className="h-12 w-12 text-primary-600" />;
+        return <DocumentTextIcon className="h-12 w-12 text-custom-button" />;
       case 'seal':
-        return <CheckCircleIcon className="h-12 w-12 text-primary-600" />;
+        return <CheckCircleIcon className="h-12 w-12 text-custom-button" />;
       case 'building':
-        return <DocumentTextIcon className="h-12 w-12 text-primary-600" />;
+        return <DocumentTextIcon className="h-12 w-12 text-custom-button" />;
       case 'language':
-        return <GlobeAltIcon className="h-12 w-12 text-primary-600" />;
+        return <GlobeAltIcon className="h-12 w-12 text-custom-button" />;
       case 'government':
-        return <DocumentTextIcon className="h-12 w-12 text-primary-600" />;
+        return <DocumentTextIcon className="h-12 w-12 text-custom-button" />;
       default:
         return null;
     }
@@ -316,10 +462,11 @@ const ServiceDetailPage: React.FC = () => {
         />
       </Head>
 
-      <div className="bg-primary-700 py-12">
+      <div className="bg-custom-page-header py-12">
         <div className="container mx-auto px-4">
-          <Breadcrumbs className="text-white/80" />
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white mt-4">{service.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
+            {service.title}
+          </h1>
         </div>
       </div>
 
@@ -349,7 +496,7 @@ const ServiceDetailPage: React.FC = () => {
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
                 {service.documents.map((doc, index) => (
                   <li key={index} className="flex items-center">
-                    <CheckCircleIcon className="h-5 w-5 text-primary-600 mr-2" />
+                    <CheckCircleIcon className="h-5 w-5 text-custom-button mr-2" />
                     <span className="text-gray-600">{doc}</span>
                   </li>
                 ))}
@@ -371,32 +518,32 @@ const ServiceDetailPage: React.FC = () => {
               <h3 className="text-xl font-heading font-semibold text-gray-900 mb-4">Pris och leveranstid</h3>
               
               <div className="flex items-center mb-4">
-                <DocumentTextIcon className="h-5 w-5 text-primary-600 mr-3" />
+                <DocumentTextIcon className="h-5 w-5 text-custom-button mr-3" />
                 <div>
                   <p className="text-sm text-gray-500">Pris från</p>
                   <p className="font-semibold text-gray-900">{service.price}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center mb-6">
-                <ClockIcon className="h-5 w-5 text-primary-600 mr-3" />
+                <ClockIcon className="h-5 w-5 text-custom-button mr-3" />
                 <div>
                   <p className="text-sm text-gray-500">Leveranstid</p>
                   <p className="font-semibold text-gray-900">{service.timeframe}</p>
                 </div>
               </div>
               
-              <Link 
-                href="/bestall" 
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors duration-200"
+              <Link
+                href="/bestall"
+                className="w-full bg-custom-button hover:bg-custom-button-hover text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors duration-200"
               >
                 Beställ tjänst
               </Link>
               
               <div className="mt-6 text-center">
-                <Link 
-                  href="/kontakt" 
-                  className="text-primary-600 hover:text-primary-800 font-medium"
+                <Link
+                  href="/kontakt"
+                  className="text-custom-button hover:text-custom-button-hover font-medium"
                 >
                   Kontakta oss för offert
                 </Link>

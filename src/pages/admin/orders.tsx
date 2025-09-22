@@ -7,6 +7,7 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { getAllOrders, updateOrder } from '@/services/hybridOrderService';
+import { getInvoicesByOrderId, convertOrderToInvoice, storeInvoice } from '@/services/invoiceService';
 
 // Admin email check (temporary solution until custom claims work)
 const ADMIN_EMAILS = ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
@@ -62,6 +63,7 @@ function AdminOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [creatingInvoiceForOrder, setCreatingInvoiceForOrder] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -96,6 +98,41 @@ function AdminOrdersPage() {
       toast.error('Failed to update order status');
     } finally {
       setUpdatingOrderId(null);
+    }
+  };
+
+  const handleCreateOrViewInvoice = async (order: Order) => {
+    setCreatingInvoiceForOrder(order.id!);
+
+    try {
+      // Check if invoice already exists for this order
+      const existingInvoices = await getInvoicesByOrderId(order.id!);
+
+      if (existingInvoices.length > 0) {
+        // Invoice exists, redirect to invoices page with filter
+        toast.success(`Faktura finns redan för order ${order.orderNumber}. Omdirigerar till fakturor...`);
+        setTimeout(() => {
+          window.location.href = `/admin/invoices?orderId=${order.id}`;
+        }, 1500);
+        return;
+      }
+
+      // Create new invoice from order
+      const invoice = await convertOrderToInvoice(order);
+      const invoiceId = await storeInvoice(invoice);
+
+      toast.success(`Faktura ${invoice.invoiceNumber} skapad för order ${order.orderNumber}`);
+
+      // Redirect to invoices page
+      setTimeout(() => {
+        window.location.href = `/admin/invoices?orderId=${order.id}`;
+      }, 1500);
+
+    } catch (error) {
+      console.error('Error creating invoice for order:', error);
+      toast.error('Kunde inte skapa faktura för ordern');
+    } finally {
+      setCreatingInvoiceForOrder(null);
     }
   };
 
@@ -521,16 +558,45 @@ function AdminOrdersPage() {
                                 </div>
                               )}
                             </div>
-                            <Link
-                              href={`/admin/orders/${order.id}`}
-                              className="inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              Visa detaljer
-                            </Link>
+                            <div className="space-y-2">
+                              <Link
+                                href={`/admin/orders/${order.id}`}
+                                className="inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                Visa detaljer
+                              </Link>
+
+                              <button
+                                onClick={() => handleCreateOrViewInvoice(order)}
+                                disabled={creatingInvoiceForOrder === order.id}
+                                className={`inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
+                                  creatingInvoiceForOrder === order.id
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700'
+                                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors`}
+                              >
+                                {creatingInvoiceForOrder === order.id ? (
+                                  <div className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Skapar faktura...
+                                  </div>
+                                ) : (
+                                  <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Faktura
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

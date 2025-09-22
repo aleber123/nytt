@@ -47,6 +47,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     paymentMethod: ''
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInCooldown, setIsInCooldown] = useState(false);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+  const submissionInProgressRef = useRef(false);
+  const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Hague Convention countries (apostille available)
   const hagueConventionCountries = [
     'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
@@ -378,6 +384,23 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       });
     }
   }, [answers.quantity, answers.documentSource]);
+
+  // Disable submit button when submitting or in cooldown
+  useEffect(() => {
+    if (submitButtonRef.current) {
+      submitButtonRef.current.disabled = isSubmitting || submissionInProgressRef.current || isInCooldown;
+    }
+  }, [isSubmitting, isInCooldown]);
+
+  // Cleanup: reset submission state if component unmounts
+  useEffect(() => {
+    return () => {
+      submissionInProgressRef.current = false;
+      if (cooldownTimeoutRef.current) {
+        clearTimeout(cooldownTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const loadAvailableServices = async (countryCode: string) => {
     try {
@@ -998,12 +1021,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
       <div className="space-y-4">
         {[
-          { id: 'birthCertificate', name: 'Födelsebevis', icon: '👶' },
-          { id: 'marriageCertificate', name: 'Vigselbevis', icon: '💍' },
-          { id: 'diploma', name: 'Examensbevis', icon: '🎓' },
-          { id: 'commercial', name: 'Handelsdokument', icon: '📄' },
-          { id: 'powerOfAttorney', name: 'Fullmakt', icon: '✍️' },
-          { id: 'other', name: 'Annat dokument', icon: '📋' }
+          { id: 'birthCertificate', name: 'Födelsebevis' },
+          { id: 'marriageCertificate', name: 'Vigselbevis' },
+          { id: 'diploma', name: 'Examensbevis' },
+          { id: 'commercial', name: 'Handelsdokument' },
+          { id: 'powerOfAttorney', name: 'Fullmakt' },
+          { id: 'other', name: 'Annat dokument' }
         ].map((docType) => (
           <button
             key={docType.id}
@@ -1011,9 +1034,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers(prev => ({ ...prev, documentType: docType.id }));
               setCurrentQuestion(3);
             }}
-            className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-custom-button hover:bg-custom-button-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button flex items-center"
+            className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-custom-button hover:bg-custom-button-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button text-left"
           >
-            <span className="text-2xl mr-4">{docType.icon}</span>
             <span className="text-lg font-medium text-gray-900">{docType.name}</span>
           </button>
         ))}
@@ -1116,14 +1138,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   {service.id === 'apostille' && (
                     <div className="mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                        🌍 Rekommenderas för Haagkonventionsländer
+                        Rekommenderas för Haagkonventionsländer
                       </span>
                     </div>
                   )}
                   {service.id === 'chamber' && (
                     <div className="mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
-                        🏢 Steg 1: Handelskammaren
+                        Steg 1: Handelskammaren
                       </span>
                       <p className="text-xs text-gray-600 mt-1">För handelsdokument och företagscertifikat</p>
                     </div>
@@ -1131,7 +1153,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   {service.id === 'notarization' && (
                     <div className="mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                        📝 Steg 1: Notarisering
+                        Steg 1: Notarisering
                       </span>
                       <p className="text-xs text-gray-600 mt-1">För personliga dokument och allmänna legaliseringar</p>
                     </div>
@@ -1139,14 +1161,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   {service.id === 'ud' && (
                     <div className="mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                        🏛️ Steg 2: UD Sverige
+                        Steg 2: UD Sverige
                       </span>
                     </div>
                   )}
                   {service.id === 'embassy' && (
                     <div className="mt-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                        🏛️ Steg 3: Ambassad
+                        Steg 3: Ambassad
                       </span>
                     </div>
                   )}
@@ -1289,7 +1311,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             }`}
           >
             <div className="flex items-center">
-              <span className="text-3xl mr-4">📋</span>
               <div className="text-left">
                 <div className="text-lg font-medium text-gray-900">Originaldokument</div>
                 <div className="text-gray-600">Jag har fysiska originaldokument som jag skickar per post</div>
@@ -1311,7 +1332,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             }`}
           >
             <div className="flex items-center">
-              <span className="text-3xl mr-4">📤</span>
               <div className="text-left">
                 <div className="text-lg font-medium text-gray-900">Ladda upp dokument</div>
                 <div className="text-gray-600">Jag vill ladda upp digitala kopior för legalisering</div>
@@ -1366,7 +1386,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
-            <span className="text-2xl mr-3">🚚</span>
             <div>
               <div className="font-medium text-green-900">
                 Dokumenthämtning från 450 kr
@@ -1393,7 +1412,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             }`}
           >
             <div className="flex items-center">
-              <span className="text-3xl mr-4">📮</span>
               <div className="text-left">
                 <div className="text-lg font-medium text-gray-900">Nej tack, jag skickar själv</div>
                 <div className="text-gray-600">Jag föredrar att posta dokumenten själv</div>
@@ -1411,7 +1429,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             }`}
           >
             <div className="flex items-center">
-              <span className="text-3xl mr-4">🚚</span>
               <div className="text-left">
                 <div className="text-lg font-medium text-gray-900">Ja tack, hämta mina dokument</div>
                 <div className="text-gray-600">Lägg till hämtning</div>
@@ -1441,6 +1458,121 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   };
 
   const renderQuestion7 = () => {
+    // Show shipping instructions step if customer chose to send documents themselves
+    if (!answers.pickupService && answers.documentSource === 'original') {
+      return (
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Skicka dina originaldokument
+            </h1>
+            <p className="text-lg text-gray-600">
+              Här är adressen dit du ska skicka dina dokument
+            </p>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-900 mb-2">
+                  Skicka dina originaldokument till denna adress:
+                </h3>
+                <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address">
+                  <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
+                  <div className="text-gray-700">Att: Dokumenthantering</div>
+                  <div className="text-gray-700">Kungsgatan 12</div>
+                  <div className="text-gray-700">111 43 Stockholm</div>
+                  <div className="text-gray-700">Sverige</div>
+                </div>
+              </div>
+              <div className="ml-4">
+                <button
+                  onClick={() => {
+                    // Create a print-specific window with only the address
+                    const printWindow = window.open('', '_blank', 'width=600,height=400');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>LegaliseringsTjänst AB - Leveransadress</title>
+                            <style>
+                              body {
+                                font-family: Arial, sans-serif;
+                                margin: 40px;
+                                text-align: center;
+                              }
+                              .address {
+                                border: 2px solid #dc2626;
+                                padding: 20px;
+                                border-radius: 8px;
+                                background: #fef2f2;
+                                display: inline-block;
+                                margin: 20px 0;
+                              }
+                              .company {
+                                font-weight: bold;
+                                font-size: 18px;
+                                color: #1f2937;
+                                margin-bottom: 8px;
+                              }
+                              .address-line {
+                                color: #374151;
+                                margin: 4px 0;
+                              }
+                              @media print {
+                                body { margin: 20px; }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <h2>Skicka dina originaldokument till denna adress:</h2>
+                            <div class="address">
+                              <div class="company">LegaliseringsTjänst AB</div>
+                              <div class="address-line">Att: Dokumenthantering</div>
+                              <div class="address-line">Kungsgatan 12</div>
+                              <div class="address-line">111 43 Stockholm</div>
+                              <div class="address-line">Sverige</div>
+                            </div>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      setTimeout(() => {
+                        printWindow.print();
+                        printWindow.close();
+                      }, 250);
+                    }
+                  }}
+                  className="flex items-center justify-center w-12 h-12 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200"
+                  title="Skriv ut adress"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-between">
+            <button
+              onClick={() => setCurrentQuestion(6)}
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              ← Tillbaka
+            </button>
+            <button
+              onClick={() => setCurrentQuestion(8)}
+              className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
+            >
+              Nästa steg →
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     // Only show pickup address step if pickup service is selected
     if (!answers.pickupService) {
       // Skip to appropriate next step based on document source
@@ -1456,7 +1588,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            📍 Uppgifter för dokumenthämtning
+            Uppgifter för dokumenthämtning
           </h1>
           <p className="text-lg text-gray-600">
             Ange adress där vi ska hämta dina dokument
@@ -1570,6 +1702,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           </p>
         </div>
 
+
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
             <span className="text-2xl mr-3">📄</span>
@@ -1595,7 +1728,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             }`}
           >
             <div className="flex items-center">
-              <span className="text-3xl mr-4">❌</span>
               <div className="text-left">
                 <div className="text-lg font-medium text-gray-900">Nej tack</div>
                 <div className="text-gray-600">Jag behöver inga scannade kopior</div>
@@ -1613,7 +1745,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             }`}
           >
             <div className="flex items-center">
-              <span className="text-3xl mr-4">✅</span>
               <div className="text-left">
                 <div className="text-lg font-medium text-gray-900">Ja tack</div>
                 <div className="text-gray-600">Lägg till scannade kopior (+200 kr per dokument)</div>
@@ -1655,36 +1786,223 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Dina uppgifter
+          Slutför din beställning
         </h1>
         <p className="text-lg text-gray-600">
-          Fyll i dina kontaktuppgifter så att vi kan behandla din beställning
+          Granska din beställning och slutför genom att fylla i dina uppgifter nedan
         </p>
       </div>
 
+      {/* Final Order Summary */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-semibold text-green-900 mb-4">
+          Slutgiltig beställningssammanfattning
+        </h3>
+
+        <div className="space-y-3">
+          {/* Country and Document Type */}
+          <div className="flex justify-between items-center py-2 border-b border-green-200">
+            <span className="text-gray-700">Land:</span>
+            <span className="font-medium text-gray-900">
+              {allCountries.find(c => c.code === answers.country)?.name} {allCountries.find(c => c.code === answers.country)?.flag}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center py-2 border-b border-green-200">
+            <span className="text-gray-700">Dokumenttyp:</span>
+            <span className="font-medium text-gray-900">
+              {answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
+               answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+               answers.documentType === 'diploma' ? 'Examensbevis' :
+               answers.documentType === 'commercial' ? 'Handelsdokument' :
+               answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center py-2 border-b border-green-200">
+            <span className="text-gray-700">Antal dokument:</span>
+            <span className="font-medium text-gray-900">{answers.quantity} st</span>
+          </div>
+
+          {/* Selected Services */}
+          <div className="py-2">
+            <span className="text-gray-700 font-medium">Valda tjänster:</span>
+            <div className="mt-2 space-y-1">
+              {answers.services.map((serviceId) => {
+                const service = availableServices.find(s => s.id === serviceId);
+                return service ? (
+                  <div key={serviceId} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">• {service.name}</span>
+                    <span className="font-medium text-gray-900">{service.price}</span>
+                  </div>
+                ) : null;
+              })}
+            </div>
+          </div>
+
+          {/* Additional Services */}
+          {answers.expedited && (
+            <div className="flex justify-between items-center py-2 border-b border-green-200">
+              <span className="text-gray-700">Expressbehandling:</span>
+              <span className="font-medium text-gray-900">500 kr</span>
+            </div>
+          )}
+
+          {answers.pickupService && (
+            <div className="flex justify-between items-center py-2 border-b border-green-200">
+              <span className="text-gray-700">Dokumenthämtning:</span>
+              <span className="font-medium text-gray-900">Från 450 kr</span>
+            </div>
+          )}
+
+          {answers.scannedCopies && (
+            <div className="flex justify-between items-center py-2 border-b border-green-200">
+              <span className="text-gray-700">Scannade kopior ({answers.quantity} st):</span>
+              <span className="font-medium text-gray-900">{200 * answers.quantity} kr</span>
+            </div>
+          )}
+
+          {answers.returnService && (
+            <div className="flex justify-between items-center py-2 border-b border-green-200">
+              <span className="text-gray-700">Returfrakt:</span>
+              <span className="font-medium text-gray-900">
+                {(() => {
+                  const returnService = returnServices.find(s => s.id === answers.returnService);
+                  if (returnService && returnService.price) {
+                    const priceMatch = returnService.price.match(/(\d+)/);
+                    return priceMatch ? `${priceMatch[1]} kr` : returnService.price;
+                  }
+                  return '0 kr';
+                })()}
+              </span>
+            </div>
+          )}
+
+          {/* Total Price */}
+          <div className="flex justify-between items-center py-3 border-t-2 border-green-300 bg-green-100 -mx-6 px-6 rounded-b-lg">
+            <span className="text-lg font-semibold text-green-900">Totalbelopp:</span>
+            <span className="text-xl font-bold text-green-900">
+              {(() => {
+                // Calculate total price
+                let total = 0;
+
+                // Add service prices
+                answers.services.forEach(serviceId => {
+                  const service = availableServices.find(s => s.id === serviceId);
+                  if (service && service.price) {
+                    // Extract numeric value from price string (e.g., "2000 kr" -> 2000)
+                    const priceMatch = service.price.match(/(\d+)/);
+                    if (priceMatch) {
+                      total += parseInt(priceMatch[1]) * answers.quantity;
+                    }
+                  }
+                });
+
+                // Add additional fees
+                if (answers.expedited) total += 500;
+                if (answers.pickupService) total += 450; // Updated pickup service base price
+                if (answers.scannedCopies) total += 200 * answers.quantity;
+
+                // Add return service cost
+                if (answers.returnService) {
+                  const returnService = returnServices.find(s => s.id === answers.returnService);
+                  if (returnService && returnService.price) {
+                    const priceMatch = returnService.price.match(/(\d+)/);
+                    if (priceMatch) {
+                      total += parseInt(priceMatch[1]);
+                    }
+                  }
+                }
+
+                return `${total.toLocaleString()} kr`;
+              })()}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Information based on document source - only show if not pickup service */}
       {answers.documentSource === 'original' && !answers.pickupService && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-          <div className="flex items-start">
-            <span className="text-3xl mr-4">📮</span>
+          <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-red-900 mb-2">
-                📍 Skicka dina originaldokument till denna adress:
+                Skicka dina originaldokument till denna adress:
               </h3>
-              <div className="bg-white border border-red-200 rounded-lg p-4 mb-3">
+              <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
                 <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
                 <div className="text-gray-700">Att: Dokumenthantering</div>
                 <div className="text-gray-700">Kungsgatan 12</div>
                 <div className="text-gray-700">111 43 Stockholm</div>
                 <div className="text-gray-700">Sverige</div>
               </div>
-              <div className="text-sm text-red-800 space-y-1">
-                <div><strong>⚠️ Viktigt:</strong> Skicka endast originaldokument - inga kopior accepteras</div>
-                <div><strong>📦 Förpackning:</strong> Använd rekommenderat brev eller paket</div>
-                <div><strong>🕒 Leveranstid:</strong> 2-5 arbetsdagar beroende på PostNord</div>
-                <div><strong>📞 Frågor:</strong> Kontakta oss på 08-123 45 67</div>
-              </div>
+            </div>
+            <div className="ml-4">
+              <button
+                onClick={() => {
+                  // Create a print-specific window with only the address
+                  const printWindow = window.open('', '_blank', 'width=600,height=400');
+                  if (printWindow) {
+                    printWindow.document.write(`
+                      <html>
+                        <head>
+                          <title>LegaliseringsTjänst AB - Leveransadress</title>
+                          <style>
+                            body {
+                              font-family: Arial, sans-serif;
+                              margin: 40px;
+                              text-align: center;
+                            }
+                            .address {
+                              border: 2px solid #dc2626;
+                              padding: 20px;
+                              border-radius: 8px;
+                              background: #fef2f2;
+                              display: inline-block;
+                              margin: 20px 0;
+                            }
+                            .company {
+                              font-weight: bold;
+                              font-size: 18px;
+                              color: #1f2937;
+                              margin-bottom: 8px;
+                            }
+                            .address-line {
+                              color: #374151;
+                              margin: 4px 0;
+                            }
+                            @media print {
+                              body { margin: 20px; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <h2>Skicka dina originaldokument till denna adress:</h2>
+                          <div class="address">
+                            <div class="company">LegaliseringsTjänst AB</div>
+                            <div class="address-line">Att: Dokumenthantering</div>
+                            <div class="address-line">Kungsgatan 12</div>
+                            <div class="address-line">111 43 Stockholm</div>
+                            <div class="address-line">Sverige</div>
+                          </div>
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.focus();
+                    setTimeout(() => {
+                      printWindow.print();
+                      printWindow.close();
+                    }, 250);
+                  }
+                }}
+                className="flex items-center justify-center w-12 h-12 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200"
+                title="Skriv ut adress"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1879,18 +2197,318 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               onClick={() => setCurrentQuestion(8)}
               className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
-              ← Tillbaka
+              Tillbaka
             </button>
             <button
-              onClick={() => setCurrentQuestion(10)}
-              disabled={!answers.customerInfo.firstName || !answers.customerInfo.lastName || !answers.customerInfo.email || !answers.customerInfo.phone}
-              className={`px-6 py-2 rounded-md font-medium ${
-                answers.customerInfo.firstName && answers.customerInfo.lastName && answers.customerInfo.email && answers.customerInfo.phone
+              ref={submitButtonRef}
+              onClick={async (event) => {
+                // Prevent multiple submissions - check ref immediately (more reliable than state)
+                if (submissionInProgressRef.current || isSubmitting || isInCooldown) {
+                  console.log('🚫 Submission already in progress or in cooldown, ignoring click');
+                  event.preventDefault();
+                  return;
+                }
+
+                // Immediately disable button in DOM to prevent any further clicks
+                if (submitButtonRef.current) {
+                  submitButtonRef.current.disabled = true;
+                  submitButtonRef.current.style.opacity = '0.5';
+                  submitButtonRef.current.style.cursor = 'not-allowed';
+                }
+
+                console.log('🚀 Starting order submission...');
+                submissionInProgressRef.current = true;
+                setIsSubmitting(true);
+
+                try {
+                  console.log('📤 Submitting final order...');
+
+                  // Calculate pricing using centralized pricing service
+                  let pricingResult;
+                  try {
+                    pricingResult = await calculateOrderPrice({
+                      country: answers.country,
+                      services: answers.services,
+                      quantity: answers.quantity,
+                      expedited: answers.expedited,
+                      deliveryMethod: answers.documentSource === 'original' ? 'post' : 'digital',
+                      returnService: answers.returnService,
+                      returnServices: returnServices,
+                      scannedCopies: answers.scannedCopies,
+                      pickupService: answers.pickupService
+                    });
+                    console.log('✅ Used centralized pricing for order calculation');
+                  } catch (pricingError) {
+                    console.log('⚠️ Centralized pricing failed, using fallback calculation:', pricingError instanceof Error ? pricingError.message : String(pricingError));
+
+                    // Simplified fallback calculation using consistent pricing
+                    let totalPrice = 0;
+                    const breakdown: any[] = [];
+
+                    for (const serviceId of answers.services) {
+                      try {
+                        // Try to get pricing rule for the specific country first
+                        let pricingRule = await getPricingRule(answers.country, serviceId);
+
+                        // If not found, try global pricing
+                        if (!pricingRule) {
+                          pricingRule = await getPricingRule('GLOBAL', serviceId);
+                        }
+
+                        if (pricingRule) {
+                          const servicePrice = pricingRule.basePrice * answers.quantity;
+                          totalPrice += servicePrice;
+                          breakdown.push({
+                            service: serviceId,
+                            basePrice: servicePrice,
+                            quantity: answers.quantity,
+                            unitPrice: pricingRule.basePrice
+                          });
+                        } else {
+                          // Use consistent default prices
+                          const defaultPrices: { [key: string]: number } = {
+                            'chamber': 2400,
+                            'notarization': 1300,
+                            'translation': 1450,
+                            'ud': 1750,
+                            'embassy': 1295,
+                            'apostille': 895
+                          };
+                          const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
+                          totalPrice += servicePrice;
+                          breakdown.push({
+                            service: serviceId,
+                            basePrice: servicePrice,
+                            quantity: answers.quantity,
+                            unitPrice: defaultPrices[serviceId] || 1000
+                          });
+                        }
+                      } catch (serviceError) {
+                        console.log(`Error getting price for ${serviceId}:`, serviceError);
+                        // Use consistent default prices
+                        const defaultPrices: { [key: string]: number } = {
+                          'chamber': 2400,
+                          'notarization': 1300,
+                          'translation': 1450,
+                          'ud': 1750,
+                          'embassy': 1295,
+                          'apostille': 895
+                        };
+                        const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
+                        totalPrice += servicePrice;
+                        breakdown.push({
+                          service: serviceId,
+                          basePrice: servicePrice,
+                          quantity: answers.quantity,
+                          unitPrice: defaultPrices[serviceId] || 1000
+                        });
+                      }
+                    }
+
+                    // Add additional fees consistently
+                    let additionalFees = 0;
+
+                    // Add scanned copies cost (200 kr per document)
+                    if (answers.scannedCopies) {
+                      additionalFees += 200 * answers.quantity;
+                      breakdown.push({
+                        service: 'scanned_copies',
+                        fee: 200 * answers.quantity,
+                        description: 'Scanned copies'
+                      });
+                    }
+
+                    // Add return service cost
+                    if (answers.returnService) {
+                      const returnService = returnServices.find(s => s.id === answers.returnService);
+                      if (returnService && returnService.price) {
+                        const priceMatch = returnService.price.match(/(\d+)/);
+                        if (priceMatch) {
+                          const returnCost = parseInt(priceMatch[1]);
+                          additionalFees += returnCost;
+                          breakdown.push({
+                            service: 'return_service',
+                            fee: returnCost,
+                            description: returnService.name
+                          });
+                        }
+                      }
+                    }
+
+                    pricingResult = {
+                      basePrice: totalPrice,
+                      additionalFees,
+                      totalPrice: totalPrice + additionalFees,
+                      breakdown
+                    };
+                  }
+
+                  // Prepare order data
+                  console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
+                  const orderData = {
+                    country: answers.country,
+                    documentType: answers.documentType,
+                    services: answers.services,
+                    quantity: answers.quantity,
+                    expedited: answers.expedited,
+                    documentSource: answers.documentSource,
+                    scannedCopies: answers.scannedCopies,
+                    pickupService: answers.pickupService,
+                    pickupAddress: answers.pickupAddress,
+                    returnService: answers.returnService,
+                    customerInfo: answers.customerInfo,
+                    paymentMethod: 'invoice', // Default to invoice payment
+                    totalPrice: pricingResult.totalPrice,
+                    pricingBreakdown: pricingResult.breakdown,
+                    invoiceReference: answers.invoiceReference,
+                    additionalNotes: answers.additionalNotes
+                  };
+                  console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
+
+                  // Submit order
+                  const orderId = await createOrderWithFiles(orderData, answers.uploadedFiles || []);
+
+                  console.log('✅ Order submitted successfully:', orderId);
+
+                  // Send email notification (save to Firestore for external processing, same as contact form)
+                  try {
+                    const emailData = {
+                      name: 'Order Notification',
+                      email: 'noreply@legaliseringstjanst.se',
+                      phone: '',
+                      subject: `Ny beställning mottagen - Order #${orderId}`,
+                      message: `
+Ny beställning har mottagits!
+
+Ordernummer: ${orderId}
+Kund: ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}
+E-post: ${answers.customerInfo.email}
+Telefon: ${answers.customerInfo.phone}
+
+Land: ${allCountries.find(c => c.code === answers.country)?.name}
+Dokumenttyp: ${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
+              answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+              answers.documentType === 'diploma' ? 'Examensbevis' :
+              answers.documentType === 'commercial' ? 'Handelsdokument' :
+              answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+Antal dokument: ${answers.quantity}
+
+Valda tjänster: ${answers.services.join(', ')}
+Totalbelopp: ${pricingResult.totalPrice} kr
+
+Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
+Returfrakt: ${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}
+
+${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
+                      `.trim(),
+                      orderId: orderId,
+                      createdAt: Timestamp.now(),
+                      status: 'unread'
+                    };
+
+                    await addDoc(collection(db, 'contactMessages'), emailData);
+                    console.log('📧 Email notification queued for order:', orderId);
+                  } catch (emailError) {
+                    console.error('❌ Failed to queue email notification:', emailError);
+                    // Don't block the order flow if email notification fails
+                  }
+
+                  // Show beautiful success toast
+                  toast.success(
+                    <div className="text-center">
+                      <div className="font-bold text-lg mb-2">🎉 Beställning skickad!</div>
+                      <div className="text-sm">
+                        <strong>Ordernummer:</strong> {orderId}<br/>
+                        <span className="text-green-600">✓ Dina dokument kommer att returneras enligt valt fraktalternativ</span>
+                      </div>
+                    </div>,
+                    {
+                      duration: 6000,
+                      style: {
+                        background: '#10B981',
+                        color: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        fontSize: '16px',
+                        maxWidth: '400px'
+                      }
+                    }
+                  );
+
+                  // Redirect to confirmation page after a short delay
+                  setTimeout(() => {
+                    router.push(`/bekraftelse?orderId=${orderId}`);
+                  }, 2000);
+
+                } catch (error) {
+                  console.error('❌ Error submitting order:', error);
+
+                  // Show beautiful error toast
+                  toast.error(
+                    <div className="text-center">
+                      <div className="font-bold text-lg mb-2">❌ Ett fel uppstod</div>
+                      <div className="text-sm">
+                        Kunde inte skicka beställning.<br/>
+                        <span className="text-red-200">Försök igen eller kontakta support</span>
+                      </div>
+                    </div>,
+                    {
+                      duration: 5000,
+                      style: {
+                        background: '#EF4444',
+                        color: 'white',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        fontSize: '16px',
+                        maxWidth: '400px'
+                      }
+                    }
+                  );
+                } finally {
+                  setIsSubmitting(false);
+                  submissionInProgressRef.current = false;
+
+                  // Start cooldown period (10 seconds)
+                  setIsInCooldown(true);
+                  cooldownTimeoutRef.current = setTimeout(() => {
+                    setIsInCooldown(false);
+                    // Re-enable button in DOM
+                    if (submitButtonRef.current) {
+                      submitButtonRef.current.disabled = false;
+                      submitButtonRef.current.style.opacity = '';
+                      submitButtonRef.current.style.cursor = '';
+                    }
+                  }, 10000); // 10 seconds cooldown
+                }
+              }}
+              disabled={isSubmitting || submissionInProgressRef.current || isInCooldown || !answers.customerInfo.firstName || !answers.customerInfo.lastName || !answers.customerInfo.email || !answers.customerInfo.phone}
+              className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
+                isSubmitting || submissionInProgressRef.current || isInCooldown
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
+                  : answers.customerInfo.firstName && answers.customerInfo.lastName && answers.customerInfo.email && answers.customerInfo.phone
                   ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              Nästa steg →
+              {isSubmitting || submissionInProgressRef.current ? (
+                <div className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Skickar beställning...
+                </div>
+              ) : isInCooldown ? (
+                <div className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M12 2v6m0 0l-4-4m4 4l4-4m-4 14v6m0 0l4-4m-4 4l-4-4"></path>
+                  </svg>
+                  Vänta 10 sekunder...
+                </div>
+              ) : (
+                'Skicka beställning'
+              )}
             </button>
           </div>
         </div>
@@ -1935,7 +2553,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               key={service.id}
               onClick={() => {
                 setAnswers(prev => ({ ...prev, returnService: service.id }));
-                setCurrentQuestion(11); // Go to final step
+                setCurrentQuestion(9); // Go to final combined step
               }}
               className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                 answers.returnService === service.id ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
@@ -1943,11 +2561,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <span className="text-3xl mr-4">
-                    {service.provider === 'PostNord' && '📮'}
-                    {service.provider === 'DHL' && '📦'}
-                    {service.provider === 'Lokal' && '🏙️'}
-                  </span>
                   <div className="text-left">
                     <div className="text-lg font-medium text-gray-900">{service.name}</div>
                     <div className="text-gray-600">{service.description}</div>
@@ -1973,7 +2586,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         </button>
         {answers.returnService && (
           <button
-            onClick={() => setCurrentQuestion(11)}
+            onClick={() => setCurrentQuestion(9)}
             className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
           >
             Nästa steg →
@@ -1983,450 +2596,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     </div>
   );
 
-  const renderQuestion11 = () => (
-    <div className="max-w-2xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Slutför din beställning
-        </h1>
-        <p className="text-lg text-gray-600">
-          Granska din beställning och slutför genom att klicka på "Skicka beställning"
-        </p>
-      </div>
-
-      {/* Final Order Summary */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold text-green-900 mb-4">
-          📋 Slutgiltig beställningssammanfattning
-        </h3>
-
-        <div className="space-y-3">
-          {/* Country and Document Type */}
-          <div className="flex justify-between items-center py-2 border-b border-green-200">
-            <span className="text-gray-700">Land:</span>
-            <span className="font-medium text-gray-900">
-              {allCountries.find(c => c.code === answers.country)?.name} {allCountries.find(c => c.code === answers.country)?.flag}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center py-2 border-b border-green-200">
-            <span className="text-gray-700">Dokumenttyp:</span>
-            <span className="font-medium text-gray-900">
-              {answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
-               answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-               answers.documentType === 'diploma' ? 'Examensbevis' :
-               answers.documentType === 'commercial' ? 'Handelsdokument' :
-               answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center py-2 border-b border-green-200">
-            <span className="text-gray-700">Antal dokument:</span>
-            <span className="font-medium text-gray-900">{answers.quantity} st</span>
-          </div>
-
-          {/* Selected Services */}
-          <div className="py-2">
-            <span className="text-gray-700 font-medium">Valda tjänster:</span>
-            <div className="mt-2 space-y-1">
-              {answers.services.map((serviceId) => {
-                const service = availableServices.find(s => s.id === serviceId);
-                return service ? (
-                  <div key={serviceId} className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">• {service.name}</span>
-                    <span className="font-medium text-gray-900">{service.price}</span>
-                  </div>
-                ) : null;
-              })}
-            </div>
-          </div>
-
-          {/* Additional Services */}
-          {answers.expedited && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">Expressbehandling:</span>
-              <span className="font-medium text-gray-900">500 kr</span>
-            </div>
-          )}
-
-          {answers.pickupService && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">Dokumenthämtning:</span>
-              <span className="font-medium text-gray-900">Från 450 kr</span>
-            </div>
-          )}
-
-          {answers.scannedCopies && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">Scannade kopior ({answers.quantity} st):</span>
-              <span className="font-medium text-gray-900">{200 * answers.quantity} kr</span>
-            </div>
-          )}
-
-          {answers.returnService && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">Returfrakt:</span>
-              <span className="font-medium text-gray-900">
-                {(() => {
-                  const returnService = returnServices.find(s => s.id === answers.returnService);
-                  if (returnService && returnService.price) {
-                    const priceMatch = returnService.price.match(/(\d+)/);
-                    return priceMatch ? `${priceMatch[1]} kr` : returnService.price;
-                  }
-                  return '0 kr';
-                })()}
-              </span>
-            </div>
-          )}
-
-          {/* Total Price */}
-          <div className="flex justify-between items-center py-3 border-t-2 border-green-300 bg-green-100 -mx-6 px-6 rounded-b-lg">
-            <span className="text-lg font-semibold text-green-900">Totalbelopp:</span>
-            <span className="text-xl font-bold text-green-900">
-              {(() => {
-                // Calculate total price
-                let total = 0;
-
-                // Add service prices
-                answers.services.forEach(serviceId => {
-                  const service = availableServices.find(s => s.id === serviceId);
-                  if (service && service.price) {
-                    // Extract numeric value from price string (e.g., "2000 kr" -> 2000)
-                    const priceMatch = service.price.match(/(\d+)/);
-                    if (priceMatch) {
-                      total += parseInt(priceMatch[1]) * answers.quantity;
-                    }
-                  }
-                });
-
-                // Add additional fees
-                if (answers.expedited) total += 500;
-                if (answers.pickupService) total += 450; // Updated pickup service base price
-                if (answers.scannedCopies) total += 200 * answers.quantity;
-
-                // Add return service cost
-                if (answers.returnService) {
-                  const returnService = returnServices.find(s => s.id === answers.returnService);
-                  if (returnService && returnService.price) {
-                    const priceMatch = returnService.price.match(/(\d+)/);
-                    if (priceMatch) {
-                      total += parseInt(priceMatch[1]);
-                    }
-                  }
-                }
-
-                return `${total.toLocaleString()} kr`;
-              })()}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Invoice Reference and Additional Notes */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-4">
-          📝 Fakturering och kommentarer
-        </h3>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fakturareferens (valfritt)
-            </label>
-            <input
-              type="text"
-              value={answers.invoiceReference}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                invoiceReference: e.target.value
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Ange fakturareferens eller projektnummer"
-            />
-            <p className="text-xs text-gray-500 mt-1">Används för fakturering och intern uppföljning</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Ytterligare information (valfritt)
-            </label>
-            <textarea
-              value={answers.additionalNotes}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                additionalNotes: e.target.value
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Särskilda önskemål, kommentarer eller information till handläggare..."
-              rows={3}
-            />
-            <p className="text-xs text-gray-500 mt-1">Här kan du skriva kommentarer eller särskilda önskemål</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 flex justify-between">
-        <button
-          onClick={() => setCurrentQuestion(10)}
-          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-        >
-          ← Tillbaka
-        </button>
-        <button
-          onClick={async () => {
-            try {
-              console.log('📤 Submitting final order...');
-
-              // Calculate pricing using centralized pricing service
-              let pricingResult;
-              try {
-                pricingResult = await calculateOrderPrice({
-                  country: answers.country,
-                  services: answers.services,
-                  quantity: answers.quantity,
-                  expedited: answers.expedited,
-                  deliveryMethod: answers.documentSource === 'original' ? 'post' : 'digital',
-                  returnService: answers.returnService,
-                  returnServices: returnServices,
-                  scannedCopies: answers.scannedCopies,
-                  pickupService: answers.pickupService
-                });
-                console.log('✅ Used centralized pricing for order calculation');
-              } catch (pricingError) {
-                console.log('⚠️ Centralized pricing failed, using fallback calculation:', pricingError instanceof Error ? pricingError.message : String(pricingError));
-
-                // Simplified fallback calculation using consistent pricing
-                let totalPrice = 0;
-                const breakdown: any[] = [];
-
-                for (const serviceId of answers.services) {
-                  try {
-                    // Try to get pricing rule for the specific country first
-                    let pricingRule = await getPricingRule(answers.country, serviceId);
-
-                    // If not found, try global pricing
-                    if (!pricingRule) {
-                      pricingRule = await getPricingRule('GLOBAL', serviceId);
-                    }
-
-                    if (pricingRule) {
-                      const servicePrice = pricingRule.basePrice * answers.quantity;
-                      totalPrice += servicePrice;
-                      breakdown.push({
-                        service: serviceId,
-                        basePrice: servicePrice,
-                        quantity: answers.quantity,
-                        unitPrice: pricingRule.basePrice
-                      });
-                    } else {
-                      // Use consistent default prices
-                      const defaultPrices: { [key: string]: number } = {
-                        'chamber': 2400,
-                        'notarization': 1300,
-                        'translation': 1450,
-                        'ud': 1750,
-                        'embassy': 1295,
-                        'apostille': 895
-                      };
-                      const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
-                      totalPrice += servicePrice;
-                      breakdown.push({
-                        service: serviceId,
-                        basePrice: servicePrice,
-                        quantity: answers.quantity,
-                        unitPrice: defaultPrices[serviceId] || 1000
-                      });
-                    }
-                  } catch (serviceError) {
-                    console.log(`Error getting price for ${serviceId}:`, serviceError);
-                    // Use consistent default prices
-                    const defaultPrices: { [key: string]: number } = {
-                      'chamber': 2400,
-                      'notarization': 1300,
-                      'translation': 1450,
-                      'ud': 1750,
-                      'embassy': 1295,
-                      'apostille': 895
-                    };
-                    const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
-                    totalPrice += servicePrice;
-                    breakdown.push({
-                      service: serviceId,
-                      basePrice: servicePrice,
-                      quantity: answers.quantity,
-                      unitPrice: defaultPrices[serviceId] || 1000
-                    });
-                  }
-                }
-
-                // Add additional fees consistently
-                let additionalFees = 0;
-
-                // Add scanned copies cost (200 kr per document)
-                if (answers.scannedCopies) {
-                  additionalFees += 200 * answers.quantity;
-                  breakdown.push({
-                    service: 'scanned_copies',
-                    fee: 200 * answers.quantity,
-                    description: 'Scanned copies'
-                  });
-                }
-
-                // Add return service cost
-                if (answers.returnService) {
-                  const returnService = returnServices.find(s => s.id === answers.returnService);
-                  if (returnService && returnService.price) {
-                    const priceMatch = returnService.price.match(/(\d+)/);
-                    if (priceMatch) {
-                      const returnCost = parseInt(priceMatch[1]);
-                      additionalFees += returnCost;
-                      breakdown.push({
-                        service: 'return_service',
-                        fee: returnCost,
-                        description: returnService.name
-                      });
-                    }
-                  }
-                }
-
-                pricingResult = {
-                  basePrice: totalPrice,
-                  additionalFees,
-                  totalPrice: totalPrice + additionalFees,
-                  breakdown
-                };
-              }
-
-              // Prepare order data
-              console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
-              const orderData = {
-                country: answers.country,
-                documentType: answers.documentType,
-                services: answers.services,
-                quantity: answers.quantity,
-                expedited: answers.expedited,
-                documentSource: answers.documentSource,
-                scannedCopies: answers.scannedCopies,
-                pickupService: answers.pickupService,
-                pickupAddress: answers.pickupAddress,
-                returnService: answers.returnService,
-                customerInfo: answers.customerInfo,
-                paymentMethod: 'invoice', // Default to invoice payment
-                totalPrice: pricingResult.totalPrice,
-                pricingBreakdown: pricingResult.breakdown,
-                invoiceReference: answers.invoiceReference,
-                additionalNotes: answers.additionalNotes
-              };
-              console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
-
-              // Submit order
-              const orderId = await createOrderWithFiles(orderData, answers.uploadedFiles || []);
-
-              console.log('✅ Order submitted successfully:', orderId);
-
-              // Send email notification (save to Firestore for external processing, same as contact form)
-              try {
-                const emailData = {
-                  name: 'Order Notification',
-                  email: 'noreply@legaliseringstjanst.se',
-                  phone: '',
-                  subject: `Ny beställning mottagen - Order #${orderId}`,
-                  message: `
-Ny beställning har mottagits!
-
-Ordernummer: ${orderId}
-Kund: ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}
-E-post: ${answers.customerInfo.email}
-Telefon: ${answers.customerInfo.phone}
-
-Land: ${allCountries.find(c => c.code === answers.country)?.name}
-Dokumenttyp: ${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
-             answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-             answers.documentType === 'diploma' ? 'Examensbevis' :
-             answers.documentType === 'commercial' ? 'Handelsdokument' :
-             answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
-Antal dokument: ${answers.quantity}
-
-Valda tjänster: ${answers.services.join(', ')}
-Totalbelopp: ${pricingResult.totalPrice} kr
-
-Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
-Returfrakt: ${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}
-
-${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
-                  `.trim(),
-                  orderId: orderId,
-                  createdAt: Timestamp.now(),
-                  status: 'unread'
-                };
-
-                await addDoc(collection(db, 'contactMessages'), emailData);
-                console.log('📧 Email notification queued for order:', orderId);
-              } catch (emailError) {
-                console.error('❌ Failed to queue email notification:', emailError);
-                // Don't block the order flow if email notification fails
-              }
-
-              // Show beautiful success toast
-              toast.success(
-                <div className="text-center">
-                  <div className="font-bold text-lg mb-2">🎉 Beställning skickad!</div>
-                  <div className="text-sm">
-                    <strong>Ordernummer:</strong> {orderId}<br/>
-                    <span className="text-green-600">✓ Dina dokument kommer att returneras enligt valt fraktalternativ</span>
-                  </div>
-                </div>,
-                {
-                  duration: 6000,
-                  style: {
-                    background: '#10B981',
-                    color: 'white',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    fontSize: '16px',
-                    maxWidth: '400px'
-                  }
-                }
-              );
-
-              // Redirect to confirmation page after a short delay
-              setTimeout(() => {
-                router.push(`/bekraftelse?orderId=${orderId}`);
-              }, 2000);
-
-            } catch (error) {
-              console.error('❌ Error submitting order:', error);
-
-              // Show beautiful error toast
-              toast.error(
-                <div className="text-center">
-                  <div className="font-bold text-lg mb-2">❌ Ett fel uppstod</div>
-                  <div className="text-sm">
-                    Kunde inte skicka beställning.<br/>
-                    <span className="text-red-200">Försök igen eller kontakta support</span>
-                  </div>
-                </div>,
-                {
-                  duration: 5000,
-                  style: {
-                    background: '#EF4444',
-                    color: 'white',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    fontSize: '16px',
-                    maxWidth: '400px'
-                  }
-                }
-              );
-            }
-          }}
-          className="px-8 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold text-lg"
-        >
-          📤 Skicka beställning
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -2441,12 +2610,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           {/* Progress indicator */}
           <div className="max-w-2xl mx-auto mb-8">
             <div className="flex items-center justify-center space-x-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((step) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => (
                 <div key={step} className="flex items-center">
                   <button
                     onClick={() => {
                       // Allow navigation to completed steps or current step
-                      if (step <= currentQuestion || step <= 11) {
+                      if (step <= currentQuestion || step <= 10) {
                         setCurrentQuestion(step);
                       }
                     }}
@@ -2457,13 +2626,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                         ? 'bg-custom-button text-white ring-2 ring-custom-button-light ring-offset-2 scale-110 shadow-lg'
                         : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                     }`}
-                    disabled={step > currentQuestion && step > 11}
+                    disabled={step > currentQuestion && step > 10}
                   >
                     {step < currentQuestion ? '✓' : step}
                   </button>
-                  {step < 11 && (
+                  {step < 10 && (
                     <div className={`w-12 h-1 mx-2 transition-colors duration-200 ${
-                      step < currentQuestion || (step === 10 && currentQuestion >= 10) ? 'bg-custom-button' : 'bg-gray-300'
+                      step < currentQuestion || (step === 9 && currentQuestion >= 9) ? 'bg-custom-button' : 'bg-gray-300'
                     }`} />
                   )}
                 </div>
@@ -2471,7 +2640,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
             </div>
             <div className="text-center mt-4">
               <span className="text-sm text-gray-600">
-                Steg {currentQuestion} av 11
+                Steg {currentQuestion} av 10
               </span>
               <p className="text-xs text-gray-500 mt-1">
                 Klicka på ett tidigare steg för att gå tillbaka
@@ -2490,7 +2659,6 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           {currentQuestion === 8 && renderQuestion8()}
           {currentQuestion === 9 && renderQuestion9()}
           {currentQuestion === 10 && renderQuestion10()}
-          {currentQuestion === 11 && renderQuestion11()}
         </div>
       </main>
     </>

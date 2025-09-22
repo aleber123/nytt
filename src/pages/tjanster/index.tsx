@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Link from 'next/link';
 import Head from 'next/head';
 import { getAllActivePricingRules, PricingRule } from '@/firebase/pricingService';
@@ -31,10 +29,12 @@ const ServicesPage: React.FC = () => {
       try {
         setLoading(true);
         const rules = await getAllActivePricingRules();
+        console.log('📊 Services page - fetched rules:', rules.length);
         setPricingRules(rules);
 
         // Create services from pricing data
         const pricingData = getPricingData(rules);
+        console.log('📊 Services page - pricing data:', pricingData.map(p => ({ service: p.service, timeframe: p.timeframe })));
         setServices(pricingData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
           title: service.service,
@@ -50,6 +50,7 @@ const ServicesPage: React.FC = () => {
         console.error('Error fetching pricing data:', err);
         // Fallback to hardcoded data
         const fallbackData = getFallbackPricingData();
+        console.log('📊 Services page - using fallback data');
         setServices(fallbackData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
           title: service.service,
@@ -70,106 +71,63 @@ const ServicesPage: React.FC = () => {
 
   // Helper functions
   const getPricingData = (rules: PricingRule[]) => {
-    if (rules.length === 0) {
-      return getFallbackPricingData();
-    }
+    // Start with fallback data
+    const fallbackData = getFallbackPricingData();
+    const pricingData: any[] = [...fallbackData];
 
-    // Group by service type and get average prices
-    const serviceGroups: { [key: string]: PricingRule[] } = {};
-    rules.forEach(rule => {
-      if (!serviceGroups[rule.serviceType]) {
-        serviceGroups[rule.serviceType] = [];
-      }
-      serviceGroups[rule.serviceType].push(rule);
-    });
+    if (rules.length > 0) {
+      // Group by service type and get average prices - filter for Sweden (SE) since admin manages Swedish services
+      const swedishRules = rules.filter(rule => rule.countryCode === 'SE');
+      console.log('📊 Swedish rules found:', swedishRules.length);
+      console.log('📊 Swedish apostille rules:', swedishRules.filter(r => r.serviceType === 'apostille').map(r => ({ id: r.id, processingTime: r.processingTime })));
+      console.log('📊 All Swedish rules:', swedishRules.map(r => ({ serviceType: r.serviceType, processingTime: r.processingTime })));
 
-    // Filter out return services (ud) - only keep core legalization services
-    const allowedServices = ['apostille', 'notarization', 'embassy', 'translation', 'chamber'];
-    const filteredServiceGroups = Object.fromEntries(
-      Object.entries(serviceGroups).filter(([serviceType]) => allowedServices.includes(serviceType))
-    );
-
-    // Create pricing data from Firebase data
-    const pricingData = Object.entries(filteredServiceGroups).map(([serviceType, serviceRules]) => {
-      // Calculate average price for this service type
-      const avgPrice = serviceRules.reduce((sum, rule) => sum + rule.basePrice, 0) / serviceRules.length;
-      const avgProcessingTime = Math.round(serviceRules.reduce((sum, rule) => sum + rule.processingTime.standard, 0) / serviceRules.length);
-
-      const serviceLabels = {
-        apostille: {
-          title: 'Apostille',
-          description: 'För länder anslutna till Haagkonventionen',
-          features: ['Officiell legalisering', 'Giltig i Haag-länder', 'Snabb handläggning', 'Digital leverans']
-        },
-        notarization: {
-          title: 'Notarisering',
-          description: 'Juridisk bekräftelse av dokument',
-          features: ['Notarius publicus', 'Juridisk giltighet', 'Originaldokument krävs', 'Snabb handläggning']
-        },
-        embassy: {
-          title: 'Ambassadlegalisering',
-          description: 'För länder utanför Haagkonventionen',
-          features: ['Ambassad/konsulat', 'Internationell giltighet', 'Komplex process', 'Hög säkerhet']
-        },
-        translation: {
-          title: 'Auktoriserad översättning',
-          description: 'Officiella översättningar',
-          features: ['Certifierade översättare', 'Officiell stämpel', 'Alla språk', 'Kvalitetsgaranti']
-        },
-        chamber: {
-          title: 'Handelskammaren',
-          description: 'Handelskammarens legalisering',
-          features: ['Handelskammarens stämpel', 'Internationell giltighet', 'Företagshandlingar', 'Officiell legalisering']
-        },
-        ud: {
-          title: 'Utrikesdepartementet',
-          description: 'UD:s legalisering',
-          features: ['Utrikesdepartementets stämpel', 'Högsta myndighet', 'Internationell giltighet', 'Officiell legalisering']
+      const serviceGroups: { [key: string]: PricingRule[] } = {};
+      swedishRules.forEach(rule => {
+        if (!serviceGroups[rule.serviceType]) {
+          serviceGroups[rule.serviceType] = [];
         }
-      };
+        serviceGroups[rule.serviceType].push(rule);
+      });
 
-      const serviceInfo = serviceLabels[serviceType as keyof typeof serviceLabels] || {
-        title: serviceType,
-        description: `Legaliserings tjänst för ${serviceType}`,
-        features: ['Officiell legalisering', 'Internationell giltighet', 'Snabb handläggning', 'Digital leverans']
-      };
+      // Update pricing data with Firebase data where available
+      Object.entries(serviceGroups).forEach(([serviceType, serviceRules]) => {
+        // Use the first rule for pricing (assuming all Swedish rules have similar pricing)
+        const rule = serviceRules[0];
+        const avgProcessingTime = Math.round(serviceRules.reduce((sum, rule) => sum + rule.processingTime.standard, 0) / serviceRules.length);
 
-      // Handle quoted services (translation and embassy)
-      if (serviceType === 'translation') {
-        return {
-          service: serviceInfo.title,
-          description: serviceInfo.description,
-          officialFee: 'Offereras',
-          serviceFee: 'Offereras',
-          totalPrice: 'Offereras',
-          timeframe: `${avgProcessingTime} arbetsdagar`,
-          features: serviceInfo.features
-        };
-      }
+        // Find the corresponding fallback entry and update it
+        const fallbackIndex = pricingData.findIndex(p => p.service.toLowerCase().includes(serviceType) ||
+          (serviceType === 'notarization' && p.service === 'Notarisering') ||
+          (serviceType === 'chamber' && p.service === 'Handelskammaren') ||
+          (serviceType === 'ud' && p.service === 'Utrikesdepartementet') ||
+          (serviceType === 'embassy' && p.service === 'Ambassadlegalisering'));
 
-      // Handle embassy services with VAT clarification
-      if (serviceType === 'embassy') {
-        return {
-          service: serviceInfo.title,
-          description: serviceInfo.description,
-          officialFee: 'Från 1,500 kr (exkl. moms)',
-          serviceFee: '150 kr (inkl. moms)',
-          totalPrice: 'Från 1,650 kr',
-          timeframe: `${avgProcessingTime} arbetsdagar`,
-          features: serviceInfo.features
-        };
-      }
-
-      return {
-        service: serviceInfo.title,
-        description: serviceInfo.description,
-        officialFee: `${Math.round(avgPrice * 0.9)} kr`,
-        serviceFee: `${Math.round(avgPrice * 0.1)} kr`,
-        totalPrice: `${Math.round(avgPrice)} kr`,
-        timeframe: `${avgProcessingTime} arbetsdagar`,
-        features: serviceInfo.features
-      };
-    });
+        if (fallbackIndex !== -1) {
+          // Handle quoted services (translation and embassy)
+          if (serviceType === 'translation') {
+            pricingData[fallbackIndex] = {
+              ...pricingData[fallbackIndex],
+              timeframe: `${avgProcessingTime} arbetsdagar`
+            };
+          } else if (serviceType === 'embassy') {
+            pricingData[fallbackIndex] = {
+              ...pricingData[fallbackIndex],
+              timeframe: `${avgProcessingTime} arbetsdagar`
+            };
+          } else {
+            // Use actual prices from Firebase rule
+            pricingData[fallbackIndex] = {
+              ...pricingData[fallbackIndex],
+              officialFee: `${rule.officialFee} kr`,
+              serviceFee: `${rule.serviceFee} kr`,
+              totalPrice: `${rule.basePrice} kr`,
+              timeframe: `${avgProcessingTime} arbetsdagar`
+            };
+          }
+        }
+      });
+    }
 
     return pricingData;
   };
@@ -181,7 +139,7 @@ const ServicesPage: React.FC = () => {
       officialFee: '850 kr',
       serviceFee: '100 kr',
       totalPrice: '950 kr',
-      timeframe: '5-7 arbetsdagar',
+      timeframe: '5 arbetsdagar',
       features: ['Officiell legalisering', 'Giltig i Haag-länder', 'Snabb handläggning', 'Digital leverans']
     },
     {
@@ -209,7 +167,7 @@ const ServicesPage: React.FC = () => {
       serviceFee: '100 kr',
       totalPrice: 'Från 1,450 kr',
       timeframe: '10 arbetsdagar',
-      features: ['Certifierade översättare', 'Officiell stämpel', 'Alla språk', 'Kvalitetsgaranti']
+      features: ['Certifierade översättare', 'Alla språk', 'Officiell stämpel']
     },
     {
       service: 'Handelskammaren',
@@ -217,27 +175,19 @@ const ServicesPage: React.FC = () => {
       officialFee: '2,300 kr',
       serviceFee: '100 kr',
       totalPrice: '2,400 kr',
-      timeframe: '12 arbetsdagar',
+      timeframe: '7 arbetsdagar',
       features: ['Handelskammarens stämpel', 'Internationell giltighet', 'Företagshandlingar', 'Officiell legalisering']
+    },
+    {
+      service: 'Utrikesdepartementet',
+      description: 'UD:s legalisering',
+      officialFee: '1,650 kr',
+      serviceFee: '100 kr',
+      totalPrice: '1,750 kr',
+      timeframe: '10 arbetsdagar',
+      features: ['Utrikesdepartementets stämpel', 'Högsta myndighet', 'Internationell giltighet', 'Officiell legalisering']
     }
   ];
-
-  const getServiceDescription = (serviceType: string): string => {
-    switch (serviceType) {
-      case 'apostille':
-        return 'Snabb legalisering för Haagkonventionsländer';
-      case 'notarization':
-        return 'Officiell bekräftelse av dokument och signaturer';
-      case 'embassy':
-        return 'Legalistering via ambassad för icke-Haagländer';
-      case 'translation':
-        return 'Auktoriserade översättningar för officiellt bruk';
-      case 'ud':
-        return 'Officiell legalisering via svenska UD';
-      default:
-        return '';
-    }
-  };
 
   const getServiceIcon = (serviceType: string): string => {
     switch (serviceType) {
@@ -255,84 +205,14 @@ const ServicesPage: React.FC = () => {
         return 'language';
       case 'chamber':
       case 'handelskammaren':
-        return 'building';
+        return 'home';
       case 'ud':
       case 'utrikesdepartementet':
-        return 'government';
+        return 'landmark';
       default:
         return 'document-check';
     }
   };
-
-  const getServiceFeatures = (serviceType: string): string[] => {
-    switch (serviceType) {
-      case 'apostille':
-        return ['För 120+ länder', 'Snabb process', 'Kostnadseffektiv'];
-      case 'notarization':
-        return ['Juridisk giltighet', 'Personlig identifiering', 'Officiell stämpel'];
-      case 'embassy':
-        return ['För Asien och Mellanöstern', 'Ambassadkontakt', 'Komplett process'];
-      case 'translation':
-        return ['Certifierade översättare', 'Alla språk', 'Officiell stämpel'];
-      case 'ud':
-        return ['Svensk myndighet', 'Internationell giltighet', 'Officiell process'];
-      default:
-        return [];
-    }
-  };
-
-  const getFallbackServices = (t: any): ServiceOverview[] => [
-    {
-      id: 'apostille',
-      title: t('services.apostille.title'),
-      shortDescription: 'Snabb legalisering för Haagkonventionsländer',
-      icon: 'document-check',
-      price: t('services.apostille.price'),
-      timeframe: t('services.apostille.timeframe'),
-      popular: true,
-      features: ['För 120+ länder', 'Snabb process', 'Kostnadseffektiv']
-    },
-    {
-      id: 'notarisering',
-      title: t('services.notarization.title'),
-      shortDescription: 'Officiell bekräftelse av dokument och signaturer',
-      icon: 'seal',
-      price: t('services.notarization.price'),
-      timeframe: t('services.notarization.timeframe'),
-      popular: false,
-      features: ['Juridisk giltighet', 'Personlig identifiering', 'Officiell stämpel']
-    },
-    {
-      id: 'ambassad',
-      title: t('services.embassy.title'),
-      shortDescription: 'Legalistering via ambassad för icke-Haagländer',
-      icon: 'building',
-      price: t('services.embassy.price'),
-      timeframe: t('services.embassy.timeframe'),
-      popular: false,
-      features: ['För Asien och Mellanöstern', 'Ambassadkontakt', 'Komplett process']
-    },
-    {
-      id: 'oversattning',
-      title: t('services.translation.title'),
-      shortDescription: 'Auktoriserade översättningar för officiellt bruk',
-      icon: 'language',
-      price: t('services.translation.price'),
-      timeframe: t('services.translation.timeframe'),
-      popular: false,
-      features: ['Certifierade översättare', 'Alla språk', 'Officiell stämpel']
-    },
-    {
-      id: 'ud',
-      title: 'Utrikesdepartementet',
-      shortDescription: 'Officiell legalisering via svenska UD',
-      icon: 'government',
-      price: 'Från 795 kr',
-      timeframe: '5-7 arbetsdagar',
-      popular: false,
-      features: ['Svensk myndighet', 'Internationell giltighet', 'Officiell process']
-    }
-  ];
 
   // Show loading state
   if (loading) {
@@ -345,7 +225,6 @@ const ServicesPage: React.FC = () => {
       </div>
     );
   }
-
 
   // Funktion för att rendera ikoner baserat på ikonnamn
   const renderIcon = (iconName: string) => {
@@ -378,6 +257,18 @@ const ServicesPage: React.FC = () => {
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-custom-button" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M3 10h18M3 18h18M5 21v-3m2 0v-3m2 0v-3m2 0v-3m2 0v-3m2 0v-3m2 0v-3M12 3l-7 4h14l-7-4z" />
+          </svg>
+        );
+      case 'landmark':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-custom-button" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        );
+      case 'home':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-custom-button" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
         );
       default:
@@ -458,20 +349,27 @@ const ServicesPage: React.FC = () => {
                   </div>
                 </div>
 
-                <Link
-                  href={`/bestall?service=${service.id}`}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
-                >
-                  Välj tjänst
-                </Link>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/bestall?service=${service.id}`}
+                    className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
+                  >
+                    Välj tjänst
+                  </Link>
+                  <Link
+                    href={`/tjanster/${service.id}`}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
+                  >
+                    Läs mer
+                  </Link>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-
         {/* Call to Action */}
-        <div className="mt-16 text-center">
+        <div className="mt-20 text-center">
           <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
             Osäker vilken tjänst du behöver?
           </h3>
@@ -498,12 +396,5 @@ const ServicesPage: React.FC = () => {
   );
 };
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
-    },
-  };
-};
 
 export default ServicesPage;

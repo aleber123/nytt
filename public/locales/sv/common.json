@@ -395,6 +395,43 @@
     "moreQuestions": "Hittar du inte svaret på din fråga?",
     "contactUs": "Kontakta oss"
   },
+  "orderStatus": {
+    "pageTitle": "Orderstatus - Legaliseringstjänst",
+    "pageDescription": "Kontrollera status på din beställning av legaliseringstjänster.",
+    "title": "Kontrollera orderstatus",
+    "subtitle": "Ange ditt ordernummer och e-post för att kontrollera status",
+    "orderNumber": "Ordernummer",
+    "email": "E-post",
+    "check": "Kontrollera status",
+    "checking": "Kontrollerar...",
+    "result": "Orderstatus",
+    "orderDate": "Beställningsdatum",
+    "estimatedDelivery": "Beräknad leverans",
+    "shipmentDate": "Skickad datum",
+    "trackingNumber": "Spårningsnummer",
+    "deliveryDate": "Leveransdatum",
+    "service": "Tjänst",
+    "progress": "Förlopp",
+    "questions": "Har du frågor om din beställning?",
+    "contactUs": "Kontakta oss",
+    "returnInfo": "Returinformation",
+    "returnTrackingNumber": "Returspårningsnummer",
+    "returnDate": "Returdatum",
+    "returnInstructions": "Dina dokument har returnerats. Kontakta oss om du har frågor om returen.",
+    "statuses": {
+      "pending": "Väntar på behandling",
+      "processing": "Under behandling",
+      "completed": "Färdigbehandlad",
+      "shipped": "Skickad",
+      "delivered": "Levererad",
+      "cancelled": "Avbruten/Returnerad"
+    },
+    "errors": {
+      "missingFields": "Vänligen fyll i både ordernummer och e-post",
+      "notFound": "Ingen beställning hittades med angivet ordernummer och e-post",
+      "technical": "Ett tekniskt fel uppstod. Försök igen senare."
+    }
+  },
   "errorBoundary": {
     "title": "Något gick fel",
     "subtitle": "Vi ber om ursäkt för besväret",

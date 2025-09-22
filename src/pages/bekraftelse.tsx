@@ -108,90 +108,125 @@ export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <main className="bg-gray-50 py-10">
+      {/* Header Section */}
+      <div className="bg-custom-page-header py-12">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
+            {t('confirmation.title')}
+          </h1>
+        </div>
+      </div>
+
+      <main className="bg-gray-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
             {loading ? (
-              <div className="text-center py-10">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
-                <p>{t('common.loading')}</p>
+              <div className="text-center py-16">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-custom-button mb-4"></div>
+                <p className="text-gray-600">{t('common.loading')}</p>
               </div>
             ) : error ? (
-              <div className="bg-white rounded-lg shadow-card p-8 text-center">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
                 <div className="text-red-500 mb-4">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h1 className="text-2xl font-bold mb-4">{t('confirmation.error')}</h1>
+                <h1 className="text-2xl font-heading font-bold mb-4">{t('confirmation.error')}</h1>
                 <p className="text-gray-600 mb-6">{error}</p>
-                <Link href="/" className="inline-block px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
+                <Link href="/" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button">
                   {t('common.backToHome')}
                 </Link>
               </div>
             ) : order ? (
-              <div className="bg-white rounded-lg shadow-card p-8">
-                <div className="text-center mb-8">
-                  <div className="text-green-500 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div className="text-center mb-12">
+                  <div className="text-green-500 mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h1 className="text-2xl font-bold">{t('confirmation.thankYou')}</h1>
-                  <p className="text-gray-600 mt-2">{t('confirmation.orderReceived')}</p>
+                  <h1 className="text-3xl font-heading font-bold text-gray-900 mb-4">{t('confirmation.thankYou')}</h1>
+                  <p className="text-xl text-gray-600">{t('confirmation.orderReceived')}</p>
                 </div>
 
-                <div className="border-t border-gray-200 pt-6 mb-6">
-                  <h2 className="text-lg font-semibold mb-4">{t('confirmation.orderDetails')}</h2>
-                  
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-gray-600">{t('confirmation.orderNumber')}:</span>
-                      <span className="font-medium">{order.orderNumber || order.id}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t('confirmation.orderStatus')}:</span>
-                      <span className="font-medium capitalize">{order.status}</span>
+                <div className="border-t border-gray-200 pt-8 mb-8">
+                  <h2 className="text-2xl font-heading font-bold text-gray-900 mb-6">{t('confirmation.orderDetails')}</h2>
+
+                  <div className="bg-gray-50 rounded-lg p-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-gray-500 block mb-1">{t('confirmation.orderNumber')}:</span>
+                        <span className="text-lg font-semibold text-gray-900">{order.orderNumber || order.id}</span>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-500 block mb-1">{t('confirmation.orderStatus')}:</span>
+                        <span className="text-lg font-semibold text-gray-900 capitalize">{order.status}</span>
+                      </div>
                     </div>
                   </div>
                   
-                  <h3 className="font-medium mb-2">{t('confirmation.services')}:</h3>
-                  <ul className="list-disc list-inside mb-4 pl-2">
-                    {Array.isArray(order.services) ? (
-                      order.services.map((service, index) => (
-                        <li key={index} className="text-gray-700">{getServiceName(service)}</li>
-                      ))
-                    ) : (
-                      <li className="text-gray-700">{getServiceName(order.services as unknown as string)}</li>
-                    )}
-                  </ul>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <h3 className="font-medium mb-2">{t('confirmation.customerInfo')}:</h3>
-                      <p className="text-gray-700">{order.customerInfo.firstName} {order.customerInfo.lastName}</p>
-                      <p className="text-gray-700">{order.customerInfo.email}</p>
-                      <p className="text-gray-700">{order.customerInfo.phone}</p>
-                      {order.invoiceReference && (
-                        <p className="text-gray-700 mt-2">
-                          <span className="font-medium">Fakturareferens:</span> {order.invoiceReference}
+                  <div className="mb-8">
+                    <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.services')}:</h3>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <ul className="space-y-2">
+                        {Array.isArray(order.services) ? (
+                          order.services.map((service, index) => (
+                            <li key={index} className="flex items-center text-gray-700">
+                              <svg className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              {getServiceName(service)}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="flex items-center text-gray-700">
+                            <svg className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            {getServiceName(order.services as unknown as string)}
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.customerInfo')}:</h3>
+                      <div className="space-y-3">
+                        <p className="text-gray-700">
+                          <span className="font-medium">{order.customerInfo.firstName} {order.customerInfo.lastName}</span>
                         </p>
-                      )}
+                        <p className="text-gray-700">
+                          <span className="font-medium">{order.customerInfo.email}</span>
+                        </p>
+                        <p className="text-gray-700">
+                          <span className="font-medium">{order.customerInfo.phone}</span>
+                        </p>
+                        {order.invoiceReference && (
+                          <p className="text-gray-700">
+                            <span className="font-medium">Fakturareferens:</span> {order.invoiceReference}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
-                    <div>
-                      <h3 className="font-medium mb-2">{t('confirmation.deliveryAddress')}:</h3>
-                      <p className="text-gray-700">{order.customerInfo.address}</p>
-                      <p className="text-gray-700">{order.customerInfo.postalCode} {order.customerInfo.city}</p>
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.deliveryAddress')}:</h3>
+                      <div className="space-y-3">
+                        <p className="text-gray-700">{order.customerInfo.address}</p>
+                        <p className="text-gray-700">{order.customerInfo.postalCode} {order.customerInfo.city}</p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Additional Order Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="space-y-3">
-                      <h3 className="font-medium">Orderdetaljer:</h3>
-                      <div className="text-sm space-y-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">Orderdetaljer:</h3>
+                      <div className="space-y-3">
                         <p className="text-gray-700">
                           <span className="font-medium">Dokumenttyp:</span> {
                             order.documentType === 'birthCertificate' ? 'Födelsebevis' :
@@ -217,9 +252,9 @@ export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <h3 className="font-medium">Tjänster:</h3>
-                      <div className="text-sm space-y-1">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">Ytterligare tjänster:</h3>
+                      <div className="space-y-3">
                         {order.scannedCopies && (
                           <p className="text-gray-700">
                             <span className="font-medium">Scannade kopior:</span> Ja (+{200 * order.quantity} kr)
@@ -241,59 +276,73 @@ export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
 
                   {/* Pickup Address */}
                   {order.pickupService && order.pickupAddress && (
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-                      <h3 className="font-medium text-orange-800 mb-2">📍 Hämtadress:</h3>
-                      <p className="text-orange-700">{order.pickupAddress.street}</p>
-                      <p className="text-orange-700">{order.pickupAddress.postalCode} {order.pickupAddress.city}</p>
-                      <p className="text-orange-600 text-sm mt-1">Vi kontaktar dig inom 24 timmar för att boka hämtning.</p>
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8">
+                      <h3 className="text-lg font-heading font-semibold text-orange-800 mb-3">📍 Hämtadress:</h3>
+                      <div className="space-y-2">
+                        <p className="text-orange-700 font-medium">{order.pickupAddress.street}</p>
+                        <p className="text-orange-700 font-medium">{order.pickupAddress.postalCode} {order.pickupAddress.city}</p>
+                        <p className="text-orange-600 text-sm mt-3">Vi kontaktar dig inom 24 timmar för att boka hämtning.</p>
+                      </div>
                     </div>
                   )}
 
                   {/* Additional Notes */}
                   {order.additionalNotes && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                      <h3 className="font-medium text-blue-800 mb-2">📝 Ytterligare information:</h3>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                      <h3 className="text-lg font-heading font-semibold text-blue-800 mb-3">📝 Ytterligare information:</h3>
                       <p className="text-blue-700 whitespace-pre-wrap">{order.additionalNotes}</p>
                     </div>
                   )}
 
                   {/* Uploaded Files */}
                   {order.documentSource === 'upload' && order.uploadedFiles && order.uploadedFiles.length > 0 && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                      <h3 className="font-medium text-green-800 mb-2">📎 Uppladdade filer:</h3>
-                      <div className="space-y-1">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+                      <h3 className="text-lg font-heading font-semibold text-green-800 mb-3">📎 Uppladdade filer:</h3>
+                      <div className="space-y-2">
                         {order.uploadedFiles.map((file: any, index: number) => (
-                          <p key={index} className="text-green-700 text-sm">
+                          <p key={index} className="text-green-700">
                             • {file.name || `Dokument ${index + 1}`} ({file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Okänd storlek'})
                           </p>
                         ))}
                       </div>
-                      <p className="text-green-600 text-sm mt-2">Filer har sparats och kommer att bearbetas.</p>
+                      <p className="text-green-600 text-sm mt-3">Filer har sparats och kommer att bearbetas.</p>
                     </div>
                   )}
                   
                 </div>
                 
-                <div className="border-t border-gray-200 pt-6 text-center">
-                  <p className="text-gray-600 mb-6">{t('confirmation.emailSent')}</p>
-                  
+                <div className="border-t border-gray-200 pt-8">
+                  <div className="text-center mb-8">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                      <div className="flex items-center justify-center mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <h3 className="text-lg font-heading font-semibold text-green-800">E-postbekräftelse skickad</h3>
+                      </div>
+                      <p className="text-green-700">{t('confirmation.emailSent')}</p>
+                    </div>
+                  </div>
+
                   {/* Invoice-specific information */}
                   {order.paymentMethod === 'invoice' && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-                      <h3 className="font-medium text-blue-800 mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M5 2a2 2 0 00-2 2v14l3.5-2 3.5 2 3.5-2 3.5 2V4a2 2 0 00-2-2H5zm4.707 3.707a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L8.414 10l1.293-1.293z" clipRule="evenodd" />
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                      <div className="flex items-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        Fakturainformation
-                      </h3>
-                      <p className="text-gray-700 mb-2">En faktura har skickats till din e-postadress: <span className="font-medium">{order.customerInfo.email}</span></p>
-                      <p className="text-gray-700 mb-2">Betalningsvillkor: 14 dagar</p>
-                      <p className="text-gray-700">Betalningsinformation finns i fakturan.</p>
+                        <h3 className="text-lg font-heading font-semibold text-blue-800">Fakturainformation</h3>
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-gray-700">En faktura har skickats till din e-postadress: <span className="font-medium">{order.customerInfo.email}</span></p>
+                        <p className="text-gray-700">Betalningsvillkor: <span className="font-medium">14 dagar</span></p>
+                        <p className="text-gray-700">Betalningsinformation finns i fakturan.</p>
+                      </div>
                     </div>
                   )}
-                  
-                  <div className="flex justify-center">
-                    <Link href="/" className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+
+                  <div className="text-center">
+                    <Link href="/" className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button transition-colors duration-200">
                       {t('common.backToHome')}
                     </Link>
                   </div>

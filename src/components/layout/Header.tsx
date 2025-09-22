@@ -15,6 +15,7 @@ const Header: React.FC = () => {
     { name: 'Artiklar', href: '/artiklar' },
     { name: t('nav.about'), href: '/om-oss' },
     { name: t('nav.contact'), href: '/kontakt' },
+    { name: 'Orderstatus', href: '/orderstatus' },
   ];
 
   const toggleMenu = () => {

@@ -20,6 +20,7 @@ interface StandardService {
   officialFee: number;
   serviceFee: number;
   totalPrice: number;
+  processingTime: number;
   lastUpdated?: Date;
 }
 
@@ -38,7 +39,8 @@ function StandardServicesPricesPage() {
       description: 'För länder anslutna till Haagkonventionen',
       officialFee: 850,
       serviceFee: 100,
-      totalPrice: 950
+      totalPrice: 950,
+      processingTime: 5
     },
     {
       code: 'notarization',
@@ -46,7 +48,8 @@ function StandardServicesPricesPage() {
       description: 'Officiell notarisering av dokument',
       officialFee: 1200,
       serviceFee: 100,
-      totalPrice: 1300
+      totalPrice: 1300,
+      processingTime: 8
     },
     {
       code: 'chamber',
@@ -54,7 +57,8 @@ function StandardServicesPricesPage() {
       description: 'Legaliserng av handelsdokument genom Handelskammaren',
       officialFee: 2300,
       serviceFee: 100,
-      totalPrice: 2400
+      totalPrice: 2400,
+      processingTime: 7
     },
     {
       code: 'translation',
@@ -62,7 +66,8 @@ function StandardServicesPricesPage() {
       description: 'Officiella översättningar av dokument - från-pris',
       officialFee: 1350,
       serviceFee: 100,
-      totalPrice: 1450
+      totalPrice: 1450,
+      processingTime: 10
     },
     {
       code: 'ud',
@@ -70,7 +75,8 @@ function StandardServicesPricesPage() {
       description: 'UD:s legalisering för icke-Haagkonventionsländer',
       officialFee: 1650,
       serviceFee: 100,
-      totalPrice: 1750
+      totalPrice: 1750,
+      processingTime: 10
     }
   ];
 
@@ -93,11 +99,18 @@ function StandardServicesPricesPage() {
       const mergedServices = defaultServices.map(defaultService => {
         const existingRule = standardRules.find(rule => rule.serviceType === defaultService.code);
         if (existingRule) {
+          // Validate processing time to ensure it's reasonable (1-90 days)
+          const processingTime = existingRule.processingTime?.standard;
+          const validProcessingTime = (typeof processingTime === 'number' && processingTime >= 1 && processingTime <= 90)
+            ? processingTime
+            : defaultService.processingTime;
+
           return {
             ...defaultService,
             officialFee: existingRule.officialFee,
             serviceFee: existingRule.serviceFee,
             totalPrice: existingRule.basePrice,
+            processingTime: validProcessingTime,
             lastUpdated: existingRule.lastUpdated?.toDate()
           };
         }
@@ -115,7 +128,7 @@ function StandardServicesPricesPage() {
     }
   };
 
-  const updateServiceFee = async (serviceCode: string, newOfficialFee: number, newServiceFee?: number) => {
+  const updateServiceFee = async (serviceCode: string, newOfficialFee: number, newServiceFee?: number, newProcessingTime?: number) => {
     try {
       setSaving(true);
 
@@ -123,20 +136,9 @@ function StandardServicesPricesPage() {
       if (!service) return;
 
       const serviceFee = newServiceFee !== undefined ? newServiceFee : service.serviceFee;
+      const processingTime = newProcessingTime !== undefined ? newProcessingTime : service.processingTime;
       const ruleId = `SE_${serviceCode}`;
       const newTotalPrice = newOfficialFee + serviceFee;
-
-      // Get processing time based on service type
-      const getProcessingTime = (serviceType: string) => {
-        const times: { [key: string]: number } = {
-          'apostille': 5,
-          'notarization': 8,
-          'chamber': 7,
-          'translation': 10,
-          'ud': 10
-        };
-        return times[serviceType] || 5;
-      };
 
       // Use the new updateOrCreatePricingRule function
       await updateOrCreatePricingRule(
@@ -154,7 +156,7 @@ function StandardServicesPricesPage() {
           officialFee: newOfficialFee,
           serviceFee: serviceFee,
           basePrice: newTotalPrice,
-          processingTime: { standard: getProcessingTime(serviceCode) },
+          processingTime: { standard: processingTime },
           currency: 'SEK',
           updatedBy: currentUser?.email || 'admin',
           isActive: true
@@ -169,6 +171,7 @@ function StandardServicesPricesPage() {
                 ...s,
                 officialFee: newOfficialFee,
                 serviceFee: serviceFee,
+                processingTime: processingTime,
                 totalPrice: newTotalPrice,
                 lastUpdated: new Date()
               }
@@ -266,7 +269,7 @@ function StandardServicesPricesPage() {
                                 updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0);
                               }
                             }}
-                            className="w-24 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                            className="w-28 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
                             disabled={saving}
                           />
                           <span className="text-sm text-gray-500 ml-2">kr</span>
@@ -304,6 +307,48 @@ function StandardServicesPricesPage() {
                             disabled={saving}
                           />
                           <span className="text-sm text-gray-500 ml-2">kr</span>
+                        </div>
+                      </div>
+
+                      {/* Processing Time - Editable for translation */}
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Handläggningstid:</span>
+                        <div className="flex items-center">
+                          <input
+                            type="number"
+                            value={service.processingTime || 10}
+                            onChange={(e) => {
+                              const newProcessingTime = Math.max(1, Math.min(90, parseInt(e.target.value) || 1));
+                              setServices(prev =>
+                                prev.map(s =>
+                                  s.code === service.code
+                                    ? { ...s, processingTime: newProcessingTime }
+                                    : s
+                                )
+                              );
+                            }}
+                            onFocus={(e) => {
+                              // Select all text when focused for better UX
+                              e.target.select();
+                            }}
+                            onBlur={(e) => {
+                              const value = parseInt((e.target as HTMLInputElement).value) || 1;
+                              const validValue = Math.max(1, Math.min(90, value));
+                              updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
+                            }}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                const value = parseInt((e.target as HTMLInputElement).value) || 1;
+                                const validValue = Math.max(1, Math.min(90, value));
+                                updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
+                              }
+                            }}
+                            className="w-28 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                            disabled={saving}
+                            min="1"
+                            max="90"
+                          />
+                          <span className="text-sm text-gray-500 ml-2">dagar</span>
                         </div>
                       </div>
 
@@ -397,6 +442,48 @@ function StandardServicesPricesPage() {
                             disabled={saving}
                           />
                           <span className="text-sm text-gray-500 ml-2">kr</span>
+                        </div>
+                      </div>
+
+                      {/* Processing Time - Editable */}
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Handläggningstid:</span>
+                        <div className="flex items-center">
+                          <input
+                            type="number"
+                            value={service.processingTime}
+                            onChange={(e) => {
+                              const newProcessingTime = Math.max(1, Math.min(90, parseInt(e.target.value) || 1));
+                              setServices(prev =>
+                                prev.map(s =>
+                                  s.code === service.code
+                                    ? { ...s, processingTime: newProcessingTime }
+                                    : s
+                                )
+                              );
+                            }}
+                            onFocus={(e) => {
+                              // Select all text when focused for better UX
+                              e.target.select();
+                            }}
+                            onBlur={(e) => {
+                              const value = parseInt((e.target as HTMLInputElement).value) || 1;
+                              const validValue = Math.max(1, Math.min(90, value));
+                              updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
+                            }}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                const value = parseInt((e.target as HTMLInputElement).value) || 1;
+                                const validValue = Math.max(1, Math.min(90, value));
+                                updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
+                              }
+                            }}
+                            className="w-28 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                            disabled={saving}
+                            min="1"
+                            max="90"
+                          />
+                          <span className="text-sm text-gray-500 ml-2">dagar</span>
                         </div>
                       </div>
 

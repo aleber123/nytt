@@ -295,10 +295,73 @@ const uploadFiles = async (files, orderId) => {
   }
 };
 
+// Check for duplicate orders (within last 5 minutes)
+const checkForDuplicateOrder = async (orderData) => {
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 300000); // 5 minutes ago
+
+    if (firebaseAvailable && db) {
+      try {
+        // Check Firebase for recent orders with same customer email and services
+        const { query, where, orderBy, limit, getDocs } = require('firebase/firestore');
+
+        const duplicateQuery = query(
+          collection(db, 'orders'),
+          where('customerInfo.email', '==', orderData.customerInfo.email),
+          where('services', '==', orderData.services),
+          where('createdAt', '>=', Timestamp.fromDate(fiveMinutesAgo)),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+
+        const querySnapshot = await getDocs(duplicateQuery);
+        if (!querySnapshot.empty) {
+          const existingOrder = querySnapshot.docs[0];
+          return {
+            isDuplicate: true,
+            existingOrderId: existingOrder.id
+          };
+        }
+      } catch (firebaseError) {
+        console.log('⚠️ Firebase duplicate check failed:', firebaseError.message);
+      }
+    }
+
+    // Check mock storage for duplicates
+    const mockOrders = mockFirebase.getAllOrders();
+    const recentMockOrder = mockOrders
+      .filter(order =>
+        order.customerInfo.email === orderData.customerInfo.email &&
+        JSON.stringify(order.services) === JSON.stringify(orderData.services) &&
+        new Date(order.createdAt) > fiveMinutesAgo
+      )
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+    if (recentMockOrder) {
+      return {
+        isDuplicate: true,
+        existingOrderId: recentMockOrder.id
+      };
+    }
+
+    return { isDuplicate: false };
+  } catch (error) {
+    console.error('❌ Error checking for duplicate orders:', error);
+    return { isDuplicate: false }; // Allow order creation if check fails
+  }
+};
+
 // Create order with file uploads
 const createOrderWithFiles = async (orderData, files = []) => {
   try {
     console.log('📦 Creating order with files...');
+
+    // Check for duplicate orders (within last 30 seconds)
+    const duplicateCheck = await checkForDuplicateOrder(orderData);
+    if (duplicateCheck.isDuplicate) {
+      console.log('🚫 Duplicate order detected, returning existing order ID:', duplicateCheck.existingOrderId);
+      return duplicateCheck.existingOrderId;
+    }
 
     // First create the order to get the order ID
     const orderId = await createOrder(orderData);
