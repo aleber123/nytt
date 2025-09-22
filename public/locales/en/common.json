@@ -423,5 +423,42 @@
       "subjectRequired": "Subject is required",
       "messageRequired": "Message is required"
     }
+  },
+  "orderStatus": {
+    "pageTitle": "Order Status - Legalization Service",
+    "pageDescription": "Check the status of your document legalization order.",
+    "title": "Check Order Status",
+    "subtitle": "Enter your order number and email to check status",
+    "orderNumber": "Order Number",
+    "email": "Email",
+    "check": "Check Status",
+    "checking": "Checking...",
+    "result": "Order Status",
+    "orderDate": "Order Date",
+    "estimatedDelivery": "Estimated Delivery",
+    "shipmentDate": "Shipment Date",
+    "trackingNumber": "Tracking Number",
+    "deliveryDate": "Delivery Date",
+    "service": "Service",
+    "progress": "Progress",
+    "questions": "Questions about your order?",
+    "contactUs": "Contact Us",
+    "returnInfo": "Return Information",
+    "returnTrackingNumber": "Return Tracking Number",
+    "returnDate": "Return Date",
+    "returnInstructions": "Your documents have been returned. Contact us if you have questions about the return.",
+    "statuses": {
+      "pending": "Waiting for processing",
+      "processing": "Being processed",
+      "completed": "Processing completed",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled/Returned"
+    },
+    "errors": {
+      "missingFields": "Please fill in both order number and email",
+      "notFound": "No order found with the specified order number and email",
+      "technical": "A technical error occurred. Please try again later."
+    }
   }
 }
