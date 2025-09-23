@@ -170,14 +170,14 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
               officialFee: pricingRule.officialFee
             });
 
-            // Service fee line item (25% VAT)
-            const serviceFeeTotal = pricingRule.serviceFee * order.quantity;
+            // Service fee line item (25% VAT) - Fixed fee per service, not per document
+            const serviceFeeTotal = pricingRule.serviceFee;
             const { vatAmount: serviceVatAmount, totalWithVAT: serviceTotalWithVAT } = calculateVAT(serviceFeeTotal, VAT_RATES.STANDARD);
 
             lineItems.push({
               id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               description: `${getServiceDescription(serviceId, order)} - Serviceavgift`,
-              quantity: order.quantity,
+              quantity: 1,
               unitPrice: pricingRule.serviceFee,
               totalPrice: serviceTotalWithVAT,
               vatRate: VAT_RATES.STANDARD,
@@ -203,14 +203,14 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
               officialFee: pricingRule.officialFee
             });
 
-            // Service fee line item (25% VAT)
-            const serviceFeeTotal = pricingRule.serviceFee * order.quantity;
+            // Service fee line item (25% VAT) - Fixed fee per service, not per document
+            const serviceFeeTotal = pricingRule.serviceFee;
             const { vatAmount: serviceVatAmount, totalWithVAT: serviceTotalWithVAT } = calculateVAT(serviceFeeTotal, VAT_RATES.STANDARD);
 
             lineItems.push({
               id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               description: `${getServiceDescription(serviceId, order)} - Serviceavgift`,
-              quantity: order.quantity,
+              quantity: 1,
               unitPrice: pricingRule.serviceFee,
               totalPrice: serviceTotalWithVAT,
               vatRate: VAT_RATES.STANDARD,

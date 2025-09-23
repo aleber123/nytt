@@ -56,6 +56,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
+  const [removingService, setRemovingService] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId) {
@@ -216,7 +217,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   const handleSendInvoice = async (invoice: Invoice) => {
     setSendingInvoice(invoice.id!);
     try {
-      const success = await sendInvoiceEmail(order!);
+      const success = await sendInvoiceEmail(invoice);
       if (success) {
         toast.success('Faktura skickad via e-post');
       } else {
@@ -341,6 +342,85 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
     }
   };
 
+  // Remove a service from the order
+  const handleRemoveService = async (serviceToRemove: string) => {
+    if (!order) return;
+
+    setRemovingService(serviceToRemove);
+    try {
+      let updatedServices = Array.isArray(order.services) ? [...order.services] : [];
+      let updatedScannedCopies = order.scannedCopies;
+      let updatedPickupService = order.pickupService;
+
+      // Handle removal of additional services
+      if (serviceToRemove === 'scanned_copies') {
+        updatedScannedCopies = false;
+      } else if (serviceToRemove === 'pickup_service') {
+        updatedPickupService = false;
+      } else {
+        // Remove from main services array
+        updatedServices = updatedServices.filter(service => service !== serviceToRemove);
+      }
+
+      // Recalculate pricing with the updated services
+      const { calculateOrderPrice } = await import('@/firebase/pricingService');
+      const pricingResult = await calculateOrderPrice({
+        country: order.country,
+        services: updatedServices,
+        quantity: order.quantity,
+        expedited: order.expedited,
+        deliveryMethod: order.deliveryMethod,
+        returnService: order.returnService,
+        returnServices: [],
+        scannedCopies: updatedScannedCopies,
+        pickupService: updatedPickupService
+      });
+
+      // Update processing steps - remove steps related to the removed service
+      const updatedProcessingSteps = (order.processingSteps || initializeProcessingSteps(order))
+        .filter(step => {
+          // Keep steps that are not specific to the removed service
+          if (serviceToRemove === 'chamber' && step.id === 'chamber_processing') return false;
+          if (serviceToRemove === 'notarization' && step.id === 'notarization') return false;
+          if (serviceToRemove === 'translation' && step.id === 'translation') return false;
+          if (serviceToRemove === 'ud' && step.id === 'ud_processing') return false;
+          if (serviceToRemove === 'embassy' && step.id === 'embassy_processing') return false;
+          if (serviceToRemove === 'apostille' && step.id === 'apostille') return false;
+          if (serviceToRemove === 'scanned_copies' && step.id === 'scanning') return false;
+          return true;
+        });
+
+      // Update the order
+      const updatedOrder = {
+        ...order,
+        services: updatedServices,
+        scannedCopies: updatedScannedCopies,
+        pickupService: updatedPickupService,
+        totalPrice: pricingResult.totalPrice,
+        pricingBreakdown: pricingResult.breakdown,
+        processingSteps: updatedProcessingSteps
+      };
+
+      await updateOrder(orderId, {
+        services: updatedServices,
+        scannedCopies: updatedScannedCopies,
+        pickupService: updatedPickupService,
+        totalPrice: pricingResult.totalPrice,
+        pricingBreakdown: pricingResult.breakdown,
+        processingSteps: updatedProcessingSteps
+      });
+
+      setOrder(updatedOrder);
+      setProcessingSteps(updatedProcessingSteps);
+      toast.success(`Tjänst "${getServiceName(serviceToRemove)}" har tagits bort från ordern`);
+    } catch (err) {
+      console.error('Error removing service:', err);
+      toast.error('Kunde inte ta bort tjänsten från ordern');
+    } finally {
+      setRemovingService(null);
+    }
+  };
+
   // Function to get service name
   const getServiceName = (serviceId: string) => {
     switch (serviceId) {
@@ -356,6 +436,62 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
         return 'Utrikesdepartementet';
       default:
         return serviceId;
+    }
+  };
+
+  // Function to get service status based on processing steps
+  const getServiceStatus = (serviceId: string) => {
+    if (!processingSteps || processingSteps.length === 0) return 'väntar';
+
+    // Map service IDs to processing step IDs
+    const serviceToStepMap: { [key: string]: string } = {
+      'apostille': 'apostille',
+      'notarisering': 'notarization',
+      'notarization': 'notarization',
+      'ambassad': 'embassy_processing',
+      'embassy': 'embassy_processing',
+      'oversattning': 'translation',
+      'translation': 'translation',
+      'utrikesdepartementet': 'ud_processing',
+      'ud': 'ud_processing',
+      'chamber': 'chamber_processing',
+      'scanned_copies': 'scanning',
+      'pickup_service': 'document_receipt' // Map pickup to document receipt step
+    };
+
+    const stepId = serviceToStepMap[serviceId];
+    if (!stepId) return 'väntar';
+
+    const step = processingSteps.find(s => s.id === stepId);
+    if (!step) return 'väntar';
+
+    switch (step.status) {
+      case 'completed':
+        return 'klar';
+      case 'in_progress':
+        return 'pågår';
+      case 'pending':
+        return 'väntar';
+      case 'skipped':
+        return 'hoppas över';
+      default:
+        return 'väntar';
+    }
+  };
+
+  // Function to get status color class
+  const getServiceStatusColor = (status: string) => {
+    switch (status) {
+      case 'klar':
+        return 'text-green-600 bg-green-50';
+      case 'pågår':
+        return 'text-blue-600 bg-blue-50';
+      case 'väntar':
+        return 'text-gray-600 bg-gray-50';
+      case 'hoppas över':
+        return 'text-orange-600 bg-orange-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
     }
   };
 
@@ -588,18 +724,85 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                             <div>
                               <h3 className="text-lg font-medium mb-4">Valda tjänster</h3>
                               <div className="space-y-3">
-                                {Array.isArray(order.services) ? (
-                                  order.services.map((service, index) => (
-                                    <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                                      <span className="font-medium">{getServiceName(service)}</span>
-                                      <span className="text-sm text-gray-600">Aktiv</span>
+                                {/* Additional Services (shown first) */}
+                                {order.scannedCopies && (
+                                  <div className={`flex items-center justify-between p-3 rounded-lg ${getServiceStatusColor(getServiceStatus('scanned_copies'))}`}>
+                                    <span className="font-medium">Skannade kopior</span>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm font-medium capitalize">{getServiceStatus('scanned_copies')}</span>
+                                      <button
+                                        onClick={() => handleRemoveService('scanned_copies')}
+                                        disabled={removingService === 'scanned_copies'}
+                                        className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
+                                        title="Ta bort skannade kopior från ordern"
+                                      >
+                                        {removingService === 'scanned_copies' ? 'Tar bort...' : 'Ta bort'}
+                                      </button>
                                     </div>
-                                  ))
-                                ) : (
-                                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                                    <span className="font-medium">{getServiceName(order.services as unknown as string)}</span>
-                                    <span className="text-sm text-gray-600">Aktiv</span>
                                   </div>
+                                )}
+
+                                {order.pickupService && (
+                                  <div className={`flex items-center justify-between p-3 rounded-lg ${getServiceStatusColor(getServiceStatus('pickup_service'))}`}>
+                                    <span className="font-medium">Dokumenthämtning</span>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm font-medium capitalize">{getServiceStatus('pickup_service')}</span>
+                                      <button
+                                        onClick={() => handleRemoveService('pickup_service')}
+                                        disabled={removingService === 'pickup_service'}
+                                        className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
+                                        title="Ta bort dokumenthämtning från ordern"
+                                      >
+                                        {removingService === 'pickup_service' ? 'Tar bort...' : 'Ta bort'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Main Services */}
+                                {Array.isArray(order.services) ? (
+                                  order.services.map((service, index) => {
+                                    const status = getServiceStatus(service);
+                                    const statusColor = getServiceStatusColor(status);
+                                    return (
+                                      <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${statusColor}`}>
+                                        <span className="font-medium">{getServiceName(service)}</span>
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-sm font-medium capitalize">{status}</span>
+                                          <button
+                                            onClick={() => handleRemoveService(service)}
+                                            disabled={removingService === service}
+                                            className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
+                                            title={`Ta bort ${getServiceName(service)} från ordern`}
+                                          >
+                                            {removingService === service ? 'Tar bort...' : 'Ta bort'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  (() => {
+                                    const service = order.services as unknown as string;
+                                    const status = getServiceStatus(service);
+                                    const statusColor = getServiceStatusColor(status);
+                                    return (
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${statusColor}`}>
+                                        <span className="font-medium">{getServiceName(service)}</span>
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-sm font-medium capitalize">{status}</span>
+                                          <button
+                                            onClick={() => handleRemoveService(service)}
+                                            disabled={removingService === service}
+                                            className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
+                                            title={`Ta bort ${getServiceName(service)} från ordern`}
+                                          >
+                                            {removingService === service ? 'Tar bort...' : 'Ta bort'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()
                                 )}
                               </div>
                             </div>
