@@ -652,7 +652,8 @@
       "requiredField": "*",
       "backButton": "Back",
       "returnNote": "Your documents will be returned when the legalization is complete",
-      "returnDescription": "We will send your documents back to you according to the selected shipping method"
+      "returnDescription": "We will send your documents back to you according to the selected shipping method",
+      "termsAcceptance": "I accept the terms and conditions"
     },
     "pickupAddress": {
         "title": "Information for document pickup",

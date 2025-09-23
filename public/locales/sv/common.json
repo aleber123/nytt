@@ -641,7 +641,8 @@
       "submitting": "Skickar beställning...",
       "wait10Seconds": "Vänta 10 sekunder...",
       "requiredField": "*",
-      "backButton": "Tillbaka"
+      "backButton": "Tillbaka",
+      "termsAcceptance": "Jag accepterar villkoren"
     },
     "pickupAddress": {
         "title": "Uppgifter för dokumenthämtning",
