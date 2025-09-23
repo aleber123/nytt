@@ -2917,13 +2917,14 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
         <div className="container mx-auto px-4">
           {/* Progress indicator */}
           <div className="max-w-2xl mx-auto mb-8">
-            <div className="flex items-center justify-center space-x-2">
+            {/* Desktop: Detailed step indicator */}
+            <div className="hidden md:flex items-center justify-center space-x-2">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => (
                 <div key={step} className="flex items-center">
                   <button
                     onClick={() => {
-                      // Allow navigation to completed steps or current step
-                      if (step <= currentQuestion || step <= 10) {
+                      // Allow navigation to completed steps or current step only
+                      if (step <= currentQuestion) {
                         setCurrentQuestion(step);
                       }
                     }}
@@ -2934,7 +2935,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                         ? 'bg-custom-button text-white ring-2 ring-custom-button-light ring-offset-2 scale-110 shadow-lg'
                         : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                     }`}
-                    disabled={step > currentQuestion && step > 10}
+                    disabled={step > currentQuestion}
                   >
                     {step < currentQuestion ? '✓' : step}
                   </button>
@@ -2945,6 +2946,20 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   )}
                 </div>
               ))}
+            </div>
+  
+            {/* Mobile: Simple progress bar */}
+            <div className="md:hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Steg {currentQuestion} av 10</span>
+                <span className="text-sm text-gray-500">{Math.round((currentQuestion / 10) * 100)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-custom-button h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(currentQuestion / 10) * 100}%` }}
+                ></div>
+              </div>
             </div>
           </div>
 
