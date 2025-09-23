@@ -210,6 +210,37 @@
     },
     "invoiceSent": "Faktura har skickats till din e-post"
   },
+  "orderFlow": {
+    "upload": {
+      "uploadTitle": "Ladda upp dina {{quantity}} dokument",
+      "uploadNote": "Vänligen ladda upp dina dokument i rätt format (PDF, JPG, PNG). Alla dokument måste vara tydliga och läsbara.",
+      "documentLabel": "Dokument {{number}}",
+      "chooseFile": "Välj fil"
+    },
+    "step10": {
+      "title": "Slutför din beställning",
+      "subtitle": "Granska din beställning och slutför genom att fylla i dina uppgifter nedan",
+      "summaryTitle": "Slutgiltig beställningssammanfattning",
+      "firstName": "Förnamn",
+      "lastName": "Efternamn",
+      "email": "E-post",
+      "phone": "Telefon",
+      "invoiceReference": "Fakturareferens",
+      "invoiceReferencePlaceholder": "Valfritt referensnummer för fakturan",
+      "invoiceReferenceNote": "Används för att identifiera fakturan i ditt bokföringssystem",
+      "additionalNotes": "Övriga kommentarer",
+      "additionalNotesPlaceholder": "Eventuella särskilda önskemål eller kommentarer",
+      "additionalNotesNote": "Valfritt - ange om du har några särskilda önskemål",
+      "requiredField": "(obligatoriskt)",
+      "backToPrevious": "Tillbaka",
+      "submitOrder": "Skicka beställning",
+      "submittingOrder": "Skickar beställning...",
+      "wait10Seconds": "Vänta 10 sekunder",
+      "orderSubmitted": "Beställning skickad!",
+      "orderNumber": "Ordernummer",
+      "documentsReturn": "Dina dokument kommer att returneras enligt vald leveransmetod"
+    }
+  },
   "footer": {
     "title": "Sidfot",
     "description": "Vi hjälper dig med legalisering av dokument för användning utomlands. Snabbt, enkelt och säkert.",

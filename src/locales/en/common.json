@@ -173,6 +173,37 @@
       "invoice": "Invoice (14 days)"
     }
   },
+  "orderFlow": {
+    "upload": {
+      "uploadTitle": "Upload your {{quantity}} documents",
+      "uploadNote": "Please upload your documents in the correct format (PDF, JPG, PNG). All documents must be clear and readable.",
+      "documentLabel": "Document {{number}}",
+      "chooseFile": "Choose file"
+    },
+    "step10": {
+      "title": "Complete your order",
+      "subtitle": "Review your order and complete by filling in your details below",
+      "summaryTitle": "Final order summary",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone",
+      "invoiceReference": "Invoice reference",
+      "invoiceReferencePlaceholder": "Optional reference number for the invoice",
+      "invoiceReferenceNote": "Used to identify the invoice in your accounting system",
+      "additionalNotes": "Additional notes",
+      "additionalNotesPlaceholder": "Any special requests or comments",
+      "additionalNotesNote": "Optional - specify if you have any special requests",
+      "requiredField": "(required)",
+      "backToPrevious": "Back",
+      "submitOrder": "Submit order",
+      "submittingOrder": "Submitting order...",
+      "wait10Seconds": "Wait 10 seconds",
+      "orderSubmitted": "Order submitted!",
+      "orderNumber": "Order number",
+      "documentsReturn": "Your documents will be returned according to your chosen delivery method"
+    }
+  },
   "footer": {
     "title": "Footer",
     "description": "We help you with document legalization for use abroad. Fast, easy, and secure.",

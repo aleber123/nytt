@@ -1372,13 +1372,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const renderQuestion6 = () => {
     // Only show pickup service step if original documents are selected
     if (answers.documentSource === 'upload') {
-      // Skip to file upload step for uploaded documents
+      // Skip to return service step for uploaded documents
       setCurrentQuestion(9);
       return null;
     }
     if (answers.documentSource !== 'original') {
-      // Skip to scanned copies step for other cases
-      setCurrentQuestion(8);
+      // Skip to return service step for other cases
+      setCurrentQuestion(9);
       return null;
     }
 
@@ -1448,7 +1448,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
         <div className="mt-8 flex justify-between">
           <button
-            onClick={() => setCurrentQuestion(5)}
+            onClick={() => setCurrentQuestion(9)}
             className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
           >
             {t('orderFlow.backToPrevious')}
@@ -1582,14 +1582,16 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       );
     }
 
+    // For uploaded documents, skip this step entirely and go to return service selection
+    if (answers.documentSource === 'upload') {
+      setCurrentQuestion(9);
+      return null;
+    }
+
     // Only show pickup address step if pickup service is selected
     if (!answers.pickupService) {
-      // Skip to appropriate next step based on document source
-      if (answers.documentSource === 'upload') {
-        setCurrentQuestion(9); // Go to file upload step
-      } else {
-        setCurrentQuestion(8); // Go to scanned copies step
-      }
+      // Skip to return service step
+      setCurrentQuestion(9);
       return null;
     }
 
@@ -1694,11 +1696,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   };
 
   const renderQuestion8 = () => {
-    // Skip scanned copies step if document source is upload
-    if (answers.documentSource === 'upload') {
-      setCurrentQuestion(9);
-      return null;
-    }
+    // Show scanned copies step for all document sources
 
     return (
       <div className="max-w-2xl mx-auto">
@@ -1730,7 +1728,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           <button
             onClick={() => {
               setAnswers(prev => ({ ...prev, scannedCopies: false }));
-              setCurrentQuestion(10);
+              setCurrentQuestion(9); // Go to return service selection
             }}
             className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
               answers.scannedCopies === false ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
@@ -1747,7 +1745,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           <button
             onClick={() => {
               setAnswers(prev => ({ ...prev, scannedCopies: true }));
-              setCurrentQuestion(10);
+              setCurrentQuestion(9); // Go to return service selection
             }}
             className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
               answers.scannedCopies === true ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
@@ -1780,7 +1778,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           </button>
           {answers.scannedCopies !== undefined && (
             <button
-              onClick={() => setCurrentQuestion(10)}
+              onClick={() => setCurrentQuestion(9)} // Go to return service selection
               className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
             >
               {t('orderFlow.continueButton')}
@@ -1828,7 +1826,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               key={service.id}
               onClick={() => {
                 setAnswers(prev => ({ ...prev, returnService: service.id }));
-                setCurrentQuestion(10); // Go to final combined step
               }}
               className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                 answers.returnService === service.id ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
@@ -2010,94 +2007,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         </div>
       </div>
 
-      {/* Information based on document source - only show if not pickup service */}
-      {answers.documentSource === 'original' && !answers.pickupService && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-red-900 mb-2">
-                {t('orderFlow.step10.shippingAddressTitle')}
-              </h3>
-              <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
-                <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
-                <div className="text-gray-700">Att: Dokumenthantering</div>
-                <div className="text-gray-700">Kungsgatan 12</div>
-                <div className="text-gray-700">111 43 Stockholm</div>
-                <div className="text-gray-700">Sverige</div>
-              </div>
-            </div>
-            <div className="ml-4">
-              <button
-                onClick={() => {
-                  // Create a print-specific window with only the address
-                  const printWindow = window.open('', '_blank', 'width=600,height=400');
-                  if (printWindow) {
-                    printWindow.document.write(`
-                      <html>
-                        <head>
-                          <title>LegaliseringsTjänst AB - Leveransadress</title>
-                          <style>
-                            body {
-                              font-family: Arial, sans-serif;
-                              margin: 40px;
-                              text-align: center;
-                            }
-                            .address {
-                              border: 2px solid #dc2626;
-                              padding: 20px;
-                              border-radius: 8px;
-                              background: #fef2f2;
-                              display: inline-block;
-                              margin: 20px 0;
-                            }
-                            .company {
-                              font-weight: bold;
-                              font-size: 18px;
-                              color: #1f2937;
-                              margin-bottom: 8px;
-                            }
-                            .address-line {
-                              color: #374151;
-                              margin: 4px 0;
-                            }
-                            @media print {
-                              body { margin: 20px; }
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          <h2>Skicka dina originaldokument till denna adress:</h2>
-                          <div class="address">
-                            <div class="company">LegaliseringsTjänst AB</div>
-                            <div class="address-line">Att: Dokumenthantering</div>
-                            <div class="address-line">Kungsgatan 12</div>
-                            <div class="address-line">111 43 Stockholm</div>
-                            <div class="address-line">Sverige</div>
-                          </div>
-                        </body>
-                      </html>
-                    `);
-                    printWindow.document.close();
-                    printWindow.focus();
-                    setTimeout(() => {
-                      printWindow.print();
-                      printWindow.close();
-                    }, 250);
-                  }
-                }}
-                className="flex items-center justify-center w-12 h-12 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200"
-                title="Skriv ut adress"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
       {answers.documentSource === 'upload' ? (
         <div className="space-y-4">
           {/* File Upload Section - Moved to top */}
@@ -2106,10 +2015,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               <span className="text-2xl mr-3">📎</span>
               <div>
                 <div className="font-medium text-green-900">
-                  {t('orderFlow.step9.uploadTitle', { quantity: answers.quantity })}
+                  Upload {answers.quantity} documents
                 </div>
                 <div className="text-sm text-green-700">
-                  {t('orderFlow.step9.uploadNote')}
+                  Upload documents in PDF, JPG, PNG format. Files must be clear and readable.
                 </div>
               </div>
             </div>
@@ -2141,7 +2050,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   >
                     <span className="text-4xl mb-2">📄</span>
                     <span className="text-lg font-medium text-gray-900 mb-1">
-                      {t('orderFlow.step9.documentLabel', { number: index + 1 })}
+                      Document {index + 1}
                     </span>
                     {answers.uploadedFiles[index] ? (
                       <span className="text-sm text-green-600 font-medium">
@@ -2149,7 +2058,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                       </span>
                     ) : (
                       <span className="text-sm text-gray-600">
-                        {t('orderFlow.step9.chooseFile')}
+                        Choose file
                       </span>
                     )}
                   </label>
@@ -2158,7 +2067,108 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             ))}
           </div>
 
+          {/* Customer Information Form */}
+          <div className="mt-8 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Kunduppgifter</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('orderFlow.step10.firstName')} {t('orderFlow.step10.requiredField')}
+                </label>
+                <input
+                  type="text"
+                  value={answers.customerInfo.firstName}
+                  onChange={(e) => setAnswers(prev => ({
+                    ...prev,
+                    customerInfo: { ...prev.customerInfo, firstName: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder={t('orderFlow.step10.firstNamePlaceholder')}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('orderFlow.step10.lastName')} {t('orderFlow.step10.requiredField')}
+                </label>
+                <input
+                  type="text"
+                  value={answers.customerInfo.lastName}
+                  onChange={(e) => setAnswers(prev => ({
+                    ...prev,
+                    customerInfo: { ...prev.customerInfo, lastName: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder={t('orderFlow.step10.lastNamePlaceholder')}
+                />
+              </div>
+            </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.step10.email')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <input
+                type="email"
+                value={answers.customerInfo.email}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  customerInfo: { ...prev.customerInfo, email: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder={t('orderFlow.step10.emailPlaceholder')}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.step10.phone')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <input
+                type="tel"
+                value={answers.customerInfo.phone}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  customerInfo: { ...prev.customerInfo, phone: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder={t('orderFlow.step10.phonePlaceholder')}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.step10.invoiceReference')}
+              </label>
+              <input
+                type="text"
+                value={answers.invoiceReference}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  invoiceReference: e.target.value
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder={t('orderFlow.step10.invoiceReferencePlaceholder')}
+              />
+              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.invoiceReferenceNote')}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.step10.additionalNotes')}
+              </label>
+              <textarea
+                value={answers.additionalNotes}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  additionalNotes: e.target.value
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder={t('orderFlow.step10.additionalNotesPlaceholder')}
+                rows={3}
+              />
+              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.additionalNotesNote')}</p>
+            </div>
+          </div>
 
           {/* reCAPTCHA */}
           <div className="pt-4">
@@ -2357,7 +2367,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   // Send email notification (save to Firestore for external processing, same as contact form)
                   try {
                     const emailData = {
-                      name: 'Order Notification',
+                      name: `Ny beställning - Order #${orderId}`,
                       email: 'noreply@legaliseringstjanst.se',
                       phone: '',
                       subject: `Ny beställning mottagen - Order #${orderId}`,
@@ -2468,11 +2478,11 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   }, 10000); // 10 seconds cooldown
                 }
               }}
-              disabled={isSubmitting || submissionInProgressRef.current || isInCooldown || answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file)}
+              disabled={isSubmitting || submissionInProgressRef.current || isInCooldown || answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file) || !answers.customerInfo.firstName || !answers.customerInfo.lastName || !answers.customerInfo.email || !answers.customerInfo.phone}
               className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
-                  : answers.uploadedFiles.length === answers.quantity && answers.uploadedFiles.every(file => file)
+                  : answers.uploadedFiles.length === answers.quantity && answers.uploadedFiles.every(file => file) && answers.customerInfo.firstName && answers.customerInfo.lastName && answers.customerInfo.email && answers.customerInfo.phone
                   ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
@@ -2501,103 +2511,192 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Address Display for Original Documents */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-900 mb-2">
+                  {t('orderFlow.step10.shippingAddressTitle')}
+                </h3>
+                <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
+                  <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
+                  <div className="text-gray-700">Att: Dokumenthantering</div>
+                  <div className="text-gray-700">Kungsgatan 12</div>
+                  <div className="text-gray-700">111 43 Stockholm</div>
+                  <div className="text-gray-700">Sverige</div>
+                </div>
+              </div>
+              <div className="ml-4">
+                <button
+                  onClick={() => {
+                    // Create a print-specific window with only the address
+                    const printWindow = window.open('', '_blank', 'width=600,height=400');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>LegaliseringsTjänst AB - Leveransadress</title>
+                            <style>
+                              body {
+                                font-family: Arial, sans-serif;
+                                margin: 40px;
+                                text-align: center;
+                              }
+                              .address {
+                                border: 2px solid #dc2626;
+                                padding: 20px;
+                                border-radius: 8px;
+                                background: #fef2f2;
+                                display: inline-block;
+                                margin: 20px 0;
+                              }
+                              .company {
+                                font-weight: bold;
+                                font-size: 18px;
+                                color: #1f2937;
+                                margin-bottom: 8px;
+                              }
+                              .address-line {
+                                color: #374151;
+                                margin: 4px 0;
+                              }
+                              @media print {
+                                body { margin: 20px; }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <h2>Skicka dina originaldokument till denna adress:</h2>
+                            <div class="address">
+                              <div class="company">LegaliseringsTjänst AB</div>
+                              <div class="address-line">Att: Dokumenthantering</div>
+                              <div class="address-line">Kungsgatan 12</div>
+                              <div class="address-line">111 43 Stockholm</div>
+                              <div class="address-line">Sverige</div>
+                            </div>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      setTimeout(() => {
+                        printWindow.print();
+                        printWindow.close();
+                      }, 250);
+                    }
+                  }}
+                  className="flex items-center justify-center w-12 h-12 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200"
+                  title="Skriv ut adress"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Information Form */}
+          <div className="mt-8 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Kunduppgifter</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('orderFlow.step10.firstName')} {t('orderFlow.step10.requiredField')}
+                </label>
+                <input
+                  type="text"
+                  value={answers.customerInfo.firstName}
+                  onChange={(e) => setAnswers(prev => ({
+                    ...prev,
+                    customerInfo: { ...prev.customerInfo, firstName: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder={t('orderFlow.step10.firstNamePlaceholder')}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('orderFlow.step10.lastName')} {t('orderFlow.step10.requiredField')}
+                </label>
+                <input
+                  type="text"
+                  value={answers.customerInfo.lastName}
+                  onChange={(e) => setAnswers(prev => ({
+                    ...prev,
+                    customerInfo: { ...prev.customerInfo, lastName: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder={t('orderFlow.step10.lastNamePlaceholder')}
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.firstName')} {t('orderFlow.step10.requiredField')}
+                {t('orderFlow.step10.email')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <input
+                type="email"
+                value={answers.customerInfo.email}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  customerInfo: { ...prev.customerInfo, email: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder={t('orderFlow.step10.emailPlaceholder')}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.step10.phone')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <input
+                type="tel"
+                value={answers.customerInfo.phone}
+                onChange={(e) => setAnswers(prev => ({
+                  ...prev,
+                  customerInfo: { ...prev.customerInfo, phone: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder={t('orderFlow.step10.phonePlaceholder')}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.step10.invoiceReference')}
               </label>
               <input
                 type="text"
-                value={answers.customerInfo.firstName}
+                value={answers.invoiceReference}
                 onChange={(e) => setAnswers(prev => ({
                   ...prev,
-                  customerInfo: { ...prev.customerInfo, firstName: e.target.value }
+                  invoiceReference: e.target.value
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.firstNamePlaceholder')}
+                placeholder={t('orderFlow.step10.invoiceReferencePlaceholder')}
               />
+              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.invoiceReferenceNote')}</p>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.lastName')} {t('orderFlow.step10.requiredField')}
+                {t('orderFlow.step10.additionalNotes')}
               </label>
-              <input
-                type="text"
-                value={answers.customerInfo.lastName}
+              <textarea
+                value={answers.additionalNotes}
                 onChange={(e) => setAnswers(prev => ({
                   ...prev,
-                  customerInfo: { ...prev.customerInfo, lastName: e.target.value }
+                  additionalNotes: e.target.value
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.lastNamePlaceholder')}
+                placeholder={t('orderFlow.step10.additionalNotesPlaceholder')}
+                rows={3}
               />
+              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.additionalNotesNote')}</p>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step10.email')} {t('orderFlow.step10.requiredField')}
-            </label>
-            <input
-              type="email"
-              value={answers.customerInfo.email}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                customerInfo: { ...prev.customerInfo, email: e.target.value }
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step10.emailPlaceholder')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step10.phone')} {t('orderFlow.step10.requiredField')}
-            </label>
-            <input
-              type="tel"
-              value={answers.customerInfo.phone}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                customerInfo: { ...prev.customerInfo, phone: e.target.value }
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step10.phonePlaceholder')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step10.invoiceReference')}
-            </label>
-            <input
-              type="text"
-              value={answers.invoiceReference}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                invoiceReference: e.target.value
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step10.invoiceReferencePlaceholder')}
-            />
-            <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.invoiceReferenceNote')}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step10.additionalNotes')}
-            </label>
-            <textarea
-              value={answers.additionalNotes}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                additionalNotes: e.target.value
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step10.additionalNotesPlaceholder')}
-              rows={3}
-            />
-            <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.additionalNotesNote')}</p>
           </div>
 
           {/* reCAPTCHA */}
