@@ -10,6 +10,7 @@ import { getPricingRule } from '@/services/mockPricingService';
 import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 interface TestOrderPageProps {}
 
@@ -52,6 +53,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const submissionInProgressRef = useRef(false);
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   // Hague Convention countries (apostille available)
   const hagueConventionCountries = [
@@ -1883,20 +1885,20 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       {/* Final Order Summary */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
         <h3 className="text-lg font-semibold text-green-900 mb-4">
-          {t('orderFlow.step9.summaryTitle')}
+          {t('orderFlow.step10.summaryTitle')}
         </h3>
 
         <div className="space-y-3">
           {/* Country and Document Type */}
           <div className="flex justify-between items-center py-2 border-b border-green-200">
-            <span className="text-gray-700">{t('orderFlow.step9.country')}:</span>
+            <span className="text-gray-700">{t('orderFlow.step10.country')}:</span>
             <span className="font-medium text-gray-900">
               {allCountries.find(c => c.code === answers.country)?.name} {allCountries.find(c => c.code === answers.country)?.flag}
             </span>
           </div>
 
           <div className="flex justify-between items-center py-2 border-b border-green-200">
-            <span className="text-gray-700">{t('orderFlow.step9.documentType')}:</span>
+            <span className="text-gray-700">{t('orderFlow.step10.documentType')}:</span>
             <span className="font-medium text-gray-900">
               {answers.documentType === 'birthCertificate' ? t('orderFlow.step2.birthCertificate') :
                answers.documentType === 'marriageCertificate' ? t('orderFlow.step2.marriageCertificate') :
@@ -1907,13 +1909,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           </div>
 
           <div className="flex justify-between items-center py-2 border-b border-green-200">
-            <span className="text-gray-700">{t('orderFlow.step9.quantity')}:</span>
+            <span className="text-gray-700">{t('orderFlow.step10.quantity')}:</span>
             <span className="font-medium text-gray-900">{answers.quantity} st</span>
           </div>
 
           {/* Selected Services */}
           <div className="py-2">
-            <span className="text-gray-700 font-medium">{t('orderFlow.step9.services')}:</span>
+            <span className="text-gray-700 font-medium">{t('orderFlow.step10.services')}:</span>
             <div className="mt-2 space-y-1">
               {answers.services.map((serviceId) => {
                 const service = availableServices.find(s => s.id === serviceId);
@@ -1930,28 +1932,28 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           {/* Additional Services */}
           {answers.expedited && (
             <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step9.expedited')}:</span>
+              <span className="text-gray-700">{t('orderFlow.step10.expedited')}:</span>
               <span className="font-medium text-gray-900">500 kr</span>
             </div>
           )}
 
           {answers.pickupService && (
             <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step9.pickup')}:</span>
+              <span className="text-gray-700">{t('orderFlow.step10.pickup')}:</span>
               <span className="font-medium text-gray-900">Från 450 kr</span>
             </div>
           )}
 
           {answers.scannedCopies && (
             <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step9.scannedCopies', { quantity: answers.quantity })}:</span>
+              <span className="text-gray-700">{t('orderFlow.step10.scannedCopies', { quantity: answers.quantity })}:</span>
               <span className="font-medium text-gray-900">{200 * answers.quantity} kr</span>
             </div>
           )}
 
           {answers.returnService && (
             <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step9.returnShipping')}:</span>
+              <span className="text-gray-700">{t('orderFlow.step10.returnShipping')}:</span>
               <span className="font-medium text-gray-900">
                 {(() => {
                   const returnService = returnServices.find(s => s.id === answers.returnService);
@@ -1967,7 +1969,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
           {/* Total Price */}
           <div className="flex justify-between items-center py-3 border-t-2 border-green-300 bg-green-100 -mx-6 px-6 rounded-b-lg">
-            <span className="text-lg font-semibold text-green-900">{t('orderFlow.step9.total')}:</span>
+            <span className="text-lg font-semibold text-green-900">{t('orderFlow.step10.total')}:</span>
             <span className="text-xl font-bold text-green-900">
               {(() => {
                 // Calculate total price
@@ -2014,7 +2016,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-red-900 mb-2">
-                {t('orderFlow.step9.shippingAddressTitle')}
+                {t('orderFlow.step10.shippingAddressTitle')}
               </h3>
               <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
                 <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
@@ -2158,6 +2160,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
 
 
+          {/* reCAPTCHA */}
+          <div className="pt-4">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+            />
+          </div>
+
           <div className="mt-8 flex justify-between">
             <button
               onClick={() => setCurrentQuestion(5)}
@@ -2168,6 +2178,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             <button
               ref={submitButtonRef}
               onClick={async (event) => {
+                // Check reCAPTCHA
+                const recaptchaToken = recaptchaRef.current?.getValue();
+                if (!recaptchaToken) {
+                  toast.error('Vänligen verifiera att du inte är en robot genom att slutföra reCAPTCHA.');
+                  return;
+                }
+
                 // Prevent multiple submissions - check ref immediately (more reliable than state)
                 if (submissionInProgressRef.current || isSubmitting || isInCooldown) {
                   console.log('🚫 Submission already in progress or in cooldown, ignoring click');
@@ -2327,7 +2344,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                     totalPrice: pricingResult.totalPrice,
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
-                    additionalNotes: answers.additionalNotes
+                    additionalNotes: answers.additionalNotes,
+                    recaptchaToken
                   };
                   console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 
@@ -2378,6 +2396,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     console.error('❌ Failed to queue email notification:', emailError);
                     // Don't block the order flow if email notification fails
                   }
+
+                  // Reset reCAPTCHA
+                  recaptchaRef.current?.reset();
 
                   // Show beautiful success toast
                   toast.success(
@@ -2483,7 +2504,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step9.firstName')} {t('orderFlow.step9.requiredField')}
+                {t('orderFlow.step10.firstName')} {t('orderFlow.step10.requiredField')}
               </label>
               <input
                 type="text"
@@ -2493,12 +2514,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   customerInfo: { ...prev.customerInfo, firstName: e.target.value }
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step9.firstNamePlaceholder')}
+                placeholder={t('orderFlow.step10.firstNamePlaceholder')}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step9.lastName')} {t('orderFlow.step9.requiredField')}
+                {t('orderFlow.step10.lastName')} {t('orderFlow.step10.requiredField')}
               </label>
               <input
                 type="text"
@@ -2508,14 +2529,14 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   customerInfo: { ...prev.customerInfo, lastName: e.target.value }
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step9.lastNamePlaceholder')}
+                placeholder={t('orderFlow.step10.lastNamePlaceholder')}
               />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step9.email')} {t('orderFlow.step9.requiredField')}
+              {t('orderFlow.step10.email')} {t('orderFlow.step10.requiredField')}
             </label>
             <input
               type="email"
@@ -2525,13 +2546,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 customerInfo: { ...prev.customerInfo, email: e.target.value }
               }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step9.emailPlaceholder')}
+              placeholder={t('orderFlow.step10.emailPlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step9.phone')} {t('orderFlow.step9.requiredField')}
+              {t('orderFlow.step10.phone')} {t('orderFlow.step10.requiredField')}
             </label>
             <input
               type="tel"
@@ -2541,13 +2562,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 customerInfo: { ...prev.customerInfo, phone: e.target.value }
               }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step9.phonePlaceholder')}
+              placeholder={t('orderFlow.step10.phonePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step9.invoiceReference')}
+              {t('orderFlow.step10.invoiceReference')}
             </label>
             <input
               type="text"
@@ -2557,14 +2578,14 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 invoiceReference: e.target.value
               }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step9.invoiceReferencePlaceholder')}
+              placeholder={t('orderFlow.step10.invoiceReferencePlaceholder')}
             />
-            <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step9.invoiceReferenceNote')}</p>
+            <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.invoiceReferenceNote')}</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.step9.additionalNotes')}
+              {t('orderFlow.step10.additionalNotes')}
             </label>
             <textarea
               value={answers.additionalNotes}
@@ -2573,10 +2594,18 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 additionalNotes: e.target.value
               }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder={t('orderFlow.step9.additionalNotesPlaceholder')}
+              placeholder={t('orderFlow.step10.additionalNotesPlaceholder')}
               rows={3}
             />
-            <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step9.additionalNotesNote')}</p>
+            <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.additionalNotesNote')}</p>
+          </div>
+
+          {/* reCAPTCHA */}
+          <div className="pt-4">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+            />
           </div>
 
           <div className="mt-8 flex justify-between">
@@ -2589,6 +2618,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
             <button
               ref={submitButtonRef}
               onClick={async (event) => {
+                // Check reCAPTCHA
+                const recaptchaToken = recaptchaRef.current?.getValue();
+                if (!recaptchaToken) {
+                  toast.error('Vänligen verifiera att du inte är en robot genom att slutföra reCAPTCHA.');
+                  return;
+                }
+
                 // Prevent multiple submissions - check ref immediately (more reliable than state)
                 if (submissionInProgressRef.current || isSubmitting || isInCooldown) {
                   console.log('🚫 Submission already in progress or in cooldown, ignoring click');
