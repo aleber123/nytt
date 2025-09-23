@@ -6,8 +6,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { createOrderWithFiles } from '@/services/hybridOrderService';
-import { getCountryPricingRules, calculateOrderPrice, getAllActivePricingRules } from '@/firebase/pricingService';
-import { getPricingRule } from '@/services/mockPricingService';
+import { getCountryPricingRules, getAllActivePricingRules } from '@/firebase/pricingService';
 import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -2143,10 +2142,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             <span className="text-lg font-semibold text-green-900">{t('orderFlow.step10.total')}:</span>
             <span className="text-xl font-bold text-green-900">
               {(() => {
-                // Calculate total price
+                // Calculate total price using same logic as order submission
                 let total = 0;
 
-                // Add service prices
+                // Add service prices using Firebase pricing (same as order submission)
                 answers.services.forEach(serviceId => {
                   const service = availableServices.find(s => s.id === serviceId);
                   if (service && service.price) {
@@ -2158,7 +2157,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   }
                 });
 
-                // Add additional fees
+                // Add additional fees (same as order submission)
                 if (answers.expedited) total += 500;
                 if (answers.pickupService) total += 450; // Updated pickup service base price
                 if (answers.scannedCopies) total += 200 * answers.quantity;
@@ -2423,142 +2422,82 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 try {
                   console.log('📤 Submitting final order...');
 
-                  // Calculate pricing using centralized pricing service
-                  let pricingResult;
-                  try {
-                    pricingResult = await calculateOrderPrice({
-                      country: answers.country,
-                      services: answers.services,
-                      quantity: answers.quantity,
-                      expedited: answers.expedited,
-                      deliveryMethod: answers.documentSource === 'original' ? 'post' : 'digital',
-                      returnService: answers.returnService,
-                      returnServices: returnServices,
-                      scannedCopies: answers.scannedCopies,
-                      pickupService: answers.pickupService
-                    });
-                    console.log('✅ Used centralized pricing for order calculation');
-                  } catch (pricingError) {
-                    console.log('⚠️ Centralized pricing failed, using fallback calculation:', pricingError instanceof Error ? pricingError.message : String(pricingError));
+                  // Calculate pricing using availableServices data for consistent pricing (same as order summary)
+                  let totalPrice = 0;
+                  const breakdown: any[] = [];
 
-                    // Simplified fallback calculation using consistent pricing
-                    let totalPrice = 0;
-                    const breakdown: any[] = [];
-
-                    for (const serviceId of answers.services) {
-                      try {
-                        // Try to get pricing rule for the specific country first
-                        let pricingRule = await getPricingRule(answers.country, serviceId);
-
-                        // If not found, try global pricing
-                        if (!pricingRule) {
-                          pricingRule = await getPricingRule('GLOBAL', serviceId);
-                        }
-
-                        if (pricingRule) {
-                          const servicePrice = pricingRule.basePrice * answers.quantity;
-                          totalPrice += servicePrice;
-                          breakdown.push({
-                            service: serviceId,
-                            basePrice: servicePrice,
-                            quantity: answers.quantity,
-                            unitPrice: pricingRule.basePrice
-                          });
-                        } else {
-                          // Use consistent default prices
-                          const defaultPrices: { [key: string]: number } = {
-                            'chamber': 2400,
-                            'notarization': 1300,
-                            'translation': 1450,
-                            'ud': 1750,
-                            'embassy': 1295,
-                            'apostille': 895
-                          };
-                          const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
-                          totalPrice += servicePrice;
-                          breakdown.push({
-                            service: serviceId,
-                            basePrice: servicePrice,
-                            quantity: answers.quantity,
-                            unitPrice: defaultPrices[serviceId] || 1000
-                          });
-                        }
-                      } catch (serviceError) {
-                        console.log(`Error getting price for ${serviceId}:`, serviceError);
-                        // Use consistent default prices
-                        const defaultPrices: { [key: string]: number } = {
-                          'chamber': 2400,
-                          'notarization': 1300,
-                          'translation': 1450,
-                          'ud': 1750,
-                          'embassy': 1295,
-                          'apostille': 895
-                        };
-                        const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
+                  for (const serviceId of answers.services) {
+                    const service = availableServices.find(s => s.id === serviceId);
+                    if (service && service.price) {
+                      // Extract numeric value from price string (same as order summary)
+                      const priceMatch = service.price.match(/(\d+)/);
+                      if (priceMatch) {
+                        const unitPrice = parseInt(priceMatch[1]);
+                        const servicePrice = unitPrice * answers.quantity;
                         totalPrice += servicePrice;
                         breakdown.push({
                           service: serviceId,
                           basePrice: servicePrice,
                           quantity: answers.quantity,
-                          unitPrice: defaultPrices[serviceId] || 1000
+                          unitPrice: unitPrice
                         });
                       }
                     }
-
-                    // Add additional fees consistently
-                    let additionalFees = 0;
-
-                    // Add scanned copies cost (200 kr per document)
-                    if (answers.scannedCopies) {
-                      additionalFees += 200 * answers.quantity;
-                      breakdown.push({
-                        service: 'scanned_copies',
-                        fee: 200 * answers.quantity,
-                        description: 'Scanned copies'
-                      });
-                    }
-
-                    // Add return service cost
-                    if (answers.returnService) {
-                      const returnService = returnServices.find(s => s.id === answers.returnService);
-                      if (returnService && returnService.price) {
-                        const priceMatch = returnService.price.match(/(\d+)/);
-                        if (priceMatch) {
-                          const returnCost = parseInt(priceMatch[1]);
-                          additionalFees += returnCost;
-                          breakdown.push({
-                            service: 'return_service',
-                            fee: returnCost,
-                            description: returnService.name
-                          });
-                        }
-                      }
-                    }
-
-                    // Add premium delivery cost
-                    if (answers.premiumDelivery) {
-                      const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
-                      if (premiumService && premiumService.price) {
-                        const priceMatch = premiumService.price.match(/(\d+)/);
-                        if (priceMatch) {
-                          const premiumCost = parseInt(priceMatch[1]);
-                          additionalFees += premiumCost;
-                          breakdown.push({
-                            service: 'premium_delivery',
-                            fee: premiumCost,
-                            description: premiumService.name
-                          });
-                        }
-                      }
-                    }
-
-                    pricingResult = {
-                      basePrice: totalPrice,
-                      additionalFees,
-                      totalPrice: totalPrice + additionalFees,
-                      breakdown
-                    };
                   }
+
+                  // Add additional fees consistently
+                  let additionalFees = 0;
+
+                  // Add scanned copies cost (200 kr per document)
+                  if (answers.scannedCopies) {
+                    additionalFees += 200 * answers.quantity;
+                    breakdown.push({
+                      service: 'scanned_copies',
+                      fee: 200 * answers.quantity,
+                      description: 'Scanned copies'
+                    });
+                  }
+
+                  // Add return service cost
+                  if (answers.returnService) {
+                    const returnService = returnServices.find(s => s.id === answers.returnService);
+                    if (returnService && returnService.price) {
+                      const priceMatch = returnService.price.match(/(\d+)/);
+                      if (priceMatch) {
+                        const returnCost = parseInt(priceMatch[1]);
+                        additionalFees += returnCost;
+                        breakdown.push({
+                          service: 'return_service',
+                          fee: returnCost,
+                          description: returnService.name
+                        });
+                      }
+                    }
+                  }
+
+                  // Add premium delivery cost
+                  if (answers.premiumDelivery) {
+                    const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
+                    if (premiumService && premiumService.price) {
+                      const priceMatch = premiumService.price.match(/(\d+)/);
+                      if (priceMatch) {
+                        const premiumCost = parseInt(priceMatch[1]);
+                        additionalFees += premiumCost;
+                        breakdown.push({
+                          service: 'premium_delivery',
+                          fee: premiumCost,
+                          description: premiumService.name
+                        });
+                      }
+                    }
+                  }
+
+                  const pricingResult = {
+                    basePrice: totalPrice,
+                    additionalFees,
+                    totalPrice: totalPrice + additionalFees,
+                    breakdown
+                  };
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
@@ -3000,125 +2939,65 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 try {
                   console.log('📤 Submitting final order...');
 
-                  // Calculate pricing using centralized pricing service
-                  let pricingResult;
-                  try {
-                    pricingResult = await calculateOrderPrice({
-                      country: answers.country,
-                      services: answers.services,
-                      quantity: answers.quantity,
-                      expedited: answers.expedited,
-                      deliveryMethod: answers.documentSource === 'original' ? 'post' : 'digital',
-                      returnService: answers.returnService,
-                      returnServices: returnServices,
-                      scannedCopies: answers.scannedCopies,
-                      pickupService: answers.pickupService
-                    });
-                    console.log('✅ Used centralized pricing for order calculation');
-                  } catch (pricingError) {
-                    console.log('⚠️ Centralized pricing failed, using fallback calculation:', pricingError instanceof Error ? pricingError.message : String(pricingError));
+                  // Calculate pricing using availableServices data for consistent pricing (same as order summary)
+                  let totalPrice = 0;
+                  const breakdown: any[] = [];
 
-                    // Simplified fallback calculation using consistent pricing
-                    let totalPrice = 0;
-                    const breakdown: any[] = [];
-
-                    for (const serviceId of answers.services) {
-                      try {
-                        // Try to get pricing rule for the specific country first
-                        let pricingRule = await getPricingRule(answers.country, serviceId);
-
-                        // If not found, try global pricing
-                        if (!pricingRule) {
-                          pricingRule = await getPricingRule('GLOBAL', serviceId);
-                        }
-
-                        if (pricingRule) {
-                          const servicePrice = pricingRule.basePrice * answers.quantity;
-                          totalPrice += servicePrice;
-                          breakdown.push({
-                            service: serviceId,
-                            basePrice: servicePrice,
-                            quantity: answers.quantity,
-                            unitPrice: pricingRule.basePrice
-                          });
-                        } else {
-                          // Use consistent default prices
-                          const defaultPrices: { [key: string]: number } = {
-                            'chamber': 2400,
-                            'notarization': 1300,
-                            'translation': 1450,
-                            'ud': 1750,
-                            'embassy': 1295,
-                            'apostille': 895
-                          };
-                          const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
-                          totalPrice += servicePrice;
-                          breakdown.push({
-                            service: serviceId,
-                            basePrice: servicePrice,
-                            quantity: answers.quantity,
-                            unitPrice: defaultPrices[serviceId] || 1000
-                          });
-                        }
-                      } catch (serviceError) {
-                        console.log(`Error getting price for ${serviceId}:`, serviceError);
-                        // Use consistent default prices
-                        const defaultPrices: { [key: string]: number } = {
-                          'chamber': 2400,
-                          'notarization': 1300,
-                          'translation': 1450,
-                          'ud': 1750,
-                          'embassy': 1295,
-                          'apostille': 895
-                        };
-                        const servicePrice = (defaultPrices[serviceId] || 1000) * answers.quantity;
+                  for (const serviceId of answers.services) {
+                    const service = availableServices.find(s => s.id === serviceId);
+                    if (service && service.price) {
+                      // Extract numeric value from price string (same as order summary)
+                      const priceMatch = service.price.match(/(\d+)/);
+                      if (priceMatch) {
+                        const unitPrice = parseInt(priceMatch[1]);
+                        const servicePrice = unitPrice * answers.quantity;
                         totalPrice += servicePrice;
                         breakdown.push({
                           service: serviceId,
                           basePrice: servicePrice,
                           quantity: answers.quantity,
-                          unitPrice: defaultPrices[serviceId] || 1000
+                          unitPrice: unitPrice
                         });
                       }
                     }
+                  }
 
-                    // Add additional fees consistently
-                    let additionalFees = 0;
+                  // Add additional fees consistently
+                  let additionalFees = 0;
 
-                    // Add scanned copies cost (200 kr per document)
-                    if (answers.scannedCopies) {
-                      additionalFees += 200 * answers.quantity;
-                      breakdown.push({
-                        service: 'scanned_copies',
-                        fee: 200 * answers.quantity,
-                        description: 'Scanned copies'
-                      });
-                    }
+                  // Add scanned copies cost (200 kr per document)
+                  if (answers.scannedCopies) {
+                    additionalFees += 200 * answers.quantity;
+                    breakdown.push({
+                      service: 'scanned_copies',
+                      fee: 200 * answers.quantity,
+                      description: 'Scanned copies'
+                    });
+                  }
 
-                    // Add return service cost
-                    if (answers.returnService) {
-                      const returnService = returnServices.find(s => s.id === answers.returnService);
-                      if (returnService && returnService.price) {
-                        const priceMatch = returnService.price.match(/(\d+)/);
-                        if (priceMatch) {
-                          const returnCost = parseInt(priceMatch[1]);
-                          additionalFees += returnCost;
-                          breakdown.push({
-                            service: 'return_service',
-                            fee: returnCost,
-                            description: returnService.name
-                          });
-                        }
+                  // Add return service cost
+                  if (answers.returnService) {
+                    const returnService = returnServices.find(s => s.id === answers.returnService);
+                    if (returnService && returnService.price) {
+                      const priceMatch = returnService.price.match(/(\d+)/);
+                      if (priceMatch) {
+                        const returnCost = parseInt(priceMatch[1]);
+                        additionalFees += returnCost;
+                        breakdown.push({
+                          service: 'return_service',
+                          fee: returnCost,
+                          description: returnService.name
+                        });
                       }
                     }
-
-                    pricingResult = {
-                      basePrice: totalPrice,
-                      additionalFees,
-                      totalPrice: totalPrice + additionalFees,
-                      breakdown
-                    };
                   }
+
+                  const pricingResult = {
+                    basePrice: totalPrice,
+                    additionalFees,
+                    totalPrice: totalPrice + additionalFees,
+                    breakdown
+                  };
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);

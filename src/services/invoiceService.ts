@@ -133,66 +133,175 @@ function calculateVAT(amount: number, vatRate: number = VAT_RATES.STANDARD): { v
   return { vatAmount, totalWithVAT };
 }
 
-// Create line items from order services
+// Create line items from order services using consistent pricing logic
 async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]> {
   const lineItems: InvoiceLineItem[] = [];
-  const { calculateOrderPrice } = await import('@/firebase/pricingService');
 
   try {
-    // Calculate pricing breakdown
-    const pricingResult = await calculateOrderPrice({
-      country: order.country,
-      services: order.services,
-      quantity: order.quantity,
-      expedited: order.expedited,
-      deliveryMethod: order.deliveryMethod,
-      returnService: order.returnService,
-      returnServices: [], // This would need to be passed or fetched
-      scannedCopies: order.scannedCopies,
-      pickupService: order.pickupService
-    });
+    // Use consistent pricing logic matching order summary and order submission
+    for (const serviceId of order.services) {
+      try {
+        // Try to get pricing rule from Firebase (same logic as order submission)
+        const { getPricingRule } = await import('@/firebase/pricingService');
+        let pricingRule = await getPricingRule(order.country, serviceId);
 
-    // Create line items from pricing breakdown
-    if (pricingResult.breakdown) {
-      for (const item of pricingResult.breakdown) {
-        // Embassy services are VAT-exempt (0% VAT)
-        const isEmbassyService = item.service === 'ambassad';
-        const vatRate = isEmbassyService ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
-        const { vatAmount, totalWithVAT } = calculateVAT(item.fee || item.basePrice || 0, vatRate);
+        // If not found, try SE standard pricing (same as loadAvailableServices)
+        if (!pricingRule) {
+          pricingRule = await getPricingRule('SE', serviceId);
+        }
+
+        if (pricingRule) {
+          const isEmbassyService = serviceId === 'embassy' || serviceId === 'ambassad';
+
+          if (isEmbassyService && pricingRule.officialFee && pricingRule.serviceFee) {
+            // Official fee line item (0% VAT)
+            const officialFeeTotal = pricingRule.officialFee * order.quantity;
+            const { vatAmount: officialVatAmount, totalWithVAT: officialTotalWithVAT } = calculateVAT(officialFeeTotal, VAT_RATES.ZERO);
+
+            lineItems.push({
+              id: `${serviceId}_official_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              description: `${getServiceDescription(serviceId, order)} - Officiell avgift`,
+              quantity: order.quantity,
+              unitPrice: pricingRule.officialFee,
+              totalPrice: officialTotalWithVAT,
+              vatRate: VAT_RATES.ZERO,
+              vatAmount: officialVatAmount,
+              serviceType: serviceId,
+              officialFee: pricingRule.officialFee
+            });
+
+            // Service fee line item (25% VAT)
+            const serviceFeeTotal = pricingRule.serviceFee * order.quantity;
+            const { vatAmount: serviceVatAmount, totalWithVAT: serviceTotalWithVAT } = calculateVAT(serviceFeeTotal, VAT_RATES.STANDARD);
+
+            lineItems.push({
+              id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              description: `${getServiceDescription(serviceId, order)} - Serviceavgift`,
+              quantity: order.quantity,
+              unitPrice: pricingRule.serviceFee,
+              totalPrice: serviceTotalWithVAT,
+              vatRate: VAT_RATES.STANDARD,
+              vatAmount: serviceVatAmount,
+              serviceType: serviceId,
+              serviceFee: pricingRule.serviceFee
+            });
+          } else if (pricingRule.officialFee && pricingRule.serviceFee) {
+            // For other services with separate fees
+            // Official fee line item (0% VAT)
+            const officialFeeTotal = pricingRule.officialFee * order.quantity;
+            const { vatAmount: officialVatAmount, totalWithVAT: officialTotalWithVAT } = calculateVAT(officialFeeTotal, VAT_RATES.ZERO);
+
+            lineItems.push({
+              id: `${serviceId}_official_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              description: `${getServiceDescription(serviceId, order)} - Officiell avgift`,
+              quantity: order.quantity,
+              unitPrice: pricingRule.officialFee,
+              totalPrice: officialTotalWithVAT,
+              vatRate: VAT_RATES.ZERO,
+              vatAmount: officialVatAmount,
+              serviceType: serviceId,
+              officialFee: pricingRule.officialFee
+            });
+
+            // Service fee line item (25% VAT)
+            const serviceFeeTotal = pricingRule.serviceFee * order.quantity;
+            const { vatAmount: serviceVatAmount, totalWithVAT: serviceTotalWithVAT } = calculateVAT(serviceFeeTotal, VAT_RATES.STANDARD);
+
+            lineItems.push({
+              id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              description: `${getServiceDescription(serviceId, order)} - Serviceavgift`,
+              quantity: order.quantity,
+              unitPrice: pricingRule.serviceFee,
+              totalPrice: serviceTotalWithVAT,
+              vatRate: VAT_RATES.STANDARD,
+              vatAmount: serviceVatAmount,
+              serviceType: serviceId,
+              serviceFee: pricingRule.serviceFee
+            });
+          } else {
+            // Use total base price for services without separate fees
+            const servicePrice = pricingRule.basePrice;
+            const vatRate = VAT_RATES.STANDARD;
+            const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity, vatRate);
+
+            lineItems.push({
+              id: `${serviceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              description: getServiceDescription(serviceId, order),
+              quantity: order.quantity,
+              unitPrice: servicePrice,
+              totalPrice: totalWithVAT,
+              vatRate,
+              vatAmount,
+              serviceType: serviceId
+            });
+          }
+        } else {
+          // Fallback to hardcoded prices if Firebase pricing not available
+          const servicePrice = getServicePrice(serviceId);
+          const vatRate = VAT_RATES.STANDARD;
+          const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity, vatRate);
+
+          lineItems.push({
+            id: `${serviceId}_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            description: getServiceDescription(serviceId, order),
+            quantity: order.quantity,
+            unitPrice: servicePrice,
+            totalPrice: totalWithVAT,
+            vatRate,
+            vatAmount,
+            serviceType: serviceId
+          });
+        }
+      } catch (error) {
+        console.error(`Error getting pricing for service ${serviceId}:`, error);
+        // Ultimate fallback to hardcoded prices
+        const servicePrice = getServicePrice(serviceId);
+        const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity);
 
         lineItems.push({
-          id: `${item.service}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          description: getServiceDescription(item.service, order),
-          quantity: item.quantity || 1,
-          unitPrice: item.fee || item.basePrice || 0,
+          id: `${serviceId}_error_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: getServiceDescription(serviceId, order),
+          quantity: order.quantity,
+          unitPrice: servicePrice,
           totalPrice: totalWithVAT,
-          vatRate,
+          vatRate: VAT_RATES.STANDARD,
           vatAmount,
-          serviceType: item.service
+          serviceType: serviceId
         });
       }
     }
 
-    // If no breakdown available, create basic line items from services
-    if (lineItems.length === 0) {
-      for (const service of order.services) {
-        const servicePrice = getServicePrice(service);
-        // Embassy services are VAT-exempt (0% VAT)
-        const isEmbassyService = service === 'ambassad';
-        const vatRate = isEmbassyService ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
-        const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity, vatRate);
+    // Add additional services (scanned copies and pickup service)
+    if (order.scannedCopies) {
+      const scannedCopiesPrice = 200 * order.quantity; // 200 kr per document
+      const { vatAmount: scannedVatAmount, totalWithVAT: scannedTotalWithVAT } = calculateVAT(scannedCopiesPrice, VAT_RATES.STANDARD);
 
-        lineItems.push({
-          id: `${service}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          description: getServiceDescription(service, order),
-          quantity: order.quantity,
-          unitPrice: servicePrice,
-          totalPrice: totalWithVAT,
-          vatRate,
-          vatAmount,
-          serviceType: service
-        });
-      }
+      lineItems.push({
+        id: `scanned_copies_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        description: 'Skannade kopior',
+        quantity: order.quantity,
+        unitPrice: 200,
+        totalPrice: scannedTotalWithVAT,
+        vatRate: VAT_RATES.STANDARD,
+        vatAmount: scannedVatAmount,
+        serviceType: 'scanned_copies'
+      });
+    }
+
+    if (order.pickupService) {
+      const pickupPrice = 450; // Fixed pickup service price
+      const { vatAmount: pickupVatAmount, totalWithVAT: pickupTotalWithVAT } = calculateVAT(pickupPrice, VAT_RATES.STANDARD);
+
+      lineItems.push({
+        id: `pickup_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        description: 'Dokumenthämtning',
+        quantity: 1,
+        unitPrice: pickupPrice,
+        totalPrice: pickupTotalWithVAT,
+        vatRate: VAT_RATES.STANDARD,
+        vatAmount: pickupVatAmount,
+        serviceType: 'pickup_service'
+      });
     }
 
   } catch (error) {
@@ -295,31 +404,37 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
       <title>Faktura - ${invoice.invoiceNumber}</title>
       <style>
         body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
-          color: #333;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          line-height: 1.5;
+          color: #1f2937;
           margin: 0;
           padding: 20px;
-          background-color: #f8f9fa;
+          background-color: #f9fafb;
         }
         .invoice-box {
           max-width: 800px;
           margin: auto;
           padding: 30px;
           background: white;
-          border: 1px solid #dee2e6;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          border-radius: 8px;
         }
         .invoice-header {
+          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          color: white;
+          padding: 30px;
+          margin: -30px -30px 30px -30px;
+          border-radius: 8px 8px 0 0;
           display: flex;
           justify-content: space-between;
-          margin-bottom: 30px;
-          border-bottom: 2px solid #2a67aa;
-          padding-bottom: 20px;
+          align-items: center;
         }
         .invoice-header h1 {
-          color: #2a67aa;
+          color: white;
           margin: 0;
+          font-size: 28px;
+          font-weight: 700;
         }
         .company-info, .invoice-info {
           flex: 1;
@@ -337,18 +452,28 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
         table {
           width: 100%;
           border-collapse: collapse;
-          margin: 20px 0;
+          margin: 25px 0;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         th {
-          padding: 12px;
+          padding: 14px 12px;
           text-align: left;
-          background-color: #f8f9fa;
-          border-bottom: 2px solid #dee2e6;
+          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          color: white;
           font-weight: 600;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         td {
           padding: 12px;
-          border-bottom: 1px solid #dee2e6;
+          border-bottom: 1px solid #e5e7eb;
+          background-color: white;
+        }
+        tr:nth-child(even) td {
+          background-color: #f9fafb;
         }
         .text-right {
           text-align: right;
@@ -362,20 +487,30 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
           border-top: 2px solid #dee2e6;
         }
         .summary-table {
-          width: 300px;
+          width: 320px;
           margin-left: auto;
-          margin-top: 20px;
+          margin-top: 25px;
+          border: 2px solid #0ea5e9;
+          border-radius: 8px;
+          overflow: hidden;
         }
         .summary-table td {
-          padding: 8px 12px;
+          padding: 10px 15px;
+          background-color: white;
+        }
+        .summary-table .total-row {
+          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          color: white;
+          font-weight: bold;
+          font-size: 14px;
         }
         .footer {
           margin-top: 40px;
+          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          color: white;
+          padding: 25px;
           text-align: center;
-          color: #6c757d;
-          font-size: 12px;
-          border-top: 1px solid #dee2e6;
-          padding-top: 20px;
+          border-radius: 0 0 8px 8px;
         }
         .payment-info {
           background-color: #f8f9fa;
@@ -387,6 +522,26 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
           font-size: 11px;
           color: #6c757d;
           margin-top: 10px;
+        }
+        .vat-breakdown {
+          background-color: #f8f9fa;
+          padding: 15px;
+          margin: 15px 0;
+          border-radius: 6px;
+          border-left: 4px solid #0ea5e9;
+        }
+        .vat-breakdown h4 {
+          margin: 0 0 10px 0;
+          color: #1f2937;
+          font-size: 14px;
+        }
+        .vat-breakdown ul {
+          margin: 0;
+          padding-left: 20px;
+        }
+        .vat-breakdown li {
+          margin-bottom: 5px;
+          font-size: 12px;
         }
       </style>
     </head>
@@ -460,22 +615,37 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
           </tr>
         </table>
 
-        <div class="vat-info">
+        <div class="vat-breakdown">
+          <h4>Momsinformation</h4>
           <p>Momsregistreringsnummer: ${invoice.companyInfo.vatNumber}</p>
-          <p>${
-            (() => {
-              const hasZeroVat = invoice.lineItems.some(item => item.vatRate === 0);
-              const hasStandardVat = invoice.lineItems.some(item => item.vatRate > 0);
+          <ul>
+            ${
+              (() => {
+                const vatBreakdown = invoice.lineItems.reduce((acc, item) => {
+                  const rate = item.vatRate;
+                  if (!acc[rate]) {
+                    acc[rate] = { amount: 0, description: '' };
+                  }
+                  acc[rate].amount += item.vatAmount;
+                  return acc;
+                }, {} as Record<number, { amount: number; description: string }>);
 
-              if (hasZeroVat && hasStandardVat) {
-                return 'Momssats: 25% på de flesta tjänster, 0% på ambassadlegalisering';
-              } else if (hasZeroVat) {
-                return 'Momssats: 0% (ambassadlegalisering är momsfri)';
-              } else {
-                return 'Momssats: 25% på samtliga tjänster';
-              }
-            })()
-          }</p>
+                // Set descriptions based on VAT rate
+                Object.keys(vatBreakdown).forEach(rate => {
+                  const rateNum = parseFloat(rate);
+                  if (rateNum === 0) {
+                    vatBreakdown[rateNum].description = 'Ambassadlegalisering - officiella avgifter (momsfri)';
+                  } else if (rateNum === 0.25) {
+                    vatBreakdown[rateNum].description = 'Serviceavgifter och andra tjänster (25% moms)';
+                  }
+                });
+
+                return Object.entries(vatBreakdown)
+                  .map(([rate, data]) => `<li>${data.description}: ${formatCurrency(data.amount)} (${(parseFloat(rate) * 100).toFixed(0)}%)</li>`)
+                  .join('');
+              })()
+            }
+          </ul>
         </div>
 
         <div class="payment-info">
@@ -512,279 +682,345 @@ function getStatusText(status: Invoice['status']): string {
   return statusMap[status] || status;
 }
 
-// Generate PDF invoice using jsPDF
+// Generate PDF invoice using jsPDF - Professional Swedish layout with proper table handling
 export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
   try {
     console.log('Generating PDF for invoice:', invoice.invoiceNumber);
     const doc = new jsPDF();
 
-    // Colors
-    const primaryColor: [number, number, number] = [42, 103, 170]; // #2a67aa
+    // Professional Swedish invoice colors
+    const primaryColor: [number, number, number] = [42, 103, 170]; // #2a67aa (professional blue)
     const textColor: [number, number, number] = [51, 51, 51]; // #333
     const lightGray: [number, number, number] = [248, 249, 250]; // #f8f9fa
+    const borderColor: [number, number, number] = [229, 231, 235]; // #e5e7eb
 
-    // Set up fonts and colors
-    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-
-  // Helper functions
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'N/A';
-
-    try {
-      let date: Date;
-
-      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
-        // Firebase Timestamp
-        date = timestamp.toDate();
-      } else if (timestamp instanceof Date) {
-        // Already a Date object
-        date = timestamp;
-      } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
-        // String or number timestamp
-        date = new Date(timestamp);
-      } else {
-        // Try to convert from object
-        date = new Date(timestamp);
-      }
-
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
+    // Helper functions
+    const formatDate = (timestamp: any) => {
+      if (!timestamp) return 'N/A';
+      try {
+        let date: Date;
+        if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+          date = timestamp.toDate();
+        } else if (timestamp instanceof Date) {
+          date = timestamp;
+        } else {
+          date = new Date(timestamp);
+        }
+        if (isNaN(date.getTime())) return 'N/A';
+        return new Intl.DateTimeFormat('sv-SE', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric'
+        }).format(date);
+      } catch (error) {
+        console.error('Error formatting date in PDF:', error, timestamp);
         return 'N/A';
       }
+    };
 
-      return new Intl.DateTimeFormat('sv-SE', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
-      }).format(date);
-    } catch (error) {
-      console.error('Error formatting date in PDF:', error, timestamp);
-      return 'N/A';
-    }
-  };
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('sv-SE', {
+        style: 'currency',
+        currency: 'SEK',
+        minimumFractionDigits: 2
+      }).format(amount);
+    };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('sv-SE', {
-      style: 'currency',
-      currency: 'SEK',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
+    let yPosition = 20;
 
-  let yPosition = 20;
+    // Header - Professional Swedish invoice style
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 35, 'F');
 
-  // Header with company branding
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(0, 0, 210, 40, 'F');
+    // Company name and details
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(invoice.companyInfo.name, 20, 20);
 
-  // Company name
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text(invoice.companyInfo.name, 20, 25);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(invoice.companyInfo.address, 20, 26);
+    doc.text(`${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}`, 20, 30);
+    doc.text(`Org.nr: ${invoice.companyInfo.orgNumber}`, 20, 34);
 
-  // Company details
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(invoice.companyInfo.address, 20, 32);
-  doc.text(`${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}`, 20, 37);
+    // Invoice title and number - right aligned
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(invoice.status === 'credit_note' ? 'KREDITFAKTURA' : 'FAKTURA', 190, 20, { align: 'right' });
 
-  // Invoice title
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text(invoice.status === 'credit_note' ? 'KREDITFAKTURA' : 'FAKTURA', 140, 30);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
+    doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
+    doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 34, { align: 'right' });
 
-  yPosition = 60;
+    yPosition = 50;
 
-  // Invoice details box
-  doc.setFillColor(...lightGray);
-  doc.rect(120, yPosition - 5, 70, 35, 'F');
-
-  doc.setTextColor(...textColor);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-
-  doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 125, yPosition);
-  doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 125, yPosition + 7);
-  doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 125, yPosition + 14);
-  if (invoice.orderNumber) {
-    doc.text(`Ordernummer: ${invoice.orderNumber}`, 125, yPosition + 21);
-  }
-  doc.text(`Status: ${getStatusText(invoice.status)}`, 125, yPosition + 28);
-
-  yPosition += 50;
-
-  // Customer information
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Faktureras till:', 20, yPosition);
-  yPosition += 10;
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName}`, 20, yPosition);
-  yPosition += 6;
-
-  if (invoice.customerInfo.companyName) {
-    doc.text(invoice.customerInfo.companyName, 20, yPosition);
-    yPosition += 6;
-  }
-
-  doc.text(invoice.customerInfo.address, 20, yPosition);
-  yPosition += 6;
-  doc.text(`${invoice.customerInfo.postalCode} ${invoice.customerInfo.city}`, 20, yPosition);
-  yPosition += 6;
-  doc.text(invoice.customerInfo.email, 20, yPosition);
-  yPosition += 6;
-  doc.text(invoice.customerInfo.phone, 20, yPosition);
-  yPosition += 6;
-
-  if (invoice.customerInfo.orgNumber) {
-    doc.text(`Org.nr: ${invoice.customerInfo.orgNumber}`, 20, yPosition);
-    yPosition += 6;
-  }
-
-  yPosition += 20;
-
-  // Services table
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Tjänster', 20, yPosition);
-  yPosition += 15;
-
-  // Table headers
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(20, yPosition - 5, 170, 10, 'F');
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-
-  doc.text('Beskrivning', 25, yPosition + 2);
-  doc.text('Antal', 120, yPosition + 2);
-  doc.text('À-pris', 140, yPosition + 2);
-  doc.text('Moms %', 160, yPosition + 2);
-  doc.text('Totalt', 180, yPosition + 2);
-
-  yPosition += 15;
-
-  // Table rows
-  doc.setTextColor(...textColor);
-  doc.setFont('helvetica', 'normal');
-
-  invoice.lineItems.forEach((item, index) => {
-    const rowY = yPosition + (index * 12);
-
-    // Alternate row background
-    if (index % 2 === 0) {
-      doc.setFillColor(250, 250, 250);
-      doc.rect(20, rowY - 5, 170, 10, 'F');
-    }
-
-    // Wrap long descriptions
-    const maxWidth = 80;
-    const lines = doc.splitTextToSize(item.description, maxWidth);
-    const lineHeight = 4;
-
-    doc.text(lines, 25, rowY + 2);
-    doc.text(item.quantity.toString(), 125, rowY + 2);
-    doc.text(formatCurrency(item.unitPrice), 140, rowY + 2);
-    doc.text(`${(item.vatRate * 100).toFixed(0)}%`, 165, rowY + 2);
-    doc.text(formatCurrency(item.totalPrice), 180, rowY + 2);
-
-    yPosition += lines.length * lineHeight + 2;
-  });
-
-  yPosition += 20;
-
-  // Totals section
-  const totalsX = 120;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-
-  doc.text('Nettosumma:', totalsX, yPosition);
-  doc.text(formatCurrency(invoice.subtotal - invoice.vatTotal), 180, yPosition, { align: 'right' });
-  yPosition += 8;
-
-  // Show VAT breakdown - only show if there's any VAT
-  if (invoice.vatTotal > 0) {
-    doc.text(`Moms (${VAT_RATES.STANDARD * 100}%):`, totalsX, yPosition);
-    doc.text(formatCurrency(invoice.vatTotal), 180, yPosition, { align: 'right' });
+    // Customer information section
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Faktureras till:', 20, yPosition);
     yPosition += 8;
-  }
-  yPosition += 8;
 
-  // Total line
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(totalsX - 5, yPosition - 3, 80, 12, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName}`, 20, yPosition);
+    yPosition += 4;
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Att betala:', totalsX, yPosition + 3);
-  doc.text(formatCurrency(invoice.totalAmount), 180, yPosition + 3, { align: 'right' });
+    if (invoice.customerInfo.companyName) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(invoice.customerInfo.companyName, 20, yPosition);
+      doc.setFont('helvetica', 'normal');
+      yPosition += 4;
+    }
 
-  yPosition += 25;
+    doc.text(invoice.customerInfo.address, 20, yPosition);
+    yPosition += 4;
+    doc.text(`${invoice.customerInfo.postalCode} ${invoice.customerInfo.city}`, 20, yPosition);
+    yPosition += 4;
+    doc.text(invoice.customerInfo.email, 20, yPosition);
+    yPosition += 4;
+    doc.text(invoice.customerInfo.phone, 20, yPosition);
 
-  // VAT information
-  doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+    if (invoice.customerInfo.orgNumber) {
+      yPosition += 4;
+      doc.setFontSize(8);
+      doc.text(`Org.nr: ${invoice.customerInfo.orgNumber}`, 20, yPosition);
+    }
 
-  doc.text(`Momsregistreringsnummer: ${invoice.companyInfo.vatNumber}`, 20, yPosition);
-  yPosition += 6;
-  // Show VAT information based on services
-  const hasZeroVat = invoice.lineItems.some(item => item.vatRate === 0);
-  const hasStandardVat = invoice.lineItems.some(item => item.vatRate > 0);
+    yPosition += 15;
 
-  if (hasZeroVat && hasStandardVat) {
-    doc.text('Momssats: 25% på de flesta tjänster, 0% på ambassadlegalisering', 20, yPosition);
-  } else if (hasZeroVat) {
-    doc.text('Momssats: 0% (ambassadlegalisering är momsfri)', 20, yPosition);
-  } else {
-    doc.text('Momssats: 25% på samtliga tjänster', 20, yPosition);
-  }
-  yPosition += 15;
+    // Services table header
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Specifikation', 20, yPosition);
+    yPosition += 10;
 
-  // Payment information
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Betalningsinformation', 20, yPosition);
-  yPosition += 10;
+    // Table headers with borders - fixed column widths
+    const tableLeft = 20;
+    const tableWidth = 170;
+    const colWidths = [75, 20, 25, 20, 30]; // Description, Quantity, Unit Price, VAT %, Total
+    const colPositions = [
+      tableLeft + 2,
+      tableLeft + colWidths[0] + 2,
+      tableLeft + colWidths[0] + colWidths[1] + 2,
+      tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 2,
+      tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2
+    ];
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(tableLeft, yPosition - 3, tableWidth, 8, 'F');
 
-  doc.text(`Betalningsvillkor: ${invoice.paymentTerms}`, 20, yPosition);
-  yPosition += 6;
-  doc.text('Bankgiro: 123-4567', 20, yPosition);
-  yPosition += 6;
-  doc.text(`OCR-referens: ${invoice.paymentReference}`, 20, yPosition);
-  yPosition += 6;
-  doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 20, yPosition);
-  yPosition += 6;
-  doc.text(`Valuta: ${invoice.currency}`, 20, yPosition);
-  yPosition += 20;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
 
-  // Footer
-  const pageHeight = doc.internal.pageSize.height;
-  const footerY = pageHeight - 30;
+    // Column headers - properly aligned
+    doc.text('Beskrivning', colPositions[0], yPosition + 2);
+    doc.text('Antal', colPositions[1], yPosition + 2, { align: 'center' });
+    doc.text('À-pris', colPositions[2], yPosition + 2, { align: 'right' });
+    doc.text('Moms %', colPositions[3], yPosition + 2, { align: 'center' });
+    doc.text('Belopp', colPositions[4], yPosition + 2, { align: 'right' });
 
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(0, footerY - 10, 210, 40, 'F');
+    yPosition += 10;
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
+    // Table rows - proper row-by-row rendering
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
 
-  const footerText = `${invoice.companyInfo.name} | Org.nr: ${invoice.companyInfo.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber}`;
-  doc.text(footerText, 105, footerY, { align: 'center' });
+    const rowHeight = 8;
+    let currentY = yPosition;
 
-  doc.text('Tack för att du valde Legaliseringstjänst! Vid frågor, kontakta oss på info@legaliseringstjanst.se', 105, footerY + 8, { align: 'center' });
+    invoice.lineItems.forEach((item, index) => {
+      // Check if we need a new page
+      if (currentY + rowHeight > 250) {
+        doc.addPage();
+        currentY = 20;
 
-  // Save the PDF - use order number if available, otherwise invoice number
-  const fileName = invoice.orderNumber ? `faktura-${invoice.orderNumber}.pdf` : `faktura-${invoice.invoiceNumber}.pdf`;
-  doc.save(fileName);
+        // Re-add table header on new page
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(tableLeft, currentY - 3, tableWidth, 8, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+
+        doc.text('Beskrivning', colPositions[0], currentY + 2);
+        doc.text('Antal', colPositions[1], currentY + 2, { align: 'center' });
+        doc.text('À-pris', colPositions[2], currentY + 2, { align: 'right' });
+        doc.text('Moms %', colPositions[3], currentY + 2, { align: 'center' });
+        doc.text('Belopp', colPositions[4], currentY + 2, { align: 'right' });
+
+        currentY += 10;
+      }
+
+      // Alternate row background
+      if (index % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(tableLeft, currentY - 2, tableWidth, rowHeight, 'F');
+      }
+
+      // Border around row
+      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+      doc.setLineWidth(0.2);
+      doc.rect(tableLeft, currentY - 2, tableWidth, rowHeight);
+
+      // Description - handle long text properly with word wrapping
+      const description = item.description;
+      const maxDescWidth = colWidths[0] - 4;
+
+      if (doc.getTextWidth(description) > maxDescWidth) {
+        // Split description into multiple lines
+        const words = description.split(' ');
+        let currentLine = '';
+        let lines: string[] = [];
+
+        for (const word of words) {
+          const testLine = currentLine + (currentLine ? ' ' : '') + word;
+          if (doc.getTextWidth(testLine) > maxDescWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+
+        // Display first line
+        doc.text(lines[0], colPositions[0], currentY + 2);
+
+        // If there are more lines, display them (but limit to prevent overflow)
+        if (lines.length > 1) {
+          doc.text(lines[1], colPositions[0], currentY + 5);
+        }
+      } else {
+        doc.text(description, colPositions[0], currentY + 2);
+      }
+
+      // Quantity - center aligned
+      doc.text(item.quantity.toString(), colPositions[1] + colWidths[1]/2, currentY + 2, { align: 'center' });
+
+      // Unit price - right aligned
+      doc.text(formatCurrency(item.unitPrice), colPositions[2] + colWidths[2] - 2, currentY + 2, { align: 'right' });
+
+      // VAT rate - center aligned
+      doc.text(`${(item.vatRate * 100).toFixed(0)}%`, colPositions[3] + colWidths[3]/2, currentY + 2, { align: 'center' });
+
+      // Total price - right aligned
+      doc.text(formatCurrency(item.totalPrice), colPositions[4] + colWidths[4] - 2, currentY + 2, { align: 'right' });
+
+      currentY += rowHeight;
+    });
+
+    yPosition = currentY + 10;
+
+    // Totals section - professional layout
+    const totalsStartX = 120;
+
+    // Draw totals box
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.5);
+    doc.rect(totalsStartX - 5, yPosition - 3, 75, 25, 'F');
+    doc.rect(totalsStartX - 5, yPosition - 3, 75, 25);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+
+    // Calculate and display totals
+    const netAmount = invoice.subtotal - invoice.vatTotal;
+
+    doc.text('Nettosumma:', totalsStartX, yPosition + 2);
+    doc.text(formatCurrency(netAmount), 185, yPosition + 2, { align: 'right' });
+
+    if (invoice.vatTotal > 0) {
+      yPosition += 6;
+      doc.text(`Moms (${VAT_RATES.STANDARD * 100}%):`, totalsStartX, yPosition + 2);
+      doc.text(formatCurrency(invoice.vatTotal), 185, yPosition + 2, { align: 'right' });
+    }
+
+    // Total amount - highlighted
+    yPosition += 8;
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(totalsStartX - 5, yPosition - 1, 75, 8, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('ATT BETALA:', totalsStartX, yPosition + 4);
+    doc.text(formatCurrency(invoice.totalAmount), 185, yPosition + 4, { align: 'right' });
+
+    yPosition += 20;
+
+    // VAT information section
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+
+    doc.text(`Momsregistreringsnummer: ${invoice.companyInfo.vatNumber}`, 20, yPosition);
+    yPosition += 8;
+
+    // VAT breakdown based on services
+    const hasZeroVat = invoice.lineItems.some(item => item.vatRate === 0);
+    const hasStandardVat = invoice.lineItems.some(item => item.vatRate > 0);
+
+    if (hasZeroVat && hasStandardVat) {
+      doc.text('Momssats: 25% på serviceavgifter, 0% på officiella avgifter (ambassadlegalisering)', 20, yPosition);
+    } else if (hasZeroVat) {
+      doc.text('Momssats: 0% (ambassadlegalisering är momsfri)', 20, yPosition);
+    } else {
+      doc.text('Momssats: 25% på samtliga tjänster', 20, yPosition);
+    }
+
+    yPosition += 12;
+
+    // Payment information
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Betalningsinformation', 20, yPosition);
+    yPosition += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Betalningsvillkor: ${invoice.paymentTerms}`, 20, yPosition);
+    yPosition += 4;
+    doc.text('Bankgiro: 123-4567', 20, yPosition);
+    yPosition += 4;
+    doc.text(`OCR-referens: ${invoice.paymentReference}`, 20, yPosition);
+    yPosition += 4;
+    doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 20, yPosition);
+    yPosition += 4;
+    doc.text(`Valuta: ${invoice.currency}`, 20, yPosition);
+
+    yPosition += 15;
+
+    // Footer
+    const pageHeight = doc.internal.pageSize.height;
+    const footerY = pageHeight - 25;
+
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, footerY - 5, 210, 25, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+
+    const footerText1 = `${invoice.companyInfo.name} | Org.nr: ${invoice.companyInfo.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber}`;
+    doc.text(footerText1, 105, footerY + 3, { align: 'center' });
+
+    const footerText2 = `${invoice.companyInfo.address}, ${invoice.companyInfo.postalCode} ${invoice.companyInfo.city} | ${invoice.companyInfo.email} | ${invoice.companyInfo.phone}`;
+    doc.text(footerText2, 105, footerY + 8, { align: 'center' });
+
+    doc.setFontSize(8);
+    doc.text('Tack för att du valde Legaliseringstjänst AB för dina legaliseringstjänster!', 105, footerY + 15, { align: 'center' });
+
+    // Save the PDF
+    const fileName = invoice.orderNumber ? `faktura-${invoice.orderNumber}.pdf` : `faktura-${invoice.invoiceNumber}.pdf`;
+    doc.save(fileName);
+
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;
@@ -1105,30 +1341,40 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
   }
 };
 
-// Helper function to generate PDF blob for email attachment
+// Helper function to generate PDF blob for email attachment - matches main PDF function
 async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     try {
-      // Create a temporary PDF document
       const doc = new jsPDF();
 
-      // Colors
+      // Professional Swedish invoice colors
       const primaryColor: [number, number, number] = [42, 103, 170]; // #2a67aa
       const textColor: [number, number, number] = [51, 51, 51]; // #333
       const lightGray: [number, number, number] = [248, 249, 250]; // #f8f9fa
-
-      // Set up fonts and colors
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      const borderColor: [number, number, number] = [229, 231, 235]; // #e5e7eb
 
       // Helper functions
-      const formatDate = (timestamp: Timestamp | Date) => {
+      const formatDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
-        const date = timestamp instanceof Timestamp ? timestamp.toDate() : timestamp;
-        return new Intl.DateTimeFormat('sv-SE', {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric'
-        }).format(date);
+        try {
+          let date: Date;
+          if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+            date = timestamp.toDate();
+          } else if (timestamp instanceof Date) {
+            date = timestamp;
+          } else {
+            date = new Date(timestamp);
+          }
+          if (isNaN(date.getTime())) return 'N/A';
+          return new Intl.DateTimeFormat('sv-SE', {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric'
+          }).format(date);
+        } catch (error) {
+          console.error('Error formatting date in PDF:', error, timestamp);
+          return 'N/A';
+        }
       };
 
       const formatCurrency = (amount: number) => {
@@ -1141,214 +1387,294 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
 
       let yPosition = 20;
 
-      // Header with company branding
+      // Header - Professional Swedish invoice style
       doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(0, 0, 210, 40, 'F');
+      doc.rect(0, 0, 210, 35, 'F');
 
-      // Company name
+      // Company name and details
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(20);
+      doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text(invoice.companyInfo.name, 20, 25);
+      doc.text(invoice.companyInfo.name, 20, 20);
 
-      // Company details
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(invoice.companyInfo.address, 20, 26);
+      doc.text(`${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}`, 20, 30);
+      doc.text(`Org.nr: ${invoice.companyInfo.orgNumber}`, 20, 34);
+
+      // Invoice title and number - right aligned
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(invoice.status === 'credit_note' ? 'KREDITFAKTURA' : 'FAKTURA', 190, 20, { align: 'right' });
+
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(invoice.companyInfo.address, 20, 32);
-      doc.text(`${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}`, 20, 37);
+      doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
+      doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
+      doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 34, { align: 'right' });
 
-      // Invoice title
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('FAKTURA', 140, 30);
+      yPosition = 50;
 
-      yPosition = 60;
-
-      // Invoice details box
-      doc.setFillColor(...lightGray);
-      doc.rect(120, yPosition - 5, 70, 35, 'F');
-
-      doc.setTextColor(...textColor);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-
-      doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 125, yPosition);
-      doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 125, yPosition + 7);
-      doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 125, yPosition + 14);
-      if (invoice.orderNumber) {
-        doc.text(`Ordernummer: ${invoice.orderNumber}`, 125, yPosition + 21);
-      }
-      doc.text(`Status: ${getStatusText(invoice.status)}`, 125, yPosition + 28);
-
-      yPosition += 50;
-
-      // Customer information
-      doc.setFontSize(12);
+      // Customer information section
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.text('Faktureras till:', 20, yPosition);
-      yPosition += 10;
+      yPosition += 8;
 
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text(`${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName}`, 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
 
       if (invoice.customerInfo.companyName) {
+        doc.setFont('helvetica', 'bold');
         doc.text(invoice.customerInfo.companyName, 20, yPosition);
-        yPosition += 6;
+        doc.setFont('helvetica', 'normal');
+        yPosition += 4;
       }
 
       doc.text(invoice.customerInfo.address, 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
       doc.text(`${invoice.customerInfo.postalCode} ${invoice.customerInfo.city}`, 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
       doc.text(invoice.customerInfo.email, 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
       doc.text(invoice.customerInfo.phone, 20, yPosition);
-      yPosition += 6;
 
       if (invoice.customerInfo.orgNumber) {
+        yPosition += 4;
+        doc.setFontSize(8);
         doc.text(`Org.nr: ${invoice.customerInfo.orgNumber}`, 20, yPosition);
-        yPosition += 6;
       }
 
-      yPosition += 20;
-
-      // Services table
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Tjänster', 20, yPosition);
       yPosition += 15;
 
-      // Table headers
+      // Services table header
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Specifikation', 20, yPosition);
+      yPosition += 10;
+
+      // Table headers with borders - fixed column widths
+      const tableLeft = 20;
+      const tableWidth = 170;
+      const colWidths = [75, 20, 25, 20, 30]; // Description, Quantity, Unit Price, VAT %, Total
+      const colPositions = [
+        tableLeft + 2,
+        tableLeft + colWidths[0] + 2,
+        tableLeft + colWidths[0] + colWidths[1] + 2,
+        tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + 2,
+        tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2
+      ];
+
       doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(20, yPosition - 5, 170, 10, 'F');
+      doc.rect(tableLeft, yPosition - 3, tableWidth, 8, 'F');
 
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
 
-      doc.text('Beskrivning', 25, yPosition + 2);
-      doc.text('Antal', 120, yPosition + 2);
-      doc.text('À-pris', 140, yPosition + 2);
-      doc.text('Moms %', 160, yPosition + 2);
-      doc.text('Totalt', 180, yPosition + 2);
+      // Column headers - properly aligned
+      doc.text('Beskrivning', colPositions[0], yPosition + 2);
+      doc.text('Antal', colPositions[1], yPosition + 2, { align: 'center' });
+      doc.text('À-pris', colPositions[2], yPosition + 2, { align: 'right' });
+      doc.text('Moms %', colPositions[3], yPosition + 2, { align: 'center' });
+      doc.text('Belopp', colPositions[4], yPosition + 2, { align: 'right' });
 
-      yPosition += 15;
+      yPosition += 10;
 
-      // Table rows
-      doc.setTextColor(...textColor);
+      // Table rows - proper row-by-row rendering
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+
+      const rowHeight = 8;
+      let currentY = yPosition;
 
       invoice.lineItems.forEach((item, index) => {
-        const rowY = yPosition + (index * 12);
+        // Check if we need a new page
+        if (currentY + rowHeight > 250) {
+          doc.addPage();
+          currentY = 20;
+
+          // Re-add table header on new page
+          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+          doc.rect(tableLeft, currentY - 3, tableWidth, 8, 'F');
+
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'bold');
+
+          doc.text('Beskrivning', colPositions[0], currentY + 2);
+          doc.text('Antal', colPositions[1], currentY + 2, { align: 'center' });
+          doc.text('À-pris', colPositions[2], currentY + 2, { align: 'right' });
+          doc.text('Moms %', colPositions[3], currentY + 2, { align: 'center' });
+          doc.text('Belopp', colPositions[4], currentY + 2, { align: 'right' });
+
+          currentY += 10;
+        }
 
         // Alternate row background
         if (index % 2 === 0) {
           doc.setFillColor(250, 250, 250);
-          doc.rect(20, rowY - 5, 170, 10, 'F');
+          doc.rect(tableLeft, currentY - 2, tableWidth, rowHeight, 'F');
         }
 
-        // Wrap long descriptions
-        const maxWidth = 80;
-        const lines = doc.splitTextToSize(item.description, maxWidth);
-        const lineHeight = 4;
+        // Border around row
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setLineWidth(0.2);
+        doc.rect(tableLeft, currentY - 2, tableWidth, rowHeight);
 
-        doc.text(lines, 25, rowY + 2);
-        doc.text(item.quantity.toString(), 125, rowY + 2);
-        doc.text(formatCurrency(item.unitPrice), 140, rowY + 2);
-        doc.text(`${(item.vatRate * 100).toFixed(0)}%`, 165, rowY + 2);
-        doc.text(formatCurrency(item.totalPrice), 180, rowY + 2);
+        // Description - handle long text properly with word wrapping
+        const description = item.description;
+        const maxDescWidth = colWidths[0] - 4;
 
-        yPosition += lines.length * lineHeight + 2;
+        if (doc.getTextWidth(description) > maxDescWidth) {
+          // Split description into multiple lines
+          const words = description.split(' ');
+          let currentLine = '';
+          let lines: string[] = [];
+
+          for (const word of words) {
+            const testLine = currentLine + (currentLine ? ' ' : '') + word;
+            if (doc.getTextWidth(testLine) > maxDescWidth && currentLine) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          if (currentLine) lines.push(currentLine);
+
+          // Display first line
+          doc.text(lines[0], colPositions[0], currentY + 2);
+
+          // If there are more lines, display them (but limit to prevent overflow)
+          if (lines.length > 1) {
+            doc.text(lines[1], colPositions[0], currentY + 5);
+          }
+        } else {
+          doc.text(description, colPositions[0], currentY + 2);
+        }
+
+        // Quantity - center aligned
+        doc.text(item.quantity.toString(), colPositions[1] + colWidths[1]/2, currentY + 2, { align: 'center' });
+
+        // Unit price - right aligned
+        doc.text(formatCurrency(item.unitPrice), colPositions[2] + colWidths[2] - 2, currentY + 2, { align: 'right' });
+
+        // VAT rate - center aligned
+        doc.text(`${(item.vatRate * 100).toFixed(0)}%`, colPositions[3] + colWidths[3]/2, currentY + 2, { align: 'center' });
+
+        // Total price - right aligned
+        doc.text(formatCurrency(item.totalPrice), colPositions[4] + colWidths[4] - 2, currentY + 2, { align: 'right' });
+
+        currentY += rowHeight;
       });
 
-      yPosition += 20;
+      yPosition = currentY + 10;
 
-      // Totals section
-      const totalsX = 120;
-      doc.setFontSize(10);
+      // Totals section - professional layout
+      const totalsStartX = 120;
+
+      // Draw totals box
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setLineWidth(0.5);
+      doc.rect(totalsStartX - 5, yPosition - 3, 75, 25, 'F');
+      doc.rect(totalsStartX - 5, yPosition - 3, 75, 25);
+
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
 
-      doc.text('Nettosumma:', totalsX, yPosition);
-      doc.text(formatCurrency(invoice.subtotal - invoice.vatTotal), 180, yPosition, { align: 'right' });
-      yPosition += 8;
+      // Calculate and display totals
+      const netAmount = invoice.subtotal - invoice.vatTotal;
 
-      // Show VAT breakdown only if there's VAT
+      doc.text('Nettosumma:', totalsStartX, yPosition + 2);
+      doc.text(formatCurrency(netAmount), 185, yPosition + 2, { align: 'right' });
+
       if (invoice.vatTotal > 0) {
-        doc.text(`Moms (${VAT_RATES.STANDARD * 100}%):`, totalsX, yPosition);
-        doc.text(formatCurrency(invoice.vatTotal), 180, yPosition, { align: 'right' });
-        yPosition += 8;
+        yPosition += 6;
+        doc.text(`Moms (${VAT_RATES.STANDARD * 100}%):`, totalsStartX, yPosition + 2);
+        doc.text(formatCurrency(invoice.vatTotal), 185, yPosition + 2, { align: 'right' });
       }
 
-      // Total line
+      // Total amount - highlighted
+      yPosition += 8;
       doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(totalsX - 5, yPosition - 3, 80, 12, 'F');
+      doc.rect(totalsStartX - 5, yPosition - 1, 75, 8, 'F');
 
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.text('Att betala:', totalsX, yPosition + 3);
-      doc.text(formatCurrency(invoice.totalAmount), 180, yPosition + 3, { align: 'right' });
+      doc.setFontSize(10);
+      doc.text('ATT BETALA:', totalsStartX, yPosition + 4);
+      doc.text(formatCurrency(invoice.totalAmount), 185, yPosition + 4, { align: 'right' });
 
-      yPosition += 25;
+      yPosition += 20;
 
-      // VAT information
+      // VAT information section
       doc.setTextColor(textColor[0], textColor[1], textColor[2]);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
 
       doc.text(`Momsregistreringsnummer: ${invoice.companyInfo.vatNumber}`, 20, yPosition);
-      yPosition += 6;
+      yPosition += 8;
 
-      // Show VAT information based on services
+      // VAT breakdown based on services
       const hasZeroVat = invoice.lineItems.some(item => item.vatRate === 0);
       const hasStandardVat = invoice.lineItems.some(item => item.vatRate > 0);
 
       if (hasZeroVat && hasStandardVat) {
-        doc.text('Momssats: 25% på de flesta tjänster, 0% på ambassadlegalisering', 20, yPosition);
+        doc.text('Momssats: 25% på serviceavgifter, 0% på officiella avgifter (ambassadlegalisering)', 20, yPosition);
       } else if (hasZeroVat) {
         doc.text('Momssats: 0% (ambassadlegalisering är momsfri)', 20, yPosition);
       } else {
         doc.text('Momssats: 25% på samtliga tjänster', 20, yPosition);
       }
-      yPosition += 15;
+
+      yPosition += 12;
 
       // Payment information
-      doc.setFontSize(11);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.text('Betalningsinformation', 20, yPosition);
-      yPosition += 10;
+      yPosition += 6;
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-
+      doc.setFontSize(8);
       doc.text(`Betalningsvillkor: ${invoice.paymentTerms}`, 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
       doc.text('Bankgiro: 123-4567', 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
       doc.text(`OCR-referens: ${invoice.paymentReference}`, 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
       doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 20, yPosition);
-      yPosition += 6;
+      yPosition += 4;
       doc.text(`Valuta: ${invoice.currency}`, 20, yPosition);
-      yPosition += 20;
+
+      yPosition += 15;
 
       // Footer
       const pageHeight = doc.internal.pageSize.height;
-      const footerY = pageHeight - 30;
+      const footerY = pageHeight - 25;
 
       doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(0, footerY - 10, 210, 40, 'F');
+      doc.rect(0, footerY - 5, 210, 25, 'F');
 
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
 
-      const footerText = `${invoice.companyInfo.name} | Org.nr: ${invoice.companyInfo.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber}`;
-      doc.text(footerText, 105, footerY, { align: 'center' });
+      const footerText1 = `${invoice.companyInfo.name} | Org.nr: ${invoice.companyInfo.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber}`;
+      doc.text(footerText1, 105, footerY + 3, { align: 'center' });
 
-      doc.text('Tack för att du valde Legaliseringstjänst! Vid frågor, kontakta oss på info@legaliseringstjanst.se', 105, footerY + 8, { align: 'center' });
+      const footerText2 = `${invoice.companyInfo.address}, ${invoice.companyInfo.postalCode} ${invoice.companyInfo.city} | ${invoice.companyInfo.email} | ${invoice.companyInfo.phone}`;
+      doc.text(footerText2, 105, footerY + 8, { align: 'center' });
+
+      doc.setFontSize(8);
+      doc.text('Tack för att du valde Legaliseringstjänst AB för dina legaliseringstjänster!', 105, footerY + 15, { align: 'center' });
 
       // Get PDF as Uint8Array
       const pdfOutput = doc.output('arraybuffer');
