@@ -96,7 +96,7 @@ export default function Home() {
       Object.entries(serviceGroups).forEach(([serviceType, serviceRules]) => {
         // Use the first rule for pricing (assuming all Swedish rules have similar pricing)
         const rule = serviceRules[0];
-        const avgProcessingTime = Math.round(serviceRules.reduce((sum, rule) => sum + rule.processingTime.standard, 0) / serviceRules.length);
+        const processingTime = rule.processingTime?.standard || 5; // Default to 5 if not set
 
         // Find the corresponding fallback entry and update it
         const fallbackIndex = pricingData.findIndex(p => p.service.toLowerCase().includes(serviceType) ||
@@ -110,12 +110,12 @@ export default function Home() {
           if (serviceType === 'translation') {
             pricingData[fallbackIndex] = {
               ...pricingData[fallbackIndex],
-              timeframe: `${avgProcessingTime} arbetsdagar`
+              timeframe: `${processingTime} arbetsdagar`
             };
           } else if (serviceType === 'embassy') {
             pricingData[fallbackIndex] = {
               ...pricingData[fallbackIndex],
-              timeframe: `${avgProcessingTime} arbetsdagar`
+              timeframe: `${processingTime} arbetsdagar`
             };
           } else {
             // Use actual prices from Firebase rule
@@ -124,7 +124,7 @@ export default function Home() {
               officialFee: `${rule.officialFee} kr`,
               serviceFee: `${rule.serviceFee} kr`,
               totalPrice: `${rule.basePrice} kr`,
-              timeframe: `${avgProcessingTime} arbetsdagar`
+              timeframe: `${processingTime} arbetsdagar`
             };
           }
         }
@@ -159,7 +159,7 @@ export default function Home() {
       officialFee: 'Från 1,500 kr (exkl. moms)',
       serviceFee: '150 kr (inkl. moms)',
       totalPrice: 'Från 1,650 kr',
-      timeframe: '15 arbetsdagar',
+      timeframe: 'Varierar beroende på ambassad',
       features: ['Ambassad/konsulat', 'Internationell giltighet', 'Komplex process', 'Hög säkerhet']
     },
     {

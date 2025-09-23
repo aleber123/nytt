@@ -31,15 +31,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center" aria-label={t('accessibility.homeLogo')}>
-              <img 
-                src="/logo.svg" 
-                alt="Legaliseringstjänst" 
-                className="h-12 w-auto" 
-                width="220" 
-                height="50"
-              />
-            </Link>
+            {/* Logo removed */}
           </div>
           
           {/* Desktop navigation */}
