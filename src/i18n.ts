@@ -3,8 +3,8 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 // Import translations directly
-import svCommon from './locales/sv/common.json';
-import enCommon from './locales/en/common.json';
+import svCommon from '../public/locales/sv/common.json';
+import enCommon from '../public/locales/en/common.json';
 
 // Don't want to use this?
 // have a look at the Quick start guide
