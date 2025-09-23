@@ -384,7 +384,29 @@
     "clearFilters": "Rensa filter",
     "serviceTypes": "Tjänstetyper",
     "apostilleCountries": "För Haagkonventionsländer",
-    "embassyCountries": "För icke-Haagkonventionsländer"
+    "embassyCountries": "För icke-Haagkonventionsländer",
+    "names": {
+      "US": "USA",
+      "GB": "Storbritannien",
+      "DE": "Tyskland",
+      "SE": "Sverige",
+      "TH": "Thailand",
+      "NO": "Norge",
+      "DK": "Danmark",
+      "FI": "Finland",
+      "VN": "Vietnam",
+      "FR": "Frankrike",
+      "IR": "Iran",
+      "ES": "Spanien",
+      "IT": "Italien",
+      "BD": "Bangladesh",
+      "NL": "Nederländerna",
+      "LK": "Sri Lanka",
+      "PL": "Polen",
+      "CA": "Kanada",
+      "AU": "Australien",
+      "TR": "Turkiet"
+    }
   },
   "faq": {
     "title": "Vanliga frågor",
