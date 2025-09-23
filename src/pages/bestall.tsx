@@ -28,6 +28,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     documentSource: '', // 'original' or 'upload'
     pickupService: false, // New: pickup service option
     pickupAddress: { // New: pickup address
+      name: '',
+      company: '',
       street: '',
       postalCode: '',
       city: ''
@@ -1473,7 +1475,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers(prev => ({
                 ...prev,
                 pickupService: false,
-                pickupAddress: { street: '', postalCode: '', city: '' }
+                pickupAddress: { name: '', company: '', street: '', postalCode: '', city: '' }
               }));
               setCurrentQuestion(7);
             }}
@@ -1672,10 +1674,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             <span className="text-2xl mr-3">🚚</span>
             <div>
               <div className="font-medium text-blue-900">
-                {t('orderFlow.step9.pickupOrdered')}
+                {t('orderFlow.pickupAddress.pickupOrdered')}
               </div>
               <div className="text-sm text-blue-700">
-                {t('orderFlow.step9.pickupContact')}
+                {t('orderFlow.pickupAddress.pickupContact')}
               </div>
             </div>
           </div>
@@ -1684,7 +1686,40 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.pickupAddress.street')} {t('orderFlow.step9.requiredField')}
+              {t('orderFlow.pickupAddress.name')} {t('orderFlow.pickupAddress.requiredField')}
+            </label>
+            <input
+              type="text"
+              value={answers.pickupAddress.name}
+              onChange={(e) => setAnswers(prev => ({
+                ...prev,
+                pickupAddress: { ...prev.pickupAddress, name: e.target.value }
+              }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
+              placeholder={t('orderFlow.pickupAddress.namePlaceholder')}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('orderFlow.pickupAddress.company')}
+            </label>
+            <input
+              type="text"
+              value={answers.pickupAddress.company}
+              onChange={(e) => setAnswers(prev => ({
+                ...prev,
+                pickupAddress: { ...prev.pickupAddress, company: e.target.value }
+              }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
+              placeholder={t('orderFlow.pickupAddress.companyPlaceholder')}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('orderFlow.pickupAddress.street')} {t('orderFlow.pickupAddress.requiredField')}
             </label>
             <input
               type="text"
@@ -1702,7 +1737,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.pickupAddress.postalCode')} {t('orderFlow.step9.requiredField')}
+                {t('orderFlow.pickupAddress.postalCode')} {t('orderFlow.pickupAddress.requiredField')}
               </label>
               <input
                 type="text"
@@ -1717,7 +1752,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.pickupAddress.city')} {t('orderFlow.step9.requiredField')}
+                {t('orderFlow.pickupAddress.city')} {t('orderFlow.pickupAddress.requiredField')}
               </label>
               <input
                 type="text"
@@ -1742,9 +1777,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           </button>
           <button
             onClick={() => setCurrentQuestion(8)}
-            disabled={!answers.pickupAddress.street || !answers.pickupAddress.postalCode || !answers.pickupAddress.city}
+            disabled={!answers.pickupAddress.name || !answers.pickupAddress.street || !answers.pickupAddress.postalCode || !answers.pickupAddress.city}
             className={`px-6 py-2 rounded-md font-medium ${
-              answers.pickupAddress.street && answers.pickupAddress.postalCode && answers.pickupAddress.city
+              answers.pickupAddress.name && answers.pickupAddress.street && answers.pickupAddress.postalCode && answers.pickupAddress.city
                 ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}

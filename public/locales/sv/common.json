@@ -644,16 +644,22 @@
       "backButton": "Tillbaka"
     },
     "pickupAddress": {
-      "title": "Uppgifter för dokumenthämtning",
-      "subtitle": "Ange adress där vi ska hämta dina dokument",
-      "street": "Gatuadress",
-      "streetPlaceholder": "Ange din gatuadress...",
-      "postalCode": "Postnummer",
-      "postalCodePlaceholder": "123 45",
-      "city": "Ort",
-      "cityPlaceholder": "Stockholm",
-      "required": "*"
-    },
+        "title": "Uppgifter för dokumenthämtning",
+        "subtitle": "Ange adress där vi ska hämta dina dokument",
+        "pickupOrdered": "Dokumenthämtning beställd",
+        "pickupContact": "Vi kommer att kontakta dig inom 24 timmar för att boka tid för hämtning",
+        "name": "Namn",
+        "namePlaceholder": "Ange ditt namn...",
+        "company": "Företag",
+        "companyPlaceholder": "Ange ditt företagsnamn...",
+        "street": "Gatuadress",
+        "streetPlaceholder": "Ange din gatuadress...",
+        "postalCode": "Postnummer",
+        "postalCodePlaceholder": "123 45",
+        "city": "Ort",
+        "cityPlaceholder": "Stockholm",
+        "requiredField": "(obligatoriskt)"
+      },
     "pricing": {
       "expeditedFee": "Expressbehandling (+500 kr)",
       "pickupFee": "Dokumenthämtning (Från 450 kr)",
