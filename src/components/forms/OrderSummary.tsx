@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
+import { calculateOrderPrice } from '@/firebase/pricingService';
 
 interface OrderSummaryProps {
   orderData: any;
@@ -9,89 +10,53 @@ interface OrderSummaryProps {
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack }) => {
   const { t } = useTranslation('common');
-  
-  // Beräkna pris baserat på beställningsdata
-  const calculatePrice = () => {
-    let serviceFees = 0;
-    let officialFees = 0;
-    let additionalFees = 0;
+  const [pricing, setPricing] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    // Kontrollera om orderData.services eller orderData.service används
-    const services = Array.isArray(orderData.services) ? orderData.services :
-                    Array.isArray(orderData.service) ? orderData.service :
-                    [orderData.service];
+  // Calculate price using the dynamic pricing service
+  useEffect(() => {
+    const calculatePrice = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    // Beräkna priser baserat på alla valda tjänster
-    services.forEach((service: string) => {
-      switch (service) {
-        case 'apostille':
-          serviceFees += 100; // Service fee
-          officialFees += 850; // Official fee
-          break;
-        case 'notarisering':
-        case 'notarization':
-          serviceFees += 100; // Service fee
-          officialFees += 1200; // Official fee
-          break;
-        case 'ambassad':
-        case 'embassy':
-          serviceFees += 150; // Service fee
-          officialFees += 1295; // Official fee
-          break;
-        case 'oversattning':
-        case 'translation':
-          serviceFees += 100; // Service fee
-          officialFees += 1350; // Official fee
-          break;
-        case 'utrikesdepartementet':
-        case 'ud':
-          serviceFees += 100; // Service fee
-          officialFees += 1650; // Official fee
-          break;
-        case 'chamber':
-          serviceFees += 100; // Service fee
-          officialFees += 2300; // Official fee
-          break;
-        default:
-          serviceFees += 0;
-          officialFees += 0;
+        // Prepare order data for pricing calculation
+        const pricingData = {
+          country: orderData.country,
+          services: Array.isArray(orderData.services) ? orderData.services :
+                   Array.isArray(orderData.service) ? orderData.service :
+                   [orderData.service],
+          quantity: orderData.quantity || 1,
+          expedited: orderData.expedited,
+          deliveryMethod: orderData.deliveryMethod,
+          returnService: orderData.returnService,
+          returnServices: orderData.returnServices,
+          scannedCopies: orderData.scannedCopies,
+          pickupService: orderData.pickupService
+        };
+
+        const result = await calculateOrderPrice(pricingData);
+        setPricing(result);
+      } catch (err) {
+        console.error('Error calculating price:', err);
+        setError('Failed to calculate pricing. Please try again.');
+        // Fallback to basic calculation
+        setPricing({
+          basePrice: 0,
+          additionalFees: 0,
+          totalPrice: 0,
+          breakdown: []
+        });
+      } finally {
+        setLoading(false);
       }
-    });
-
-    // Multiplicera med antal dokument
-    const quantity = orderData.quantity || 1;
-    serviceFees *= quantity;
-    officialFees *= quantity;
-
-    // Lägg till kostnad för expresstjänst om vald
-    if (orderData.expedited) {
-      additionalFees += 500;
-    }
-
-    // Lägg till kostnad för leveransmetod
-    if (orderData.deliveryMethod === 'express') {
-      additionalFees += 150;
-    } else if (orderData.deliveryMethod === 'post') {
-      additionalFees += 50;
-    }
-
-    // Pickup service fee
-    if (orderData.pickupService) {
-      additionalFees += 450;
-    }
-
-    // Scanned copies fee
-    if (orderData.scannedCopies) {
-      additionalFees += 200 * quantity;
-    }
-
-    return {
-      serviceFees,
-      officialFees,
-      additionalFees,
-      total: serviceFees + officialFees + additionalFees
     };
-  };
+
+    if (orderData) {
+      calculatePrice();
+    }
+  }, [orderData]);
   
   // Hämta tjänstnamn baserat på ID
   const getServiceName = (serviceId: string) => {
@@ -116,30 +81,29 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack
         return serviceId;
     }
   };
-  
-  // Hämta priser för en specifik tjänst (separerade avgifter)
-  const getServicePrices = (serviceId: string) => {
-    switch (serviceId) {
-      case 'apostille':
-        return { serviceFee: 100, officialFee: 850 };
-      case 'notarisering':
-      case 'notarization':
-        return { serviceFee: 100, officialFee: 1200 };
-      case 'ambassad':
-      case 'embassy':
-        return { serviceFee: 150, officialFee: 1295 };
-      case 'oversattning':
-      case 'translation':
-        return { serviceFee: 100, officialFee: 1350 };
-      case 'utrikesdepartementet':
-      case 'ud':
-        return { serviceFee: 100, officialFee: 1650 };
-      case 'chamber':
-        return { serviceFee: 100, officialFee: 2300 };
-      default:
-        return { serviceFee: 0, officialFee: 0 };
-    }
+
+  // Helper function to get service description
+  const getServiceDescription = (serviceType: string) => {
+    const descriptions: { [key: string]: string } = {
+      'apostille': 'Apostille',
+      'notarisering': 'Notarisering',
+      'notarization': 'Notarisering',
+      'ambassad': 'Ambassadlegalisering',
+      'embassy': 'Ambassadlegalisering',
+      'oversattning': 'Översättning',
+      'translation': 'Översättning',
+      'utrikesdepartementet': 'Utrikesdepartementet',
+      'ud': 'Utrikesdepartementet',
+      'chamber': 'Handelskammaren',
+      'express': 'Expresstillägg',
+      'return_service': 'Returfrakt',
+      'scanned_copies': 'Skannade kopior',
+      'pickup_service': 'Dokumenthämtning'
+    };
+
+    return descriptions[serviceType] || serviceType;
   };
+  
   
   // Hämta dokumenttyp baserat på ID
   const getDocumentTypeName = (documentTypeId: string) => {
@@ -214,7 +178,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack
     });
   };
   
-  const pricing = calculatePrice();
   const estimatedDelivery = getEstimatedDelivery();
 
   return (
@@ -289,123 +252,129 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack
         </div>
       </div>
       
+      {/* Process Explanation */}
+      <div className="bg-blue-50 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-medium mb-4 text-blue-900">Vad ingår i din beställning?</h3>
+        <div className="text-sm text-blue-800 space-y-2">
+          <p>
+            <strong>Process:</strong> Dina {orderData.quantity} dokument kommer att legaliseras enligt följande steg för destinationen {orderData.country === 'GB' ? 'Storbritannien' : 'det valda landet'}:
+          </p>
+          <ol className="list-decimal list-inside space-y-1 ml-4">
+            {Array.isArray(orderData.services) ?
+              orderData.services.map((service: string, index: number) => (
+                <li key={service}>
+                  {getServiceDescription(service)} - officiell legalisering
+                </li>
+              )) :
+              <li>{getServiceDescription(orderData.services || orderData.service)} - officiell legalisering</li>
+            }
+          </ol>
+          <p className="mt-3">
+            <strong>Leverans:</strong> Dina legaliserade dokument returneras enligt valt fraktalternativ.
+          </p>
+        </div>
+      </div>
+
       <div className="bg-primary-50 rounded-lg p-6 mb-8">
         <h3 className="text-lg font-medium mb-4">{t('order.summary.pricing')}</h3>
 
-        <div className="space-y-3">
-          {/* Service Fees Section */}
-          <div className="bg-white/50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-3">Serviceavgifter</h4>
-            <div className="space-y-2">
-              {Array.isArray(orderData.services) ? (
-                orderData.services.map((service: string, index: number) => {
-                  const prices = getServicePrices(service);
-                  return (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span>{getServiceName(service)} ({orderData.quantity} {orderData.quantity > 1 ? t('common.items') : t('common.item')})</span>
-                      <span>{(prices.serviceFee * orderData.quantity).toFixed(0)} kr</span>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex justify-between text-sm">
-                  <span>{getServiceName(orderData.services || orderData.service)} ({orderData.quantity} {orderData.quantity > 1 ? t('common.items') : t('common.item')})</span>
-                  <span>{(getServicePrices(orderData.services || orderData.service).serviceFee * orderData.quantity).toFixed(0)} kr</span>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-between font-medium border-t border-gray-200 pt-2 mt-2">
-              <span>Total serviceavgifter</span>
-              <span>{pricing.serviceFees} kr</span>
-            </div>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
+            <p className="text-gray-600">Beräknar pris...</p>
           </div>
-
-          {/* Official Fees Section */}
-          <div className="bg-white/50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-3">Officiella avgifter</h4>
-            <div className="space-y-2">
-              {Array.isArray(orderData.services) ? (
-                orderData.services.map((service: string, index: number) => {
-                  const prices = getServicePrices(service);
-                  return (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span>{getServiceName(service)} ({orderData.quantity} {orderData.quantity > 1 ? t('common.items') : t('common.item')})</span>
-                      <span>{(prices.officialFee * orderData.quantity).toFixed(0)} kr</span>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex justify-between text-sm">
-                  <span>{getServiceName(orderData.services || orderData.service)} ({orderData.quantity} {orderData.quantity > 1 ? t('common.items') : t('common.item')})</span>
-                  <span>{(getServicePrices(orderData.services || orderData.service).officialFee * orderData.quantity).toFixed(0)} kr</span>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-between font-medium border-t border-gray-200 pt-2 mt-2">
-              <span>Total officiella avgifter</span>
-              <span>{pricing.officialFees} kr</span>
-            </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error}
           </div>
-
-          {/* Additional Fees Section */}
-          {(pricing.additionalFees > 0) && (
+        ) : pricing ? (
+          <div className="space-y-3">
+            {/* Base Price Section */}
             <div className="bg-white/50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-3">Tilläggstjänster</h4>
+              <h4 className="font-medium text-gray-900 mb-3">Legaliseringskostnader</h4>
+              <div className="text-xs text-gray-600 mb-3">
+                Alla tjänster debiteras per dokument. För {orderData.quantity} dokument blir det:
+              </div>
               <div className="space-y-2">
-                {orderData.expedited && (
-                  <div className="flex justify-between text-sm">
-                    <span>Express-service</span>
-                    <span>500 kr</span>
-                  </div>
-                )}
-
-                {orderData.deliveryMethod === 'express' && (
-                  <div className="flex justify-between text-sm">
-                    <span>Expressleverans</span>
-                    <span>150 kr</span>
-                  </div>
-                )}
-
-                {orderData.deliveryMethod === 'post' && (
-                  <div className="flex justify-between text-sm">
-                    <span>Postleverans</span>
-                    <span>50 kr</span>
-                  </div>
-                )}
-
-                {orderData.pickupService && (
-                  <div className="flex justify-between text-sm">
-                    <span>Dokumenthämtning</span>
-                    <span>Från 450 kr</span>
-                  </div>
-                )}
-
-                {orderData.scannedCopies && (
-                  <div className="flex justify-between text-sm">
-                    <span>Skannade kopior ({orderData.quantity} st)</span>
-                    <span>{(200 * orderData.quantity).toFixed(0)} kr</span>
-                  </div>
-                )}
+                {pricing.breakdown && pricing.breakdown
+                  .filter((item: any) => !['return_service', 'scanned_copies', 'pickup_service'].includes(item.service))
+                  .map((item: any, index: number) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span>
+                        {getServiceDescription(item.service)}
+                        <span className="text-gray-500 ml-1">
+                          ({Math.round((item.basePrice || item.fee || 0) / item.quantity)} kr × {item.quantity} {item.quantity > 1 ? 'dokument' : 'dokument'})
+                        </span>
+                      </span>
+                      <span>{item.basePrice || item.fee || 0} kr</span>
+                    </div>
+                  ))}
               </div>
               <div className="flex justify-between font-medium border-t border-gray-200 pt-2 mt-2">
-                <span>Total tilläggstjänster</span>
-                <span>{pricing.additionalFees} kr</span>
+                <span>Total legaliseringskostnad</span>
+                <span>{pricing.basePrice} kr</span>
               </div>
             </div>
-          )}
 
-          {/* Total Section */}
-          <div className="border-t-2 border-gray-300 pt-4 mt-4">
-            <div className="flex justify-between font-bold text-lg">
-              <span>Totalbelopp</span>
-              <span>{pricing.total} kr</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500 mt-1">
-              <span>Moms (25%)</span>
-              <span>{Math.round(pricing.total * 0.25)} kr</span>
+            {/* Additional Fees Section */}
+            {(pricing.additionalFees > 0) && (
+              <div className="bg-white/50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Tilläggstjänster</h4>
+                <div className="space-y-2">
+                  {pricing.breakdown && pricing.breakdown
+                    .filter((item: any) => item.service !== 'apostille' && item.service !== 'notarization' && item.service !== 'embassy' && item.service !== 'translation' && item.service !== 'ud' && item.service !== 'chamber')
+                    .map((item: any, index: number) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{getServiceDescription(item.service)}</span>
+                        <span>{item.fee || item.basePrice || 0} kr</span>
+                      </div>
+                    ))}
+
+                  {orderData.expedited && !pricing.breakdown?.some((item: any) => item.service?.includes('express')) && (
+                    <div className="flex justify-between text-sm">
+                      <span>Express-service</span>
+                      <span>500 kr</span>
+                    </div>
+                  )}
+
+                  {orderData.pickupService && !pricing.breakdown?.some((item: any) => item.service?.includes('pickup')) && (
+                    <div className="flex justify-between text-sm">
+                      <span>Dokumenthämtning</span>
+                      <span>450 kr</span>
+                    </div>
+                  )}
+
+                  {orderData.scannedCopies && !pricing.breakdown?.some((item: any) => item.service?.includes('scanned')) && (
+                    <div className="flex justify-between text-sm">
+                      <span>Skannade kopior ({orderData.quantity} st)</span>
+                      <span>{(200 * orderData.quantity).toFixed(0)} kr</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-between font-medium border-t border-gray-200 pt-2 mt-2">
+                  <span>Total tilläggstjänster</span>
+                  <span>{pricing.additionalFees} kr</span>
+                </div>
+              </div>
+            )}
+
+            {/* Total Section */}
+            <div className="border-t-2 border-gray-300 pt-4 mt-4">
+              <div className="flex justify-between font-bold text-lg">
+                <span>Totalbelopp</span>
+                <span>{pricing.totalPrice} kr</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <span>Moms (25%)</span>
+                <span>{Math.round(pricing.totalPrice * 0.25)} kr</span>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            Kunde inte beräkna pris
+          </div>
+        )}
       </div>
       
       <div className="flex justify-between pt-5">
