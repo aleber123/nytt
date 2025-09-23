@@ -42,16 +42,16 @@ function ShippingServicesPage() {
       basePrice: 85,
       estimatedDelivery: '2-5 arbetsdagar'
     },
-    {
-      code: 'postnord-express',
-      name: 'PostNord Express',
-      description: 'Expressleverans inom Sverige',
-      provider: 'PostNord',
-      basePrice: 150,
-      estimatedDelivery: '1-2 arbetsdagar'
-    },
 
     // DHL Services
+    {
+      code: 'dhl-sweden',
+      name: 'DHL Sweden',
+      description: 'DHL leverans inom Sverige',
+      provider: 'DHL',
+      basePrice: 180,
+      estimatedDelivery: '1-2 arbetsdagar'
+    },
     {
       code: 'dhl-europe',
       name: 'DHL Europe',
@@ -123,7 +123,7 @@ function ShippingServicesPage() {
 
       // Filter to only shipping services
       const shippingRules = allRules.filter(rule =>
-        ['postnord-rek', 'postnord-express', 'dhl-europe', 'dhl-worldwide', 'dhl-pre-12', 'dhl-pre-9', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(rule.serviceType) &&
+        ['postnord-rek', 'postnord-express', 'dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'dhl-pre-12', 'dhl-pre-9', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(rule.serviceType) &&
         rule.countryCode === 'GLOBAL'
       );
 

@@ -36,7 +36,7 @@ function StandardServicesPricesPage() {
     {
       code: 'apostille',
       name: 'Apostille',
-      description: 'För länder anslutna till Haagkonventionen',
+      description: 'För länder anslutna till Haagkonventionen. Internationell legalisering av dokument.',
       officialFee: 850,
       serviceFee: 100,
       totalPrice: 950,
@@ -45,7 +45,7 @@ function StandardServicesPricesPage() {
     {
       code: 'notarization',
       name: 'Notarisering',
-      description: 'Officiell notarisering av dokument',
+      description: 'Officiell notarisering av dokument. Juriidisk bekräftelse och giltighet.',
       officialFee: 1200,
       serviceFee: 100,
       totalPrice: 1300,
@@ -53,8 +53,8 @@ function StandardServicesPricesPage() {
     },
     {
       code: 'chamber',
-      name: 'Handelskammarens legalisering',
-      description: 'Legaliserng av handelsdokument genom Handelskammaren',
+      name: 'Handelskammaren',
+      description: 'Legaliserng av handelsdokument genom Handelskammaren. Företagshandlingar.',
       officialFee: 2300,
       serviceFee: 100,
       totalPrice: 2400,
@@ -62,8 +62,8 @@ function StandardServicesPricesPage() {
     },
     {
       code: 'translation',
-      name: 'Auktoriserad översättning',
-      description: 'Officiella översättningar av dokument - från-pris',
+      name: 'Översättning',
+      description: 'Officiella översättningar av dokument. Certifierade översättare och stämpel.',
       officialFee: 1350,
       serviceFee: 100,
       totalPrice: 1450,
@@ -72,7 +72,7 @@ function StandardServicesPricesPage() {
     {
       code: 'ud',
       name: 'Utrikesdepartementet',
-      description: 'UD:s legalisering för icke-Haagkonventionsländer',
+      description: 'UD:s legalisering för icke-Haagkonventionsländer.',
       officialFee: 1650,
       serviceFee: 100,
       totalPrice: 1750,
@@ -88,12 +88,19 @@ function StandardServicesPricesPage() {
     try {
       setLoading(true);
       const allRules = await getAllActivePricingRules();
+      console.log('🔄 Admin page - loaded all rules:', allRules.length);
 
       // Filter to only standard services for Sweden
       const standardRules = allRules.filter(rule =>
         ['apostille', 'notarization', 'chamber', 'translation', 'ud'].includes(rule.serviceType) &&
         rule.countryCode === 'SE'
       );
+      console.log('🇸🇪 Admin page - Swedish standard rules:', standardRules.length);
+      console.log('📋 Admin page - Swedish rules details:', standardRules.map(r => ({
+        serviceType: r.serviceType,
+        processingTime: r.processingTime,
+        basePrice: r.basePrice
+      })));
 
       // Merge with default services
       const mergedServices = defaultServices.map(defaultService => {
@@ -105,6 +112,8 @@ function StandardServicesPricesPage() {
             ? processingTime
             : defaultService.processingTime;
 
+          console.log(`✅ Admin page - loaded ${defaultService.code}: processingTime=${processingTime} → valid=${validProcessingTime}`);
+
           return {
             ...defaultService,
             officialFee: existingRule.officialFee,
@@ -114,12 +123,19 @@ function StandardServicesPricesPage() {
             lastUpdated: existingRule.lastUpdated?.toDate()
           };
         }
+        console.log(`⚠️ Admin page - no Firebase record for ${defaultService.code}, using default processingTime=${defaultService.processingTime}`);
         return defaultService;
       });
 
+      console.log('📊 Admin page - final merged services:', mergedServices.map(s => ({
+        code: s.code,
+        processingTime: s.processingTime,
+        lastUpdated: s.lastUpdated
+      })));
+
       setServices(mergedServices);
     } catch (error) {
-      console.error('Error loading standard services:', error);
+      console.error('❌ Error loading standard services:', error);
       // Use default values if Firebase fails
       setServices(defaultServices);
       toast.error('Kunde inte ladda priser från Firebase - använder standardpriser');
@@ -131,14 +147,20 @@ function StandardServicesPricesPage() {
   const updateServiceFee = async (serviceCode: string, newOfficialFee: number, newServiceFee?: number, newProcessingTime?: number) => {
     try {
       setSaving(true);
+      console.log(`🔄 Admin: Starting update for ${serviceCode}, processingTime=${newProcessingTime}`);
 
       const service = services.find(s => s.code === serviceCode);
-      if (!service) return;
+      if (!service) {
+        console.error(`❌ Admin: Service ${serviceCode} not found in local state`);
+        return;
+      }
 
       const serviceFee = newServiceFee !== undefined ? newServiceFee : service.serviceFee;
       const processingTime = newProcessingTime !== undefined ? newProcessingTime : service.processingTime;
       const ruleId = `SE_${serviceCode}`;
       const newTotalPrice = newOfficialFee + serviceFee;
+
+      console.log(`📋 Admin: Updating ${serviceCode} - officialFee: ${newOfficialFee}, serviceFee: ${serviceFee}, processingTime: ${processingTime}, totalPrice: ${newTotalPrice}`);
 
       // Use the new updateOrCreatePricingRule function
       await updateOrCreatePricingRule(
@@ -163,6 +185,8 @@ function StandardServicesPricesPage() {
         }
       );
 
+      console.log(`✅ Admin: Successfully saved ${serviceCode} to Firebase`);
+
       // Update local state
       setServices(prev =>
         prev.map(s =>
@@ -181,8 +205,8 @@ function StandardServicesPricesPage() {
 
       toast.success(`${service.name} priser uppdaterade!`);
     } catch (error) {
-      console.error('Error updating service fee:', error);
-      toast.error('Kunde inte uppdatera priset');
+      console.error('❌ Admin: Error updating service fee:', error);
+      toast.error(`Kunde inte uppdatera ${serviceCode}: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setSaving(false);
     }
@@ -218,294 +242,208 @@ function StandardServicesPricesPage() {
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((service) => (
-              <div key={service.code} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                {/* Service Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
+              <div key={service.code} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-100">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{service.name}</h3>
-                      <p className="text-sm text-gray-500">{service.code.toUpperCase()}</p>
+                      <h3 className="text-xl font-bold text-gray-900">{service.name}</h3>
+                      <p className="text-sm text-gray-600 font-medium">{service.code.toUpperCase()}</p>
                     </div>
+                    {service.lastUpdated && (
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Senast uppdaterad</div>
+                        <div className="text-xs font-medium text-gray-700">
+                          {service.lastUpdated.toLocaleDateString('sv-SE')}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {service.lastUpdated && (
-                    <span className="text-xs text-gray-400">
-                      Uppdaterad {service.lastUpdated.toLocaleDateString('sv-SE')}
-                    </span>
-                  )}
                 </div>
 
-                {/* Description */}
-                <p className="text-sm text-gray-600 mb-4">{service.description}</p>
+                {/* Content */}
+                <div className="flex-1 p-6">
+                  {/* Description */}
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-600 leading-relaxed">{service.description}</p>
+                  </div>
 
-                {/* Price Breakdown */}
-                <div className="space-y-3">
-                  {service.code === 'translation' ? (
-                    /* Special UI for translation service */
-                    <>
-                      {/* Official Fee - Editable for translation */}
-                      <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Officiell avgift:</span>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            value={service.officialFee || 1350}
-                            onChange={(e) => {
-                              const newValue = parseInt(e.target.value) || 0;
-                              setServices(prev =>
-                                prev.map(s =>
-                                  s.code === service.code
-                                    ? { ...s, officialFee: newValue, totalPrice: newValue + s.serviceFee }
-                                    : s
-                                )
-                              );
-                            }}
-                            onFocus={(e) => {
-                              // Select all text when focused for better UX
-                              e.target.select();
-                            }}
-                            onBlur={(e) => updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0);
-                              }
-                            }}
-                            className="w-28 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                            disabled={saving}
-                          />
-                          <span className="text-sm text-gray-500 ml-2">kr</span>
-                        </div>
-                      </div>
+                  {/* Price Configuration */}
+                  <div className="space-y-4">
+                    {service.code === 'translation' ? (
+                      /* Special UI for translation service */
+                      <>
+                        <div className="grid grid-cols-1 gap-4">
+                          {/* Official Fee */}
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Officiell avgift
+                            </label>
+                            <div className="flex items-center">
+                              <input
+                                type="number"
+                                value={service.officialFee || 1350}
+                                onChange={(e) => {
+                                  const newValue = parseInt(e.target.value) || 0;
+                                  setServices(prev =>
+                                    prev.map(s =>
+                                      s.code === service.code
+                                        ? { ...s, officialFee: newValue, totalPrice: newValue + s.serviceFee }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                onBlur={(e) => updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0);
+                                  }
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-right"
+                                disabled={saving}
+                              />
+                              <span className="ml-2 text-sm text-gray-500 font-medium">kr</span>
+                            </div>
+                          </div>
 
-                      {/* Service Fee - Editable for translation */}
-                      <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Serviceavgift:</span>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            value={service.serviceFee || 100}
-                            onChange={(e) => {
-                              const newServiceFee = parseInt(e.target.value) || 0;
-                              setServices(prev =>
-                                prev.map(s =>
-                                  s.code === service.code
-                                    ? { ...s, serviceFee: newServiceFee, totalPrice: s.officialFee + newServiceFee }
-                                    : s
-                                )
-                              );
-                            }}
-                            onFocus={(e) => {
-                              // Select all text when focused for better UX
-                              e.target.select();
-                            }}
-                            onBlur={(e) => updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0);
-                              }
-                            }}
-                            className="w-24 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                            disabled={saving}
-                          />
-                          <span className="text-sm text-gray-500 ml-2">kr</span>
-                        </div>
-                      </div>
-
-                      {/* Processing Time - Editable for translation */}
-                      <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Handläggningstid:</span>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            value={service.processingTime || 10}
-                            onChange={(e) => {
-                              const newProcessingTime = Math.max(1, Math.min(90, parseInt(e.target.value) || 1));
-                              setServices(prev =>
-                                prev.map(s =>
-                                  s.code === service.code
-                                    ? { ...s, processingTime: newProcessingTime }
-                                    : s
-                                )
-                              );
-                            }}
-                            onFocus={(e) => {
-                              // Select all text when focused for better UX
-                              e.target.select();
-                            }}
-                            onBlur={(e) => {
-                              const value = parseInt((e.target as HTMLInputElement).value) || 1;
-                              const validValue = Math.max(1, Math.min(90, value));
-                              updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
-                            }}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                const value = parseInt((e.target as HTMLInputElement).value) || 1;
-                                const validValue = Math.max(1, Math.min(90, value));
-                                updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
-                              }
-                            }}
-                            className="w-28 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                            disabled={saving}
-                            min="1"
-                            max="90"
-                          />
-                          <span className="text-sm text-gray-500 ml-2">dagar</span>
-                        </div>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="border-t border-gray-200"></div>
-
-                      {/* Total Price */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-semibold text-gray-900">Från-pris:</span>
-                        <span className="text-xl font-bold text-green-600">Från {service.totalPrice || 1450} kr</span>
-                      </div>
-
-                      {/* Information about variable pricing */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-                        <div className="flex items-start">
-                          <span className="text-lg mr-2">📝</span>
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-blue-900 mb-1">Variabel prissättning</div>
-                            <div className="text-xs text-blue-700">
-                              Detta är baspriset. Slutpriset kan variera beroende på språkpar, längd och komplexitet.
+                          {/* Service Fee */}
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Serviceavgift
+                            </label>
+                            <div className="flex items-center">
+                              <input
+                                type="number"
+                                value={service.serviceFee || 100}
+                                onChange={(e) => {
+                                  const newServiceFee = parseInt(e.target.value) || 0;
+                                  setServices(prev =>
+                                    prev.map(s =>
+                                      s.code === service.code
+                                        ? { ...s, serviceFee: newServiceFee, totalPrice: s.officialFee + newServiceFee }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                onBlur={(e) => updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0);
+                                  }
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-right"
+                                disabled={saving}
+                              />
+                              <span className="ml-2 text-sm text-gray-500 font-medium">kr</span>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </>
-                  ) : (
-                    /* Regular price inputs for other services */
-                    <>
-                      {/* Official Fee - Editable */}
-                      <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Officiell avgift:</span>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            value={service.officialFee}
-                            onChange={(e) => {
-                              const newValue = parseInt(e.target.value) || 0;
-                              setServices(prev =>
-                                prev.map(s =>
-                                  s.code === service.code
-                                    ? { ...s, officialFee: newValue, totalPrice: newValue + s.serviceFee }
-                                    : s
-                                )
-                              );
-                            }}
-                            onFocus={(e) => {
-                              // Select all text when focused for better UX
-                              e.target.select();
-                            }}
-                            onBlur={(e) => updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0);
-                              }
-                            }}
-                            className="w-24 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                            disabled={saving}
-                          />
-                          <span className="text-sm text-gray-500 ml-2">kr</span>
+
+                        {/* Total Price */}
+                        <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-lg font-semibold text-green-900">Från-pris:</span>
+                            <span className="text-2xl font-bold text-green-600">Från {service.totalPrice || 1450} kr</span>
+                          </div>
                         </div>
-                      </div>
+                      </>
+                    ) : (
+                      /* Regular price inputs for other services */
+                      <>
+                        <div className="grid grid-cols-1 gap-4">
+                          {/* Official Fee */}
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Officiell avgift
+                            </label>
+                            <div className="flex items-center">
+                              <input
+                                type="number"
+                                value={service.officialFee}
+                                onChange={(e) => {
+                                  const newValue = parseInt(e.target.value) || 0;
+                                  setServices(prev =>
+                                    prev.map(s =>
+                                      s.code === service.code
+                                        ? { ...s, officialFee: newValue, totalPrice: newValue + s.serviceFee }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                onBlur={(e) => updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    updateServiceFee(service.code, parseInt((e.target as HTMLInputElement).value) || 0);
+                                  }
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-right"
+                                disabled={saving}
+                              />
+                              <span className="ml-2 text-sm text-gray-500 font-medium">kr</span>
+                            </div>
+                          </div>
 
-                      {/* Service Fee - Editable */}
-                      <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Serviceavgift:</span>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            value={service.serviceFee}
-                            onChange={(e) => {
-                              const newServiceFee = parseInt(e.target.value) || 0;
-                              setServices(prev =>
-                                prev.map(s =>
-                                  s.code === service.code
-                                    ? { ...s, serviceFee: newServiceFee, totalPrice: s.officialFee + newServiceFee }
-                                    : s
-                                )
-                              );
-                            }}
-                            onFocus={(e) => {
-                              // Select all text when focused for better UX
-                              e.target.select();
-                            }}
-                            onBlur={(e) => updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0);
-                              }
-                            }}
-                            className="w-24 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                            disabled={saving}
-                          />
-                          <span className="text-sm text-gray-500 ml-2">kr</span>
+                          {/* Service Fee */}
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Serviceavgift
+                            </label>
+                            <div className="flex items-center">
+                              <input
+                                type="number"
+                                value={service.serviceFee}
+                                onChange={(e) => {
+                                  const newServiceFee = parseInt(e.target.value) || 0;
+                                  setServices(prev =>
+                                    prev.map(s =>
+                                      s.code === service.code
+                                        ? { ...s, serviceFee: newServiceFee, totalPrice: s.officialFee + newServiceFee }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                onBlur={(e) => updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    updateServiceFee(service.code, service.officialFee, parseInt((e.target as HTMLInputElement).value) || 0);
+                                  }
+                                }}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-right"
+                                disabled={saving}
+                              />
+                              <span className="ml-2 text-sm text-gray-500 font-medium">kr</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Processing Time - Editable */}
-                      <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-gray-600 flex-shrink-0 w-32">Handläggningstid:</span>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            value={service.processingTime}
-                            onChange={(e) => {
-                              const newProcessingTime = Math.max(1, Math.min(90, parseInt(e.target.value) || 1));
-                              setServices(prev =>
-                                prev.map(s =>
-                                  s.code === service.code
-                                    ? { ...s, processingTime: newProcessingTime }
-                                    : s
-                                )
-                              );
-                            }}
-                            onFocus={(e) => {
-                              // Select all text when focused for better UX
-                              e.target.select();
-                            }}
-                            onBlur={(e) => {
-                              const value = parseInt((e.target as HTMLInputElement).value) || 1;
-                              const validValue = Math.max(1, Math.min(90, value));
-                              updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
-                            }}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                const value = parseInt((e.target as HTMLInputElement).value) || 1;
-                                const validValue = Math.max(1, Math.min(90, value));
-                                updateServiceFee(service.code, service.officialFee, service.serviceFee, validValue);
-                              }
-                            }}
-                            className="w-28 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                            disabled={saving}
-                            min="1"
-                            max="90"
-                          />
-                          <span className="text-sm text-gray-500 ml-2">dagar</span>
+                        {/* Total Price */}
+                        <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-lg font-semibold text-green-900">Totalpris:</span>
+                            <span className="text-2xl font-bold text-green-600">{service.totalPrice} kr</span>
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="border-t border-gray-200"></div>
-
-                      {/* Total Price */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-semibold text-gray-900">Totalpris:</span>
-                        <span className="text-xl font-bold text-green-600">{service.totalPrice} kr</span>
-                      </div>
-                    </>
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                {/* Status Indicator */}
-                <div className="mt-4 pt-3 border-t border-gray-100">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <span className="text-xs text-gray-500">
-                      {saving ? 'Sparar...' : 'Redo att uppdatera'}
-                    </span>
+                {/* Footer */}
+                <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 mt-auto">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${saving ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></div>
+                      <span className="text-xs font-medium text-gray-600">
+                        {saving ? 'Sparar ändringar...' : 'Redo att uppdatera'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Tryck Enter för att spara
+                    </div>
                   </div>
                 </div>
               </div>

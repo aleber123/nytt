@@ -2,6 +2,7 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { createOrderWithFiles } from '@/services/hybridOrderService';
@@ -17,6 +18,7 @@ interface TestOrderPageProps {}
 export default function TestOrderPage({}: TestOrderPageProps) {
   const { t } = useTranslation('common');
   const router = useRouter();
+  const currentLocale = router.locale || 'sv';
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [answers, setAnswers] = useState({
     country: '',
@@ -33,6 +35,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     },
     scannedCopies: false, // New: scanned copies option
     returnService: '', // New: return service selection
+    premiumDelivery: '', // New: premium delivery option (pre-12, pre-9)
     uploadedFiles: [] as File[],
     customerInfo: {
       firstName: '',
@@ -668,8 +671,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
       // Filter to only shipping services (same as admin page)
       const shippingRules = allRules.filter(rule =>
-        ['postnord-rek', 'postnord-express', 'dhl-europe', 'dhl-worldwide', 'dhl-pre-12', 'dhl-pre-9', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(rule.serviceType) &&
-        rule.countryCode === 'GLOBAL'
+        ['postnord-rek', 'dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'dhl-pre-12', 'dhl-pre-9', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(rule.serviceType)
       );
 
       // Convert pricing rules to service objects
@@ -677,47 +679,107 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         id: rule.serviceType,
         name: getShippingServiceName(rule.serviceType),
         description: getShippingServiceDescription(rule.serviceType),
-        price: `${rule.basePrice} kr`,
+        price: `Från ${rule.basePrice} kr`,
         provider: getShippingProvider(rule.serviceType),
         estimatedDelivery: getShippingDeliveryTime(rule.serviceType),
         available: true
       }));
 
-      // If no Firebase data, use default services
-      if (servicesFromFirebase.length === 0) {
-        const defaultReturnServices = [
-          {
-            id: 'postnord-rek',
-            name: 'PostNord REK',
-            description: 'Rekommenderat brev - spårbart och försäkrat',
-            price: '85 kr',
-            provider: 'PostNord',
-            estimatedDelivery: '2-5 arbetsdagar',
-            available: true
-          },
-          {
-            id: 'postnord-express',
-            name: 'PostNord Express',
-            description: 'Expressleverans inom Sverige',
-            price: '150 kr',
-            provider: 'PostNord',
-            estimatedDelivery: '1-2 arbetsdagar',
-            available: true
-          },
-          {
-            id: 'dhl-europe',
-            name: 'DHL Europe',
-            description: 'DHL leverans inom Europa',
-            price: '250 kr',
-            provider: 'DHL',
-            estimatedDelivery: '2-4 arbetsdagar',
-            available: true
-          }
-        ];
-        setReturnServices(defaultReturnServices);
-      } else {
-        setReturnServices(servicesFromFirebase);
-      }
+      // Merge with default services (like admin page does)
+      const defaultReturnServices = [
+        {
+          id: 'postnord-rek',
+          name: 'PostNord REK',
+          description: 'Rekommenderat brev - spårbart och försäkrat',
+          price: 'Från 85 kr',
+          provider: 'PostNord',
+          estimatedDelivery: '2-5 arbetsdagar',
+          available: true
+        },
+        {
+          id: 'dhl-sweden',
+          name: 'DHL Sweden',
+          description: 'DHL leverans inom Sverige',
+          price: 'Från 180 kr',
+          provider: 'DHL',
+          estimatedDelivery: '1-2 arbetsdagar',
+          available: true
+        },
+        {
+          id: 'dhl-europe',
+          name: 'DHL Europe',
+          description: 'DHL leverans inom Europa',
+          price: 'Från 250 kr',
+          provider: 'DHL',
+          estimatedDelivery: '2-4 arbetsdagar',
+          available: true
+        },
+        {
+          id: 'dhl-worldwide',
+          name: 'DHL Worldwide',
+          description: 'DHL internationell leverans',
+          price: 'Från 450 kr',
+          provider: 'DHL',
+          estimatedDelivery: '3-7 arbetsdagar',
+          available: true
+        },
+        {
+          id: 'dhl-pre-12',
+          name: 'DHL Pre 12',
+          description: 'Leverans före klockan 12:00 nästa arbetsdag',
+          price: 'Från 350 kr',
+          provider: 'DHL',
+          estimatedDelivery: 'Nästa arbetsdag före 12:00',
+          available: true
+        },
+        {
+          id: 'dhl-pre-9',
+          name: 'DHL Pre 9',
+          description: 'Leverans före klockan 09:00 nästa arbetsdag',
+          price: 'Från 450 kr',
+          provider: 'DHL',
+          estimatedDelivery: 'Nästa arbetsdag före 09:00',
+          available: true
+        },
+        {
+          id: 'stockholm-city',
+          name: 'Stockholm City Courier',
+          description: 'Lokal budservice inom Stockholm',
+          price: 'Från 120 kr',
+          provider: 'Lokal',
+          estimatedDelivery: 'Samma dag (före 16:00)',
+          available: true
+        },
+        {
+          id: 'stockholm-express',
+          name: 'Stockholm Express',
+          description: 'Expressleverans inom Stockholm samma dag',
+          price: 'Från 180 kr',
+          provider: 'Lokal',
+          estimatedDelivery: '2-4 timmar',
+          available: true
+        },
+        {
+          id: 'stockholm-sameday',
+          name: 'Stockholm Same Day',
+          description: 'Samma dags leverans inom Stockholm',
+          price: 'Från 250 kr',
+          provider: 'Lokal',
+          estimatedDelivery: 'Inom 2 timmar',
+          available: true
+        }
+      ];
+
+      // Merge Firebase services with defaults, Firebase takes precedence
+      const mergedServices = defaultReturnServices.map(defaultService => {
+        const existingRule = servicesFromFirebase.find(rule => rule.id === defaultService.id);
+        if (existingRule) {
+          return existingRule;
+        }
+        return defaultService;
+      });
+
+      setReturnServices(mergedServices);
     } catch (error) {
       console.error('Error loading return services:', error);
       // Use default services if Firebase fails
@@ -726,17 +788,17 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'postnord-rek',
           name: 'PostNord REK',
           description: 'Rekommenderat brev - spårbart och försäkrat',
-          price: '85 kr',
+          price: 'Från 85 kr',
           provider: 'PostNord',
           estimatedDelivery: '2-5 arbetsdagar',
           available: true
         },
         {
-          id: 'postnord-express',
-          name: 'PostNord Express',
-          description: 'Expressleverans inom Sverige',
-          price: '150 kr',
-          provider: 'PostNord',
+          id: 'dhl-sweden',
+          name: 'DHL Sweden',
+          description: 'DHL leverans inom Sverige',
+          price: 'Från 180 kr',
+          provider: 'DHL',
           estimatedDelivery: '1-2 arbetsdagar',
           available: true
         }
@@ -774,7 +836,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const getShippingServiceName = (serviceType: string) => {
     const names: { [key: string]: string } = {
       'postnord-rek': 'PostNord REK',
-      'postnord-express': 'PostNord Express',
+      'dhl-sweden': 'DHL Sweden',
       'dhl-europe': 'DHL Europe',
       'dhl-worldwide': 'DHL Worldwide',
       'dhl-pre-12': 'DHL Pre 12',
@@ -789,7 +851,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const getShippingServiceDescription = (serviceType: string) => {
     const descriptions: { [key: string]: string } = {
       'postnord-rek': 'Rekommenderat brev - spårbart och försäkrat',
-      'postnord-express': 'Expressleverans inom Sverige',
+      'dhl-sweden': 'DHL leverans inom Sverige',
       'dhl-europe': 'DHL leverans inom Europa',
       'dhl-worldwide': 'DHL internationell leverans',
       'dhl-pre-12': 'Leverans före klockan 12:00 nästa arbetsdag',
@@ -804,7 +866,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const getShippingProvider = (serviceType: string) => {
     const providers: { [key: string]: string } = {
       'postnord-rek': 'PostNord',
-      'postnord-express': 'PostNord',
+      'dhl-sweden': 'DHL',
       'dhl-europe': 'DHL',
       'dhl-worldwide': 'DHL',
       'dhl-pre-12': 'DHL',
@@ -819,7 +881,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const getShippingDeliveryTime = (serviceType: string) => {
     const deliveryTimes: { [key: string]: string } = {
       'postnord-rek': '2-5 arbetsdagar',
-      'postnord-express': '1-2 arbetsdagar',
+      'dhl-sweden': '1-2 arbetsdagar',
       'dhl-europe': '2-4 arbetsdagar',
       'dhl-worldwide': '3-7 arbetsdagar',
       'dhl-pre-12': 'Nästa arbetsdag före 12:00',
@@ -1821,33 +1883,113 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {returnServices.map((service) => (
-            <button
-              key={service.id}
-              onClick={() => {
-                setAnswers(prev => ({ ...prev, returnService: service.id }));
-              }}
-              className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
-                answers.returnService === service.id ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="text-left">
-                    <div className="text-lg font-medium text-gray-900">{service.name}</div>
-                    <div className="text-gray-600">{service.description}</div>
-                    <div className="text-sm text-gray-500 mt-1">Leveranstid: {service.estimatedDelivery}</div>
+          {returnServices
+            .filter(service => !['dhl-pre-12', 'dhl-pre-9', 'stockholm-express', 'stockholm-sameday'].includes(service.id)) // Filter out premium delivery options
+            .map((service) => (
+            <div key={service.id}>
+              <button
+                onClick={() => {
+                  setAnswers(prev => ({
+                    ...prev,
+                    returnService: service.id,
+                    premiumDelivery: '' // Reset premium delivery when changing base service
+                  }));
+                  // Don't automatically advance - let user select premium options first
+                }}
+                className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+                  answers.returnService === service.id ? 'border-custom-button bg-custom-button-bg' : 'border-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="text-left">
+                      <div className="text-lg font-medium text-gray-900">{service.name}</div>
+                      <div className="text-gray-600">{service.description}</div>
+                      <div className="text-sm text-gray-500 mt-1">Leveranstid: {service.estimatedDelivery}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-custom-button">{service.price}</div>
+                    <div className="text-xs text-gray-500">{service.provider}</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold text-custom-button">{service.price}</div>
-                  <div className="text-xs text-gray-500">{service.provider}</div>
+              </button>
+
+              {/* Show premium delivery options for DHL services */}
+              {answers.returnService === service.id && ['dhl-sweden', 'dhl-europe', 'dhl-worldwide'].includes(service.id) && (
+                <div className="mt-4 ml-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-900 mb-3">🚀 Premiumleverans (valfritt)</h4>
+                  <div className="space-y-3">
+                    {returnServices
+                      .filter(premium => ['dhl-pre-12', 'dhl-pre-9'].includes(premium.id))
+                      .map((premium) => (
+                        <label key={premium.id} className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="premium-delivery"
+                            value={premium.id}
+                            checked={answers.premiumDelivery === premium.id}
+                            onChange={(e) => setAnswers(prev => ({ ...prev, premiumDelivery: e.target.value }))}
+                            className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">{premium.name}</div>
+                            <div className="text-xs text-gray-600">{premium.description}</div>
+                            <div className="text-xs text-gray-500">Leveranstid: {premium.estimatedDelivery}</div>
+                          </div>
+                          <div className="text-sm font-semibold text-custom-button">{premium.price}</div>
+                        </label>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            </button>
+              )}
+
+              {/* Show premium delivery options for Stockholm City Courier */}
+              {answers.returnService === service.id && service.id === 'stockholm-city' && (
+                <div className="mt-4 ml-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="text-sm font-medium text-green-900 mb-3">⚡ Expressleverans (valfritt)</h4>
+                  <div className="space-y-3">
+                    {returnServices
+                      .filter(premium => ['stockholm-express', 'stockholm-sameday'].includes(premium.id))
+                      .map((premium) => (
+                        <label key={premium.id} className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="premium-delivery"
+                            value={premium.id}
+                            checked={answers.premiumDelivery === premium.id}
+                            onChange={(e) => setAnswers(prev => ({ ...prev, premiumDelivery: e.target.value }))}
+                            className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">{premium.name}</div>
+                            <div className="text-xs text-gray-600">{premium.description}</div>
+                            <div className="text-xs text-gray-500">Leveranstid: {premium.estimatedDelivery}</div>
+                          </div>
+                          <div className="text-sm font-semibold text-custom-button">{premium.price}</div>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
+
+      {/* Disclaimer for variable pricing */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6 mb-6">
+        <div className="flex items-start">
+          <span className="text-2xl mr-3">⚠️</span>
+          <div>
+            <h4 className="font-medium text-amber-900 mb-1">Observera: Priserna kan variera</h4>
+            <p className="text-sm text-amber-800">
+              De angivna priserna är från-priser och kan variera beroende på vikt, storlek och destinationsadress.
+              Det slutgiltiga priset bekräftas vid leverans.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-8 flex justify-between">
         <button
@@ -1861,7 +2003,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             onClick={() => setCurrentQuestion(10)}
             className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
           >
-            {t('orderFlow.nextButton')}
+            {t('orderFlow.continueButton')}
           </button>
         )}
       </div>
@@ -1954,9 +2096,41 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               <span className="font-medium text-gray-900">
                 {(() => {
                   const returnService = returnServices.find(s => s.id === answers.returnService);
+                  let totalReturnCost = 0;
+
                   if (returnService && returnService.price) {
                     const priceMatch = returnService.price.match(/(\d+)/);
-                    return priceMatch ? `${priceMatch[1]} kr` : returnService.price;
+                    if (priceMatch) {
+                      totalReturnCost += parseInt(priceMatch[1]);
+                    }
+                  }
+
+                  // Add premium delivery cost
+                  if (answers.premiumDelivery) {
+                    const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
+                    if (premiumService && premiumService.price) {
+                      const priceMatch = premiumService.price.match(/(\d+)/);
+                      if (priceMatch) {
+                        totalReturnCost += parseInt(priceMatch[1]);
+                      }
+                    }
+                  }
+
+                  return `${totalReturnCost} kr`;
+                })()}
+              </span>
+            </div>
+          )}
+
+          {answers.premiumDelivery && (
+            <div className="flex justify-between items-center py-2 border-b border-green-200">
+              <span className="text-gray-700">Premiumleverans:</span>
+              <span className="font-medium text-gray-900">
+                {(() => {
+                  const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
+                  if (premiumService && premiumService.price) {
+                    const priceMatch = premiumService.price.match(/(\d+)/);
+                    return priceMatch ? `${priceMatch[1]} kr` : premiumService.price;
                   }
                   return '0 kr';
                 })()}
@@ -1994,6 +2168,17 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   const returnService = returnServices.find(s => s.id === answers.returnService);
                   if (returnService && returnService.price) {
                     const priceMatch = returnService.price.match(/(\d+)/);
+                    if (priceMatch) {
+                      total += parseInt(priceMatch[1]);
+                    }
+                  }
+                }
+
+                // Add premium delivery cost
+                if (answers.premiumDelivery) {
+                  const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
+                  if (premiumService && premiumService.price) {
+                    const priceMatch = premiumService.price.match(/(\d+)/);
                     if (priceMatch) {
                       total += parseInt(priceMatch[1]);
                     }
@@ -2065,6 +2250,27 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 </div>
               </div>
             ))}
+          </div>
+
+
+          {/* Terms and Conditions Acceptance */}
+          <div className="pt-4">
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="terms-acceptance-original"
+                  name="terms-acceptance-original"
+                  type="checkbox"
+                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="terms-acceptance-original" className="text-gray-700">
+                  {t('orderFlow.step10.termsAcceptance')}
+                </label>
+              </div>
+            </div>
           </div>
 
           {/* Customer Information Form */}
@@ -2169,6 +2375,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.additionalNotesNote')}</p>
             </div>
           </div>
+
 
           {/* reCAPTCHA */}
           <div className="pt-4">
@@ -2328,6 +2535,23 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                       }
                     }
 
+                    // Add premium delivery cost
+                    if (answers.premiumDelivery) {
+                      const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
+                      if (premiumService && premiumService.price) {
+                        const priceMatch = premiumService.price.match(/(\d+)/);
+                        if (priceMatch) {
+                          const premiumCost = parseInt(priceMatch[1]);
+                          additionalFees += premiumCost;
+                          breakdown.push({
+                            service: 'premium_delivery',
+                            fee: premiumCost,
+                            description: premiumService.name
+                          });
+                        }
+                      }
+                    }
+
                     pricingResult = {
                       basePrice: totalPrice,
                       additionalFees,
@@ -2349,6 +2573,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                     pickupService: answers.pickupService,
                     pickupAddress: answers.pickupAddress,
                     returnService: answers.returnService,
+                    premiumDelivery: answers.premiumDelivery,
                     customerInfo: answers.customerInfo,
                     paymentMethod: 'invoice', // Default to invoice payment
                     totalPrice: pricingResult.totalPrice,
@@ -2392,6 +2617,8 @@ Totalbelopp: ${pricingResult.totalPrice} kr
 
 Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
 Returfrakt: ${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}
+${answers.premiumDelivery ? `Premiumleverans: ${returnServices.find(s => s.id === answers.premiumDelivery)?.name}` : ''}
+${answers.premiumDelivery ? `Premiumleverans: ${returnServices.find(s => s.id === answers.premiumDelivery)?.name}` : ''}
 
 ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
                       `.trim(),
@@ -2699,6 +2926,34 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
             </div>
           </div>
 
+          {/* Terms and Conditions Acceptance */}
+          <div className="pt-4">
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="terms-acceptance-original"
+                  name="terms-acceptance-original"
+                  type="checkbox"
+                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="terms-acceptance-original" className="text-gray-700">
+                  Jag har läst och godkänner{' '}
+                  <Link href="/villkor" target="_blank" className="text-custom-button hover:text-custom-button-hover underline">
+                    allmänna villkor
+                  </Link>
+                  {' '}och{' '}
+                  <Link href="/integritetspolicy" target="_blank" className="text-custom-button hover:text-custom-button-hover underline">
+                    integritetspolicy
+                  </Link>
+                  .
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* reCAPTCHA */}
           <div className="pt-4">
             <ReCAPTCHA
@@ -2878,6 +3133,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     pickupService: answers.pickupService,
                     pickupAddress: answers.pickupAddress,
                     returnService: answers.returnService,
+                    premiumDelivery: answers.premiumDelivery,
                     customerInfo: answers.customerInfo,
                     paymentMethod: 'invoice', // Default to invoice payment
                     totalPrice: pricingResult.totalPrice,

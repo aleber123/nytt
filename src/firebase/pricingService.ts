@@ -177,31 +177,41 @@ export const updateOrCreatePricingRule = async (
   createData?: Omit<PricingRule, 'id' | 'lastUpdated'>
 ): Promise<void> => {
   try {
+    console.log(`🔥 Firebase: updateOrCreatePricingRule called for ${ruleId}`);
+    console.log('🔥 Firebase: updates:', updates);
+    console.log('🔥 Firebase: createData:', createData);
+
     const ruleRef = doc(db, 'pricing', ruleId);
 
     // Check if document exists first
     const docSnap = await getDoc(ruleRef);
+    console.log(`🔥 Firebase: Document ${ruleId} exists:`, docSnap.exists());
 
     if (docSnap.exists()) {
       // Document exists, update it
+      console.log('🔥 Firebase: Updating existing document');
       await updateDoc(ruleRef, {
         ...updates,
         lastUpdated: Timestamp.now()
       });
+      console.log('🔥 Firebase: Update successful');
     } else if (createData) {
       // Document doesn't exist, create it
+      console.log('🔥 Firebase: Creating new document');
       const ruleData: PricingRule = {
         ...createData,
         ...updates,
         id: ruleId,
         lastUpdated: Timestamp.now()
       };
+      console.log('🔥 Firebase: Final ruleData to save:', ruleData);
       await setDoc(ruleRef, ruleData);
+      console.log('🔥 Firebase: Create successful');
     } else {
       throw new Error(`Document ${ruleId} does not exist and no createData provided.`);
     }
   } catch (error) {
-    console.error('Error updating or creating pricing rule:', error);
+    console.error('❌ Firebase: Error updating or creating pricing rule:', error);
     throw error;
   }
 };

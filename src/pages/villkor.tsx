@@ -1,0 +1,133 @@
+import React from 'react';
+import { GetStaticProps } from 'next';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import Head from 'next/head';
+import Link from 'next/link';
+
+const TermsAndConditionsPage: React.FC = () => {
+  const { t } = useTranslation('common');
+
+  return (
+    <>
+      <Head>
+        <title>Allmänna villkor - Legaliseringstjänst</title>
+        <meta
+          name="description"
+          content="Läs våra allmänna villkor för att förstå villkoren för våra legaliseringstjänster."
+        />
+      </Head>
+
+      <div className="bg-custom-page-header py-12">
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
+            Allmänna villkor
+          </h1>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="text-gray-700">
+              <p className="text-gray-600 mb-6">
+                <em>Senast uppdaterad: {new Date().toLocaleDateString('sv-SE')}</em>
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">1. Allmän information</h2>
+              <p className="text-gray-700 mb-6">
+                Dessa allmänna villkor ("Villkor") reglerar användningen av Legaliseringstjänst AB:s ("vi", "oss" eller "vårt") tjänster.
+                Genom att använda våra tjänster accepterar du dessa villkor. Dessa villkor gäller från det att du accepterar dem innan beställning.
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">2. Tjänstebeskrivning</h2>
+              <p className="text-gray-700 mb-6">
+                Vi erbjuder legaliseringstjänster för dokument som ska användas utomlands. Detta inkluderar hantering av dokument,
+                kommunikation med relevanta myndigheter, ambassader och andra instanser samt transport av dokument.
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">3. Kundens ansvar</h2>
+              <p className="text-gray-700 mb-4">Som kund ansvarar du för:</p>
+              <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
+                <li>Att tillhandahålla korrekta och fullständiga dokument</li>
+                <li>Att ange rätt destination och krav för legalisering</li>
+                <li>Att betala för tjänsterna enligt överenskommelse</li>
+                <li>Att kontrollera att alla uppgifter är korrekta innan beställning</li>
+              </ul>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.liability.title')}</h2>
+              <p className="text-gray-700 mb-4">
+                {t('terms.sections.liability.content')}
+              </p>
+              <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
+                {(t('terms.sections.liability.items', { returnObjects: true }) as string[]).map((item: string, index: number) => (
+                  <li key={index} dangerouslySetInnerHTML={{ __html: item }}></li>
+                ))}
+              </ul>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.pricing.title')}</h2>
+              <p className="text-gray-700 mb-6">
+                {t('terms.sections.pricing.content')}
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.cancellation.title')}</h2>
+              <p className="text-gray-700 mb-6">
+                {t('terms.sections.cancellation.content')}
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.forceMajeure.title')}</h2>
+              <p className="text-gray-700 mb-6">
+                {t('terms.sections.forceMajeure.content')}
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.law.title')}</h2>
+              <p className="text-gray-700 mb-6">
+                {t('terms.sections.law.content')}
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.changes.title')}</h2>
+              <p className="text-gray-700 mb-6">
+                {t('terms.sections.changes.content')}
+              </p>
+
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.contact.title')}</h2>
+              <p className="text-gray-700 mb-6">
+                {t('terms.sections.contact.content')}
+              </p>
+              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <p className="text-gray-700">
+                  <strong>{t('terms.sections.contact.company')}</strong><br />
+                  {t('terms.sections.contact.address').split('\n').map((line: string, index: number) => (
+                    <span key={index}>{line}<br /></span>
+                  ))}
+                  <br />
+                  {t('terms.sections.contact.email')}<br />
+                  {t('terms.sections.contact.phone')}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <Link
+                href="/kontakt"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                {t('terms.backToContact')}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+    },
+  };
+};
+
+export default TermsAndConditionsPage;

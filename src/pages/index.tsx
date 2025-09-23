@@ -96,37 +96,27 @@ export default function Home() {
       Object.entries(serviceGroups).forEach(([serviceType, serviceRules]) => {
         // Use the first rule for pricing (assuming all Swedish rules have similar pricing)
         const rule = serviceRules[0];
-        const processingTime = rule.processingTime?.standard || 5; // Default to 5 if not set
+        const processingTime = rule.processingTime?.standard || rule.processingTime || 5; // Default to 5 if not set
+        console.log(`🔄 Homepage - updating ${serviceType}: processingTime=${processingTime}, rule.processingTime=`, rule.processingTime, 'type:', typeof rule.processingTime);
+        if (typeof rule.processingTime === 'object' && rule.processingTime !== null) {
+          console.log(`   - processingTime.standard:`, rule.processingTime.standard);
+        }
 
         // Find the corresponding fallback entry and update it
-        const fallbackIndex = pricingData.findIndex(p => p.service.toLowerCase().includes(serviceType) ||
-          (serviceType === 'notarization' && p.service === 'Notarisering') ||
-          (serviceType === 'chamber' && p.service === 'Handelskammaren') ||
-          (serviceType === 'ud' && p.service === 'Utrikesdepartementet') ||
-          (serviceType === 'embassy' && p.service === 'Ambassadlegalisering'));
+        const fallbackIndex = pricingData.findIndex(p => p.serviceType === serviceType);
 
         if (fallbackIndex !== -1) {
-          // Handle quoted services (translation and embassy)
-          if (serviceType === 'translation') {
-            pricingData[fallbackIndex] = {
-              ...pricingData[fallbackIndex],
-              timeframe: `${processingTime} arbetsdagar`
-            };
-          } else if (serviceType === 'embassy') {
-            pricingData[fallbackIndex] = {
-              ...pricingData[fallbackIndex],
-              timeframe: `${processingTime} arbetsdagar`
-            };
-          } else {
-            // Use actual prices from Firebase rule
-            pricingData[fallbackIndex] = {
-              ...pricingData[fallbackIndex],
-              officialFee: `${rule.officialFee} kr`,
-              serviceFee: `${rule.serviceFee} kr`,
-              totalPrice: `${rule.basePrice} kr`,
-              timeframe: `${processingTime} arbetsdagar`
-            };
-          }
+          // Update timeframe for all services from Firebase data
+          pricingData[fallbackIndex] = {
+            ...pricingData[fallbackIndex],
+            officialFee: `${rule.officialFee} kr`,
+            serviceFee: `${rule.serviceFee} kr`,
+            totalPrice: `${rule.basePrice} kr`,
+            timeframe: `${processingTime} arbetsdagar`
+          };
+          console.log(`✅ Homepage - updated ${serviceType} timeframe to: "${pricingData[fallbackIndex].timeframe}"`);
+        } else {
+          console.log(`❌ Homepage - no fallback entry found for ${serviceType}, available types:`, pricingData.map(p => p.serviceType));
         }
       });
     }
@@ -136,57 +126,63 @@ export default function Home() {
 
   const getFallbackPricingData = () => [
     {
+      serviceType: 'apostille',
       service: 'Apostille',
       description: 'För länder anslutna till Haagkonventionen',
       officialFee: '850 kr',
       serviceFee: '100 kr',
       totalPrice: '950 kr',
-      timeframe: '5 arbetsdagar',
+      timeframe: 'Kontakta oss',
       features: ['Officiell legalisering', 'Giltig i Haag-länder', 'Snabb handläggning', 'Digital leverans']
     },
     {
+      serviceType: 'notarization',
       service: 'Notarisering',
       description: 'Juridisk bekräftelse av dokument',
       officialFee: '1,200 kr',
       serviceFee: '100 kr',
       totalPrice: '1,300 kr',
-      timeframe: '8 arbetsdagar',
+      timeframe: 'Kontakta oss',
       features: ['Notarius publicus', 'Juridisk giltighet', 'Originaldokument krävs', 'Snabb handläggning']
     },
     {
+      serviceType: 'embassy',
       service: 'Ambassadlegalisering',
       description: 'För länder utanför Haagkonventionen',
       officialFee: 'Från 1,500 kr (exkl. moms)',
       serviceFee: '150 kr (inkl. moms)',
       totalPrice: 'Från 1,650 kr',
-      timeframe: 'Varierar beroende på ambassad',
+      timeframe: 'Kontakta oss',
       features: ['Ambassad/konsulat', 'Internationell giltighet', 'Komplex process', 'Hög säkerhet']
     },
     {
+      serviceType: 'translation',
       service: 'Auktoriserad översättning',
       description: 'Officiella översättningar',
       officialFee: 'Från 1,350 kr',
       serviceFee: '100 kr',
       totalPrice: 'Från 1,450 kr',
-      timeframe: '10 arbetsdagar',
+      timeframe: 'Kontakta oss',
       features: ['Certifierade översättare', 'Alla språk', 'Officiell stämpel']
     },
     {
+      serviceType: 'chamber',
       service: 'Handelskammaren',
       description: 'Handelskammarens legalisering',
       officialFee: '2,300 kr',
       serviceFee: '100 kr',
       totalPrice: '2,400 kr',
-      timeframe: '7 arbetsdagar',
+      timeframe: 'Kontakta oss',
       features: ['Handelskammarens stämpel', 'Internationell giltighet', 'Företagshandlingar', 'Officiell legalisering']
     },
     {
+      serviceType: 'ud',
       service: 'Utrikesdepartementet',
       description: 'UD:s legalisering',
       officialFee: '1,650 kr',
       serviceFee: '100 kr',
       totalPrice: '1,750 kr',
-      timeframe: '10 arbetsdagar',
+      timeframe: 'Kontakta oss',
       features: ['Utrikesdepartementets stämpel', 'Högsta myndighet', 'Internationell giltighet', 'Officiell legalisering']
     }
   ];
@@ -336,7 +332,7 @@ export default function Home() {
             {/* Services Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
               {services.map((service) => (
-                <div key={service.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+                <div key={service.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col h-full">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                       {renderIcon(service.icon)}
@@ -355,7 +351,7 @@ export default function Home() {
                     {service.shortDescription}
                   </p>
 
-                  <div className="space-y-2 mb-6">
+                  <div className="space-y-2 mb-6 flex-grow">
                     {service.features.map((feature, index) => (
                       <div key={index} className="flex items-center text-sm text-gray-600">
                         <svg className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -366,16 +362,10 @@ export default function Home() {
                     ))}
                   </div>
 
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Från</p>
-                        <p className="text-lg font-bold text-custom-button">{service.price}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">Leveranstid</p>
-                        <p className="text-sm font-medium">{service.timeframe}</p>
-                      </div>
+                  <div className="border-t pt-4 mt-auto">
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-500">Från</p>
+                      <p className="text-lg font-bold text-custom-button">{service.price}</p>
                     </div>
 
                     <div className="flex gap-2">
