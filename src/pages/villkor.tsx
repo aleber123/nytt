@@ -55,54 +55,54 @@ const TermsAndConditionsPage: React.FC = () => {
                 <li>Att kontrollera att alla uppgifter är korrekta innan beställning</li>
               </ul>
 
-              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.liability.title')}</h2>
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">4. Ansvarsbegränsning</h2>
               <p className="text-gray-700 mb-4">
-                {t('terms.sections.liability.content')}
+                Vi ansvarar endast för de tjänster som vi har åtagit oss att utföra enligt dessa villkor.
               </p>
               <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
-                {(t('terms.sections.liability.items', { returnObjects: true }) as string[]).map((item: string, index: number) => (
-                  <li key={index} dangerouslySetInnerHTML={{ __html: item }}></li>
-                ))}
+                <li>Vi ansvarar inte för förseningar orsakade av myndigheter eller tredje part</li>
+                <li>Vårt ansvar begränsas till det belopp som betalats för tjänsten</li>
+                <li>Vi ansvarar inte för indirekta skador eller följdskador</li>
               </ul>
 
-              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.pricing.title')}</h2>
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">5. Prissättning</h2>
               <p className="text-gray-700 mb-6">
-                {t('terms.sections.pricing.content')}
+                Alla priser anges exklusive moms om inte annat anges. Priserna kan ändras med förvarning.
               </p>
 
-              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.cancellation.title')}</h2>
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">6. Avbokning och återbetalning</h2>
               <p className="text-gray-700 mb-6">
-                {t('terms.sections.cancellation.content')}
+                Beställningar kan avbokas kostnadsfritt inom 24 timmar från beställningstillfället.
               </p>
 
-              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.forceMajeure.title')}</h2>
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">7. Force majeure</h2>
               <p className="text-gray-700 mb-6">
-                {t('terms.sections.forceMajeure.content')}
+                Vi ansvarar inte för förseningar orsakade av omständigheter utanför vår kontroll.
               </p>
 
-              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.law.title')}</h2>
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">8. Tillämplig lag</h2>
               <p className="text-gray-700 mb-6">
-                {t('terms.sections.law.content')}
+                Dessa villkor regleras av svensk lag. Eventuella tvister ska lösas i svensk domstol.
               </p>
 
-              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.changes.title')}</h2>
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">9. Ändringar av villkor</h2>
               <p className="text-gray-700 mb-6">
-                {t('terms.sections.changes.content')}
+                Vi förbehåller oss rätten att ändra dessa villkor. Ändringar meddelas via vår webbplats.
               </p>
 
-              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">{t('terms.sections.contact.title')}</h2>
+              <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">10. Kontaktinformation</h2>
               <p className="text-gray-700 mb-6">
-                {t('terms.sections.contact.content')}
+                Vid frågor om dessa villkor, vänligen kontakta oss.
               </p>
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
                 <p className="text-gray-700">
-                  <strong>{t('terms.sections.contact.company')}</strong><br />
-                  {t('terms.sections.contact.address').split('\n').map((line: string, index: number) => (
-                    <span key={index}>{line}<br /></span>
-                  ))}
+                  <strong>Legaliseringstjänst AB</strong><br />
+                  Kungsgatan 12<br />
+                  111 43 Stockholm<br />
+                  Sverige<br />
                   <br />
-                  {t('terms.sections.contact.email')}<br />
-                  {t('terms.sections.contact.phone')}
+                  info@legaliseringstjanst.se<br />
+                  +46 8 123 456 78
                 </p>
               </div>
             </div>
@@ -112,7 +112,7 @@ const TermsAndConditionsPage: React.FC = () => {
                 href="/kontakt"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
-                {t('terms.backToContact')}
+                Tillbaka till kontakt
               </Link>
             </div>
           </div>

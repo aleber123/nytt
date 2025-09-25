@@ -99,3 +99,4 @@ test-*.html
 scripts/
 *.test.js
 *.test.ts
+.vercel

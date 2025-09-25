@@ -604,6 +604,7 @@
     "step10": {
       "title": "Slutför din beställning",
       "subtitle": "Granska din beställning och slutför genom att fylla i dina uppgifter nedan",
+      "termsAcceptance": "Jag har läst och godkänner",
       "summaryTitle": "Slutgiltig beställningssammanfattning",
       "country": "Land",
       "documentType": "Dokumenttyp",

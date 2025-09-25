@@ -2664,8 +2664,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                     totalPrice: pricingResult.totalPrice,
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
-                    additionalNotes: answers.additionalNotes,
-                    recaptchaToken
+                    additionalNotes: answers.additionalNotes
                   };
                   console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 

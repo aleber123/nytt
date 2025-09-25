@@ -60,6 +60,12 @@ export interface PricingStats {
 // Create or update a pricing rule
 export const setPricingRule = async (rule: Omit<PricingRule, 'id' | 'lastUpdated'>): Promise<string> => {
   try {
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, cannot set pricing rule');
+      throw new Error('Firebase not available');
+    }
+
     const ruleId = `${rule.countryCode}_${rule.serviceType}`;
     const ruleRef = doc(db, 'pricing', ruleId);
 
@@ -80,6 +86,12 @@ export const setPricingRule = async (rule: Omit<PricingRule, 'id' | 'lastUpdated
 // Get pricing rule for specific country and service
 export const getPricingRule = async (countryCode: string, serviceType: string): Promise<PricingRule | null> => {
   try {
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, returning null');
+      return null;
+    }
+
     const ruleId = `${countryCode}_${serviceType}`;
     const ruleRef = doc(db, 'pricing', ruleId);
     const ruleSnap = await getDoc(ruleRef);
@@ -97,17 +109,34 @@ export const getPricingRule = async (countryCode: string, serviceType: string): 
 // Get all pricing rules for a country
 export const getCountryPricingRules = async (countryCode: string): Promise<PricingRule[]> => {
   try {
-    const q = query(
-      collection(db, 'pricing'),
-      where('countryCode', '==', countryCode),
-      where('isActive', '==', true)
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, using mock data for country:', countryCode);
+      const mockRules = getMockPricingRules();
+      return mockRules.filter(rule => rule.countryCode === countryCode);
+    }
+
+    // Add timeout to prevent hanging on Vercel
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firebase timeout')), 3000)
     );
 
-    const querySnapshot = await getDocs(q);
-    const rules = querySnapshot.docs.map(doc => doc.data() as PricingRule);
+    const firebasePromise = (async () => {
+      const q = query(
+        collection(db, 'pricing'),
+        where('countryCode', '==', countryCode),
+        where('isActive', '==', true)
+      );
 
-    // Sort client-side to avoid composite index requirement
-    return rules.sort((a, b) => b.lastUpdated.toMillis() - a.lastUpdated.toMillis());
+      const querySnapshot = await getDocs(q);
+      const rules = querySnapshot.docs.map(doc => doc.data() as PricingRule);
+
+      // Sort client-side to avoid composite index requirement
+      return rules.sort((a, b) => b.lastUpdated.toMillis() - a.lastUpdated.toMillis());
+    })();
+
+    const rules = await Promise.race([firebasePromise, timeoutPromise]);
+    return rules;
   } catch (error) {
     console.error('Error getting country pricing rules:', error);
     // Return mock data filtered by country if Firebase fails
@@ -120,20 +149,36 @@ export const getCountryPricingRules = async (countryCode: string): Promise<Prici
 // Get all active pricing rules
 export const getAllActivePricingRules = async (): Promise<PricingRule[]> => {
   try {
-    const q = query(
-      collection(db, 'pricing'),
-      where('isActive', '==', true)
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, using mock pricing data');
+      return getMockPricingRules();
+    }
+
+    // Add timeout to prevent hanging on Vercel
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firebase timeout')), 3000)
     );
 
-    const querySnapshot = await getDocs(q);
-    const rules = querySnapshot.docs.map(doc => doc.data() as PricingRule);
+    const firebasePromise = (async () => {
+      const q = query(
+        collection(db, 'pricing'),
+        where('isActive', '==', true)
+      );
 
-    // Sort client-side to avoid composite index requirement
-    return rules.sort((a, b) => {
-      const countryCompare = a.countryName.localeCompare(b.countryName);
-      if (countryCompare !== 0) return countryCompare;
-      return a.serviceType.localeCompare(b.serviceType);
-    });
+      const querySnapshot = await getDocs(q);
+      const rules = querySnapshot.docs.map(doc => doc.data() as PricingRule);
+
+      // Sort client-side to avoid composite index requirement
+      return rules.sort((a, b) => {
+        const countryCompare = a.countryName.localeCompare(b.countryName);
+        if (countryCompare !== 0) return countryCompare;
+        return a.serviceType.localeCompare(b.serviceType);
+      });
+    })();
+
+    const rules = await Promise.race([firebasePromise, timeoutPromise]);
+    return rules;
   } catch (error) {
     console.error('Error getting all active pricing rules:', error);
     // Return mock data if Firebase fails
@@ -148,6 +193,12 @@ export const updatePricingRule = async (
   updates: Partial<Omit<PricingRule, 'id' | 'lastUpdated'>>
 ): Promise<void> => {
   try {
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, cannot update pricing rule');
+      throw new Error('Firebase not available');
+    }
+
     const ruleRef = doc(db, 'pricing', ruleId);
 
     // Check if document exists first
@@ -177,6 +228,12 @@ export const updateOrCreatePricingRule = async (
   createData?: Omit<PricingRule, 'id' | 'lastUpdated'>
 ): Promise<void> => {
   try {
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, cannot update or create pricing rule');
+      throw new Error('Firebase not available');
+    }
+
     console.log(`🔥 Firebase: updateOrCreatePricingRule called for ${ruleId}`);
     console.log('🔥 Firebase: updates:', updates);
     console.log('🔥 Firebase: createData:', createData);
@@ -1652,6 +1709,12 @@ export interface CountryPopularity {
 // Track country selection for popularity ranking
 export const trackCountrySelection = async (countryCode: string): Promise<void> => {
   try {
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, skipping country selection tracking');
+      return;
+    }
+
     const popularityRef = doc(db, 'countryPopularity', countryCode);
 
     // Get country name and flag from allCountries array (we'll need to import this or pass it)
@@ -1687,6 +1750,18 @@ export const trackCountrySelection = async (countryCode: string): Promise<void> 
 // Get popular countries sorted by actual selection count
 export const getPopularCountries = async (maxResults: number = 18): Promise<CountryPopularity[]> => {
   try {
+    // Check if Firebase is initialized (client-side only)
+    if (!db) {
+      console.log('Firebase not initialized, using static popular countries');
+      return getStaticPopularCountries().map(country => ({
+        countryCode: country.code,
+        countryName: country.name,
+        flag: country.flag,
+        selectionCount: Math.max(1, Math.floor((country.popularity || 0) / 10)), // Reduce static popularity significantly
+        lastSelected: Timestamp.now()
+      })).sort((a, b) => b.selectionCount - a.selectionCount).slice(0, maxResults);
+    }
+
     // Get all dynamic popularity data
     const q = query(
       collection(db, 'countryPopularity'),

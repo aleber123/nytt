@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  onAuthStateChanged, 
+import {
+  onAuthStateChanged,
   signOut as firebaseSignOut,
   User as FirebaseUser
 } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+import { getFirebaseAuth } from '@/firebase/config';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
@@ -27,10 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   function signOut() {
+    const auth = getFirebaseAuth();
     return firebaseSignOut(auth);
   }
 
   useEffect(() => {
+    const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);

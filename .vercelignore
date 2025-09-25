@@ -1,0 +1,57 @@
+# Test files
+test-*.js
+test-*.html
+*.test.js
+*.test.ts
+
+# Development files
+scripts/
+firebase-debug.log*
+firebase-debug.*.log*
+
+# Documentation files (not needed in production)
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Environment files
+.env*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+.next/
+out/
+coverage/
+.nyc_output/
+
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Firebase cache
+.firebase/
+
+# Vercel cache
+.vercel

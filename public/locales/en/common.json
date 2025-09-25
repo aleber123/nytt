@@ -613,6 +613,7 @@
     "step10": {
       "title": "Complete your order",
       "subtitle": "Review your order and complete by filling in your details below",
+      "termsAcceptance": "I have read and accept the",
       "summaryTitle": "Final order summary",
       "country": "Country",
       "documentType": "Document type",
