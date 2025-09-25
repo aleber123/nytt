@@ -24,9 +24,15 @@ function initializeFirebase() {
   if (initialized || typeof window === 'undefined') return;
 
   console.log('🔍 Firebase Config Debug:');
-  console.log('🔍 API Key:', firebaseConfig.apiKey);
+  console.log('🔍 API Key:', firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 20) + '...' : 'UNDEFINED');
+  console.log('🔍 API Key length:', firebaseConfig.apiKey?.length);
   console.log('🔍 Project ID:', firebaseConfig.projectId);
   console.log('🔍 Auth Domain:', firebaseConfig.authDomain);
+  console.log('🔍 All env vars:', {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'SET' : 'UNDEFINED',
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'SET' : 'UNDEFINED',
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'SET' : 'UNDEFINED',
+  });
 
   try {
     firebaseApp = initializeApp(firebaseConfig);
@@ -36,6 +42,7 @@ function initializeFirebase() {
     console.log('✅ Firebase initialized successfully');
   } catch (error) {
     console.error('❌ Firebase initialization failed:', error);
+    console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
     // Continue without Firebase - app should still work with mock services
   }
 }
