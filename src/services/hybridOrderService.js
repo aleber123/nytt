@@ -7,22 +7,26 @@ const { mockFirebase } = require('./mockFirebase');
 // Check if we should use mock only
 const useMockOnly = process.env.USE_MOCK_ONLY === 'true';
 console.log('🔍 USE_MOCK_ONLY environment variable:', process.env.USE_MOCK_ONLY);
+console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
 console.log('🔍 useMockOnly flag:', useMockOnly);
 
 if (useMockOnly) {
   console.log('🔄 Using mock service only (USE_MOCK_ONLY=true)');
 }
 
-// Firebase configuration
+// Firebase configuration - using environment variables for security
 const firebaseConfig = {
-  apiKey: "AIzaSyAaQfVaMxCMjDbDa4l-S6IjSy4uTcQbHyo",
-  authDomain: "legapp-2720a.firebaseapp.com",
-  projectId: "legapp-2720a",
-  storageBucket: "legapp-2720a.firebasestorage.app",
-  messagingSenderId: "1003184294483",
-  appId: "1:1003184294483:web:55e86d1f5833ee0cad14a6",
-  measurementId: "G-V694ZBTV7F"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
+
+// Import initializeFirestore for proper configuration
+const { initializeFirestore } = require('firebase/firestore');
 
 // Initialize Firebase
 let db = null;
@@ -32,10 +36,17 @@ let firebaseAvailable = false;
 if (!useMockOnly) {
   try {
     const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
+
+    // Initialize Firestore with settings to avoid WebSocket connection issues
+    // This should prevent the "Listen" stream 400 errors in Vercel
+    db = initializeFirestore(app, {
+      experimentalForceLongPolling: true, // Use HTTP long polling instead of WebSocket
+      experimentalAutoDetectLongPolling: false // Disable auto-detection
+    });
+
     storage = getStorage(app);
     firebaseAvailable = true;
-    console.log('🔥 Firebase initialized successfully');
+    console.log('🔥 Firebase initialized successfully with long polling enabled');
   } catch (error) {
     console.log('⚠️ Firebase initialization failed, using mock service:', error.message);
     firebaseAvailable = false;
@@ -328,7 +339,7 @@ const checkForDuplicateOrder = async (orderData) => {
     }
 
     // Check mock storage for duplicates
-    const mockOrders = mockFirebase.getAllOrders();
+    const mockOrders = await mockFirebase.getAllOrders();
     const recentMockOrder = mockOrders
       .filter(order =>
         order.customerInfo.email === orderData.customerInfo.email &&
