@@ -545,7 +545,7 @@
       "noServicesSelected": "Välj minst en tjänst för att fortsätta"
     },
     "step4": {
-      "title": "Hur många dokument behöver du?",
+      "title": "Hur många dokument?",
       "subtitle": "Ange antal dokument som ska legaliseras.",
       "quantityLabel": "dokument",
       "decrease": "−",

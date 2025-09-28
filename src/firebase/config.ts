@@ -26,7 +26,7 @@ function initializeFirebase() {
   if (initialized || typeof window === 'undefined') return;
 
   console.log('🔍 Firebase Config Debug:');
-  console.log('🔍 API Key:', firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 20) + '...' : 'UNDEFINED');
+  console.log('🔍 API Key:', firebaseConfig.apiKey ? '***' + firebaseConfig.apiKey.substring(firebaseConfig.apiKey.length - 4) : 'UNDEFINED');
   console.log('🔍 API Key length:', firebaseConfig.apiKey?.length);
   console.log('🔍 Project ID:', firebaseConfig.projectId);
   console.log('🔍 Auth Domain:', firebaseConfig.authDomain);

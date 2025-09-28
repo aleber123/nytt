@@ -28,11 +28,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function signOut() {
     const auth = getFirebaseAuth();
+    if (!auth) {
+      console.warn('Cannot sign out: Firebase auth not available');
+      return Promise.resolve();
+    }
     return firebaseSignOut(auth);
   }
 
   useEffect(() => {
     const auth = getFirebaseAuth();
+    if (!auth) {
+      console.log('Firebase auth not available, staying in loading state');
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);

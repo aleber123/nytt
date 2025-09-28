@@ -59,6 +59,32 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
+  // Function to navigate to a step (creates browser history entry for back button support)
+  const navigateToStep = (step: number) => {
+    setCurrentQuestion(step);
+    // Update URL and create history entry for proper back button support
+    const url = new URL(window.location.href);
+    url.searchParams.set('step', step.toString());
+    window.history.pushState({}, '', url.toString());
+  };
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const url = new URL(window.location.href);
+      const step = url.searchParams.get('step');
+      if (step) {
+        const stepNumber = parseInt(step, 10);
+        if (stepNumber >= 1 && stepNumber <= 10) {
+          setCurrentQuestion(stepNumber);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Hague Convention countries (apostille available)
   const hagueConventionCountries = [
     'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
@@ -918,7 +944,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     // Track country selection for future popularity ranking
     console.log(`Country selected: ${countryCode}`);
 
-    setCurrentQuestion(2);
+    navigateToStep(2);
   };
 
   const handleCustomCountrySubmit = () => {
@@ -931,7 +957,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       };
       setAnswers(prev => ({ ...prev, country: 'custom' }));
       setShowCountryDropdown(false);
-      setCurrentQuestion(2);
+      navigateToStep(2);
     }
   };
 
@@ -1102,7 +1128,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             key={docType.id}
             onClick={() => {
               setAnswers(prev => ({ ...prev, documentType: docType.id }));
-              setCurrentQuestion(3);
+              navigateToStep(3);
             }}
             className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-custom-button hover:bg-custom-button-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button text-left"
           >
@@ -3394,7 +3420,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     onClick={() => {
                       // Allow navigation to completed steps or current step only
                       if (step <= currentQuestion) {
-                        setCurrentQuestion(step);
+                        navigateToStep(step);
                       }
                     }}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-200 ${
