@@ -4,13 +4,13 @@ const { getFirestore, collection, addDoc, Timestamp } = require('firebase/firest
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAaQfVaMxCMjDbDa4l-S6IjSy4uTcQbHyo",
-  authDomain: "legapp-2720a.firebaseapp.com",
-  projectId: "legapp-2720a",
-  storageBucket: "legapp-2720a.firebasestorage.app",
-  messagingSenderId: "1003184294483",
-  appId: "1:1003184294483:web:55e86d1f5833ee0cad14a6",
-  measurementId: "G-V694ZBTV7F"
+  apiKey: "AIzaSyBaXYbWRbryxW-YL4aWIFDzb5Po-r1sj3g",
+  authDomain: "doxvl-51a30.firebaseapp.com",
+  projectId: "doxvl-51a30",
+  storageBucket: "doxvl-51a30.firebasestorage.app",
+  messagingSenderId: "195927020517",
+  appId: "1:195927020517:web:309ee643e3499d883ed50c",
+  measurementId: "G-F603S6T43P"
 };
 
 // Initialize Firebase

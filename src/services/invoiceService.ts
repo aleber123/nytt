@@ -1049,7 +1049,7 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
     const invoice: Invoice = {
       invoiceNumber,
       orderId: order.id || '',
-      orderNumber: order.orderNumber,
+      orderNumber: order.orderNumber || order.id || '', // Use orderNumber if available, otherwise use order.id
       customerInfo: order.customerInfo,
       lineItems,
       subtotal,

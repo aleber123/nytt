@@ -36,7 +36,7 @@ function ShippingServicesPage() {
     // PostNord
     {
       code: 'postnord-rek',
-      name: 'PostNord REK',
+      name: 'PostNord Rekommenderat',
       description: 'Rekommenderat brev - spårbart och försäkrat',
       provider: 'PostNord',
       basePrice: 85,
@@ -46,7 +46,7 @@ function ShippingServicesPage() {
     // DHL Services
     {
       code: 'dhl-sweden',
-      name: 'DHL Sweden',
+      name: 'DHL Sverige',
       description: 'DHL leverans inom Sverige',
       provider: 'DHL',
       basePrice: 180,
@@ -54,7 +54,7 @@ function ShippingServicesPage() {
     },
     {
       code: 'dhl-europe',
-      name: 'DHL Europe',
+      name: 'DHL Europa',
       description: 'DHL leverans inom Europa',
       provider: 'DHL',
       basePrice: 250,

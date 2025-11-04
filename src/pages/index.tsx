@@ -215,26 +215,20 @@ export default function Home() {
   const steps = [
     {
       id: 1,
-      title: t('process.step1.title'),
-      description: t('process.step1.description'),
+      title: 'Beställ online',
+      description: 'Fyll i vårt enkla beställningsformulär och välj önskad tjänst',
       icon: 'form'
     },
     {
       id: 2,
-      title: t('process.step2.title'),
-      description: t('process.step2.description'),
-      icon: 'payment'
-    },
-    {
-      id: 3,
-      title: t('process.step3.title'),
-      description: t('process.step3.description'),
+      title: 'Vi hanterar dina dokument',
+      description: 'Våra experter ser till att dina dokument blir korrekt legaliserade',
       icon: 'document'
     },
     {
-      id: 4,
-      title: t('process.step4.title'),
-      description: t('process.step4.description'),
+      id: 3,
+      title: 'Få dina legaliserade dokument',
+      description: 'Vi levererar dina legaliserade dokument enligt vald leveransmetod',
       icon: 'delivery'
     }
   ];
@@ -376,7 +370,7 @@ export default function Home() {
                         Välj tjänst
                       </Link>
                       <Link
-                        href={`/tjanster/${service.id}`}
+                        href={`/tjanster/${service.id === 'auktoriseradöversättning' ? 'oversattning' : service.id}`}
                         className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
                       >
                         Läs mer
@@ -389,13 +383,12 @@ export default function Home() {
           </div>
         </section>
 
-        <ProcessSteps 
-          title={t('home.processTitle')}
-          subtitle={t('home.processSubtitle')}
+        <ProcessSteps
+          title="Så här fungerar det"
+          subtitle="Vår process är enkel och effektiv för att spara dig tid och besvär"
           steps={steps}
         />
 
-        <TestimonialSection />
 
         <FAQSection />
 

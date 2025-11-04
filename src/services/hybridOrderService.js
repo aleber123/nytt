@@ -106,17 +106,18 @@ const createOrder = async (orderData) => {
         const formattedOrderId = formatOrderId(nextNumber);
 
         const orderWithTimestamps = {
-          ...orderData,
-          status: 'pending',
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-          orderNumber: formattedOrderId
-        };
+           ...orderData,
+           status: 'pending',
+           createdAt: Timestamp.now(),
+           updatedAt: Timestamp.now(),
+           orderNumber: formattedOrderId
+         };
 
-        await setDoc(doc(db, 'orders', formattedOrderId), {
-          ...orderWithTimestamps,
-          orderNumber: formattedOrderId // Store the formatted order number as a field
-        });
+         await setDoc(doc(db, 'orders', formattedOrderId), {
+           ...orderWithTimestamps,
+           orderNumber: formattedOrderId // Store the formatted order number as a field
+         });
+         console.log('✅ Order saved to Firebase with pricing breakdown:', orderWithTimestamps.pricingBreakdown);
         console.log('✅ Order created in Firebase:', formattedOrderId);
         return formattedOrderId;
 

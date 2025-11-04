@@ -11,8 +11,6 @@ const Header: React.FC = () => {
   
   const navigation = [
     { name: t('nav.home'), href: '/' },
-    { name: t('nav.services'), href: '/tjanster' },
-    { name: 'Artiklar', href: '/artiklar' },
     { name: t('nav.about'), href: '/om-oss' },
     { name: t('nav.contact'), href: '/kontakt' },
     { name: 'Orderstatus', href: '/orderstatus' },

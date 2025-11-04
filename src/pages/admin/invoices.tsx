@@ -516,41 +516,44 @@ function AdminInvoicesPage() {
   return (
     <>
       <Head>
-        <title>Admin - Invoices | Legaliseringstjänst</title>
-        <meta name="description" content="Admin panel for managing invoices" />
+        <title>Admin - Fakturor | Legaliseringstjänst</title>
+        <meta name="description" content="Admin panel för hantering av fakturor" />
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
-      <div className="bg-gray-100 min-h-screen">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
         {/* Header */}
-        <div className="bg-white shadow">
-          <div className="container mx-auto px-4 py-4">
+        <div className="bg-white shadow-sm border-b border-primary-100">
+          <div className="container mx-auto px-4 py-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <Link href="/admin" className="text-gray-500 hover:text-gray-700 mr-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <Link href="/admin" className="text-primary-600 hover:text-primary-700 mr-3 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
                   </svg>
                 </Link>
-                <h1 className="text-2xl font-bold text-gray-800">Admin - Invoices</h1>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Fakturahantering</h1>
+                  <p className="text-sm text-gray-600 mt-1">Hantera och följ upp dina fakturor</p>
+                </div>
               </div>
               <div className="flex items-center space-x-4">
                 <button
                   onClick={openCreateModal}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  className="inline-flex items-center px-6 py-3 border border-transparent rounded-lg text-sm font-medium text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button shadow-sm transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   Skapa ny faktura
                 </button>
                 <button
                   onClick={() => signOut()}
-                  className="text-gray-600 hover:text-gray-800"
+                  className="text-gray-600 hover:text-gray-800 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors"
                 >
-                  Sign Out
+                  Logga ut
                 </button>
-                <Link href="/admin" className="text-primary-600 hover:text-primary-800">
+                <Link href="/admin" className="text-primary-600 hover:text-primary-700 font-medium transition-colors">
                   Dashboard
                 </Link>
               </div>
@@ -560,107 +563,122 @@ function AdminInvoicesPage() {
 
         <div className="container mx-auto px-4 py-8">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-              {error}
-              <button
-                onClick={fetchInvoices}
-                className="ml-4 underline text-red-700 hover:text-red-900"
-              >
-                Try Again
-              </button>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl mb-8 shadow-sm">
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                {error}
+                <button
+                  onClick={fetchInvoices}
+                  className="ml-4 underline text-red-700 hover:text-red-900 font-medium"
+                >
+                  Försök igen
+                </button>
+              </div>
             </div>
           )}
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                  <div className="p-3 bg-primary-100 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Totala fakturor</p>
-                  <p className="text-2xl font-bold text-gray-900">{invoices.length}</p>
+                  <p className="text-3xl font-bold text-gray-900">{invoices.length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </div>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Utkast</p>
-                  <p className="text-2xl font-bold text-gray-900">{invoices.filter(i => i.status === 'draft').length}</p>
+                  <p className="text-3xl font-bold text-gray-900">{invoices.filter(i => i.status === 'draft').length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Skickade</p>
-                  <p className="text-2xl font-bold text-gray-900">{invoices.filter(i => i.status === 'sent').length}</p>
+                  <p className="text-3xl font-bold text-gray-900">{invoices.filter(i => i.status === 'sent').length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Betalda</p>
-                  <p className="text-2xl font-bold text-gray-900">{invoices.filter(i => i.status === 'paid').length}</p>
+                  <p className="text-3xl font-bold text-gray-900">{invoices.filter(i => i.status === 'paid').length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <div className="p-3 bg-red-100 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Förfallna</p>
-                  <p className="text-2xl font-bold text-gray-900">{invoices.filter(i => i.status === 'overdue').length}</p>
+                  <p className="text-3xl font-bold text-gray-900">{invoices.filter(i => i.status === 'overdue').length}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-primary-100 mb-8 overflow-hidden">
+            <div className="p-6 border-b border-primary-100 bg-gradient-to-r from-primary-50 to-secondary-50">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                  <h2 className="text-lg font-medium text-gray-800">Fakturahantering</h2>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <h2 className="text-xl font-semibold text-gray-900">Fakturahantering</h2>
+                  <p className="text-sm text-gray-600 mt-1">
                     Visar {filteredInvoices.length} av {invoices.length} fakturor
                     {statusFilter !== 'all' && ` med status "${getStatusText(statusFilter)}"`}
                     {searchTerm && ` som matchar "${searchTerm}"`}
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                   {/* Search */}
-                  <div className="flex items-center">
-                    <label htmlFor="search" className="mr-2 text-sm text-gray-600 font-medium">
+                  <div className="flex items-center min-w-0 flex-1 lg:flex-initial">
+                    <label htmlFor="search" className="mr-3 text-sm text-gray-700 font-medium whitespace-nowrap">
                       Sök:
                     </label>
                     <input
@@ -669,20 +687,20 @@ function AdminInvoicesPage() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Fakturanummer, namn, email..."
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-custom-button focus:border-custom-button transition-colors min-w-0 flex-1"
                     />
                   </div>
 
                   {/* Status Filter */}
                   <div className="flex items-center">
-                    <label htmlFor="status-filter" className="mr-2 text-sm text-gray-600 font-medium">
+                    <label htmlFor="status-filter" className="mr-3 text-sm text-gray-700 font-medium whitespace-nowrap">
                       Status:
                     </label>
                     <select
                       id="status-filter"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-custom-button focus:border-custom-button transition-colors"
                     >
                       <option value="all">Alla fakturor</option>
                       <option value="draft">Utkast</option>
@@ -696,7 +714,7 @@ function AdminInvoicesPage() {
 
                   <button
                     onClick={fetchInvoices}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-custom-button focus:border-custom-button transition-all duration-200 hover:shadow-sm"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -756,8 +774,15 @@ function AdminInvoicesPage() {
                       {/* Header with Invoice Number and Amount */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1 min-w-0">
+                          {invoice.orderNumber && (
+                            <div className="mb-2">
+                              <p className="text-lg font-bold text-blue-600">
+                                Order: #{invoice.orderNumber}
+                              </p>
+                            </div>
+                          )}
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-gray-900">
+                            <h3 className="text-lg font-normal text-gray-600">
                               #{invoice.invoiceNumber}
                             </h3>
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(invoice.status)}`}>
@@ -767,11 +792,6 @@ function AdminInvoicesPage() {
                           <p className="text-sm text-gray-500">
                             Skapad: {formatDate(invoice.createdAt)}
                           </p>
-                          {invoice.orderNumber && (
-                            <p className="text-sm text-gray-500">
-                              Order: #{invoice.orderNumber}
-                            </p>
-                          )}
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-gray-900 mb-1">

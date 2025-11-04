@@ -174,7 +174,7 @@ const PricesPage: React.FC = () => {
       };
 
       const serviceInfo = serviceLabels[serviceType as keyof typeof serviceLabels] || {
-        title: serviceType,
+        title: serviceType.charAt(0).toUpperCase() + serviceType.slice(1),
         description: `Legaliserings tjänst för ${serviceType}`,
         features: ['Officiell legalisering', 'Internationell giltighet', 'Snabb handläggning', 'Digital leverans']
       };

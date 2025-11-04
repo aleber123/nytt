@@ -818,11 +818,21 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                                         {item.service === 'scanned_copies' ? 'Scannade kopior' :
                                          item.service === 'return_service' ? item.description || 'Returfrakt' :
                                          item.service === 'pickup_service' ? 'Dokumenthämtning' :
+                                         item.service === 'apostille_official' ? 'Apostille (officiell avgift)' :
+                                         item.service === 'apostille_service' ? 'Apostille (serviceavgift)' :
+                                         item.service === 'notarization_official' ? 'Notarisering (officiell avgift)' :
+                                         item.service === 'notarization_service' ? 'Notarisering (serviceavgift)' :
+                                         item.service === 'DHL Sweden' ? 'DHL Sweden frakt' :
+                                         item.service === 'premium_delivery' ? 'Premium leverans' :
                                          getServiceName(item.service)}
                                         {item.quantity && item.quantity > 1 ? ` (${item.quantity}x)` : ''}
                                       </span>
                                       <span className="font-medium">
-                                        {item.fee ? `${item.fee} kr` : item.basePrice ? `${item.basePrice} kr` : 'N/A'}
+                                        {item.fee ? `${item.fee} kr` :
+                                         item.basePrice ? `${item.basePrice} kr` :
+                                         item.unitPrice ? `${item.unitPrice * (item.quantity || 1)} kr` :
+                                         item.officialFee ? `${(item.officialFee + item.serviceFee) * (item.quantity || 1)} kr` :
+                                         'N/A'}
                                       </span>
                                     </div>
                                   ))}
