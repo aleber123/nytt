@@ -2213,6 +2213,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 ))
               )}
             </div>
+            <div className="mt-2 text-sm text-gray-600">
+              {answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}
+            </div>
           </div>
 
           {/* Additional Services */}
@@ -2458,6 +2461,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder={t('orderFlow.step10.emailPlaceholder')}
+                pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                title="Ange en giltig e-postadress"
+                required
               />
             </div>
 
@@ -2677,12 +2683,11 @@ Dokumenttyp: ${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
               answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
 Antal dokument: ${answers.quantity}
 
-Valda tjänster: ${answers.services.join(', ')}
+Valda tjänster: ${answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}
 Totalbelopp: ${pricingResult.totalPrice} kr
 
 Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
 Returfrakt: ${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}
-${answers.premiumDelivery ? `Premiumleverans: ${returnServices.find(s => s.id === answers.premiumDelivery)?.name}` : ''}
 ${answers.premiumDelivery ? `Premiumleverans: ${returnServices.find(s => s.id === answers.premiumDelivery)?.name}` : ''}
 
 ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
@@ -2937,6 +2942,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder={t('orderFlow.step10.emailPlaceholder')}
+                pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                title="Ange en giltig e-postadress"
+                required
               />
             </div>
 
@@ -3207,13 +3215,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   console.log('✅ Order submitted successfully:', orderId);
 
-                  // Send email notification (save to Firestore for external processing, same as contact form)
+                  // Send email notification to business (save to Firestore for external processing, same as contact form)
                   try {
-                    const emailData = {
-                      name: 'Order Notification',
+                    const businessEmailData = {
+                      name: `Order #${orderId}`,
                       email: 'noreply@legaliseringstjanst.se',
                       phone: '',
-                      subject: `Ny beställning mottagen - Order #${orderId}`,
+                      subject: `Ny Order #${orderId}`,
                       message: `
 Ny beställning har mottagits!
 
@@ -3224,10 +3232,10 @@ Telefon: ${answers.customerInfo.phone}
 
 Land: ${allCountries.find(c => c.code === answers.country)?.name}
 Dokumenttyp: ${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
-              answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-              answers.documentType === 'diploma' ? 'Examensbevis' :
-              answers.documentType === 'commercial' ? 'Handelsdokument' :
-              answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+             answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+             answers.documentType === 'diploma' ? 'Examensbevis' :
+             answers.documentType === 'commercial' ? 'Handelsdokument' :
+             answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
 Antal dokument: ${answers.quantity}
 
 Valda tjänster: ${answers.services.join(', ')}
@@ -3243,11 +3251,274 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                       status: 'unread'
                     };
 
-                    await addDoc(collection(db, 'contactMessages'), emailData);
-                    console.log('📧 Email notification queued for order:', orderId);
+                    await addDoc(collection(db, 'contactMessages'), businessEmailData);
+                    console.log('📧 Business email notification queued for order:', orderId);
                   } catch (emailError) {
-                    console.error('❌ Failed to queue email notification:', emailError);
+                    console.error('❌ Failed to queue business email notification:', emailError);
                     // Don't block the order flow if email notification fails
+                  }
+
+                  // Send confirmation email to customer
+                  try {
+                    const customerEmailData = {
+                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
+                      email: answers.customerInfo.email,
+                      phone: answers.customerInfo.phone,
+                      subject: `Orderbekräftelse - Order #${orderId}`,
+                      message: `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Orderbekräftelse - LegaliseringsTjänst AB</title>
+   <style>
+       body {
+           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+           line-height: 1.6;
+           color: #333;
+           max-width: 600px;
+           margin: 0 auto;
+           background-color: #f8f9fa;
+           padding: 20px;
+       }
+       .email-container {
+           background-color: #ffffff;
+           border-radius: 12px;
+           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+           overflow: hidden;
+       }
+       .header {
+           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+           color: white;
+           padding: 30px 40px;
+           text-align: center;
+       }
+       .header h1 {
+           margin: 0;
+           font-size: 24px;
+           font-weight: 600;
+       }
+       .content {
+           padding: 40px;
+       }
+       .greeting {
+           font-size: 18px;
+           font-weight: 600;
+           color: #2d3748;
+           margin-bottom: 20px;
+       }
+       .order-summary {
+           background-color: #f7fafc;
+           border: 1px solid #e2e8f0;
+           border-radius: 8px;
+           padding: 25px;
+           margin: 25px 0;
+       }
+       .order-number {
+           background-color: #667eea;
+           color: white;
+           padding: 12px 20px;
+           border-radius: 6px;
+           display: inline-block;
+           font-weight: 600;
+           font-size: 16px;
+           margin: 15px 0;
+       }
+       .order-details {
+           margin: 20px 0;
+       }
+       .detail-row {
+           display: flex;
+           justify-content: space-between;
+           padding: 8px 0;
+           border-bottom: 1px solid #e2e8f0;
+       }
+       .detail-row:last-child {
+           border-bottom: none;
+       }
+       .detail-label {
+           font-weight: 500;
+           color: #4a5568;
+       }
+       .detail-value {
+           font-weight: 600;
+           color: #2d3748;
+       }
+       .next-steps {
+           background-color: #e6fffa;
+           border: 1px solid #b2f5ea;
+           border-radius: 8px;
+           padding: 20px;
+           margin: 25px 0;
+       }
+       .next-steps h3 {
+           color: #065f46;
+           margin-top: 0;
+           font-size: 18px;
+       }
+       .address-box {
+           background-color: #ffffff;
+           border: 2px solid #065f46;
+           border-radius: 6px;
+           padding: 15px;
+           margin: 15px 0;
+           font-family: monospace;
+           font-size: 14px;
+       }
+       .contact-info {
+           background-color: #f0f9ff;
+           border: 1px solid #bae6fd;
+           border-radius: 8px;
+           padding: 20px;
+           margin: 25px 0;
+           text-align: center;
+       }
+       .footer {
+           background-color: #f8f9fa;
+           padding: 30px 40px;
+           text-align: center;
+           border-top: 1px solid #e2e8f0;
+       }
+       .footer p {
+           margin: 5px 0;
+           color: #718096;
+           font-size: 14px;
+       }
+       .highlight {
+           background-color: #fef3c7;
+           padding: 2px 6px;
+           border-radius: 3px;
+           font-weight: 600;
+       }
+       .button {
+           display: inline-block;
+           background-color: #667eea;
+           color: white;
+           padding: 12px 24px;
+           text-decoration: none;
+           border-radius: 6px;
+           font-weight: 600;
+           margin: 10px 0;
+       }
+       .button:hover {
+           background-color: #5a67d8;
+       }
+       @media (max-width: 600px) {
+           body {
+               padding: 10px;
+           }
+           .header, .content, .footer {
+               padding: 20px;
+           }
+           .detail-row {
+               flex-direction: column;
+               gap: 4px;
+           }
+       }
+   </style>
+</head>
+<body>
+   <div class="email-container">
+       <div class="header">
+           <h1>🎉 Orderbekräftelse</h1>
+           <p>Tack för din beställning hos LegaliseringsTjänst AB</p>
+       </div>
+
+       <div class="content">
+           <div class="greeting">
+               Hej ${answers.customerInfo.firstName}!
+           </div>
+
+           <p>Vi har mottagit din beställning och den behandlas nu. Här är en sammanfattning:</p>
+
+           <div class="order-summary">
+               <div class="order-number">
+                   Ordernummer: #${orderId}
+               </div>
+
+               <div class="order-details">
+                   <div class="detail-row">
+                       <span class="detail-label">Datum:</span>
+                       <span class="detail-value">${new Date().toLocaleDateString('sv-SE')}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Land:</span>
+                       <span class="detail-value">${allCountries.find(c => c.code === answers.country)?.name}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Dokumenttyp:</span>
+                       <span class="detail-value">${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
+               answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+               answers.documentType === 'diploma' ? 'Examensbevis' :
+               answers.documentType === 'commercial' ? 'Handelsdokument' :
+               answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Antal dokument:</span>
+                       <span class="detail-value">${answers.quantity} st</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Valda tjänster:</span>
+                       <span class="detail-value">${answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Totalbelopp:</span>
+                       <span class="detail-value highlight">${pricingResult.totalPrice} kr</span>
+                   </div>
+               </div>
+           </div>
+
+           ${answers.documentSource === 'original' ?
+           `<div class="next-steps">
+               <h3>📦 Nästa steg</h3>
+               <p>Skicka dina originaldokument till följande adress:</p>
+               <div class="address-box">
+                   <strong>LegaliseringsTjänst AB</strong><br>
+                   Att: Dokumenthantering<br>
+                   Kungsgatan 12<br>
+                   111 43 Stockholm<br>
+                   Sverige
+               </div>
+               <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span></p>
+           </div>`
+           :
+           `<div class="next-steps">
+               <h3>✅ Dina filer har mottagits</h3>
+               <p>Dina uppladdade filer har mottagits och kommer att behandlas inom kort.</p>
+           </div>`}
+
+           <p>Du kommer att få dina legaliserade dokument returnerade via <strong>${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'vald fraktmetod'}</strong>.</p>
+
+           <div class="contact-info">
+               <h3>Har du frågor?</h3>
+               <p>Kontakta oss gärna:</p>
+               <p>
+                   📧 <a href="mailto:info@legaliseringstjanst.se">info@legaliseringstjanst.se</a><br>
+                   ${answers.customerInfo.phone ? `📞 ${answers.customerInfo.phone}` : '📞 Via vår hemsida'}
+               </p>
+           </div>
+       </div>
+
+       <div class="footer">
+           <p><strong>LegaliseringsTjänst AB</strong></p>
+           <p>Professionell dokumentlegalisering sedan många år</p>
+           <p>Detta är ett automatiskt genererat meddelande. Svara inte på detta mail.</p>
+       </div>
+   </div>
+</body>
+</html>
+                      `.trim(),
+                      orderId: orderId,
+                      createdAt: Timestamp.now(),
+                      status: 'unread'
+                    };
+
+                    await addDoc(collection(db, 'customerEmails'), customerEmailData);
+                    console.log('📧 Customer confirmation email queued for order:', orderId);
+                  } catch (customerEmailError) {
+                    console.error('❌ Failed to queue customer email notification:', customerEmailError);
+                    // Don't block the order flow if customer email fails
                   }
 
                   // Show beautiful success toast

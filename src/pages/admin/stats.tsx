@@ -5,20 +5,22 @@ import Head from 'next/head';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useTranslation } from 'next-i18next';
 import { getAllInvoices, Invoice } from '@/services/invoiceService';
+import { getAllOrders } from '@/services/hybridOrderService';
 import { toast } from 'react-hot-toast';
 
 interface Order {
-  id: string;
-  orderNumber: string;
-  customerInfo: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  embassyCountry: string;
-  status: string;
-  createdAt: any;
-}
+   id: string;
+   orderNumber: string;
+   customerInfo: {
+     firstName: string;
+     lastName: string;
+     email: string;
+   };
+   country: string;
+   status: string;
+   createdAt: any;
+   totalPrice: number;
+ }
 
 interface StatsData {
   totalOrders: number;
@@ -47,61 +49,35 @@ function AdminStatsPage() {
     setLoading(true);
     try {
       const invoices = await getAllInvoices();
-
-      // Mock orders data for now since getAllOrders doesn't exist
-      const mockOrders: Order[] = [
-        {
-          id: '1',
-          orderNumber: 'SWE000001',
-          customerInfo: { firstName: 'Anna', lastName: 'Andersson', email: 'anna@example.com' },
-          embassyCountry: 'USA',
-          status: 'completed',
-          createdAt: new Date('2024-01-15')
-        },
-        {
-          id: '2',
-          orderNumber: 'SWE000002',
-          customerInfo: { firstName: 'Erik', lastName: 'Eriksson', email: 'erik@example.com' },
-          embassyCountry: 'UK',
-          status: 'pending',
-          createdAt: new Date('2024-01-20')
-        },
-        {
-          id: '3',
-          orderNumber: 'SWE000003',
-          customerInfo: { firstName: 'Maria', lastName: 'Martensson', email: 'maria@example.com' },
-          embassyCountry: 'Germany',
-          status: 'completed',
-          createdAt: new Date('2024-01-25')
-        }
-      ];
+      const orders = await getAllOrders();
+      console.log('📋 Retrieved', orders.length, 'orders from Firebase');
 
       // Calculate stats
-      const totalOrders = mockOrders.length;
-      const totalRevenue = invoices
-        .filter((inv: any) => inv.status === 'paid')
-        .reduce((sum: number, inv: any) => sum + inv.totalAmount, 0);
+      const totalOrders = orders.length;
+      const totalRevenue = orders
+        .filter((order: Order) => order.status === 'delivered')
+        .reduce((sum: number, order: Order) => sum + (order.totalPrice || 0), 0);
 
       const totalInvoices = invoices.length;
       const paidInvoices = invoices.filter((inv: any) => inv.status === 'paid').length;
-      const pendingOrders = mockOrders.filter((order: Order) => order.status === 'pending').length;
-      const completedOrders = mockOrders.filter((order: Order) => order.status === 'completed').length;
+      const pendingOrders = orders.filter((order: Order) => order.status === 'pending' || order.status === 'processing').length;
+      const completedOrders = orders.filter((order: Order) => order.status === 'delivered').length;
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
       // Monthly revenue
       const monthlyRevenue: { [key: string]: number } = {};
-      invoices
-        .filter((inv: any) => inv.status === 'paid')
-        .forEach((invoice: any) => {
-          const date = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
+      orders
+        .filter((order: Order) => order.status === 'delivered')
+        .forEach((order: Order) => {
+          const date = new Date(order.createdAt);
           const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + invoice.totalAmount;
+          monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + (order.totalPrice || 0);
         });
 
       // Top countries
       const countryCount: { [key: string]: number } = {};
-      mockOrders.forEach((order: Order) => {
-        const country = order.embassyCountry || 'Unknown';
+      orders.forEach((order: Order) => {
+        const country = order.country || 'Unknown';
         countryCount[country] = (countryCount[country] || 0) + 1;
       });
 
@@ -111,7 +87,7 @@ function AdminStatsPage() {
         .slice(0, 5);
 
       // Recent orders (last 10)
-      const recentOrders = mockOrders
+      const recentOrders = orders
         .sort((a: Order, b: Order) => {
           const dateA = new Date(a.createdAt);
           const dateB = new Date(b.createdAt);
@@ -356,15 +332,17 @@ function AdminStatsPage() {
                         {order.customerInfo.firstName} {order.customerInfo.lastName}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.embassyCountry}
+                        {order.country}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
                           order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {order.status === 'completed' ? 'Slutförd' :
+                          {order.status === 'delivered' ? 'Slutförd' :
+                           order.status === 'processing' ? 'Bearbetas' :
                            order.status === 'pending' ? 'Väntande' : order.status}
                         </span>
                       </td>
