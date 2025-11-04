@@ -120,7 +120,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
   // Function to get translated country name
   const getCountryName = (countryCode: string) => {
-    return t(`countries.names.${countryCode}`, { defaultValue: countryCode });
+    const country = allCountries.find(c => c.code === countryCode);
+    return country ? country.name : t(`countries.names.${countryCode}`, { defaultValue: countryCode });
   };
 
   const allCountries = [
@@ -346,27 +347,23 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
     const searchTerm = countrySearch.toLowerCase().trim();
     const countryName = country.name.toLowerCase();
-    const countryCode = country.code.toLowerCase();
 
+    // Only search by country name, not country code
     // Prioritize countries that START with the search term
     if (countryName.startsWith(searchTerm)) return true;
-    if (countryCode.startsWith(searchTerm)) return true;
 
     // Then include countries that CONTAIN the search term (but with lower priority)
     if (countryName.includes(searchTerm)) return true;
-    if (countryCode.includes(searchTerm)) return true;
 
     return false;
   }).sort((a, b) => {
     const searchTerm = countrySearch.toLowerCase().trim();
     const aName = a.name.toLowerCase();
     const bName = b.name.toLowerCase();
-    const aCode = a.code.toLowerCase();
-    const bCode = b.code.toLowerCase();
 
     // Sort by priority: starts with > contains
-    const aStartsWith = aName.startsWith(searchTerm) || aCode.startsWith(searchTerm);
-    const bStartsWith = bName.startsWith(searchTerm) || bCode.startsWith(searchTerm);
+    const aStartsWith = aName.startsWith(searchTerm);
+    const bStartsWith = bName.startsWith(searchTerm);
 
     if (aStartsWith && !bStartsWith) return -1;
     if (!aStartsWith && bStartsWith) return 1;
@@ -383,6 +380,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [loadingServices, setLoadingServices] = useState(false);
   const [returnServices, setReturnServices] = useState<any[]>([]);
   const [loadingReturnServices, setLoadingReturnServices] = useState(false);
+  const [pricingBreakdown, setPricingBreakdown] = useState<any[]>([]);
+  const [loadingPricing, setLoadingPricing] = useState(false);
 
   // Load services when country changes
   useEffect(() => {
@@ -395,6 +394,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   useEffect(() => {
     loadReturnServices();
   }, []);
+
+  // Calculate pricing breakdown when services change
+  useEffect(() => {
+    if (answers.services.length > 0 && answers.country) {
+      calculatePricingBreakdown();
+    }
+  }, [answers.services, answers.country, answers.quantity]);
 
   // Scroll to top when moving between steps
   useEffect(() => {
@@ -836,6 +842,82 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     }
   };
 
+  const calculatePricingBreakdown = async () => {
+    try {
+      setLoadingPricing(true);
+      const breakdown: any[] = [];
+
+      for (const serviceId of answers.services) {
+        const service = availableServices.find(s => s.id === serviceId);
+        if (!service) continue;
+
+        // Extract pricing from service price string (format: "Från XXX kr" or "XXX kr")
+        const priceMatch = service.price.match(/(\d+)/);
+        const totalServicePrice = priceMatch ? parseInt(priceMatch[1]) : 0;
+
+        // Get pricing from Firebase pricing rules
+        let officialFee = 0;
+        let serviceFee = 0;
+
+        const rule = await getPricingRule(answers.country, serviceId);
+        if (rule) {
+          officialFee = rule.officialFee;
+          serviceFee = rule.serviceFee;
+        } else {
+          // Fallback to hardcoded values
+          if (serviceId === 'apostille') {
+            officialFee = 440;
+            serviceFee = 999;
+          } else if (serviceId === 'notarization') {
+            officialFee = 320;
+            serviceFee = 999;
+          } else if (serviceId === 'chamber') {
+            officialFee = 799;
+            serviceFee = 1199;
+          } else if (serviceId === 'embassy') {
+            // Default embassy pricing
+            officialFee = 1500;
+            serviceFee = 1199;
+          } else {
+            serviceFee = 999; // Default service fee
+            officialFee = Math.max(0, totalServicePrice - serviceFee);
+          }
+        }
+
+        const officialTotal = officialFee * answers.quantity;
+        const totalPrice = officialTotal + serviceFee;
+
+        // Add official fee line (per document)
+        breakdown.push({
+          service: `${serviceId}_official`,
+          description: `${service.name} - Officiell avgift`,
+          quantity: answers.quantity,
+          unitPrice: officialFee,
+          total: officialTotal,
+          vatRate: 0 // Official fees are typically VAT exempt
+        });
+
+        // Add service fee line (per service, not per document)
+        breakdown.push({
+          service: `${serviceId}_service`,
+          description: `${service.name} - Serviceavgift`,
+          quantity: 1,
+          unitPrice: serviceFee,
+          total: serviceFee,
+          vatRate: 25 // Service fees are subject to VAT
+        });
+      }
+
+      setPricingBreakdown(breakdown);
+    } catch (error) {
+      console.error('Error calculating pricing breakdown:', error);
+      // Keep existing breakdown or use empty array
+      setPricingBreakdown([]);
+    } finally {
+      setLoadingPricing(false);
+    }
+  };
+
   const getServiceName = (serviceType: string) => {
     const names: { [key: string]: string } = {
       apostille: t('services.apostille.title'),
@@ -990,7 +1072,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 handleCustomCountrySubmit();
               }
             }}
-            placeholder={t('orderFlow.step1.searchPlaceholder')}
+            placeholder="Sök land (t.ex. 'kuwait' visar Kuwait, 'qatar' visar Qatar)..."
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button text-lg"
           />
 
@@ -2116,72 +2198,20 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           <div className="py-2">
             <span className="text-gray-700 font-medium">{t('orderFlow.step10.services')}:</span>
             <div className="mt-2 space-y-2">
-              {answers.services.map((serviceId) => {
-                const service = availableServices.find(s => s.id === serviceId);
-                if (!service) return null;
-
-                // Extract pricing from service price string (format: "Från XXX kr" or "XXX kr")
-                const priceMatch = service.price.match(/(\d+)/);
-                const totalServicePrice = priceMatch ? parseInt(priceMatch[1]) : 0;
-
-                // For now, use simplified pricing breakdown - official fee per document, service fee fixed
-                // This matches the admin panel structure where each service has officialFee + serviceFee
-                let officialFee = 0;
-                let serviceFee = 0;
-
-                // Use pricing data from admin panels
-                if (serviceId === 'apostille') {
-                  officialFee = 440;
-                  serviceFee = 999;
-                } else if (serviceId === 'notarization') {
-                  officialFee = 320;
-                  serviceFee = 999;
-                } else if (serviceId === 'chamber') {
-                  officialFee = 799;
-                  serviceFee = 1199;
-                } else if (serviceId === 'embassy') {
-                  // Embassy pricing varies by country - use common values
-                  const embassyPricing: { [key: string]: { officialFee: number; serviceFee: number } } = {
-                    'AO': { officialFee: 2000, serviceFee: 1199 },
-                    'EG': { officialFee: 1500, serviceFee: 1199 },
-                    'MA': { officialFee: 950, serviceFee: 1199 },
-                    'TN': { officialFee: 800, serviceFee: 1199 },
-                    'DZ': { officialFee: 1100, serviceFee: 1199 },
-                    'ET': { officialFee: 1200, serviceFee: 1199 }
-                  };
-                  const countryPricing = embassyPricing[answers.country];
-                  if (countryPricing) {
-                    officialFee = countryPricing.officialFee;
-                    serviceFee = countryPricing.serviceFee;
-                  } else {
-                    // Default embassy pricing
-                    officialFee = 1500;
-                    serviceFee = 1199;
-                  }
-                } else {
-                  // For other services, estimate based on total price
-                  serviceFee = 999; // Default service fee
-                  officialFee = Math.max(0, totalServicePrice - serviceFee);
-                }
-
-                const officialTotal = officialFee * answers.quantity;
-                const totalPrice = officialTotal + serviceFee;
-
-                return (
-                  <div key={serviceId} className="text-sm">
+              {loadingPricing ? (
+                <div className="text-sm text-gray-500">Beräknar priser...</div>
+              ) : (
+                pricingBreakdown.map((item, index) => (
+                  <div key={`${item.service}_${index}`} className="text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">
-                        • {service.name}({officialFee} kr × {answers.quantity} {answers.quantity > 1 ? 'dokument' : 'dokument'})
+                        • {item.description} {item.quantity > 1 ? `(${item.unitPrice} kr × ${item.quantity})` : `(${item.unitPrice} kr)`}
                       </span>
-                      <span className="font-medium text-gray-900">{totalPrice} kr</span>
-                    </div>
-                    <div className="flex justify-between items-center ml-4 text-xs text-gray-500">
-                      <span>{service.name} serviceavgift</span>
-                      <span>{serviceFee} kr</span>
+                      <span className="font-medium text-gray-900">{item.total} kr</span>
                     </div>
                   </div>
-                );
-              })}
+                ))
+              )}
             </div>
           </div>
 
@@ -2260,24 +2290,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             <span className="text-lg font-semibold text-green-900">{t('orderFlow.step10.total')}:</span>
             <span className="text-xl font-bold text-green-900">
               {(() => {
-                // Calculate total price using same logic as order submission
-                let total = 0;
+                if (loadingPricing) return 'Beräknar...';
 
-                // Add service prices using Firebase pricing (same as order submission)
-                answers.services.forEach(serviceId => {
-                  const service = availableServices.find(s => s.id === serviceId);
-                  if (service && service.price) {
-                    // Extract numeric value from price string (e.g., "2000 kr" -> 2000)
-                    const priceMatch = service.price.match(/(\d+)/);
-                    if (priceMatch) {
-                      total += parseInt(priceMatch[1]) * answers.quantity;
-                    }
-                  }
-                });
+                let total = pricingBreakdown.reduce((sum, item) => sum + item.total, 0);
 
-                // Add additional fees (same as order submission)
+                // Add additional fees
                 if (answers.expedited) total += 500;
-                if (answers.pickupService) total += 450; // Updated pickup service base price
+                if (answers.pickupService) total += 450;
                 if (answers.scannedCopies) total += 200 * answers.quantity;
 
                 // Add return service cost
@@ -2540,82 +2559,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 try {
                   console.log('📤 Submitting final order...');
 
-                  // Calculate pricing using same logic as order summary for consistency
-                  let totalPrice = 0;
-                  const breakdown: any[] = [];
-
-                  for (const serviceId of answers.services) {
-                    const service = availableServices.find(s => s.id === serviceId);
-                    if (!service) continue;
-
-                    // Extract pricing from service price string (format: "Från XXX kr" or "XXX kr")
-                    const priceMatch = service.price.match(/(\d+)/);
-                    const totalServicePrice = priceMatch ? parseInt(priceMatch[1]) : 0;
-
-                    // For now, use simplified pricing breakdown - official fee per document, service fee fixed
-                    // This matches the admin panel structure where each service has officialFee + serviceFee
-                    let officialFee = 0;
-                    let serviceFee = 0;
-
-                    // Use pricing data from admin panels
-                    if (serviceId === 'apostille') {
-                      officialFee = 440;
-                      serviceFee = 999;
-                    } else if (serviceId === 'notarization') {
-                      officialFee = 320;
-                      serviceFee = 999;
-                    } else if (serviceId === 'chamber') {
-                      officialFee = 799;
-                      serviceFee = 1199;
-                    } else if (serviceId === 'embassy') {
-                      // Embassy pricing varies by country - use common values
-                      const embassyPricing: { [key: string]: { officialFee: number; serviceFee: number } } = {
-                        'AO': { officialFee: 2000, serviceFee: 1199 },
-                        'EG': { officialFee: 1500, serviceFee: 1199 },
-                        'MA': { officialFee: 950, serviceFee: 1199 },
-                        'TN': { officialFee: 800, serviceFee: 1199 },
-                        'DZ': { officialFee: 1100, serviceFee: 1199 },
-                        'ET': { officialFee: 1200, serviceFee: 1199 }
-                      };
-                      const countryPricing = embassyPricing[answers.country];
-                      if (countryPricing) {
-                        officialFee = countryPricing.officialFee;
-                        serviceFee = countryPricing.serviceFee;
-                      } else {
-                        // Default embassy pricing
-                        officialFee = 1500;
-                        serviceFee = 1199;
-                      }
-                    } else {
-                      // For other services, estimate based on total price
-                      serviceFee = 999; // Default service fee
-                      officialFee = Math.max(0, totalServicePrice - serviceFee);
-                    }
-
-                    const officialTotal = officialFee * answers.quantity;
-                    const serviceTotal = officialTotal + serviceFee;
-                    totalPrice += serviceTotal;
-
-                    // Add official fee line (per document)
-                    breakdown.push({
-                      service: `${serviceId}_official`,
-                      description: `${service.name} - Officiell avgift`,
-                      quantity: answers.quantity,
-                      unitPrice: officialFee,
-                      total: officialTotal,
-                      vatRate: 0 // Official fees are typically VAT exempt
-                    });
-
-                    // Add service fee line (per service, not per document)
-                    breakdown.push({
-                      service: `${serviceId}_service`,
-                      description: `${service.name} - Serviceavgift`,
-                      quantity: 1,
-                      unitPrice: serviceFee,
-                      total: serviceFee,
-                      vatRate: 25 // Service fees are subject to VAT
-                    });
-                  }
+                  // Use the calculated pricing breakdown from state
+                  let totalPrice = pricingBreakdown.reduce((sum, item) => sum + item.total, 0);
+                  const breakdown = [...pricingBreakdown];
 
                   // Add additional fees consistently
                   let additionalFees = 0;
@@ -2625,8 +2571,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                     additionalFees += 200 * answers.quantity;
                     breakdown.push({
                       service: 'scanned_copies',
-                      fee: 200 * answers.quantity,
-                      description: 'Scanned copies'
+                      description: 'Skannade kopior',
+                      quantity: answers.quantity,
+                      unitPrice: 200,
+                      total: 200 * answers.quantity,
+                      vatRate: 25
                     });
                   }
 
@@ -2640,8 +2589,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                         additionalFees += returnCost;
                         breakdown.push({
                           service: 'return_service',
-                          fee: returnCost,
-                          description: returnService.name
+                          description: returnService.name,
+                          quantity: 1,
+                          unitPrice: returnCost,
+                          total: returnCost,
+                          vatRate: 25
                         });
                       }
                     }
@@ -2657,8 +2609,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                         additionalFees += premiumCost;
                         breakdown.push({
                           service: 'premium_delivery',
-                          fee: premiumCost,
-                          description: premiumService.name
+                          description: premiumService.name,
+                          quantity: 1,
+                          unitPrice: premiumCost,
+                          total: premiumCost,
+                          vatRate: 25
                         });
                       }
                     }
