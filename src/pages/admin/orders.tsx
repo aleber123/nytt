@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { getAllOrders, updateOrder } from '@/services/hybridOrderService';
 import { getInvoicesByOrderId, convertOrderToInvoice, storeInvoice } from '@/services/invoiceService';
@@ -31,14 +32,14 @@ interface Order {
   };
   scannedCopies: boolean;
   returnService: string;
-  customerInfo: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-    postalCode: string;
-    city: string;
+  customerInfo?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    postalCode?: string;
+    city?: string;
   };
   deliveryMethod: string;
   paymentMethod: string;
@@ -58,12 +59,14 @@ import { toast } from 'react-hot-toast';
 function AdminOrdersPage() {
   const { t } = useTranslation('common');
   const { signOut } = useAuth();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [creatingInvoiceForOrder, setCreatingInvoiceForOrder] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -193,10 +196,22 @@ function AdminOrdersPage() {
     }
   };
 
-  // Filter orders based on status
-  const filteredOrders = statusFilter === 'all' 
-    ? orders 
-    : orders.filter(order => order.status === statusFilter);
+  // Filter orders based on status and search query
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const byStatus = statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter);
+  const filteredOrders = normalizedQuery
+    ? byStatus.filter((o) => {
+        const fields = [
+          o.orderNumber || o.id || '',
+          `${o.customerInfo?.firstName || ''} ${o.customerInfo?.lastName || ''}`,
+          o.customerInfo?.email || '',
+          o.country || '',
+          o.status || '',
+          o.returnService || ''
+        ].join(' ').toLowerCase();
+        return fields.includes(normalizedQuery);
+      })
+    : byStatus;
 
   return (
     <>
@@ -323,7 +338,24 @@ function AdminOrdersPage() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4 w-full justify-between">
+                  {/* Search */}
+                  <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+                    <label htmlFor="order-search" className="sr-only">Sök</label>
+                    <div className="relative w-full max-w-sm">
+                      <input
+                        id="order-search"
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Sök ordernummer, kund, e-post, land eller status..."
+                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                      <svg className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+                      </svg>
+                    </div>
+                  </div>
                   <div className="flex items-center">
                     <label htmlFor="status-filter" className="mr-2 text-sm text-gray-600 font-medium">
                       Status:
@@ -432,177 +464,94 @@ function AdminOrdersPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredOrders.map((order) => (
-                  <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
-                    <div className="p-6">
-                      {/* Header with Order Number and Price */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-gray-900">
-                              #{order.orderNumber || order.id}
-                            </h3>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(order.status)}`}>
-                              {order.status === 'pending' ? 'Väntar' :
-                               order.status === 'processing' ? 'Bearbetas' :
-                               order.status === 'shipped' ? 'Skickad' :
-                               order.status === 'delivered' ? 'Levererad' :
-                               order.status === 'cancelled' ? 'Avbruten' : order.status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(order.createdAt)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-gray-900 mb-1">
-                            {order.totalPrice} kr
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {order.quantity} dokument
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Service Indicators */}
-                      <div className="flex items-center gap-2 mb-4">
-                        {order.uploadedFiles && order.uploadedFiles.length > 0 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            📎 {order.uploadedFiles.length} fil{order.uploadedFiles.length > 1 ? 'er' : ''}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ordernummer</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tjänster</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kontaktperson</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retur</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Åtgärder</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredOrders.map((order) => (
+                      <tr
+                        key={order.id}
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => router.push(`/admin/orders/${order.id}`)}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            router.push(`/admin/orders/${order.id}`);
+                          }
+                        }}
+                      >
+                        <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">#{order.orderNumber || order.id}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getStatusBadgeColor(order.status)}`}>
+                            {order.status === 'pending' ? 'Väntar' :
+                             order.status === 'processing' ? 'Bearbetas' :
+                             order.status === 'shipped' ? 'Skickad' :
+                             order.status === 'delivered' ? 'Levererad' :
+                             order.status === 'cancelled' ? 'Avbruten' : order.status}
                           </span>
-                        )}
-                        {order.pickupService && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            🚚 Hämtning
-                          </span>
-                        )}
-                        {order.scannedCopies && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                            📋 Kopior
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Main Content Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        {/* Customer Info */}
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Kund</h4>
-                          <div className="space-y-1">
-                            <p className="text-base font-medium text-gray-900">
-                              {order.customerInfo.firstName} {order.customerInfo.lastName}
-                            </p>
-                            <p className="text-sm text-gray-600 truncate">{order.customerInfo.email}</p>
-                            <p className="text-sm text-gray-600">{order.customerInfo.phone}</p>
-                          </div>
-                        </div>
-
-                        {/* Document & Services */}
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Dokument & Tjänster</h4>
-                          <div className="space-y-2">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                {order.documentType === 'birthCertificate' ? 'Födelsebevis' :
-                                 order.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-                                 order.documentType === 'diploma' ? 'Examensbevis' :
-                                 order.documentType === 'commercial' ? 'Handelsdokument' :
-                                 order.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
-                              </p>
-                              <p className="text-sm text-gray-600">{order.country}</p>
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {Array.isArray(order.services) ? (
-                                order.services.slice(0, 3).map((service, idx) => (
-                                  <span key={idx} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800">
-                                    {getServiceName(service)}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800">
-                                  {getServiceName(order.services as unknown as string)}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          <div className="flex flex-wrap gap-1">
+                            {Array.isArray(order.services) ? (
+                              order.services.slice(0, 3).map((service, idx) => (
+                                <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-indigo-100 text-indigo-800">
+                                  {getServiceName(service)}
                                 </span>
-                              )}
-                              {Array.isArray(order.services) && order.services.length > 3 && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600">
-                                  +{order.services.length - 3}
-                                </span>
-                              )}
-                            </div>
+                              ))
+                            ) : (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-indigo-100 text-indigo-800">
+                                {getServiceName(order.services as unknown as string)}
+                              </span>
+                            )}
+                            {Array.isArray(order.services) && order.services.length > 3 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600">
+                                +{order.services.length - 3}
+                              </span>
+                            )}
                           </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="space-y-3">
-                          <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Åtgärder</h4>
-                          <div className="space-y-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
-                              <select
-                                disabled={updatingOrderId === order.id}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                value={order.status}
-                                onChange={(e) => handleStatusChange(order.id!, e.target.value as Order['status'])}
-                              >
-                                <option value="pending">Väntar</option>
-                                <option value="processing">Bearbetas</option>
-                                <option value="shipped">Skickad</option>
-                                <option value="delivered">Levererad</option>
-                                <option value="cancelled">Avbruten</option>
-                              </select>
-                              {updatingOrderId === order.id && (
-                                <div className="flex items-center mt-1">
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-600 mr-2"></div>
-                                  <span className="text-xs text-gray-500">Uppdaterar...</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="space-y-2">
-                              <Link
-                                href={`/admin/orders/${order.id}`}
-                                className="inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                                Visa detaljer
-                              </Link>
-
-                              <button
-                                onClick={() => handleCreateOrViewInvoice(order)}
-                                disabled={creatingInvoiceForOrder === order.id}
-                                className={`inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
-                                  creatingInvoiceForOrder === order.id
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-green-600 hover:bg-green-700'
-                                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors`}
-                              >
-                                {creatingInvoiceForOrder === order.id ? (
-                                  <div className="flex items-center">
-                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Skapar faktura...
-                                  </div>
-                                ) : (
-                                  <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Faktura
-                                  </>
-                                )}
-                              </button>
-                            </div>
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
+                          {(order.customerInfo?.firstName || '') + ' ' + (order.customerInfo?.lastName || '')}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
+                          {order.returnService || '—'}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
+                          <div className="inline-flex items-center gap-2">
+                            <select
+                              disabled={updatingOrderId === order.id}
+                              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              value={order.status}
+                              onChange={(e) => handleStatusChange(order.id!, e.target.value as Order['status'])}
+                            >
+                              <option value="pending">Väntar</option>
+                              <option value="processing">Bearbetas</option>
+                              <option value="shipped">Skickad</option>
+                              <option value="delivered">Levererad</option>
+                              <option value="cancelled">Avbruten</option>
+                            </select>
+                            <Link
+                              href={`/admin/orders/${order.id}`}
+                              className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                              Visa
+                            </Link>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

@@ -46,6 +46,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
       'priser': t('nav.prices'),
       'om-oss': t('nav.about'),
       'kontakt': t('nav.contact'),
+      'orderstatus': 'Orderstatus',
       'apostille': t('services.apostille.title'),
       'notarisering': t('services.notarization.title'),
       'ambassad': t('services.embassy.title'),

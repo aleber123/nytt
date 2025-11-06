@@ -38,13 +38,13 @@ export interface Invoice {
   orderId: string;
   orderNumber?: string;
   customerInfo: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-    postalCode: string;
-    city: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    postalCode?: string;
+    city?: string;
     companyName?: string;
     orgNumber?: string;
   };
@@ -776,13 +776,27 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
       yPosition += 4;
     }
 
-    doc.text(invoice.customerInfo.address, 20, yPosition);
-    yPosition += 4;
-    doc.text(`${invoice.customerInfo.postalCode} ${invoice.customerInfo.city}`, 20, yPosition);
-    yPosition += 4;
-    doc.text(invoice.customerInfo.email, 20, yPosition);
-    yPosition += 4;
-    doc.text(invoice.customerInfo.phone, 20, yPosition);
+    if (invoice.customerInfo?.address) {
+      doc.text(invoice.customerInfo.address, 20, yPosition);
+      yPosition += 4;
+    }
+    
+    const postalCode = invoice.customerInfo?.postalCode || '';
+    const city = invoice.customerInfo?.city || '';
+    if (postalCode || city) {
+      doc.text(`${postalCode} ${city}`.trim(), 20, yPosition);
+      yPosition += 4;
+    }
+    
+    if (invoice.customerInfo?.email) {
+      doc.text(invoice.customerInfo.email, 20, yPosition);
+      yPosition += 4;
+    }
+    
+    if (invoice.customerInfo?.phone) {
+      doc.text(invoice.customerInfo.phone, 20, yPosition);
+      yPosition += 4;
+    }
 
     if (invoice.customerInfo.orgNumber) {
       yPosition += 4;
@@ -1045,12 +1059,22 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 30);
 
-    // Create invoice object
+    // Create invoice object with fallback for customer info
+    const customerInfo = order.customerInfo || {
+      firstName: 'Ej angivet',
+      lastName: '',
+      email: 'ingen@example.com',
+      phone: 'Inget telefonnummer angivet',
+      address: 'Ej angiven',
+      postalCode: '',
+      city: ''
+    };
+
     const invoice: Invoice = {
       invoiceNumber,
       orderId: order.id || '',
       orderNumber: order.orderNumber || order.id || '', // Use orderNumber if available, otherwise use order.id
-      customerInfo: order.customerInfo,
+      customerInfo,
       lineItems,
       subtotal,
       vatTotal,
@@ -1425,23 +1449,39 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text(`${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName}`, 20, yPosition);
+      const firstName = invoice.customerInfo?.firstName || '';
+      const lastName = invoice.customerInfo?.lastName || '';
+      doc.text(`${firstName} ${lastName}`.trim(), 20, yPosition);
       yPosition += 4;
 
-      if (invoice.customerInfo.companyName) {
+      if (invoice.customerInfo?.companyName) {
         doc.setFont('helvetica', 'bold');
         doc.text(invoice.customerInfo.companyName, 20, yPosition);
         doc.setFont('helvetica', 'normal');
         yPosition += 4;
       }
 
-      doc.text(invoice.customerInfo.address, 20, yPosition);
-      yPosition += 4;
-      doc.text(`${invoice.customerInfo.postalCode} ${invoice.customerInfo.city}`, 20, yPosition);
-      yPosition += 4;
-      doc.text(invoice.customerInfo.email, 20, yPosition);
-      yPosition += 4;
-      doc.text(invoice.customerInfo.phone, 20, yPosition);
+      if (invoice.customerInfo?.address) {
+        doc.text(invoice.customerInfo.address, 20, yPosition);
+        yPosition += 4;
+      }
+      
+      const postalCode = invoice.customerInfo?.postalCode || '';
+      const city = invoice.customerInfo?.city || '';
+      if (postalCode || city) {
+        doc.text(`${postalCode} ${city}`.trim(), 20, yPosition);
+        yPosition += 4;
+      }
+      
+      if (invoice.customerInfo?.email) {
+        doc.text(invoice.customerInfo.email, 20, yPosition);
+        yPosition += 4;
+      }
+      
+      if (invoice.customerInfo?.phone) {
+        doc.text(invoice.customerInfo.phone, 20, yPosition);
+        yPosition += 4;
+      }
 
       if (invoice.customerInfo.orgNumber) {
         yPosition += 4;

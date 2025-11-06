@@ -163,13 +163,20 @@ function AdminInvoicesPage() {
   // Filter and search invoices
   const filteredInvoices = invoices.filter(invoice => {
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
-    const matchesSearch = searchTerm === '' ||
-      invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customerInfo.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customerInfo.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customerInfo.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.orderNumber && invoice.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-
+    
+    if (searchTerm === '') {
+      return matchesStatus;
+    }
+    
+    const searchTermLower = searchTerm.toLowerCase();
+    const invoiceNumberMatch = invoice.invoiceNumber.toLowerCase().includes(searchTermLower);
+    const firstNameMatch = invoice.customerInfo?.firstName?.toLowerCase().includes(searchTermLower) || false;
+    const lastNameMatch = invoice.customerInfo?.lastName?.toLowerCase().includes(searchTermLower) || false;
+    const emailMatch = invoice.customerInfo?.email?.toLowerCase().includes(searchTermLower) || false;
+    const orderNumberMatch = invoice.orderNumber?.toLowerCase().includes(searchTermLower) || false;
+    
+    const matchesSearch = invoiceNumberMatch || firstNameMatch || lastNameMatch || emailMatch || orderNumberMatch;
+    
     return matchesStatus && matchesSearch;
   });
 

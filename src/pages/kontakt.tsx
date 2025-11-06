@@ -75,13 +75,7 @@ const ContactPage: React.FC = () => {
         />
       </Head>
 
-      <div className="bg-custom-page-header py-12">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
-            {t('contact.title') || 'Kontakta oss'}
-          </h1>
-        </div>
-      </div>
+      
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto mb-16 text-center">

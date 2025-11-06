@@ -36,14 +36,14 @@ export interface Order {
   };
   scannedCopies: boolean; // Whether scanned copies are requested
   returnService: string; // Return service selection
-  customerInfo: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-    postalCode: string;
-    city: string;
+  customerInfo?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    postalCode?: string;
+    city?: string;
   };
   deliveryMethod: string;
   paymentMethod: string;

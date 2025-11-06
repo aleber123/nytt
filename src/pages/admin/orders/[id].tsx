@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
-import { GetServerSideProps } from 'next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { getOrderById, updateOrder } from '@/services/hybridOrderService';
-import { Order } from '@/firebase/orderService';
-import { Timestamp } from 'firebase/firestore';
+import type { Order } from '@/firebase/orderService';
 import { toast } from 'react-hot-toast';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,7 +36,7 @@ interface AdminNote {
   type: 'general' | 'processing' | 'customer' | 'issue';
 }
 
-function AdminOrderDetailPage({ orderId }: { orderId: string }) {
+function AdminOrderDetailPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
   const { signOut } = useAuth();
@@ -59,10 +56,11 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   const [removingService, setRemovingService] = useState<string | null>(null);
 
   useEffect(() => {
+    const orderId = router.query.id as string | undefined;
     if (orderId) {
-      fetchOrder();
+      fetchOrder(orderId);
     }
-  }, [orderId]);
+  }, [router.query.id]);
 
   // Initialize processing steps based on order type
   const initializeProcessingSteps = (orderData: ExtendedOrder): ProcessingStep[] => {
@@ -154,9 +152,12 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
     return steps;
   };
 
-  const fetchOrder = async () => {
+  const fetchOrder = async (orderIdParam?: string) => {
     setLoading(true);
     try {
+      const { getOrderById } = (await import('@/services/hybridOrderService')).default;
+      const orderId = orderIdParam || (router.query.id as string);
+      if (!orderId) throw new Error('Missing order id');
       const orderData = await getOrderById(orderId);
       if (orderData) {
         const extendedOrder = orderData as ExtendedOrder;
@@ -166,7 +167,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
         setProcessingSteps(extendedOrder.processingSteps || initializeProcessingSteps(extendedOrder));
 
         // Fetch invoices for this order
-        await fetchInvoices();
+        await fetchInvoices(orderId);
       } else {
         setError('Order not found');
       }
@@ -178,7 +179,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
     }
   };
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (orderId: string) => {
     try {
       const invoicesData = await getInvoicesByOrderId(orderId);
       setInvoices(invoicesData);
@@ -244,9 +245,11 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
 
   const handleStatusUpdate = async () => {
     if (!order) return;
+    const orderId = router.query.id as string;
 
     setIsUpdating(true);
     try {
+      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
       await updateOrder(orderId, { status: editedStatus });
       setOrder({ ...order, status: editedStatus });
       toast.success('Order status updated successfully');
@@ -261,7 +264,8 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   // Update processing step status
   const updateProcessingStep = async (stepId: string, status: ProcessingStep['status'], notes?: string) => {
     if (!order) return;
-
+    const orderId = router.query.id as string;
+    const { Timestamp } = await import('firebase/firestore');
     const updatedSteps = processingSteps.map(step => {
       if (step.id === stepId) {
         // Create a clean object without undefined values
@@ -290,6 +294,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
     };
 
     try {
+      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
       await updateOrder(orderId, { processingSteps: updatedSteps });
       setProcessingSteps(updatedSteps);
       setOrder(updatedOrder);
@@ -303,8 +308,10 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   // Save internal notes
   const saveInternalNotes = async () => {
     if (!order) return;
+    const orderId = router.query.id as string;
 
     try {
+      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
       await updateOrder(orderId, { internalNotes });
       setOrder({ ...order, internalNotes });
       toast.success('Interna anteckningar sparade');
@@ -332,6 +339,8 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
     };
 
     try {
+      const orderId = router.query.id as string;
+      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
       await updateOrder(orderId, { adminNotes: updatedOrder.adminNotes });
       setOrder(updatedOrder);
       setNewNote('');
@@ -345,6 +354,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   // Remove a service from the order
   const handleRemoveService = async (serviceToRemove: string) => {
     if (!order) return;
+    const orderId = router.query.id as string;
 
     setRemovingService(serviceToRemove);
     try {
@@ -401,6 +411,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
         processingSteps: updatedProcessingSteps
       };
 
+      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
       await updateOrder(orderId, {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
@@ -572,7 +583,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                   </svg>
                 </Link>
                 <h1 className="text-2xl font-bold text-gray-800">
-                  {loading ? 'Loading...' : `Order ${order?.orderNumber || orderId}`}
+                  {loading ? 'Loading...' : `Order ${order?.orderNumber || (router.query.id as string || '')}`}
                 </h1>
               </div>
               <div className="flex items-center space-x-4">
@@ -598,7 +609,7 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
               {error}
               <button
-                onClick={fetchOrder}
+                onClick={() => fetchOrder()}
                 className="ml-4 underline text-red-700 hover:text-red-900"
               >
                 Försök igen
@@ -852,21 +863,23 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                               <div className="space-y-3">
                                 <div>
                                   <p className="text-sm text-gray-500">Namn</p>
-                                  <p className="font-medium">{order.customerInfo.firstName} {order.customerInfo.lastName}</p>
+                                  <p className="font-medium">
+                                    {order.customerInfo?.firstName || 'Ej angivet'} {order.customerInfo?.lastName || ''}
+                                  </p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-500">E-post</p>
-                                  <p className="font-medium">{order.customerInfo.email}</p>
+                                  <p className="font-medium">{order.customerInfo?.email || 'Ingen e-post angiven'}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-500">Telefon</p>
-                                  <p className="font-medium">{order.customerInfo.phone}</p>
+                                  <p className="font-medium">{order.customerInfo?.phone || 'Inget telefonnummer angivet'}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-500">Adress</p>
                                   <p className="font-medium">
-                                    {order.customerInfo.address}<br/>
-                                    {order.customerInfo.postalCode} {order.customerInfo.city}
+                                    {order.customerInfo?.address || 'Ingen adress angiven'}<br/>
+                                    {order.customerInfo?.postalCode || ''} {order.customerInfo?.city || ''}
                                   </p>
                                 </div>
                               </div>
@@ -909,9 +922,18 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
                                   </button>
                                 )}
                                 <Link
-                                  href={`mailto:${order.customerInfo.email}?subject=Order ${orderId}`}
-                                  className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                                >
+                                  href={`mailto:${order.customerInfo?.email || ''}?subject=Order ${order?.orderNumber || (router.query.id as string || '')}`}
+                                  className={`w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium ${
+                            order.customerInfo?.email 
+                              ? 'text-gray-700 bg-white hover:bg-gray-50' 
+                              : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                          }`}
+                                  onClick={(e) => {
+                            if (!order.customerInfo?.email) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                   </svg>
@@ -1341,21 +1363,10 @@ function AdminOrderDetailPage({ orderId }: { orderId: string }) {
   );
 }
 
-export default function ProtectedAdminOrderDetailPage({ orderId }: { orderId: string }) {
-  return (
-    <ProtectedRoute>
-      <AdminOrderDetailPage orderId={orderId} />
-    </ProtectedRoute>
-  );
-}
+const ClientOnlyAdminOrderDetail = () => (
+  <ProtectedRoute>
+    <AdminOrderDetailPage />
+  </ProtectedRoute>
+);
 
-export const getServerSideProps: GetServerSideProps = async ({ params, locale }) => {
-  const orderId = params?.id as string;
-
-  return {
-    props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
-      orderId,
-    },
-  };
-};
+export default dynamic(() => Promise.resolve(ClientOnlyAdminOrderDetail), { ssr: false });

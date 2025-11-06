@@ -14,6 +14,20 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Helper function to update document status
+const updateStatus = async (ref, status, error = null) => {
+  const updateData = {
+    status,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+  
+  if (error) {
+    updateData.error = error.message || String(error);
+  }
+  
+  return ref.update(updateData);
+};
+
 // Cloud Function triggered when a new contact message is created
 exports.sendContactEmail = functions.firestore
   .document('contactMessages/{messageId}')
@@ -95,6 +109,87 @@ Detta meddelande skickades från kontaktformuläret på Legaliseringstjänst.se
         emailError: error.message
       });
 
+      throw error;
+    }
+  });
+
+// Cloud Function triggered when a new customer email needs to be sent
+exports.sendCustomerConfirmationEmail = functions.firestore
+  .document('customerEmails/{emailId}')
+  .onCreate(async (snap, context) => {
+    const emailData = snap.data();
+    
+    // Skip if already processed
+    if (emailData.status === 'sent') return null;
+    
+    try {
+      const mailOptions = {
+        from: `"Legaliseringstjänst" <${functions.config().email.user}>`,
+        to: emailData.email,
+        subject: emailData.subject || 'Bekräftelse på din beställning',
+        html: emailData.message,
+        text: emailData.message.replace(/<[^>]*>?/gm, '') // Strip HTML for plain text version
+      };
+      
+      // Send email
+      await transporter.sendMail(mailOptions);
+      console.log(`Customer confirmation email sent to ${emailData.email}`);
+      
+      // Update status
+      await snap.ref.update({
+        status: 'sent',
+        sentAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      return null;
+    } catch (error) {
+      console.error('Error sending customer confirmation email:', error);
+      await snap.ref.update({
+        status: 'error',
+        error: error.message,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      throw error;
+    }
+  });
+
+// Cloud Function triggered when an invoice email needs to be sent
+exports.sendInvoiceEmail = functions.firestore
+  .document('emailQueue/{emailId}')
+  .onCreate(async (snap, context) => {
+    const emailData = snap.data();
+    
+    // Skip if already processed
+    if (emailData.status === 'sent') return null;
+    
+    try {
+      const mailOptions = {
+        from: `"Legaliseringstjänst" <${functions.config().email.user}>`,
+        to: emailData.to,
+        subject: emailData.subject || 'Din faktura från Legaliseringstjänst',
+        html: emailData.html,
+        text: emailData.html.replace(/<[^>]*>?/gm, ''), // Strip HTML for plain text version
+        attachments: emailData.attachments || []
+      };
+      
+      // Send email
+      await transporter.sendMail(mailOptions);
+      console.log(`Invoice email sent to ${emailData.to}`);
+      
+      // Update status
+      await snap.ref.update({
+        status: 'sent',
+        sentAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      return null;
+    } catch (error) {
+      console.error('Error sending invoice email:', error);
+      await snap.ref.update({
+        status: 'error',
+        error: error.message,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
       throw error;
     }
   });

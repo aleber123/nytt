@@ -146,22 +146,35 @@ const createOrder = async (orderData) => {
 
 // Get order by ID with hybrid approach
 const getOrderById = async (orderId) => {
+  console.log('🔍 getOrderById called with orderId:', orderId);
+  
+  if (!orderId) {
+    console.error('❌ Error: No order ID provided to getOrderById');
+    return null;
+  }
+
   try {
     if (firebaseAvailable && db) {
       try {
-        // Now that we use SWE numbers as document IDs, try direct lookup first
+        console.log('🔍 Attempting to fetch order from Firebase...');
+        
+        // Try direct lookup by document ID first
         const docRef = doc(db, 'orders', orderId);
+        console.log('🔍 Document reference created for order:', orderId);
+        
         const docSnap = await getDoc(docRef);
+        console.log('🔍 Document snapshot received, exists:', docSnap.exists());
 
         if (docSnap.exists()) {
-          console.log('📖 Order retrieved from Firebase by ID:', orderId);
+          console.log('✅ Order retrieved from Firebase by ID:', orderId);
           return {
             id: docSnap.id,
             ...docSnap.data()
           };
         }
 
-        // Fallback: try to find by orderNumber field for legacy orders
+        // If not found by ID, try searching by orderNumber
+        console.log('🔍 Order not found by ID, trying orderNumber...');
         const { query, where, getDocs } = require('firebase/firestore');
         const ordersQuery = query(
           collection(db, 'orders'),
@@ -169,28 +182,41 @@ const getOrderById = async (orderId) => {
         );
 
         const querySnapshot = await getDocs(ordersQuery);
+        console.log(`🔍 Found ${querySnapshot.size} orders with orderNumber ${orderId}`);
+        
         if (!querySnapshot.empty) {
           const doc = querySnapshot.docs[0];
-          console.log('📖 Order retrieved from Firebase by orderNumber:', orderId);
+          console.log('✅ Order retrieved from Firebase by orderNumber:', orderId);
           return {
             id: doc.id,
             ...doc.data()
           };
         }
+        
+        console.log('⚠️ Order not found in Firebase by ID or orderNumber:', orderId);
+        
       } catch (firebaseError) {
-        console.log('⚠️ Firebase retrieval failed:', firebaseError.message);
+        console.error('❌ Firebase retrieval failed:', firebaseError);
+        console.error('Stack:', firebaseError.stack);
       }
+    } else {
+      console.log('ℹ️ Firebase not available, falling back to mock service');
     }
 
     // Fallback to mock service
+    console.log('🔍 Attempting to fetch order from mock service...');
     const mockOrder = await mockFirebase.getOrderById(orderId);
     if (mockOrder) {
-      console.log('📖 Order retrieved from mock service:', orderId);
+      console.log('✅ Order retrieved from mock service:', orderId);
+      return mockOrder;
     }
-    return mockOrder;
+    
+    console.log('⚠️ Order not found in mock service:', orderId);
+    return null;
 
   } catch (error) {
-    console.error('❌ Error getting order by ID:', error);
+    console.error('❌ Error in getOrderById:', error);
+    console.error('Stack:', error.stack);
     throw error;
   }
 };

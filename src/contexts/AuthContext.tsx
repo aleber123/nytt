@@ -1,9 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import {
-  onAuthStateChanged,
-  signOut as firebaseSignOut,
-  User as FirebaseUser
-} from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { getFirebaseAuth } from '@/firebase/config';
 
 interface AuthContextType {
@@ -32,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('Cannot sign out: Firebase auth not available');
       return Promise.resolve();
     }
-    return firebaseSignOut(auth);
+    return import('firebase/auth').then(({ signOut: firebaseSignOut }) => firebaseSignOut(auth));
   }
 
   useEffect(() => {
@@ -43,12 +39,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
+    let unsub: (() => void) | undefined;
+    let active = true;
 
-    return unsubscribe;
+    import('firebase/auth')
+      .then(({ onAuthStateChanged }) => {
+        if (!active) return;
+        unsub = onAuthStateChanged(auth, (user) => {
+          setCurrentUser(user);
+          setLoading(false);
+        });
+      })
+      .catch((e) => {
+        console.error('Failed to load firebase/auth for AuthProvider:', e);
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      if (unsub) unsub();
+    };
   }, []);
 
   const value = {

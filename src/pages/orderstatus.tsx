@@ -37,8 +37,9 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
       if (orderDoc.exists()) {
         const orderData = orderDoc.data() as Order;
 
-        // Check if the email matches (case insensitive)
-        if (orderData.customerInfo.email.toLowerCase() !== email.toLowerCase()) {
+        // Check if customer info exists and if the email matches (case insensitive)
+        if (!orderData.customerInfo?.email || 
+            orderData.customerInfo.email.toLowerCase() !== email.toLowerCase()) {
           setError(t('orderStatus.errors.notFound') || 'Ingen beställning hittades med angivet ordernummer och e-post');
           setIsLoading(false);
           return;
@@ -151,8 +152,10 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
       service: Array.isArray(orderData.services) ? orderData.services[0] : orderData.services,
       services: orderData.services,
       customer: {
-        name: `${orderData.customerInfo.firstName} ${orderData.customerInfo.lastName}`,
-        email: orderData.customerInfo.email
+        name: orderData.customerInfo ? 
+          `${orderData.customerInfo.firstName || ''} ${orderData.customerInfo.lastName || ''}`.trim() || 'Ej angivet' : 
+          'Ej angivet',
+        email: orderData.customerInfo?.email || 'Ingen e-post angiven'
       },
       steps: steps,
       totalPrice: orderData.totalPrice,
@@ -233,13 +236,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
         />
       </Head>
 
-      <div className="bg-custom-page-header py-12">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
-            {t('orderStatus.title') || 'Kontrollera orderstatus'}
-          </h1>
-        </div>
-      </div>
+      
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto mb-16 text-center">

@@ -2,41 +2,47 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-// Import translations directly
-import svCommon from '../public/locales/sv/common.json';
-import enCommon from '../public/locales/en/common.json';
+// Check if we're on the server or client
+const isServer = typeof window === 'undefined';
 
-// Don't want to use this?
-// have a look at the Quick start guide
-// for passing in lng and translations on init
+// Don't import translations directly to avoid including them in the client bundle
+// They will be loaded dynamically
 
 i18n
-  // detect user language
-  // learn more: https://github.com/i18next/i18next-browser-languagedetector
   .use(LanguageDetector)
-  // pass the i18n instance to react-i18next.
   .use(initReactI18next)
-  // init i18next
-  // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
     fallbackLng: 'sv',
     defaultNS: 'common',
     ns: ['common'],
     debug: process.env.NODE_ENV === 'development',
     interpolation: {
-      escapeValue: false, // not needed for react as it escapes by default
-    },
-    resources: {
-      sv: {
-        common: svCommon,
-      },
-      en: {
-        common: enCommon,
-      },
+      escapeValue: false, // React already escapes values
     },
     react: {
       useSuspense: false,
+      bindI18n: 'languageChanged loaded',
+      bindI18nStore: 'added removed',
+      nsMode: 'default'
     },
+    detection: {
+      order: ['path', 'navigator'],
+      caches: ['cookie'],
+    }
   });
+
+// Only load translations on the client side
+if (!isServer) {
+  // Using dynamic imports to avoid including translations in the server bundle
+  Promise.all([
+    import('../public/locales/sv/common.json'),
+    import('../public/locales/en/common.json')
+  ]).then(([svCommon, enCommon]) => {
+    i18n.addResourceBundle('sv', 'common', svCommon);
+    i18n.addResourceBundle('en', 'common', enCommon);    
+  }).catch(error => {
+    console.error('Failed to load translation files:', error);
+  });
+}
 
 export default i18n;

@@ -1,11 +1,11 @@
-import { GetServerSideProps } from 'next';
+import dynamic from 'next/dynamic';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getOrderById } from '@/services/hybridOrderService';
+// Defer importing Firebase-dependent service to client to avoid SSR issues
 
 // Define Order interface locally
 interface Order {
@@ -45,11 +45,7 @@ interface Order {
   updatedAt?: any;
 }
 
-interface ConfirmationPageProps {
-  orderId?: string;
-}
-
-export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
+export function ConfirmationPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
@@ -58,14 +54,18 @@ export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!orderId) {
+      const oid = (router.query.orderId as string) || '';
+      if (!oid) {
         setError(t('order.error.noOrderId'));
         setLoading(false);
         return;
       }
 
       try {
-        const orderData = await getOrderById(orderId);
+        // Dynamically import to avoid SSR importing Firebase-dependent code
+        const hybridOrderService = (await import('@/services/hybridOrderService')).default;
+        const { getOrderById } = hybridOrderService;
+        const orderData = await getOrderById(oid);
         if (orderData) {
           setOrder(orderData);
         } else {
@@ -80,7 +80,7 @@ export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
     };
 
     fetchOrder();
-  }, [orderId, t]);
+  }, [router.query.orderId, t]);
 
   // Function to get service name
   const getServiceName = (serviceId: string) => {
@@ -108,14 +108,7 @@ export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      {/* Header Section */}
-      <div className="bg-custom-page-header py-12">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
-            {t('confirmation.title')}
-          </h1>
-        </div>
-      </div>
+      
 
       <main className="bg-gray-50 py-16">
         <div className="container mx-auto px-4">
@@ -364,13 +357,4 @@ export default function ConfirmationPage({ orderId }: ConfirmationPageProps) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ locale, query }) => {
-  const { orderId } = query;
-  
-  return {
-    props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
-      orderId: orderId || null,
-    },
-  };
-};
+export default dynamic(() => Promise.resolve(ConfirmationPage), { ssr: false });

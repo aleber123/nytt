@@ -49,6 +49,13 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
       allow delete: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
     }
+
+    // Allow creating and reading customer emails for order confirmations
+    match /customerEmails/{emailId} {
+      allow create: if true; // Allow anyone to create customer emails
+      allow read: if request.auth != null; // Only authenticated users can read
+      allow update, delete: if false; // No updates or deletes allowed
+    }
   }
 }
 
