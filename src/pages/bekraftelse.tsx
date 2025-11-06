@@ -51,6 +51,8 @@ export function ConfirmationPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState<string>('');
+  const [emailSubmitted, setEmailSubmitted] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -60,27 +62,33 @@ export function ConfirmationPage() {
         setLoading(false);
         return;
       }
+      if (!emailSubmitted || !email) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        // Dynamically import to avoid SSR importing Firebase-dependent code
-        const hybridOrderService = (await import('@/services/hybridOrderService')).default;
-        const { getOrderById } = hybridOrderService;
-        const orderData = await getOrderById(oid);
-        if (orderData) {
-          setOrder(orderData);
-        } else {
-          setError(t('order.error.orderNotFound'));
+        setLoading(true);
+        const params = new URLSearchParams({ orderId: oid, email });
+        const res = await fetch(`/api/orders/get?${params.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `Request failed: ${res.status}`);
         }
-      } catch (err) {
-        console.error('Error fetching order:', err);
-        setError(t('order.error.fetchFailed'));
+        const data = await res.json();
+        setOrder(data);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching order via API:', err);
+        setOrder(null);
+        setError(err?.message || t('order.error.fetchFailed'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrder();
-  }, [router.query.orderId, t]);
+  }, [router.query.orderId, emailSubmitted, email, t]);
 
   // Function to get service name
   const getServiceName = (serviceId: string) => {
@@ -113,7 +121,38 @@ export function ConfirmationPage() {
       <main className="bg-gray-50 py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            {loading ? (
+            {!emailSubmitted ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <h1 className="text-2xl font-heading font-bold mb-4">{t('confirmation.title')}</h1>
+                <p className="text-gray-600 mb-6">För att visa din orderbekräftelse, ange e-postadressen du använde när du lade beställningen.</p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setEmailSubmitted(true);
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">E-post</label>
+                    <input
+                      id="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                      placeholder="din@email.se"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
+                  >
+                    Visa orderbekräftelse
+                  </button>
+                </form>
+              </div>
+            ) : loading ? (
               <div className="text-center py-16">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-custom-button mb-4"></div>
                 <p className="text-gray-600">{t('common.loading')}</p>

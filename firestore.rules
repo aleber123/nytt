@@ -13,9 +13,7 @@ service cloud.firestore {
     // But require authentication for reading/updating orders
     match /orders/{orderId} {
       allow create: if true; // Allow anonymous order creation
-      allow read: if true; // TEMPORARILY allow anonymous reads for testing
-      allow update: if true; // TEMPORARILY allow anonymous updates for testing
-      allow delete: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+      allow read, update, delete: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
     }
 
     // Allow anyone to read static content
