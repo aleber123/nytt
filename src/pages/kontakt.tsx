@@ -3,6 +3,7 @@ import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
+import Seo from '@/components/Seo';
 import { useForm } from 'react-hook-form';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -67,13 +68,10 @@ const ContactPage: React.FC = () => {
 
   return (
     <>
-      <Head>
-        <title>{t('contact.pageTitle') || 'Kontakta oss - Legaliseringstjänst'}</title>
-        <meta 
-          name="description" 
-          content={t('contact.pageDescription') || 'Kontakta oss för frågor om legalisering av dokument. Vi hjälper dig med apostille, notarisering och ambassadlegalisering.'} 
-        />
-      </Head>
+      <Seo
+        title={`${t('contact.pageTitle') || 'Kontakta oss'} | Legaliseringstjänst`}
+        description={t('contact.pageDescription') || 'Kontakta oss för frågor om legalisering av dokument. Vi hjälper dig med apostille, notarisering och ambassadlegalisering.'}
+      />
 
       
 
@@ -108,9 +106,9 @@ const ContactPage: React.FC = () => {
                       {t('contact.addressTitle') || 'Adress'}
                     </h3>
                     <address className="not-italic text-gray-600">
-                      Legaliseringstjänst AB<br />
-                      Kungsgatan 12<br />
-                      111 43 Stockholm<br />
+                      DOX Visumpartner AB<br />
+                      Livdjursgatan 4<br />
+                      121 62 Johanneshov<br />
                       Sverige
                     </address>
                   </div>
@@ -155,15 +153,16 @@ const ContactPage: React.FC = () => {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   {t('contact.findUs') || 'Hitta till oss'}
                 </h3>
-                <div className="bg-gray-100 rounded-lg overflow-hidden h-48 border border-gray-200">
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
-                    <div className="text-center">
-                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                      </svg>
-                      <p className="text-sm">Karta kommer snart</p>
-                    </div>
-                  </div>
+                <div className="bg-gray-100 rounded-lg overflow-hidden h-64 border border-gray-200">
+                  <iframe
+                    title="DOX Visumpartner AB location"
+                    src="https://www.google.com/maps?q=Livdjursgatan%204%2C%20121%2062%20Johanneshov%2C%20Sverige&output=embed&z=17"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
                 </div>
               </div>
             </div>

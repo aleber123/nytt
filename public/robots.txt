@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://doxvl-51a30.web.app/sitemap.xml

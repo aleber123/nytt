@@ -3,6 +3,7 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
+import Seo from '@/components/Seo';
 import Link from 'next/link';
 import { getAllActivePricingRules, PricingRule } from '@/firebase/pricingService';
 
@@ -224,7 +225,7 @@ const PricesPage: React.FC = () => {
         </Head>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-button mx-auto mb-4"></div>
             <p className="text-gray-600">Laddar prisinformation...</p>
           </div>
         </div>
@@ -246,7 +247,7 @@ const PricesPage: React.FC = () => {
             <p className="text-gray-600 mb-4">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+              className="bg-custom-button text-white px-4 py-2 rounded-md hover:bg-custom-button/90"
             >
               Försök igen
             </button>
@@ -258,78 +259,41 @@ const PricesPage: React.FC = () => {
 
   return (
     <>
-      <Head>
-        <title>{t('prices.title') || 'Priser - Legaliseringstjänst'}</title>
-        <meta
-          name="description"
-          content={t('prices.description') || 'Se våra konkurrenskraftiga priser för dokumentlegalisering. Transparent prissättning utan dolda avgifter.'}
-        />
-      </Head>
+      <Seo
+        title={`${t('prices.title') || 'Priser'} | Legaliseringstjänst`}
+        description={t('prices.description') || 'Se våra konkurrenskraftiga priser för dokumentlegalisering. Transparent prissättning utan dolda avgifter.'}
+      />
 
-      <div className="bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 py-16 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-full mb-6">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-
-            <h1 className="text-4xl md:text-5xl font-heading font-bold text-white text-center mb-4">
-              {t('prices.title') || 'Priser'}
-            </h1>
-            <p className="text-xl md:text-2xl text-white/90 text-center mt-4 max-w-3xl mx-auto leading-relaxed">
-              {t('prices.subtitle') || 'Transparent prissättning utan dolda avgifter'}
-            </p>
-
-            <div className="mt-8">
-              {pricingRules.length > 0 ? (
-                <div className="inline-flex items-center px-6 py-3 rounded-full text-base font-medium bg-green-500/20 text-green-100 border border-green-400/30">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Uppdaterade priser från {pricingRules.length} länder
-                </div>
-              ) : (
-                <div className="inline-flex items-center px-6 py-3 rounded-full text-base font-medium bg-yellow-500/20 text-yellow-100 border border-yellow-400/30">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  Visar standardpriser (systemet laddar fortfarande)
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      
+      <div className="container mx-auto px-4 pt-12">
+        <h1 className="text-3xl font-heading font-bold text-gray-900 text-center mb-6">
+          {t('prices.title') || 'Priser'}
+        </h1>
+        <p className="text-lg text-gray-600 text-center mb-8">
+          {t('prices.subtitle') || 'Transparent prissättning utan dolda avgifter'}
+        </p>
       </div>
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
           {/* Main Services Pricing */}
           <section className="mb-16">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 mb-8 text-center">
+            <h2 className="text-3xl font-heading font-bold text-gray-900 mb-8 text-center">
               {t('prices.servicesTitle') || 'Våra tjänster'}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {pricingData.map((service, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-card p-6 border border-gray-200 hover:shadow-lg transition-shadow flex flex-col h-full">
+                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col h-full">
                   <div className="flex-1">
                     <div className="text-center mb-4">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      <h3 className="text-xl font-heading font-bold text-gray-900 mb-2">
                         {service.service}
                       </h3>
                       <p className="text-gray-600 text-sm mb-4">
                         {service.description}
                       </p>
-                      <div className="text-3xl font-bold text-primary-600 mb-2">
+                      <div className="text-3xl font-bold text-custom-button mb-2">
                         {service.totalPrice}
                       </div>
                       <div className="text-sm text-gray-500">
@@ -351,7 +315,7 @@ const PricesPage: React.FC = () => {
 
                   <Link
                     href="/bestall"
-                    className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-center block mt-auto"
+                    className="w-full bg-custom-button text-white py-2 px-4 rounded-md hover:bg-custom-button/90 transition-colors text-center block mt-auto"
                   >
                     {t('prices.orderButton') || 'Beställ'}
                   </Link>
@@ -362,21 +326,18 @@ const PricesPage: React.FC = () => {
 
           {/* Additional Fees */}
           <section className="mb-16">
-            <h2 className="text-3xl font-heading font-bold text-gray-900 mb-12 text-center">
+            <h2 className="text-3xl font-heading font-bold text-gray-900 mb-8 text-center">
               {t('prices.additionalTitle') || 'Tilläggstjänster'}
             </h2>
-
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-8 border border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {additionalFees.map((fee, index) => (
-                  <div key={index} className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                    <div>
-                      <div className="font-semibold text-gray-900 text-lg mb-2">{fee.service}</div>
-                      <div className="text-gray-600 text-sm leading-relaxed">{fee.description}</div>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {additionalFees.map((fee, index) => (
+                <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                  <div>
+                    <div className="font-semibold text-gray-900 text-lg mb-2">{fee.service}</div>
+                    <div className="text-gray-600 text-sm leading-relaxed">{fee.description}</div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </section>
 

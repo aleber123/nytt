@@ -7,8 +7,9 @@ class MyDocument extends Document {
   }
 
   render() {
+    const locale = (this.props as any)?.locale || (this.props as any)?.__NEXT_DATA__?.locale || 'sv';
     return (
-      <Html lang="sv">
+      <Html lang={locale}>
         <Head>
           {/* Favicon removed */}
         </Head>

@@ -85,14 +85,14 @@ const VAT_RATES = {
 } as const;
 
 // Company information for invoices
-const COMPANY_INFO = {
-  name: 'Legaliseringstjänst AB',
-  address: 'Sveavägen 100',
-  postalCode: '113 50',
-  city: 'Stockholm',
-  orgNumber: '556123-4567',
+export const COMPANY_INFO = {
+  name: 'DOX Visumpartner AB',
+  address: 'Box 38',
+  postalCode: '121 25',
+  city: 'Stockholm-Globen',
+  orgNumber: '559015-4521',
   vatNumber: 'SE556123456701',
-  phone: '070-123 45 67',
+  phone: '08-123 45 67',
   email: 'info@legaliseringstjanst.se'
 };
 
@@ -688,11 +688,10 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     console.log('Generating PDF for invoice:', invoice.invoiceNumber);
     const doc = new jsPDF();
 
-    // Professional Swedish invoice colors
-    const primaryColor: [number, number, number] = [42, 103, 170]; // #2a67aa (professional blue)
-    const textColor: [number, number, number] = [51, 51, 51]; // #333
-    const lightGray: [number, number, number] = [248, 249, 250]; // #f8f9fa
-    const borderColor: [number, number, number] = [229, 231, 235]; // #e5e7eb
+    const primaryColor: [number, number, number] = [46, 45, 44];
+    const textColor: [number, number, number] = [51, 51, 51];
+    const lightGray: [number, number, number] = [248, 249, 250];
+    const borderColor: [number, number, number] = [229, 231, 235];
 
     // Helper functions
     const formatDate = (timestamp: any) => {
@@ -728,21 +727,35 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
 
     let yPosition = 20;
 
-    // Header - Professional Swedish invoice style
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(0, 0, 210, 35, 'F');
 
-    // Company name and details
+    // Render logo and then place company name under it
+    let logoTextY = 22; // default fallback if logo fails
+    try {
+      const img = new Image();
+      await new Promise((res, rej) => { img.onload = res as any; img.onerror = rej as any; img.src = '/dox-logo.webp'; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+        const logoY = 10;
+        const targetH = 12; // mm
+        const ratio = img.naturalWidth / img.naturalHeight || 1;
+        const targetW = targetH * ratio;
+        doc.addImage(dataUrl, 'PNG', 20, logoY, targetW, targetH);
+        logoTextY = logoY + targetH + 6; // place text 6mm below logo bottom
+      }
+    } catch {}
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(invoice.companyInfo.name, 20, 20);
+    doc.text('DOX Visumpartner AB', 20, logoTextY);
 
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text(invoice.companyInfo.address, 20, 26);
-    doc.text(`${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}`, 20, 30);
-    doc.text(`Org.nr: ${invoice.companyInfo.orgNumber}`, 20, 34);
+    // Removed header address lines to prevent overlap with logo
 
     // Invoice title and number - right aligned
     doc.setFontSize(16);
@@ -938,8 +951,12 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.setLineWidth(0.5);
-    doc.rect(totalsStartX - 5, yPosition - 3, 75, 25, 'F');
-    doc.rect(totalsStartX - 5, yPosition - 3, 75, 25);
+    const totalsBoxX = totalsStartX - 5;
+    const totalsBoxY = yPosition - 3;
+    const totalsBoxW = 75;
+    const totalsBoxH = 25;
+    doc.rect(totalsBoxX, totalsBoxY, totalsBoxW, totalsBoxH, 'F');
+    doc.rect(totalsBoxX, totalsBoxY, totalsBoxW, totalsBoxH);
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -956,18 +973,22 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
       doc.text(formatCurrency(invoice.vatTotal), 185, yPosition + 2, { align: 'right' });
     }
 
-    // Total amount - highlighted
+    // Total amount - highlighted (anchored to bottom of totals box)
     yPosition += 8;
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.rect(totalsStartX - 5, yPosition - 1, 75, 8, 'F');
+    const highlightX = totalsBoxX;
+    const highlightH = 8;
+    const highlightW = totalsBoxW;
+    const highlightY = totalsBoxY + totalsBoxH - highlightH; // flush with bottom of box
+    doc.rect(highlightX, highlightY, highlightW, highlightH, 'F');
 
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('ATT BETALA:', totalsStartX, yPosition + 4);
-    doc.text(formatCurrency(invoice.totalAmount), 185, yPosition + 4, { align: 'right' });
+    doc.text('ATT BETALA:', totalsStartX, highlightY + 4);
+    doc.text(formatCurrency(invoice.totalAmount), 185, highlightY + 4, { align: 'right' });
 
-    yPosition += 20;
+    yPosition = totalsBoxY + totalsBoxH + 12;
 
     // VAT information section
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
@@ -1001,38 +1022,40 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setFontSize(8);
     doc.text(`Betalningsvillkor: ${invoice.paymentTerms}`, 20, yPosition);
     yPosition += 4;
-    doc.text('Bankgiro: 123-4567', 20, yPosition);
+    doc.text('Bankgiro: 0896-8869', 20, yPosition);
     yPosition += 4;
     doc.text(`OCR-referens: ${invoice.paymentReference}`, 20, yPosition);
     yPosition += 4;
     doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 20, yPosition);
     yPosition += 4;
     doc.text(`Valuta: ${invoice.currency}`, 20, yPosition);
+    yPosition += 4;
+    doc.text('Swish: 123 100 7764', 20, yPosition);
 
     yPosition += 15;
 
     // Footer
     const pageHeight = doc.internal.pageSize.height;
-    const footerY = pageHeight - 25;
+    const footerStartY = pageHeight - 25;
 
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.rect(0, footerY - 5, 210, 25, 'F');
+    doc.rect(0, footerStartY, 210, 25, 'F');
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
 
-    const footerText1 = `${invoice.companyInfo.name} | Org.nr: ${invoice.companyInfo.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber}`;
-    doc.text(footerText1, 105, footerY + 3, { align: 'center' });
+    const footerText1 = `DOX Visumpartner AB | Org.nr: ${invoice.companyInfo.orgNumber || COMPANY_INFO.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber || COMPANY_INFO.vatNumber}`;
+    doc.text(footerText1, 105, footerStartY + 8, { align: 'center' });
 
-    const footerText2 = `${invoice.companyInfo.address}, ${invoice.companyInfo.postalCode} ${invoice.companyInfo.city} | ${invoice.companyInfo.email} | ${invoice.companyInfo.phone}`;
-    doc.text(footerText2, 105, footerY + 8, { align: 'center' });
+    const footerText2 = `Box 38, 121 25 Stockholm-Globen | ${invoice.companyInfo.email || COMPANY_INFO.email} | ${invoice.companyInfo.phone || COMPANY_INFO.phone}`;
+    doc.text(footerText2, 105, footerStartY + 13, { align: 'center' });
 
     doc.setFontSize(8);
-    doc.text('Tack för att du valde Legaliseringstjänst AB för dina legaliseringstjänster!', 105, footerY + 15, { align: 'center' });
+    doc.text('Tack för att du valde DOX Visumpartner AB för dina legaliseringstjänster!', 105, footerStartY + 20, { align: 'center' });
 
-    // Save the PDF
-    const fileName = invoice.orderNumber ? `faktura-${invoice.orderNumber}.pdf` : `faktura-${invoice.invoiceNumber}.pdf`;
+    // Save the PDF with requested naming
+    const fileName = `Invoice ${invoice.orderNumber || invoice.invoiceNumber}.pdf`;
     doc.save(fileName);
 
   } catch (error) {
@@ -1342,7 +1365,7 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
         </div>
       `,
       attachments: [{
-        filename: `faktura-${invoice.invoiceNumber}.pdf`,
+        filename: `Invoice ${invoice.orderNumber || invoice.invoiceNumber}.pdf`,
         content: pdfBlob,
         contentType: 'application/pdf'
       }],

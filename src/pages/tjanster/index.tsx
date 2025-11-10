@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 import Head from 'next/head';
+import Seo from '@/components/Seo';
 import { getAllActivePricingRules, PricingRule } from '@/firebase/pricingService';
 
 interface ServiceOverview {
@@ -278,20 +279,18 @@ const ServicesPage: React.FC = () => {
 
   return (
     <>
-      <Head>
-        <title>{t('services.pageTitle') || 'Tjänster & Priser - Legaliseringstjänst'}</title>
-        <meta
-          name="description"
-          content={t('services.pageDescription') || 'Se våra tjänster och priser för dokumentlegalisering. Apostille, notarisering, ambassadlegalisering och auktoriserad översättning med transparent prissättning.'}
-        />
-      </Head>
+      <Seo
+        title={`${t('services.pageTitle') || 'Tjänster & Priser'} | Legaliseringstjänst`}
+        description={t('services.pageDescription') || 'Se våra tjänster och priser för dokumentlegalisering. Apostille, notarisering, ambassadlegalisering och auktoriserad översättning med transparent prissättning.'}
+      />
 
-      <div className="bg-custom-page-header py-12">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
-            {t('services.pageTitle') || 'Tjänster & Priser'}
-          </h1>
-        </div>
+      <div className="container mx-auto px-4 pt-12">
+        <h1 className="text-3xl font-heading font-bold text-gray-900 text-center mb-6">
+          {t('services.pageTitle') || 'Tjänster & Priser'}
+        </h1>
+        <p className="text-lg text-gray-600 text-center mb-8">
+          {t('services.pageIntro') || 'Välj rätt tjänst för dina behov'}
+        </p>
       </div>
 
       <div className="container mx-auto px-4 py-12">

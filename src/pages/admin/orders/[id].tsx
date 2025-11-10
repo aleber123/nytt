@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { Timestamp as FbTimestamp } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
@@ -10,6 +11,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
+import { downloadCoverLetter, printCoverLetter } from '@/services/coverLetterService';
 
 // Define Order interface locally to match the updated interface
 interface ExtendedOrder extends Order {
@@ -23,7 +25,7 @@ interface ProcessingStep {
   name: string;
   description: string;
   status: 'pending' | 'in_progress' | 'completed' | 'skipped';
-  completedAt?: Date | Timestamp;
+  completedAt?: Date | FbTimestamp;
   completedBy?: string;
   notes?: string;
 }
@@ -203,7 +205,7 @@ function AdminOrderDetailPage() {
       toast.success('Faktura skapad framgångsrikt');
 
       // Refresh invoices list
-      await fetchInvoices();
+      await fetchInvoices(router.query.id as string);
 
       // Switch to invoice tab
       setActiveTab('invoice');
@@ -240,6 +242,28 @@ function AdminOrderDetailPage() {
     } catch (err) {
       console.error('Error downloading invoice:', err);
       toast.error('Kunde inte ladda ner faktura');
+    }
+  };
+
+  const handleDownloadCover = () => {
+    if (!order) return;
+    try {
+      downloadCoverLetter(order);
+      toast.success('Följesedel laddas ner');
+    } catch (err) {
+      console.error('Error generating cover letter:', err);
+      toast.error('Kunde inte skapa följesedel');
+    }
+  };
+
+  const handlePrintCover = () => {
+    if (!order) return;
+    try {
+      printCoverLetter(order);
+      toast.success('Utskrift startar');
+    } catch (err) {
+      console.error('Error printing cover letter:', err);
+      toast.error('Kunde inte skriva ut följesedel');
     }
   };
 
@@ -656,6 +680,26 @@ function AdminOrderDetailPage() {
                       className="px-4 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 text-sm"
                     >
                       {isUpdating ? 'Uppdaterar...' : 'Uppdatera'}
+                    </button>
+                    <button
+                      onClick={handleDownloadCover}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
+                      title="Ladda ner följesedel som PDF"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Följesedel PDF
+                    </button>
+                    <button
+                      onClick={handlePrintCover}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
+                      title="Skriv ut följesedel"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-3a2 2 0 00-2-2h-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v3H5a2 2 0 00-2 2v3a2 2 0 002 2h2m2 0h6v4H7v-4h6z" />
+                      </svg>
+                      Skriv ut
                     </button>
                   </div>
                 </div>

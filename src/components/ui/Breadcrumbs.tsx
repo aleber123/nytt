@@ -58,12 +58,29 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
   };
   
   const breadcrumbs = generateBreadcrumbs();
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
+  const breadcrumbLd = breadcrumbs.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbs.map((crumb, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: crumb.text,
+      item: `${baseUrl}${crumb.href}`
+    }))
+  } : null;
   
   // Visa inte breadcrumbs om vi är på startsidan
   if (breadcrumbs.length <= 1) return null;
   
   return (
     <nav aria-label={t('accessibility.breadcrumbs')} className={`py-3 ${className}`}>
+      {breadcrumbLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+        />
+      )}
       <ol className="flex flex-wrap items-center space-x-1 text-sm text-gray-500">
         {breadcrumbs.map((crumb, idx) => (
           <li key={idx} className="flex items-center">

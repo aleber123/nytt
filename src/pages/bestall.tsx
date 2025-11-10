@@ -1,6 +1,7 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
+import CountryFlag from '@/components/ui/CountryFlag';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
@@ -501,19 +502,58 @@ export default function TestOrderPage({}: TestOrderPageProps) {
            }
 
            // Convert pricing rules to service objects
-           const servicesFromFirebase = filteredPricingRules.map(rule => {
-             // Translation prices vary by document, so show "På förfrågan" instead of fixed price
-             const price = rule.serviceType === 'translation' ? 'På förfrågan' : `${rule.basePrice} kr`;
+          const servicesFromFirebase = filteredPricingRules.map(rule => {
+            // Translation prices vary by document, so show "På förfrågan" instead of fixed price
+            const price = rule.serviceType === 'translation' ? 'På förfrågan' : `${rule.basePrice} kr`;
 
-             return {
-               id: rule.serviceType,
-               name: getServiceName(rule.serviceType),
-               description: getServiceDescription(rule.serviceType, isHagueCountry),
-               price: price,
-               available: true,
-               processingTime: rule.processingTime?.standard || 5
-             };
-           });
+            return {
+              id: rule.serviceType,
+              name: getServiceName(rule.serviceType),
+              description: getServiceDescription(rule.serviceType, isHagueCountry),
+              price: price,
+              available: true,
+              processingTime: rule.processingTime?.standard || 5
+            };
+          });
+
+          // Ensure translation service is always available
+          const hasTranslation = servicesFromFirebase.some(s => s.id === 'translation');
+          if (!hasTranslation) {
+            servicesFromFirebase.push({
+              id: 'translation',
+              name: getServiceName('translation'),
+              description: getServiceDescription('translation', isHagueCountry),
+              price: 'På förfrågan',
+              available: true,
+              processingTime: 5
+            });
+          }
+
+          // For non-Hague countries, make sure UD and Embassy are present even if not in pricing rules
+          if (!isHagueCountry) {
+            const hasUd = servicesFromFirebase.some(s => s.id === 'ud');
+            const hasEmbassy = servicesFromFirebase.some(s => s.id === 'embassy');
+            if (!hasUd) {
+              servicesFromFirebase.push({
+                id: 'ud',
+                name: getServiceName('ud'),
+                description: getServiceDescription('ud', isHagueCountry),
+                price: 'Från 795 kr',
+                available: true,
+                processingTime: 7
+              });
+            }
+            if (!hasEmbassy) {
+              servicesFromFirebase.push({
+                id: 'embassy',
+                name: getServiceName('embassy'),
+                description: getServiceDescription('embassy', isHagueCountry),
+                price: 'Från 1295 kr',
+                available: true,
+                processingTime: 14
+              });
+            }
+          }
 
            // Sort services by step order: steg 1, steg 2, steg 3, then translation last
            const getStepOrder = (serviceId: string) => {
@@ -1089,7 +1129,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                     }}
                     className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 flex items-center"
                   >
-                    <span className="text-2xl mr-3">{country.flag}</span>
+                    <CountryFlag code={country.code} size={24} className="mr-3" title={getCountryName(country.code)} />
                     <span className="text-gray-900">{getCountryName(country.code)}</span>
                     {isHagueConventionCountry(country.code) && (
                       <span className="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
@@ -1127,7 +1167,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   onClick={() => handleCountrySelect(country.code)}
                   className="flex flex-col items-center p-3 border-2 border-gray-200 rounded-lg hover:border-custom-button hover:bg-custom-button-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
                 >
-                  <span className="text-2xl mb-1">{country.flag}</span>
+                  <CountryFlag code={country.code} size={24} className="mb-1" title={getCountryName(country.code)} />
                   <span className="text-xs font-medium text-gray-900 text-center">
                     {getCountryName(country.code)}
                   </span>
@@ -1148,9 +1188,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         {answers.country && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center">
-              <span className="text-2xl mr-3">
-                {allCountries.find(c => c.code === answers.country)?.flag}
-              </span>
+              <CountryFlag code={answers.country} size={24} className="mr-3" title={getCountryName(answers.country)} />
               <div>
                 <div className="font-medium text-green-900">
                   {getCountryName(answers.country)}
@@ -2816,11 +2854,11 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   {t('orderFlow.step10.shippingAddressTitle')}
                 </h3>
                 <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
-                  <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
-                  <div className="text-gray-700">Att: Dokumenthantering</div>
-                  <div className="text-gray-700">Kungsgatan 12</div>
-                  <div className="text-gray-700">111 43 Stockholm</div>
-                  <div className="text-gray-700">Sverige</div>
+                  <div className="font-medium text-gray-900 mb-1">{t('orderFlow.step7.companyName')}</div>
+                  <div className="text-gray-700">{t('orderFlow.step7.attention')}</div>
+                  <div className="text-gray-700">{t('orderFlow.step7.street')}</div>
+                  <div className="text-gray-700">{t('orderFlow.step7.postalCode')} {t('orderFlow.step7.city')}</div>
+                  <div className="text-gray-700">{t('orderFlow.step7.country')}</div>
                 </div>
               </div>
               <div className="ml-4">
@@ -2832,7 +2870,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                       printWindow.document.write(`
                         <html>
                           <head>
-                            <title>LegaliseringsTjänst AB - Leveransadress</title>
+                            <title>${t('orderFlow.step7.companyName')} - Leveransadress</title>
                             <style>
                               body {
                                 font-family: Arial, sans-serif;
@@ -2863,13 +2901,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                             </style>
                           </head>
                           <body>
-                            <h2>Skicka dina originaldokument till denna adress:</h2>
+                            <h2>${t('orderFlow.step7.shippingAddressTitle')}</h2>
                             <div class="address">
-                              <div class="company">LegaliseringsTjänst AB</div>
-                              <div class="address-line">Att: Dokumenthantering</div>
-                              <div class="address-line">Kungsgatan 12</div>
-                              <div class="address-line">111 43 Stockholm</div>
-                              <div class="address-line">Sverige</div>
+                              <div class="company">${t('orderFlow.step7.companyName')}</div>
+                              <div class="address-line">${t('orderFlow.step7.attention')}</div>
+                              <div class="address-line">${t('orderFlow.step7.street')}</div>
+                              <div class="address-line">${t('orderFlow.step7.postalCode')} ${t('orderFlow.step7.city')}</div>
+                              <div class="address-line">${t('orderFlow.step7.country')}</div>
                             </div>
                           </body>
                         </html>

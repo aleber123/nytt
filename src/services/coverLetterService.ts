@@ -1,0 +1,249 @@
+import jsPDF from 'jspdf';
+import type { Order } from '@/firebase/orderService';
+
+async function loadImageToDataUrl(src: string): Promise<{ dataUrl: string; width: number; height: number; }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('No canvas context'));
+        ctx.drawImage(img, 0, 0);
+        resolve({ dataUrl: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = (e) => reject(e);
+    img.src = src;
+  });
+}
+
+function formatDate(timestamp: any): string {
+  try {
+    let date: Date;
+    if (!timestamp) return new Date().toLocaleDateString('en-GB');
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else {
+      date = new Date(timestamp);
+    }
+    if (isNaN(date.getTime())) return new Date().toLocaleDateString('en-GB');
+    return new Intl.DateTimeFormat('en-GB', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    }).format(date);
+  } catch {
+    return new Date().toLocaleDateString('en-GB');
+  }
+}
+
+function getDocumentTypeName(docType?: string): string {
+  switch (docType) {
+    case 'birthCertificate':
+      return 'Birth Certificate';
+    case 'marriageCertificate':
+      return 'Marriage Certificate';
+    case 'diploma':
+      return 'Diploma';
+    case 'commercial':
+      return 'Commercial Document';
+    case 'powerOfAttorney':
+      return 'Power of Attorney';
+    default:
+      return docType || 'Document';
+  }
+}
+
+function getServiceName(id: string): string {
+  const map: Record<string, string> = {
+    apostille: 'Apostille',
+    notarisering: 'Notarization',
+    notarization: 'Notarization',
+    ambassad: 'Embassy Legalisation',
+    embassy: 'Embassy Legalisation',
+    oversattning: 'Translation',
+    translation: 'Translation',
+    utrikesdepartementet: 'Ministry for Foreign Affairs',
+    ud: 'Ministry for Foreign Affairs',
+    chamber: 'Chamber of Commerce',
+    scanned_copies: 'Scanned Copies',
+    pickup_service: 'Document Pickup'
+  };
+  return map[id] || id;
+}
+
+export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: boolean }): Promise<jsPDF> {
+  const doc = new jsPDF();
+
+  // Brand palette (use dark page header color from theme and neutral grays)
+  const primary: [number, number, number] = [46, 45, 44]; // custom.page-header #2E2D2C
+  const text: [number, number, number] = [32, 33, 36]; // gray-900
+  const grayText: [number, number, number] = [95, 99, 104]; // gray-700
+  const lineGray: [number, number, number] = [226, 232, 240]; // gray-200
+  const softBg: [number, number, number] = [241, 245, 249]; // slate-100 as neutral section bg
+
+  // Header band
+  doc.setFillColor(primary[0], primary[1], primary[2]);
+  doc.rect(0, 0, 210, 40, 'F');
+
+  // Logo (left)
+  try {
+    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo.webp');
+    const targetH = 12; // mm
+    const ratio = width / height || 1;
+    const targetW = targetH * ratio;
+    doc.addImage(dataUrl, 'PNG', 20, 10, targetW, targetH);
+  } catch {}
+
+  // Order number prominent
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  const ord = order.orderNumber || order.id || '';
+  if (ord) doc.text(`${ord}`, 20, 30);
+
+  // Subtitle right: COVER LETTER + date
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('COVER LETTER', 190, 16, { align: 'right' });
+  doc.text(formatDate(order.createdAt), 190, 22, { align: 'right' });
+
+  // Company info block (place below header to avoid overlap)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const companyLines = [
+    'DOX Visumpartner AB',
+    'Box 38',
+    '121 25 Stockholm-Globen',
+    'info@legaliseringstjanst.se'
+  ];
+
+  // Body container
+  let y = 56;
+  doc.setTextColor(text[0], text[1], text[2]);
+
+  // Render company block at body top-right
+  let cy = y - 4;
+  companyLines.forEach((l) => {
+    doc.text(l, 190, cy, { align: 'right' });
+    cy += 4;
+  });
+  // Leave space under the right block if needed
+  const companyBlockBottom = cy;
+  // Push the left content below the company block to avoid overlap
+  if (companyBlockBottom + 8 > y) {
+    y = companyBlockBottom + 8;
+  }
+
+  // Card: Orderinformation
+  // Section header chip
+  doc.setFillColor(softBg[0], softBg[1], softBg[2]);
+  doc.roundedRect(16, y - 8, 178, 10, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(46, 45, 44);
+  doc.text('Order Information', 20, y);
+  y += 12;
+
+  // Grid-like two-column info rows
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  const details: Array<[string, string]> = [];
+  details.push(['Order number', order.orderNumber || order.id || '']);
+  details.push(['Date', formatDate(order.createdAt)]);
+
+  const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
+  if (customerName) details.push(['Customer', customerName]);
+
+  details.push(['Document type', getDocumentTypeName(order.documentType)]);
+  details.push(['Country of use', order.country]);
+  details.push(['Quantity', `${order.quantity}`]);
+
+  const servicesStr = Array.isArray(order.services)
+    ? order.services.map(getServiceName).join(', ')
+    : getServiceName(order.services as unknown as string);
+  details.push(['Selected services', servicesStr]);
+
+  // Render details with labels left and values right column
+  const leftX = 20;
+  const midX = 110;
+  const rowH = 8;
+  let rowCount = 0;
+  details.forEach(([label, value]) => {
+    const colX = rowCount % 2 === 0 ? leftX : midX;
+    const rowY = y + Math.floor(rowCount / 2) * rowH;
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.text(`${label}`, colX, rowY);
+    doc.setTextColor(text[0], text[1], text[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(value || '—'), colX, rowY + 4);
+    doc.setFont('helvetica', 'normal');
+    rowCount++;
+  });
+
+  y += Math.ceil(rowCount / 2) * rowH + 10;
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(20, y, 190, y);
+  y += 12;
+
+  // Removed checklist per request
+
+  // Notes box
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.roundedRect(16, y, 178, 28, 2, 2);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('Internal notes:', 20, y + 6);
+  y += 36;
+
+  // Footer (match footer address)
+  const footerY = 286;
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(20, footerY - 10, 190, footerY - 10);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text(
+    `DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • info@legaliseringstjanst.se`,
+    105,
+    footerY,
+    { align: 'center' }
+  );
+
+  if (opts?.autoPrint) {
+    try {
+      doc.autoPrint();
+    } catch {}
+  }
+
+  return doc;
+}
+
+export async function downloadCoverLetter(order: Order): Promise<void> {
+  const doc = await generateCoverLetterPDF(order);
+  const ord = order.orderNumber || order.id || '';
+  const file = ord ? `Cover letter ${ord}.pdf` : 'Cover letter.pdf';
+  doc.save(file);
+}
+
+export async function printCoverLetter(order: Order): Promise<void> {
+  const doc = await generateCoverLetterPDF(order, { autoPrint: true });
+  const blobUrl = doc.output('bloburl');
+  const win = window.open(blobUrl);
+  if (!win) {
+    const ord = order.orderNumber || order.id || '';
+    const file = ord ? `Cover letter ${ord}.pdf` : 'Cover letter.pdf';
+    doc.save(file);
+  }
+}

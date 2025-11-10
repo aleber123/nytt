@@ -3,6 +3,7 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
+import Seo from '@/components/Seo';
 import Link from 'next/link';
 import HeroSection from '@/components/ui/HeroSection';
 import ProcessSteps from '@/components/ui/ProcessSteps';
@@ -297,12 +298,7 @@ export default function Home() {
 
   return (
     <>
-      <Head>
-        <title>{t('home.title')} | Legaliseringstjänst</title>
-        <meta name="description" content={t('home.description')} />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <Seo title={`${t('home.title')} | Legaliseringstjänst`} description={t('home.description')} />
 
       <main>
         <HeroSection 

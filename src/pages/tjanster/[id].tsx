@@ -3,6 +3,7 @@ import { GetStaticProps, GetStaticPaths } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
+import Seo from '@/components/Seo';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -454,20 +455,11 @@ const ServiceDetailPage: React.FC = () => {
 
   return (
     <>
-      <Head>
-        <title>{service.title} - Legaliseringstjänst</title>
-        <meta 
-          name="description" 
-          content={service.description} 
-        />
-      </Head>
+      <Seo title={`${service.title} - Legaliseringstjänst`} description={service.description} />
 
-      <div className="bg-custom-page-header py-12">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-white text-center">
-            {service.title}
-          </h1>
-        </div>
+      <div className="container mx-auto px-4 pt-12">
+        <h1 className="text-3xl font-heading font-bold text-gray-900 text-center mb-6">{service.title}</h1>
+        <p className="text-lg text-gray-600 text-center mb-8">{service.description}</p>
       </div>
 
       <div className="container mx-auto px-4 py-12">
