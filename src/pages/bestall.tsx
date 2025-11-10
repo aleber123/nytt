@@ -12,6 +12,7 @@ import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { printShippingLabel } from '@/services/shippingLabelService';
 
 interface TestOrderPageProps {}
 
@@ -119,10 +120,16 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     { code: 'TR', flag: '🇹🇷', popularity: 20 } // HC
   ];
 
-  // Function to get translated country name
+  // Function to get localized country name using browser Intl API, with i18n fallback
   const getCountryName = (countryCode: string) => {
-    const country = allCountries.find(c => c.code === countryCode);
-    return country ? country.name : t(`countries.names.${countryCode}`, { defaultValue: countryCode });
+    try {
+      if (countryCode && countryCode.length === 2) {
+        const displayNames = new Intl.DisplayNames([currentLocale], { type: 'region' });
+        const localized = displayNames.of(countryCode);
+        if (localized && typeof localized === 'string') return localized;
+      }
+    } catch {}
+    return t(`countries.names.${countryCode}`, { defaultValue: countryCode });
   };
 
   const allCountries = [
@@ -1112,7 +1119,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 handleCustomCountrySubmit();
               }
             }}
-            placeholder="Sök land (t.ex. 'kuwait' visar Kuwait, 'qatar' visar Qatar)..."
+            placeholder={t('orderFlow.step1.searchPlaceholder')}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button text-lg"
           />
 
@@ -1286,7 +1293,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           </span>
           <div>
             <div className="font-medium text-blue-900">
-              {t('orderFlow.step3.selectedCountry', { country: allCountries.find(c => c.code === answers.country)?.name })}
+              {t('orderFlow.step3.selectedCountry', { country: getCountryName(answers.country) })}
             </div>
             <div className="text-sm text-blue-700">
               {t('orderFlow.step3.selectedDocument', {
@@ -2860,71 +2867,21 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   <div className="text-gray-700">{t('orderFlow.step7.postalCode')} {t('orderFlow.step7.city')}</div>
                   <div className="text-gray-700">{t('orderFlow.step7.country')}</div>
                 </div>
+                <div className="text-sm text-red-700">
+                  <strong>Viktigt:</strong> Skriv tydligt ordernumret på kuvertet eller skriv ut en fraktsedel nedan.
+                </div>
               </div>
               <div className="ml-4">
                 <button
                   onClick={() => {
-                    // Create a print-specific window with only the address
-                    const printWindow = window.open('', '_blank', 'width=600,height=400');
-                    if (printWindow) {
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>${t('orderFlow.step7.companyName')} - Leveransadress</title>
-                            <style>
-                              body {
-                                font-family: Arial, sans-serif;
-                                margin: 40px;
-                                text-align: center;
-                              }
-                              .address {
-                                border: 2px solid #dc2626;
-                                padding: 20px;
-                                border-radius: 8px;
-                                background: #fef2f2;
-                                display: inline-block;
-                                margin: 20px 0;
-                              }
-                              .company {
-                                font-weight: bold;
-                                font-size: 18px;
-                                color: #1f2937;
-                                margin-bottom: 8px;
-                              }
-                              .address-line {
-                                color: #374151;
-                                margin: 4px 0;
-                              }
-                              @media print {
-                                body { margin: 20px; }
-                              }
-                            </style>
-                          </head>
-                          <body>
-                            <h2>${t('orderFlow.step7.shippingAddressTitle')}</h2>
-                            <div class="address">
-                              <div class="company">${t('orderFlow.step7.companyName')}</div>
-                              <div class="address-line">${t('orderFlow.step7.attention')}</div>
-                              <div class="address-line">${t('orderFlow.step7.street')}</div>
-                              <div class="address-line">${t('orderFlow.step7.postalCode')} ${t('orderFlow.step7.city')}</div>
-                              <div class="address-line">${t('orderFlow.step7.country')}</div>
-                            </div>
-                          </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      setTimeout(() => {
-                        printWindow.print();
-                        printWindow.close();
-                      }, 250);
-                    }
+                    // Print shipping label with blank order number so customer can write it by hand
+                    printShippingLabel(undefined);
                   }}
-                  className="flex items-center justify-center w-12 h-12 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200"
-                  title="Skriv ut adress"
+                  className="flex items-center justify-center w-12 h-12 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors duration-200"
+                  title="Skriv ut fraktsedel"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v5a2 2 0 002 2h2m10-9V5a2 2 0 00-2-2H9a2 2 0 00-2 2v3m10 9H7m10 0v4H7v-4" />
                   </svg>
                 </button>
               </div>
@@ -3253,44 +3210,98 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   console.log('✅ Order submitted successfully:', orderId);
 
-                  // Send email notification to business (save to Firestore for external processing, same as contact form)
+                  // Expose order number for shipping label printing in this session
+                  try { (window as any).__finalOrderNumber = orderId; } catch {}
+
+                  // Send email notification to business (styled HTML via customerEmails)
                   try {
-                    const businessEmailData = {
+                    const siteUrlInternal = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
+                    const internalHtml = `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ny beställning order #${orderId} | DOX Visumpartner AB</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px; }
+    .wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { background: #2E2D2C; color: #fff; padding: 24px 32px; text-align: center; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .content { padding: 24px 28px; }
+    .badge { display:inline-block; background:#0EB0A6; color:#fff; border-radius: 6px; padding: 8px 12px; font-weight: 700; margin: 8px 0 16px; }
+    .section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:16px 0; }
+    .row { display:flex; justify-content:space-between; gap: 12px; padding:8px 0; border-bottom:1px solid #eef2f6; }
+    .row:last-child { border-bottom:none; }
+    .label { color:#5f6368; font-weight:600; }
+    .value { color:#202124; font-weight:700; }
+    .address { background:#fff; border:2px solid #065f46; border-radius:6px; padding:14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:14px; }
+    .button { display:inline-block; background:#0EB0A6; color:#fff !important; text-decoration:none; border-radius:6px; padding:10px 16px; font-weight:700; margin-top:12px; }
+    .muted { color:#5f6368; font-size:13px; }
+  </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <h1>Ny beställning</h1>
+      </div>
+      <div class="content">
+        <div class="badge">Order #${orderId}</div>
+
+        <div class="section">
+          <div class="row"><span class="label">Datum</span><span class="value">${new Date().toLocaleDateString('sv-SE')}</span></div>
+          <div class="row"><span class="label">Land</span><span class="value">${allCountries.find(c => c.code === answers.country)?.name}</span></div>
+          <div class="row"><span class="label">Dokumenttyp</span><span class="value">${answers.documentType === 'birthCertificate' ? 'Födelsebevis' : answers.documentType === 'marriageCertificate' ? 'Vigselbevis' : answers.documentType === 'diploma' ? 'Examensbevis' : answers.documentType === 'commercial' ? 'Handelsdokument' : answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}</span></div>
+          <div class="row"><span class="label">Antal dokument</span><span class="value">${answers.quantity} st</span></div>
+          <div class="row"><span class="label">Valda tjänster</span><span class="value">${answers.services.map(s => getServiceName(s)).join(', ')}</span></div>
+          <div class="row"><span class="label">Totalbelopp</span><span class="value">${pricingResult.totalPrice} kr</span></div>
+          <div class="row"><span class="label">Dokumentkälla</span><span class="value">${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}</span></div>
+          <div class="row"><span class="label">Returfrakt</span><span class="value">${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}</span></div>
+        </div>
+
+        <div class="section">
+          <div class="row"><span class="label">Kund</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
+          <div class="row"><span class="label">E-post</span><span class="value">${answers.customerInfo.email}</span></div>
+          <div class="row"><span class="label">Telefon</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
+          <div class="row"><span class="label">Adress</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
+          ${answers.invoiceReference ? `<div class="row"><span class="label">Fakturareferens</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
+        </div>
+
+        ${answers.documentSource === 'original' ? `
+        <div class="section">
+          <div class="label" style="margin-bottom:6px;">Inkommande postadress</div>
+          <div class="address">
+            DOX Visumpartner AB<br/>
+            Att: Dokumenthantering<br/>
+            Livdjursgatan 4<br/>
+            121 62 Johanneshov<br/>
+            Sverige
+          </div>
+          <a class="button" href="${siteUrlInternal}/shipping-label?orderId=${orderId}" target="_blank" rel="noopener">Skriv ut fraktsedel</a>
+          <div class="muted">Be kunden alltid märka med Order #${orderId}.</div>
+        </div>
+        ` : ''}
+
+        ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Övriga kommentarer</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
+
+        <div class="muted">DOX Visumpartner AB • info@legaliseringstjanst.se • 08-40941900</div>
+      </div>
+    </div>
+  </body>
+</html>
+                    `.trim();
+
+                    // Send a styled HTML email via the customerEmails queue to the business inbox
+                    // This uses the already-deployed sendCustomerConfirmationEmail function which sends HTML as-is
+                    await addDoc(collection(db, 'customerEmails'), {
                       name: `Order #${orderId}`,
-                      email: 'noreply@legaliseringstjanst.se',
-                      phone: '',
-                      subject: `Ny Order #${orderId}`,
-                      message: `
-Ny beställning har mottagits!
-
-Ordernummer: ${orderId}
-Kund: ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}
-E-post: ${answers.customerInfo.email}
-Telefon: ${answers.customerInfo.phone}
-
-Land: ${allCountries.find(c => c.code === answers.country)?.name}
-Dokumenttyp: ${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
-             answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-             answers.documentType === 'diploma' ? 'Examensbevis' :
-             answers.documentType === 'commercial' ? 'Handelsdokument' :
-             answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
-Antal dokument: ${answers.quantity}
-
-Valda tjänster: ${answers.services.join(', ')}
-Totalbelopp: ${pricingResult.totalPrice} kr
-
-Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
-Returfrakt: ${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}
-
-${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
-                      `.trim(),
-                      orderId: orderId,
+                      email: 'alexander.bergqvist@gmail.com',
+                      subject: `Ny beställning - Order ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
+                      message: internalHtml, // HTML body is supported by that function
                       createdAt: Timestamp.now(),
-                      status: 'unread'
-                    };
-
-                    await addDoc(collection(db, 'contactMessages'), businessEmailData);
-                    console.log('📧 Business email notification queued for order:', orderId);
+                      status: 'queued'
+                    });
+                    console.log('📧 Business email queued via customerEmails for styled HTML delivery:', orderId);
                   } catch (emailError) {
                     console.error('❌ Failed to queue business email notification:', emailError);
                     // Don't block the order flow if email notification fails
@@ -3298,6 +3309,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   // Send confirmation email to customer
                   try {
+                    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
                     const customerEmailData = {
                       name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
                       email: answers.customerInfo.email,
@@ -3311,156 +3323,59 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>Orderbekräftelse - LegaliseringsTjänst AB</title>
    <style>
-       body {
-           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-           line-height: 1.6;
-           color: #333;
-           max-width: 600px;
-           margin: 0 auto;
-           background-color: #f8f9fa;
-           padding: 20px;
-       }
-       .email-container {
-           background-color: #ffffff;
-           border-radius: 12px;
-           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-           overflow: hidden;
-       }
-       .header {
-           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-           color: white;
-           padding: 30px 40px;
-           text-align: center;
-       }
-       .header h1 {
-           margin: 0;
-           font-size: 24px;
-           font-weight: 600;
-       }
-       .content {
-           padding: 40px;
-       }
-       .greeting {
-           font-size: 18px;
-           font-weight: 600;
-           color: #2d3748;
-           margin-bottom: 20px;
-       }
-       .order-summary {
-           background-color: #f7fafc;
-           border: 1px solid #e2e8f0;
-           border-radius: 8px;
-           padding: 25px;
-           margin: 25px 0;
-       }
-       .order-number {
-           background-color: #667eea;
-           color: white;
-           padding: 12px 20px;
-           border-radius: 6px;
-           display: inline-block;
-           font-weight: 600;
-           font-size: 16px;
-           margin: 15px 0;
-       }
-       .order-details {
-           margin: 20px 0;
-       }
-       .detail-row {
-           display: flex;
-           justify-content: space-between;
-           padding: 8px 0;
-           border-bottom: 1px solid #e2e8f0;
-       }
-       .detail-row:last-child {
-           border-bottom: none;
-       }
-       .detail-label {
-           font-weight: 500;
-           color: #4a5568;
-       }
-       .detail-value {
-           font-weight: 600;
-           color: #2d3748;
-       }
-       .next-steps {
-           background-color: #e6fffa;
-           border: 1px solid #b2f5ea;
-           border-radius: 8px;
-           padding: 20px;
-           margin: 25px 0;
-       }
-       .next-steps h3 {
-           color: #065f46;
-           margin-top: 0;
-           font-size: 18px;
-       }
-       .address-box {
-           background-color: #ffffff;
-           border: 2px solid #065f46;
-           border-radius: 6px;
-           padding: 15px;
-           margin: 15px 0;
-           font-family: monospace;
-           font-size: 14px;
-       }
-       .contact-info {
-           background-color: #f0f9ff;
-           border: 1px solid #bae6fd;
-           border-radius: 8px;
-           padding: 20px;
-           margin: 25px 0;
-           text-align: center;
-       }
-       .footer {
-           background-color: #f8f9fa;
-           padding: 30px 40px;
-           text-align: center;
-           border-top: 1px solid #e2e8f0;
-       }
-       .footer p {
-           margin: 5px 0;
-           color: #718096;
-           font-size: 14px;
-       }
-       .highlight {
-           background-color: #fef3c7;
-           padding: 2px 6px;
-           border-radius: 3px;
-           font-weight: 600;
-       }
-       .button {
-           display: inline-block;
-           background-color: #667eea;
-           color: white;
-           padding: 12px 24px;
-           text-decoration: none;
-           border-radius: 6px;
-           font-weight: 600;
-           margin: 10px 0;
-       }
-       .button:hover {
-           background-color: #5a67d8;
-       }
-       @media (max-width: 600px) {
-           body {
-               padding: 10px;
-           }
-           .header, .content, .footer {
-               padding: 20px;
-           }
-           .detail-row {
-               flex-direction: column;
-               gap: 4px;
-           }
-       }
-   </style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .order-details { margin: 16px 0; }
+    .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eaecef; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-label { font-weight:500; color:#5f6368; }
+    .detail-value { font-weight:700; color:#202124; }
+    .next-steps { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:18px; margin:20px 0; }
+    .next-steps h3 { color:#065f46; margin:0 0 8px; font-size:17px; }
+    .address-box { background:#fff; border:2px solid #065f46; border-radius:6px; padding:14px; margin:12px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:14px; }
+    .contact-info { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:18px; margin:22px 0; text-align:center; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    .highlight { background:#fef3c7; padding:2px 6px; border-radius:3px; font-weight:700; }
+    .button { display:inline-block; background:#0EB0A6; color:#ffffff; padding:12px 20px; text-decoration:none; border-radius:6px; font-weight:700; margin:10px 0; }
+    .button:hover { background:#0aa398; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} .detail-row{flex-direction:column; gap:4px;} }
+  </style>
 </head>
 <body>
    <div class="email-container">
        <div class="header">
-           <h1>🎉 Orderbekräftelse</h1>
-           <p>Tack för din beställning hos LegaliseringsTjänst AB</p>
+           <h1>Orderbekräftelse</h1>
+           <p>Tack för din beställning hos DOX Visumpartner AB</p>
        </div>
 
        <div class="content">
@@ -3512,10 +3427,10 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                <h3>📦 Nästa steg</h3>
                <p>Skicka dina originaldokument till följande adress:</p>
                <div class="address-box">
-                   <strong>LegaliseringsTjänst AB</strong><br>
+                   <strong>DOX Visumpartner AB</strong><br>
                    Att: Dokumenthantering<br>
-                   Kungsgatan 12<br>
-                   111 43 Stockholm<br>
+                   Livdjursgatan 4<br>
+                   121 62 Johanneshov<br>
                    Sverige
                </div>
                <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span></p>
@@ -3533,13 +3448,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                <p>Kontakta oss gärna:</p>
                <p>
                    📧 <a href="mailto:info@legaliseringstjanst.se">info@legaliseringstjanst.se</a><br>
-                   ${answers.customerInfo.phone ? `📞 ${answers.customerInfo.phone}` : '📞 Via vår hemsida'}
+                   📞 08-40941900
                </p>
            </div>
        </div>
 
        <div class="footer">
-           <p><strong>LegaliseringsTjänst AB</strong></p>
+           <p><strong>DOX Visumpartner AB</strong></p>
            <p>Professionell dokumentlegalisering sedan många år</p>
            <p>Detta är ett automatiskt genererat meddelande. Svara inte på detta mail.</p>
        </div>

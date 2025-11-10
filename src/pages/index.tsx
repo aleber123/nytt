@@ -216,20 +216,20 @@ export default function Home() {
   const steps = [
     {
       id: 1,
-      title: 'Beställ online',
-      description: 'Fyll i vårt enkla beställningsformulär och välj önskad tjänst',
+      title: t('home.steps.1.title'),
+      description: t('home.steps.1.description'),
       icon: 'form'
     },
     {
       id: 2,
-      title: 'Vi hanterar dina dokument',
-      description: 'Våra experter ser till att dina dokument blir korrekt legaliserade',
+      title: t('home.steps.2.title'),
+      description: t('home.steps.2.description'),
       icon: 'document'
     },
     {
       id: 3,
-      title: 'Få dina legaliserade dokument',
-      description: 'Vi levererar dina legaliserade dokument enligt vald leveransmetod',
+      title: t('home.steps.3.title'),
+      description: t('home.steps.3.description'),
       icon: 'delivery'
     }
   ];
@@ -312,10 +312,10 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-heading font-bold text-gray-900 mb-4">
-                Välj rätt tjänst för dina behov
+                {t('home.servicesHeading')}
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer
+                {t('home.servicesSubheading')}
               </p>
             </div>
 
@@ -354,7 +354,7 @@ export default function Home() {
 
                   <div className="border-t pt-4 mt-auto">
                     <div className="mb-4">
-                      <p className="text-sm text-gray-500">Från</p>
+                      <p className="text-sm text-gray-500">{t('home.from')}</p>
                       <p className="text-lg font-bold text-custom-button">{service.price}</p>
                     </div>
 
@@ -363,13 +363,13 @@ export default function Home() {
                         href={`/bestall?service=${service.id}`}
                         className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
                       >
-                        Välj tjänst
+                        {t('home.chooseService')}
                       </Link>
                       <Link
                         href={`/tjanster/${service.id === 'auktoriseradöversättning' ? 'oversattning' : service.id}`}
                         className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
                       >
-                        Läs mer
+                        {t('home.learnMore')}
                       </Link>
                     </div>
                   </div>
@@ -380,8 +380,8 @@ export default function Home() {
         </section>
 
         <ProcessSteps
-          title="Så här fungerar det"
-          subtitle="Vår process är enkel och effektiv för att spara dig tid och besvär"
+          title={t('home.howItWorksTitle')}
+          subtitle={t('home.howItWorksSubtitle')}
           steps={steps}
         />
 
