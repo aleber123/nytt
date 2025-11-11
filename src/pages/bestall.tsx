@@ -13,6 +13,7 @@ import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { printShippingLabel } from '@/services/shippingLabelService';
+import { generateCoverLetterPDF } from '@/services/coverLetterService';
 
 interface TestOrderPageProps {}
 
@@ -2739,7 +2740,15 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                       `.trim(),
                       orderId: orderId,
                       createdAt: Timestamp.now(),
-                      status: 'unread'
+                      status: 'unread',
+                      attachments: coverLetterBase64 ? [
+                        {
+                          filename: `Cover letter ${orderId}.pdf`,
+                          content: coverLetterBase64,
+                          encoding: 'base64',
+                          contentType: 'application/pdf'
+                        }
+                      ] : []
                     };
 
                     await addDoc(collection(db, 'contactMessages'), emailData);
@@ -3305,16 +3314,34 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   } catch (emailError) {
                     console.error('❌ Failed to queue business email notification:', emailError);
                     // Don't block the order flow if email notification fails
-                  }
 
                   // Send confirmation email to customer
                   try {
                     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
+                    // Generate cover letter PDF and include as attachment
+                    let coverLetterBase64: string | null = null;
+                    try {
+                      const orderForPdf: any = {
+                        orderNumber: orderId,
+                        id: orderId,
+                        createdAt: new Date(),
+                        customerInfo: { ...answers.customerInfo },
+                        documentType: answers.documentType,
+                        country: answers.country,
+                        quantity: answers.quantity,
+                        services: [...answers.services]
+                      };
+                      const pdf = await generateCoverLetterPDF(orderForPdf);
+                      const dataUri = pdf.output('datauristring');
+                      coverLetterBase64 = (dataUri.split(',')[1] || '').trim();
+                    } catch (e) {
+                      console.warn('⚠️ Failed to generate cover letter PDF for email attachment:', e);
+                    }
+
                     const customerEmailData = {
-                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
+                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`.trim() || `Order #${orderId}`,
                       email: answers.customerInfo.email,
-                      phone: answers.customerInfo.phone,
-                      subject: `Orderbekräftelse - Order #${orderId}`,
+                      subject: `${t('orderFlow.orderSubmitted')} - ${orderId && String(orderId).startsWith('SWE') ? String(orderId).replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
                       message: `
 <!DOCTYPE html>
 <html lang="sv">

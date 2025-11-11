@@ -115,7 +115,8 @@ exports.sendCustomerConfirmationEmail = functions.firestore
         to: emailData.email,
         subject: emailData.subject || 'Bekräftelse på din beställning',
         html: emailData.message,
-        text: emailData.message.replace(/<[^>]*>?/gm, '') // Strip HTML for plain text version
+        text: emailData.message.replace(/<[^>]*>?/gm, ''), // Strip HTML for plain text version
+        attachments: emailData.attachments || []
       };
       
       // Send email
