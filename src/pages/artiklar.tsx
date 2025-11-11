@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'next-i18next';
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -110,7 +110,6 @@ const ArticlesPage: React.FC = () => {
   const filteredArticles = selectedCategory === 'Alla'
     ? articles
     : articles.filter(article => article.category === selectedCategory);
-
   return (
     <>
       <Head>
@@ -210,23 +209,23 @@ const ArticlesPage: React.FC = () => {
         {/* Call to Action */}
         <div className="mt-16 text-center">
           <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-            Behöver du hjälp med dokumentlegalisering?
+            {t('articles.ctaTitle') || 'Behöver du hjälp med dokumentlegalisering?'}
           </h3>
           <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Kontakta oss för kostnadsfri rådgivning om dina dokumentbehov
+            {t('articles.ctaText') || 'Kontakta oss för kostnadsfri rådgivning om dina dokumentbehov'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/kontakt"
               className="inline-flex items-center justify-center px-6 py-3 border border-custom-button text-base font-medium rounded-md text-custom-button bg-white hover:bg-custom-button/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
-              Kontakta oss
+              {t('articles.contact') || 'Kontakta oss'}
             </Link>
             <Link
               href="/bestall"
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
-              Starta beställning
+              {t('articles.startOrder') || 'Starta beställning'}
             </Link>
           </div>
         </div>

@@ -353,13 +353,13 @@ const ServicesPage: React.FC = () => {
                     href={`/bestall?service=${service.id}`}
                     className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
                   >
-                    Välj tjänst
+                    {t('services.chooseService') || 'Välj tjänst'}
                   </Link>
                   <Link
                     href={`/tjanster/${service.id}`}
                     className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
                   >
-                    Läs mer
+                    {t('servicesList.readMore') || 'Läs mer'}
                   </Link>
                 </div>
               </div>
@@ -370,23 +370,23 @@ const ServicesPage: React.FC = () => {
         {/* Call to Action */}
         <div className="mt-20 text-center">
           <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-            Osäker vilken tjänst du behöver?
+            {t('servicesList.helpTitle') || 'Osäker vilken tjänst du behöver?'}
           </h3>
           <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Kontakta oss så hjälper vi dig att välja rätt legaliseringstjänst för dina dokument och destination.
+            {t('servicesList.helpText') || 'Kontakta oss så hjälper vi dig att välja rätt legaliseringstjänst för dina dokument och destination.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/kontakt"
               className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
-              Kontakta oss
+              {t('servicesList.contact') || 'Kontakta oss'}
             </Link>
             <Link
               href="/bestall"
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
-              Starta beställning
+              {t('servicesList.startOrder') || 'Starta beställning'}
             </Link>
           </div>
         </div>

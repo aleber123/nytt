@@ -33,6 +33,18 @@
   "home": {
     "title": "Legaliseringstjänst - Snabb och enkel legalisering av dokument",
     "description": "Vi hjälper dig med legalisering av dokument för användning utomlands. Snabbt, enkelt och säkert.",
+    "servicesHeading": "Välj rätt tjänst för dina behov",
+    "servicesSubheading": "Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer",
+    "from": "Från",
+    "chooseService": "Välj tjänst",
+    "learnMore": "Läs mer",
+    "howItWorksTitle": "Så här fungerar det",
+    "howItWorksSubtitle": "Vår process är enkel och effektiv för att spara dig tid och besvär",
+    "steps": {
+      "1": { "title": "Beställ online", "description": "Fyll i vårt enkla beställningsformulär och välj önskad tjänst" },
+      "2": { "title": "Vi hanterar dina dokument", "description": "Våra experter ser till att dina dokument blir korrekt legaliserade" },
+      "3": { "title": "Få dina legaliserade dokument", "description": "Vi levererar dina legaliserade dokument enligt vald leveransmetod" }
+    },
     "servicesTitle": "Våra tjänster",
     "allServices": "Se alla tjänster",
     "processTitle": "Så här fungerar det",
@@ -44,7 +56,47 @@
   "hero": {
     "title": "Legalisering av dokument för användning utomlands",
     "subtitle": "Vi hjälper dig med apostille, notarisering och ambassadlegalisering. Snabbt, enkelt och säkert.",
-    "cta": "Beställ nu"
+    "cta": "Beställ nu",
+    "learnMoreServices": "Läs mer om våra tjänster"
+  },
+  "servicesList": {
+    "readMore": "Läs mer",
+    "helpTitle": "Osäker vilken tjänst du behöver?",
+    "helpText": "Kontakta oss så hjälper vi dig att välja rätt legaliseringstjänst för dina dokument och destination.",
+    "contact": "Kontakta oss",
+    "startOrder": "Starta beställning"
+  },
+  "serviceDetails": {
+    "fromPrice": "Från {{price}} kr",
+    "contactUs": "Kontakta oss",
+    "orderService": "Beställ tjänst",
+    "contactForQuote": "Kontakta oss för offert"
+  },
+  "articles": {
+    "ctaTitle": "Behöver du hjälp med dokumentlegalisering?",
+    "ctaText": "Kontakta oss för kostnadsfri rådgivning om dina dokumentbehov",
+    "contact": "Kontakta oss",
+    "startOrder": "Starta beställning"
+  },
+  "cookie": {
+    "title": "Vi använder cookies",
+    "shortText1": "Vi använder cookies för att förbättra din upplevelse på vår webbplats.",
+    "shortText2": "Vissa cookies är nödvändiga för att webbplatsen ska fungera, medan andra hjälper oss att förbättra våra tjänster.",
+    "readMore": "Läs mer",
+    "essentialOnly": "Endast nödvändiga",
+    "acceptAll": "Acceptera alla",
+    "declineAll": "Avvisa alla",
+    "settingsTitle": "Cookie-inställningar",
+    "settingsIntro": "Vi använder olika typer av cookies för att förbättra din upplevelse:",
+    "necessaryTitle": "Nödvändiga cookies",
+    "necessaryDesc": "Dessa cookies är nödvändiga för att webbplatsen ska fungera och kan inte inaktiveras. De används för grundläggande funktioner som säkerhet och tillgänglighet.",
+    "analyticsTitle": "Analyscookies",
+    "analyticsDesc": "Hjälper oss att förstå hur besökare använder vår webbplats så att vi kan förbättra den. Informationen används endast för statistiska ändamål.",
+    "functionalTitle": "Funktionella cookies",
+    "functionalDesc": "Gör det möjligt att komma ihåg dina val och förbättra din upplevelse, till exempel genom att spara dina språkinställningar.",
+    "privacyPrefix": "Läs mer om hur vi hanterar dina uppgifter i vår",
+    "privacyPolicy": "integritetspolicy",
+    "backToShort": "← Tillbaka till kort vy"
   },
   "services": {
     "pageTitle": "Våra tjänster",

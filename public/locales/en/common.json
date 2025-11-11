@@ -19,6 +19,45 @@
     "returnHomeLink": "Return to homepage",
     "refreshPageButton": "Refresh page"
   },
+  "servicesList": {
+    "readMore": "Read more",
+    "helpTitle": "Not sure which service you need?",
+    "helpText": "Contact us and we'll help you choose the right legalization service for your documents and destination.",
+    "contact": "Contact us",
+    "startOrder": "Start order"
+  },
+  "serviceDetails": {
+    "fromPrice": "From {{price}} kr",
+    "contactUs": "Contact us",
+    "orderService": "Order service",
+    "contactForQuote": "Contact us for quote"
+  },
+  "articles": {
+    "ctaTitle": "Do you need help with document legalization?",
+    "ctaText": "Contact us for free advice about your document needs",
+    "contact": "Contact us",
+    "startOrder": "Start order"
+  },
+  "cookie": {
+    "title": "We use cookies",
+    "shortText1": "We use cookies to improve your experience on our website.",
+    "shortText2": "Some cookies are necessary for the site to function, while others help us improve our services.",
+    "readMore": "Read more",
+    "essentialOnly": "Essential only",
+    "acceptAll": "Accept all",
+    "declineAll": "Decline all",
+    "settingsTitle": "Cookie settings",
+    "settingsIntro": "We use different types of cookies to improve your experience:",
+    "necessaryTitle": "Necessary cookies",
+    "necessaryDesc": "These cookies are necessary for the website to function and cannot be disabled. They are used for basic functions such as security and accessibility.",
+    "analyticsTitle": "Analytics cookies",
+    "analyticsDesc": "Help us understand how visitors use our site so we can improve it. The information is used for statistical purposes only.",
+    "functionalTitle": "Functional cookies",
+    "functionalDesc": "Enable remembering your choices and improving your experience, for example by saving your language settings.",
+    "privacyPrefix": "Read more about how we handle your data in our",
+    "privacyPolicy": "privacy policy",
+    "backToShort": "← Back to short view"
+  },
   "common": {
     "back": "Back",
     "continue": "Continue",
@@ -43,6 +82,18 @@
   "home": {
     "title": "Legalization Service - Fast and easy document legalization",
     "description": "We help you with document legalization for use abroad. Fast, easy, and secure.",
+    "servicesHeading": "Choose the right service for your needs",
+    "servicesSubheading": "We simplify the legalization process with clear services tailored for different situations",
+    "from": "From",
+    "chooseService": "Choose service",
+    "learnMore": "Learn more",
+    "howItWorksTitle": "How it works",
+    "howItWorksSubtitle": "Our process is simple and efficient to save you time and hassle",
+    "steps": {
+      "1": { "title": "Order online", "description": "Fill in our simple order form and choose the service you need" },
+      "2": { "title": "We process your documents", "description": "Our experts ensure your documents are legalized correctly" },
+      "3": { "title": "Receive your legalized documents", "description": "We deliver your legalized documents using your selected method" }
+    },
     "servicesTitle": "Our services",
     "allServices": "View all services",
     "processTitle": "How it works",
@@ -54,7 +105,8 @@
   "hero": {
     "title": "Document legalization for use abroad",
     "subtitle": "We help you with apostille, notarization, and embassy legalization. Fast, easy, and secure.",
-    "cta": "Order now"
+    "cta": "Order now",
+    "learnMoreServices": "Learn more about our services"
   },
   "services": {
     "pageTitle": "Our Services",
@@ -505,7 +557,6 @@
     "submissionFailed": "Kunde inte skicka beställning.",
     "tryAgainOrContact": "Försök igen eller kontakta support",
     "continueButton": "Continue →",
-    "backToPrevious": "← Back",
     "step1": {
       "title": "Which country will the document be used in?",
       "subtitle": "This helps us recommend the right legalization services for your document.",
@@ -613,7 +664,7 @@
     "step10": {
       "title": "Complete your order",
       "subtitle": "Review your order and complete by filling in your details below",
-      "termsAcceptance": "I have read and accept the",
+      "termsAcceptance": "I accept the terms and conditions",
       "summaryTitle": "Final order summary",
       "country": "Country",
       "documentType": "Document type",

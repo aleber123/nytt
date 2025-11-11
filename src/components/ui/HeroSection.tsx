@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { useTranslation } from 'next-i18next';
 
 interface HeroSectionProps {
   title: string;
@@ -9,6 +10,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, ctaLink }) => {
+  const { t } = useTranslation('common');
   return (
     <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/hero-background.jpg)' }}>
       {/* Mörkt overlay för bättre textläsbarhet */}
@@ -39,9 +41,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, cta
             <Link
               href="/tjanster"
               className="inline-flex items-center justify-center px-6 py-3 border border-white text-base font-medium rounded-md text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
-              aria-label="Läs mer om våra tjänster"
+              aria-label={t('hero.learnMoreServices') || 'Läs mer om våra tjänster'}
             >
-              Läs mer om våra tjänster
+              {t('hero.learnMoreServices') || 'Läs mer om våra tjänster'}
             </Link>
           </div>
         </div>

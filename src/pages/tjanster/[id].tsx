@@ -31,28 +31,27 @@ const getServices = (t: any, pricingRules: PricingRule[] = []): ServiceDetail[] 
   const getServicePrice = (serviceType: string): string => {
     if (pricingRules.length === 0) {
       // Fallback prices if Firebase is not available
-      const fallbackPrices: { [key: string]: string } = {
-        'apostille': '950 kr',
-        'notarization': '1300 kr',
-        'embassy': 'Från 1295 kr',
-        'translation': 'Från 1450 kr',
-        'chamber': '2400 kr',
-        'ud': 'Från 1750 kr'
+      const fallbackPrices: Record<string, string> = {
+        'apostille': t('serviceDetails.fromPrice', { price: 895, formatParams: { price: { maximumFractionDigits: 0 } } }) || `Från 895 kr`,
+        'notarization': t('serviceDetails.fromPrice', { price: 695 }) || `Från 695 kr`,
+        'embassy': t('serviceDetails.fromPrice', { price: 1295 }) || `Från 1295 kr`,
+        'translation': t('serviceDetails.fromPrice', { price: 995 }) || `Från 995 kr`,
+        'ud': t('serviceDetails.fromPrice', { price: 1750 }) || `Från 1750 kr`
       };
-      return fallbackPrices[serviceType] || 'Kontakta oss';
+      return fallbackPrices[serviceType] || (t('serviceDetails.contactUs') || 'Kontakta oss');
     }
 
     // Find pricing rules for this service type
     const serviceRules = pricingRules.filter(rule => rule.serviceType === serviceType);
 
     if (serviceRules.length === 0) {
-      return 'Kontakta oss';
+      return t('serviceDetails.contactUs') || 'Kontakta oss';
     }
 
     // For services with variable pricing (embassy, translation, ud), show "Från" format
     if (serviceType === 'embassy' || serviceType === 'translation' || serviceType === 'ud') {
       const minPrice = Math.min(...serviceRules.map(rule => rule.basePrice));
-      return `Från ${minPrice} kr`;
+      return t('serviceDetails.fromPrice', { price: minPrice }) || `Från ${minPrice} kr`;
     }
 
     // For fixed price services, prioritize Swedish pricing, then show most common
@@ -529,7 +528,7 @@ const ServiceDetailPage: React.FC = () => {
                 href="/bestall"
                 className="w-full bg-custom-button hover:bg-custom-button-hover text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors duration-200"
               >
-                Beställ tjänst
+                {t('serviceDetails.orderService') || 'Beställ tjänst'}
               </Link>
               
               <div className="mt-6 text-center">
@@ -537,7 +536,7 @@ const ServiceDetailPage: React.FC = () => {
                   href="/kontakt"
                   className="text-custom-button hover:text-custom-button-hover font-medium"
                 >
-                  Kontakta oss för offert
+                  {t('serviceDetails.contactForQuote') || 'Kontakta oss för offert'}
                 </Link>
               </div>
             </div>
