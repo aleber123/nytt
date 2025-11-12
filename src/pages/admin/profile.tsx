@@ -81,19 +81,6 @@ export default function AdminProfilePage() {
       </Head>
 
       <div className="bg-gray-100 min-h-screen">
-        <div className="bg-white shadow">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <Link href="/admin" className="text-gray-500 hover:text-gray-700 mr-2">Dashboard</Link>
-                <span className="text-gray-400 mx-2">/</span>
-                <span className="text-gray-800 font-semibold">Profil</span>
-              </div>
-              <Link href="/admin/orders" className="text-primary-600 hover:text-primary-800">Alla Ordrar</Link>
-            </div>
-          </div>
-        </div>
-
         <div className="container mx-auto px-4 py-8">
           <div className="bg-white rounded-lg shadow p-6 max-w-xl mx-auto">
             <h1 className="text-2xl font-semibold mb-6">Profil</h1>

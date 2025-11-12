@@ -96,6 +96,15 @@ function AdminIndexPage() {
       category: 'billing'
     },
     {
+      title: 'Profil',
+      description: 'Uppdatera namn och telefon för ditt admin-konto',
+      href: '/admin/profile',
+      color: 'bg-gray-700 hover:bg-gray-800',
+      badge: 'Konto',
+      icon: 'clipboard-list',
+      category: 'operations'
+    },
+    {
       title: 'Statistik',
       description: 'Analysera försäljning och prestation',
       href: '/admin/stats',
