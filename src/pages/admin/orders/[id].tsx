@@ -20,6 +20,7 @@ interface ExtendedOrder extends Order {
   processingSteps?: ProcessingStep[];
   adminNotes?: AdminNote[];
   internalNotes?: string;
+  adminPrice?: any;
 }
 
 interface ProcessingStep {
@@ -50,7 +51,7 @@ function AdminOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedStatus, setEditedStatus] = useState<Order['status']>('pending');
-  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'files' | 'notes' | 'invoice'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'price' | 'files' | 'notes' | 'invoice'>('overview');
   const [newNote, setNewNote] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
@@ -61,6 +62,11 @@ function AdminOrderDetailPage() {
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
   const [removingService, setRemovingService] = useState<string | null>(null);
+  // Pricing tab state
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
+  const [adjustments, setAdjustments] = useState<Array<{ description: string; amount: number }>>([]);
+  const [lineOverrides, setLineOverrides] = useState<Array<{ index: number; label: string; baseAmount: number; overrideAmount?: number | null; vatPercent?: number | null; include: boolean }>>([]);
 
   useEffect(() => {
     const orderId = router.query.id as string | undefined;
@@ -68,6 +74,123 @@ function AdminOrderDetailPage() {
       fetchOrder(orderId);
     }
   }, [router.query.id]);
+
+  // Initialize pricing editor from order.adminPrice if available
+  useEffect(() => {
+    if (order && order.adminPrice) {
+      const ap = order.adminPrice as any;
+      setDiscountAmount(Number(ap.discountAmount || 0));
+      setDiscountPercent(Number(ap.discountPercent || 0));
+      setAdjustments(Array.isArray(ap.adjustments) ? ap.adjustments.map((a: any) => ({ description: String(a.description || ''), amount: Number(a.amount || 0) })) : []);
+      if (Array.isArray(ap.lineOverrides)) {
+        setLineOverrides(
+          ap.lineOverrides.map((o: any) => ({
+            index: Number(o.index),
+            label: String(o.label || ''),
+            baseAmount: Number(o.baseAmount || 0),
+            overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
+            vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
+            include: o.include !== false
+          }))
+        );
+      }
+    }
+  }, [order?.adminPrice]);
+
+  // If no stored overrides, initialize defaults from breakdown once order loads
+  useEffect(() => {
+    if (!order || !Array.isArray(order.pricingBreakdown)) return;
+    if (lineOverrides.length > 0) return;
+    const initial = order.pricingBreakdown.map((item: any, idx: number) => {
+      const base = (() => {
+        if (typeof item.fee === 'number') return item.fee;
+        if (typeof item.basePrice === 'number') return item.basePrice;
+        if (typeof item.unitPrice === 'number') return item.unitPrice * (item.quantity || 1);
+        if (typeof item.officialFee === 'number' && typeof item.serviceFee === 'number') return (item.officialFee + item.serviceFee) * (item.quantity || 1);
+        return 0;
+      })();
+      const label = item.description || getServiceName(item.service) || 'Rad';
+      return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
+    });
+    setLineOverrides(initial);
+  }, [order?.pricingBreakdown]);
+
+  const getBreakdownTotal = () => {
+    try {
+      if (!order) return 0;
+      if (order.pricingBreakdown && Array.isArray(order.pricingBreakdown)) {
+        // If overrides exist, use them respecting include toggle
+        if (lineOverrides.length === order.pricingBreakdown.length) {
+          return lineOverrides.reduce((sum, o) => {
+            if (!o.include) return sum;
+            const val = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
+            return sum + (isNaN(val) ? 0 : val);
+          }, 0);
+        }
+        // Fallback to raw breakdown
+        return order.pricingBreakdown.reduce((sum: number, item: any) => {
+          if (typeof item.fee === 'number') return sum + item.fee;
+          if (typeof item.basePrice === 'number') return sum + item.basePrice;
+          if (typeof item.unitPrice === 'number') return sum + (item.unitPrice * (item.quantity || 1));
+          if (typeof item.officialFee === 'number' && typeof item.serviceFee === 'number') return sum + ((item.officialFee + item.serviceFee) * (item.quantity || 1));
+          return sum;
+        }, 0);
+      }
+      // Fallback to existing totalPrice if breakdown missing
+      return Number(order.totalPrice || 0);
+    } catch {
+      return Number(order?.totalPrice || 0);
+    }
+  };
+
+  const getAdjustmentsTotal = () => adjustments.reduce((s, a) => s + (Number(a.amount) || 0), 0);
+  const getDiscountTotal = (base: number) => (base * (Number(discountPercent) || 0) / 100) + (Number(discountAmount) || 0);
+  const getComputedTotal = () => {
+    const base = getBreakdownTotal();
+    const adj = getAdjustmentsTotal();
+    const disc = getDiscountTotal(base);
+    const total = Math.max(0, Math.round((base + adj - disc) * 100) / 100);
+    return total;
+  };
+
+  const savePricingAdjustments = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    try {
+      const mod = await import('@/services/hybridOrderService');
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      const base = getBreakdownTotal();
+      const total = getComputedTotal();
+      const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string;
+      const adminPrice = {
+        discountAmount: Number(discountAmount) || 0,
+        discountPercent: Number(discountPercent) || 0,
+        adjustments: adjustments.map(a => ({ description: a.description, amount: Number(a.amount) || 0 })),
+        breakdownBase: base,
+        computedTotal: total,
+        updatedAt: new Date().toISOString(),
+        updatedBy: actor,
+        lineOverrides: lineOverrides.map((o) => ({
+          index: o.index,
+          label: o.label,
+          baseAmount: Number(o.baseAmount || 0),
+          overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
+          vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
+          include: o.include !== false
+        }))
+      };
+      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
+      await updateOrder(orderId, {
+        adminPrice,
+        totalPrice: total
+      });
+      setOrder({ ...order, adminPrice, totalPrice: total } as any);
+      toast.success('Pris uppdaterat');
+    } catch (e) {
+      console.error('Failed to save pricing:', e);
+      toast.error('Kunde inte spara pris');
+    }
+  };
 
   // Subscribe to append-only internal notes subcollection
   useEffect(() => {
@@ -378,7 +501,9 @@ function AdminOrderDetailPage() {
     const orderId = router.query.id as string;
 
     try {
-      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
+      const mod = await import('@/services/hybridOrderService');
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
       await updateOrder(orderId, { internalNotes });
       setOrder({ ...order, internalNotes });
       toast.success('Interna anteckningar sparade');
@@ -776,6 +901,7 @@ function AdminOrderDetailPage() {
                   {[
                     { id: 'overview', label: 'Översikt', icon: '📋' },
                     { id: 'processing', label: 'Bearbetning', icon: '⚙️' },
+                    { id: 'price', label: 'Pris', icon: '💰' },
                     { id: 'files', label: 'Filer', icon: '📎' },
                     { id: 'invoice', label: 'Faktura', icon: '🧾' },
                     { id: 'notes', label: 'Anteckningar', icon: '📝' }
@@ -927,42 +1053,35 @@ function AdminOrderDetailPage() {
                               </div>
                             </div>
 
-                            {/* Pricing Breakdown */}
-                            {order.pricingBreakdown && order.pricingBreakdown.length > 0 && (
-                              <div>
-                                <h3 className="text-lg font-medium mb-4">Prisuppdelning</h3>
-                                <div className="space-y-2">
-                                  {order.pricingBreakdown.map((item: any, index: number) => (
-                                    <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100">
-                                      <span className="text-gray-600">
-                                        {item.service === 'scanned_copies' ? 'Scannade kopior' :
-                                         item.service === 'return_service' ? item.description || 'Returfrakt' :
-                                         item.service === 'pickup_service' ? 'Dokumenthämtning' :
-                                         item.service === 'apostille_official' ? 'Apostille (officiell avgift)' :
-                                         item.service === 'apostille_service' ? 'Apostille (serviceavgift)' :
-                                         item.service === 'notarization_official' ? 'Notarisering (officiell avgift)' :
-                                         item.service === 'notarization_service' ? 'Notarisering (serviceavgift)' :
-                                         item.service === 'DHL Sweden' ? 'DHL Sweden frakt' :
-                                         item.service === 'premium_delivery' ? 'Premium leverans' :
-                                         getServiceName(item.service)}
-                                        {item.quantity && item.quantity > 1 ? ` (${item.quantity}x)` : ''}
-                                      </span>
-                                      <span className="font-medium">
-                                        {item.fee ? `${item.fee} kr` :
-                                         item.basePrice ? `${item.basePrice} kr` :
-                                         item.unitPrice ? `${item.unitPrice * (item.quantity || 1)} kr` :
-                                         item.officialFee ? `${(item.officialFee + item.serviceFee) * (item.quantity || 1)} kr` :
-                                         'N/A'}
-                                      </span>
+                            {/* Pricing Breakdown removed from Overview as requested */}
+
+                            {/* Notes summary in Overview */}
+                            <div>
+                              <h3 className="text-lg font-medium mb-4">Anteckningar</h3>
+                              <div className="space-y-3">
+                                {internalNotesList.length === 0 && (
+                                  <div className="text-sm text-gray-500">Inga anteckningar ännu</div>
+                                )}
+                                {internalNotesList.slice(0, 5).map((n) => (
+                                  <div key={n.id} className="border border-gray-200 rounded p-3 bg-white">
+                                    <div className="whitespace-pre-wrap text-sm text-gray-800">{n.content}</div>
+                                    <div className="mt-2 text-xs text-gray-500">
+                                      Skapad {formatDate(n.createdAt)} av {n.createdBy || 'Okänd'}
                                     </div>
-                                  ))}
-                                  <div className="flex justify-between items-center pt-2 border-t border-gray-200 font-semibold">
-                                    <span>Totalbelopp</span>
-                                    <span>{order.totalPrice} kr</span>
                                   </div>
-                                </div>
+                                ))}
+                                {internalNotesList.length > 5 && (
+                                  <div className="text-sm text-gray-600">Visar de senaste 5 anteckningarna</div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('processing')}
+                                  className="text-primary-600 text-sm underline"
+                                >
+                                  Visa alla anteckningar →
+                                </button>
                               </div>
-                            )}
+                            </div>
                           </div>
 
                           {/* Customer Info Sidebar */}
@@ -1061,6 +1180,172 @@ function AdminOrderDetailPage() {
                             </div>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Price Tab */}
+                {activeTab === 'price' && (
+                  <div className="space-y-6">
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <h3 className="text-lg font-medium mb-4">Prisjusteringar</h3>
+                      {/* Per-service override table */}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border border-gray-200 rounded">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left">Inkludera</th>
+                              <th className="px-3 py-2 text-left">Beskrivning</th>
+                              <th className="px-3 py-2 text-right">Grundbelopp</th>
+                              <th className="px-3 py-2 text-right">Nytt belopp</th>
+                              <th className="px-3 py-2 text-right">Moms %</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Array.isArray(order?.pricingBreakdown) && order!.pricingBreakdown.length > 0 ? (
+                              order!.pricingBreakdown.map((item: any, idx: number) => {
+                                const o = lineOverrides[idx] || { index: idx, label: item.description || getServiceName(item.service) || 'Rad', baseAmount: 0, include: true };
+                                const base = o.baseAmount || (() => {
+                                  if (typeof item.fee === 'number') return item.fee;
+                                  if (typeof item.basePrice === 'number') return item.basePrice;
+                                  if (typeof item.unitPrice === 'number') return item.unitPrice * (item.quantity || 1);
+                                  if (typeof item.officialFee === 'number' && typeof item.serviceFee === 'number') return (item.officialFee + item.serviceFee) * (item.quantity || 1);
+                                  return 0;
+                                })();
+                                return (
+                                  <tr key={idx} className="border-t">
+                                    <td className="px-3 py-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={o.include !== false}
+                                        onChange={(e) => {
+                                          const next = [...lineOverrides];
+                                          next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), include: e.target.checked };
+                                          setLineOverrides(next);
+                                        }}
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2">{item.description || o.label || '-'}</td>
+                                    <td className="px-3 py-2 text-right">{Number(base).toFixed(2)} kr</td>
+                                    <td className="px-3 py-2 text-right">
+                                      <input
+                                        type="number"
+                                        className="w-28 border rounded px-2 py-1 text-right"
+                                        value={o.overrideAmount ?? ''}
+                                        placeholder=""
+                                        onChange={(e) => {
+                                          const val = e.target.value === '' ? null : Number(e.target.value);
+                                          const next = [...lineOverrides];
+                                          next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideAmount: val };
+                                          setLineOverrides(next);
+                                        }}
+                                      />
+                                    </td>
+                                    <td className="px-3 py-2 text-right">
+                                      <input
+                                        type="number"
+                                        className="w-20 border rounded px-2 py-1 text-right"
+                                        value={o.vatPercent ?? ''}
+                                        placeholder=""
+                                        onChange={(e) => {
+                                          const val = e.target.value === '' ? null : Number(e.target.value);
+                                          const next = [...lineOverrides];
+                                          next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), vatPercent: val };
+                                          setLineOverrides(next);
+                                        }}
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            ) : (
+                              <tr>
+                                <td colSpan={5} className="px-3 py-4 text-center text-gray-500">Inga rader</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Grundbelopp (från prisuppdelning)</p>
+                          <div className="text-xl font-semibold">{getBreakdownTotal()} kr</div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Nytt totalbelopp</p>
+                          <div className="text-xl font-semibold">{getComputedTotal()} kr</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6">
+                        <h4 className="font-medium mb-2">Rabatt</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">Rabatt i kr</label>
+                            <input type="number" value={discountAmount} onChange={(e) => setDiscountAmount(Number(e.target.value))} className="w-full border rounded px-3 py-2" />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">Rabatt i %</label>
+                            <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(Number(e.target.value))} className="w-full border rounded px-3 py-2" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6">
+                        <h4 className="font-medium mb-2">Justeringar</h4>
+                        <div className="space-y-3">
+                          {adjustments.map((adj, idx) => (
+                            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                              <input
+                                type="text"
+                                placeholder="Beskrivning"
+                                value={adj.description}
+                                onChange={(e) => {
+                                  const next = [...adjustments];
+                                  next[idx] = { ...next[idx], description: e.target.value };
+                                  setAdjustments(next);
+                                }}
+                                className="col-span-7 border rounded px-3 py-2"
+                              />
+                              <input
+                                type="number"
+                                placeholder="Belopp (+/-)"
+                                value={adj.amount}
+                                onChange={(e) => {
+                                  const next = [...adjustments];
+                                  next[idx] = { ...next[idx], amount: Number(e.target.value) };
+                                  setAdjustments(next);
+                                }}
+                                className="col-span-3 border rounded px-3 py-2"
+                              />
+                              <button
+                                onClick={() => setAdjustments(adjustments.filter((_, i) => i !== idx))}
+                                className="col-span-2 text-red-600 border border-red-300 rounded px-2 py-2 text-sm"
+                              >
+                                Ta bort
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => setAdjustments([...adjustments, { description: '', amount: 0 }])}
+                            className="px-3 py-2 border border-gray-300 rounded text-sm"
+                          >
+                            Lägg till rad
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex items-center justify-between">
+                        <div className="text-sm text-gray-600">
+                          Summa justeringar: {getAdjustmentsTotal()} kr • Rabatt totalt: {getDiscountTotal(getBreakdownTotal())} kr
+                        </div>
+                        <button
+                          onClick={savePricingAdjustments}
+                          className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                        >
+                          Spara pris
+                        </button>
                       </div>
                     </div>
                   </div>
