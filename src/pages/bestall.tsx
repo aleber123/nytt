@@ -62,6 +62,15 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
+  // Convert ArrayBuffer -> Base64 for reliable attachment content
+  const base64FromArrayBuffer = (buffer: ArrayBuffer): string => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  };
+
   // Function to navigate to a step (creates browser history entry for back button support)
   const navigateToStep = (step: number) => {
     setCurrentQuestion(step);
@@ -2740,15 +2749,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                       `.trim(),
                       orderId: orderId,
                       createdAt: Timestamp.now(),
-                      status: 'unread',
-                      attachments: coverLetterBase64 ? [
-                        {
-                          filename: `Cover letter ${orderId}.pdf`,
-                          content: coverLetterBase64,
-                          encoding: 'base64',
-                          contentType: 'application/pdf'
-                        }
-                      ] : []
+                      status: 'unread'
                     };
 
                     await addDoc(collection(db, 'contactMessages'), emailData);
@@ -3314,11 +3315,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   } catch (emailError) {
                     console.error('❌ Failed to queue business email notification:', emailError);
                     // Don't block the order flow if email notification fails
+                  }
 
                   // Send confirmation email to customer
                   try {
                     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
-                    // Generate cover letter PDF and include as attachment
+                    // Generate cover letter PDF as base64 to attach for printing with originals
                     let coverLetterBase64: string | null = null;
                     try {
                       const orderForPdf: any = {
@@ -3331,17 +3333,19 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                         quantity: answers.quantity,
                         services: [...answers.services]
                       };
-                      const pdf = await generateCoverLetterPDF(orderForPdf);
-                      const dataUri = pdf.output('datauristring');
-                      coverLetterBase64 = (dataUri.split(',')[1] || '').trim();
+                      const pdfDoc = await generateCoverLetterPDF(orderForPdf);
+                      const arrayBuf = pdfDoc.output('arraybuffer');
+                      coverLetterBase64 = base64FromArrayBuffer(arrayBuf);
+                      console.log('📎 Cover letter PDF generated for email attachment, bytes:', arrayBuf.byteLength);
                     } catch (e) {
-                      console.warn('⚠️ Failed to generate cover letter PDF for email attachment:', e);
+                      console.warn('Failed to generate cover letter PDF for attachment:', e);
                     }
 
                     const customerEmailData = {
-                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`.trim() || `Order #${orderId}`,
+                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
                       email: answers.customerInfo.email,
-                      subject: `${t('orderFlow.orderSubmitted')} - ${orderId && String(orderId).startsWith('SWE') ? String(orderId).replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
+                      phone: answers.customerInfo.phone,
+                      subject: `Orderbekräftelse - Order #${orderId}`,
                       message: `
 <!DOCTYPE html>
 <html lang="sv">
