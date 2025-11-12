@@ -152,9 +152,10 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
 
         if (pricingRule) {
           const isEmbassyService = serviceId === 'embassy' || serviceId === 'ambassad';
+          const isUDService = serviceId === 'ud' || serviceId === 'utrikesdepartementet';
 
           if (isEmbassyService && pricingRule.officialFee && pricingRule.serviceFee) {
-            // Official fee line item (0% VAT)
+            // Embassy official fee line item (0% VAT remains)
             const officialFeeTotal = pricingRule.officialFee * order.quantity;
             const { vatAmount: officialVatAmount, totalWithVAT: officialTotalWithVAT } = calculateVAT(officialFeeTotal, VAT_RATES.ZERO);
 
@@ -187,9 +188,10 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
             });
           } else if (pricingRule.officialFee && pricingRule.serviceFee) {
             // For other services with separate fees
-            // Official fee line item (0% VAT)
+            // Official fee VAT: 25% for Apostille/Notarization/Chamber/Translation, 0% for UD
             const officialFeeTotal = pricingRule.officialFee * order.quantity;
-            const { vatAmount: officialVatAmount, totalWithVAT: officialTotalWithVAT } = calculateVAT(officialFeeTotal, VAT_RATES.ZERO);
+            const officialVatRate = isUDService ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
+            const { vatAmount: officialVatAmount, totalWithVAT: officialTotalWithVAT } = calculateVAT(officialFeeTotal, officialVatRate);
 
             lineItems.push({
               id: `${serviceId}_official_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -197,7 +199,7 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
               quantity: order.quantity,
               unitPrice: pricingRule.officialFee,
               totalPrice: officialTotalWithVAT,
-              vatRate: VAT_RATES.ZERO,
+              vatRate: officialVatRate,
               vatAmount: officialVatAmount,
               serviceType: serviceId,
               officialFee: pricingRule.officialFee
@@ -221,7 +223,8 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
           } else {
             // Use total base price for services without separate fees
             const servicePrice = pricingRule.basePrice;
-            const vatRate = VAT_RATES.STANDARD;
+            // If using basePrice-only services: apply 25% by default (covers most), 0% for UD explicitly
+            const vatRate = isUDService ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
             const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity, vatRate);
 
             lineItems.push({
@@ -302,6 +305,34 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
         vatAmount: pickupVatAmount,
         serviceType: 'pickup_service'
       });
+    }
+
+    // Add return shipping and premium delivery from pricingBreakdown if available
+    if (order.pricingBreakdown && Array.isArray(order.pricingBreakdown)) {
+      const shippingEntries = order.pricingBreakdown.filter((it: any) =>
+        it && (it.service === 'return_service' || it.service === 'premium_delivery')
+      );
+
+      for (const entry of shippingEntries) {
+        const base = typeof entry.total === 'number' ? entry.total
+                  : typeof entry.unitPrice === 'number' ? entry.unitPrice
+                  : typeof entry.fee === 'number' ? entry.fee
+                  : 0;
+
+        if (base > 0) {
+          const { vatAmount, totalWithVAT } = calculateVAT(base, VAT_RATES.STANDARD);
+          lineItems.push({
+            id: `${entry.service}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            description: entry.description || (entry.service === 'return_service' ? 'Returfrakt' : 'Premiumleverans'),
+            quantity: 1,
+            unitPrice: base,
+            totalPrice: totalWithVAT,
+            vatRate: VAT_RATES.STANDARD,
+            vatAmount,
+            serviceType: entry.service
+          });
+        }
+      }
     }
 
   } catch (error) {
@@ -766,7 +797,8 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setFont('helvetica', 'normal');
     doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
     doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
-    doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 34, { align: 'right' });
+    doc.text(`Ordernummer: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
+    doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
 
     yPosition = 50;
 
@@ -1459,7 +1491,8 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       doc.setFont('helvetica', 'normal');
       doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
       doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
-      doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 34, { align: 'right' });
+      doc.text(`Ordernummer: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
+      doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
 
       yPosition = 50;
 
