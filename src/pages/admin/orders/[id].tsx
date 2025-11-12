@@ -41,7 +41,8 @@ interface AdminNote {
 function AdminOrderDetailPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, currentUser } = useAuth();
+  const [adminProfile, setAdminProfile] = useState<{ name?: string; phone?: string; email?: string } | null>(null);
   const [order, setOrder] = useState<ExtendedOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +64,27 @@ function AdminOrderDetailPage() {
       fetchOrder(orderId);
     }
   }, [router.query.id]);
+
+  // Load current admin profile
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        if (!currentUser) return;
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { getFirebaseDb } = await import('@/firebase/config');
+        const db = getFirebaseDb();
+        if (!db) return;
+        const ref = doc(db, 'adminProfiles', currentUser.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          setAdminProfile(snap.data() as any);
+        }
+      } catch (e) {
+        console.warn('Could not load admin profile', e);
+      }
+    };
+    loadProfile();
+  }, [currentUser]);
 
   // Initialize processing steps based on order type
   const initializeProcessingSteps = (orderData: ExtendedOrder): ProcessingStep[] => {
@@ -304,7 +326,8 @@ function AdminOrderDetailPage() {
         // Only add completedAt and completedBy if status is completed
         if (status === 'completed') {
           cleanStep.completedAt = Timestamp.now();
-          cleanStep.completedBy = 'Admin';
+          const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string;
+          cleanStep.completedBy = actor;
         }
 
         return cleanStep;
@@ -353,7 +376,7 @@ function AdminOrderDetailPage() {
       id: Date.now().toString(),
       content: newNote.trim(),
       createdAt: new Date(),
-      createdBy: 'Admin',
+      createdBy: (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string,
       type: noteType
     };
 
