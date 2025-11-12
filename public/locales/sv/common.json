@@ -9,6 +9,109 @@
     "closeMenu": "Stäng meny",
     "selectService": "Välj tjänst"
   },
+  "termsPage": {
+    "metaTitle": "Allmänna villkor | Legaliseringstjänst",
+    "metaDescription": "Läs våra allmänna villkor för våra legaliseringstjänster.",
+    "lastUpdated": "Senast uppdaterad: {{date}}",
+    "legalNotice": "Viktigt: Våra tjänster tillhandahålls i befintligt skick och utan garantier av något slag avseende handläggningstider, utfall eller godkännande. Handläggningen styrs av tredje part (ambassader/konsulat, notarius publicus, handelskammare, Utrikesdepartementet, översättare). Förseningar, avslag eller ytterligare krav från dessa parter ligger utanför vår kontroll och ger inte rätt till ersättning.",
+    "sections": {
+      "general": {
+        "title": "Allmän information",
+        "text": "Dessa allmänna villkor (\"Villkor\") reglerar användningen av våra tjänster. Genom att använda våra tjänster accepterar du dessa villkor. Tjänsterna tillhandahålls i befintligt skick (\"as is\") utan några som helst garantier, vare sig uttryckliga eller underförstådda. Villkoren gäller från det att du accepterar dem innan beställning."
+      },
+      "services": {
+        "title": "Tjänstebeskrivning",
+        "text": "Vi erbjuder legaliseringstjänster för dokument som ska användas utomlands. Detta inkluderar hantering av dokument, kommunikation med relevanta myndigheter, ambassader och andra instanser samt transport av dokument. Vi lämnar inga garantier om handläggningstider, utfall eller godkännande. Handläggning och beslut fattas av tredje part (ambassader/konsulat, notarius publicus, handelskammare, Utrikesdepartementet, översättare)."
+      },
+      "customer": {
+        "title": "Kundens ansvar",
+        "intro": "Som kund ansvarar du för:",
+        "items": {
+          "0": "Att tillhandahålla korrekta och fullständiga dokument",
+          "1": "Att ange rätt destination och krav för legalisering",
+          "2": "Att betala för tjänsterna enligt överenskommelse",
+          "3": "Att kontrollera att alla uppgifter är korrekta innan beställning"
+        }
+      },
+      "liability": {
+        "title": "Ansvarsbegränsning",
+        "intro": "Vi ansvarar endast för de tjänster som vi har åtagit oss att utföra enligt dessa villkor. I den utsträckning som lagen tillåter friskriver vi oss från ansvar för förseningar, avslag, ändrade krav eller andra åtgärder av tredje part.",
+        "items": {
+          "0": "Inga garantier om handläggningstider, utfall eller godkännande; eventuella tidsangivelser är endast vägledande",
+          "1": "Åtgärder av tredje part (ambassader/konsulat, notarius, handelskammare, UD, översättare) ligger utanför vår kontroll och sker efter deras eget gottfinnande",
+          "2": "Vårt sammanlagda ansvar är begränsat till avgifter som betalats till oss för den specifika tjänsten; vi ansvarar inte för indirekta, särskilda eller följdskador"
+        }
+      },
+      "pricing": {
+        "title": "Prissättning",
+        "text": "Alla priser anges exklusive moms om inte annat anges. Priserna kan ändras med förvarning."
+      },
+      "cancellation": {
+        "title": "Avbokning och återbetalning",
+        "text": "Beställningar kan avbokas kostnadsfritt inom 24 timmar från beställningstillfället, under förutsättning att handläggning inte har påbörjats. Officiella avgifter, kurirkostnader och andra tredjepartskostnader kan vara icke‑återbetalningsbara när de väl uppkommit."
+      },
+      "forceMajeure": {
+        "title": "Force majeure",
+        "text": "Vi ansvarar inte för förseningar orsakade av omständigheter utanför vår kontroll."
+      },
+      "law": {
+        "title": "Tillämplig lag",
+        "text": "Dessa villkor regleras av svensk lag. Eventuella tvister ska lösas i svensk domstol."
+      },
+      "changes": {
+        "title": "Ändringar av villkor",
+        "text": "Vi förbehåller oss rätten att ändra dessa villkor. Ändringar meddelas via vår webbplats."
+      },
+      "contact": {
+        "title": "Kontaktinformation",
+        "text": "Vid frågor om dessa villkor, vänligen kontakta oss."
+      }
+    },
+    "company": {
+      "name": "DOX Visumpartner AB",
+      "addressLine1": "Box 38",
+      "addressLine2": "121 25 Stockholm-Globen",
+      "country": "Sverige",
+      "email": "info@legaliseringstjanst.se",
+      "phone": "08-123 45 67"
+    },
+    "backToContact": "Tillbaka till kontakt"
+  },
+  "cookiesPage": {
+    "metaTitle": "Cookies | Legaliseringstjänst",
+    "metaDescription": "Information om vår användning av cookies i enlighet med EU:s ePrivacy-direktiv och GDPR.",
+    "title": "Cookies",
+    "intro": "Vi använder cookies för att säkerställa att webbplatsen fungerar korrekt, förbättra din upplevelse och analysera hur webbplatsen används. Här förklarar vi vad cookies är, vilka typer vi använder och hur du kan hantera dina val.",
+    "whatAre": {
+      "title": "Vad är cookies?",
+      "text": "Cookies är små textfiler som lagras på din enhet när du besöker en webbplats. De hjälper webbplatsen att komma ihåg dina inställningar och möjliggör viktig funktionalitet såsom säkerhet, sessionshantering och språkinställningar."
+    },
+    "types": {
+      "title": "Vilka typer av cookies vi använder",
+      "intro": "Vi använder följande kategorier av cookies:",
+      "necessaryTitle": "Nödvändiga cookies",
+      "necessaryDesc": "Dessa cookies är nödvändiga för att webbplatsen ska fungera och kan inte inaktiveras. De används för grundläggande funktioner såsom säkerhet och tillgänglighet.",
+      "analyticsTitle": "Analyscookies",
+      "analyticsDesc": "Hjälper oss att förstå hur besökare använder vår webbplats så att vi kan förbättra den. Informationen används endast för statistiska ändamål.",
+      "functionalTitle": "Funktionella cookies",
+      "functionalDesc": "Gör det möjligt att komma ihåg dina val och förbättra din upplevelse, till exempel genom att spara dina språkinställningar."
+    },
+    "consent": {
+      "title": "Ditt samtycke och dina val",
+      "text1": "Enligt EU-regler (ePrivacy/GDPR) inhämtar vi ditt samtycke för icke-nödvändiga cookies. Du kan acceptera alla, avvisa alla eller välja endast nödvändiga cookies via vår cookiebanner.",
+      "text2": "Du kan när som helst ändra eller återkalla ditt samtycke via cookie-inställningar (vanligtvis i sidfoten) eller genom att rensa cookies i din webbläsare."
+    },
+    "manageHint": "Läs mer om hur vi behandlar personuppgifter i vår",
+    "changes": {
+      "title": "Ändringar i denna information",
+      "text": "Vi kan uppdatera denna cookieinformation vid behov för att återspegla ändrade rutiner eller rättsliga krav. Senaste uppdateringsdatum visas nedan."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "text": "Om du har frågor om vår användning av cookies, kontakta oss på"
+    },
+    "lastUpdated": "Senast uppdaterad: {{date}}"
+  },
   "common": {
     "back": "Tillbaka",
     "continue": "Fortsätt",
@@ -264,6 +367,41 @@
       "swish": "Betala med Swish",
       "invoice": "Faktura (14 dagar)"
     }
+  },
+  "delivery": {
+    "metaTitle": "Leveranstider | Legaliseringstjänst",
+    "metaDescription": "Information om handläggning och leveranssätt – PostNord, DHL och lokala bud.",
+    "title": "Leveranstider",
+    "subtitle": "Översikt över handläggningstider och leveransalternativ för dina dokument",
+    "noticeTitle": "Observera",
+    "noticeText1": "Leveranstiderna varierar beroende på externa myndigheter och ambassader. Vi kan därför inte garantera fasta tider.",
+    "noticeText2": " För en dagsaktuell bedömning, kontakta oss på",
+    "processingTitle": "Handläggningstider",
+    "processingP1": "Våra handläggningstider varierar beroende på ärendets omfattning och vilka myndigheter eller ambassader som behöver involveras. Vissa steg kan gå snabbt medan andra kräver längre extern handläggning.",
+    "processingBullets": {
+      "0": "Tjänstetyp (t.ex. apostille, notarisering, ambassadlegalisering)",
+      "1": "Extern handläggning hos myndighet/ambassad",
+      "2": "Säsong och belastning (t.ex. högtider, semesterperiod)",
+      "3": "Dokumentens skick och eventuella kompletteringar"
+    },
+    "processingP2": "Vi påskyndar alltid processen där det är möjligt och håller dig uppdaterad vid förändringar. Behöver du en aktuell bedömning? Kontakta oss så ger vi en uppskattning baserad på nuvarande läge.",
+    "methodsTitle": "Leveranssätt",
+    "methods": {
+      "postnord": { "title": "PostNord", "desc": "Spårbar leverans inom Sverige. Standard- eller expressalternativ beroende på ort." },
+      "dhl": { "title": "DHL", "desc": "Snabb och spårbar leverans, lämplig för brådskande eller internationella sändningar." },
+      "local": { "title": "Lokal budleverans", "desc": "Kurir/bud inom Stockholmsområdet för snabb och säker leverans direkt till dörren." }
+    },
+    "trackingTitle": "Spårning och avisering",
+    "tracking": {
+      "items": {
+        "0": "Spårningsnummer skickas via e-post så snart försändelsen har lämnats till transportör.",
+        "1": "Vid kurirleverans får du avisering om planerad utlämning och eventuell legitimering.",
+        "2": "Behöver du ändra leveranssätt? Kontakta oss så hjälper vi dig."
+      }
+    },
+    "contactTitle": "Frågor om leveranser?",
+    "contactP": "Kontakta Legaliseringstjänst – vi hjälper dig att välja rätt leveransalternativ för dina behov.",
+    "contactCta": "Kontakta oss"
   },
   "footer": {
     "title": "Sidfot",

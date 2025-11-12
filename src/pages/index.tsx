@@ -144,7 +144,7 @@ export default function Home() {
       serviceFee: '100 kr',
       totalPrice: '1,300 kr',
       timeframe: 'Kontakta oss',
-      features: ['Notarius publicus', 'Juridisk giltighet', 'Originaldokument krävs', 'Snabb handläggning']
+      features: ['Notarius publicus', 'Juridisk giltighet', 'Digital leverans', 'Snabb handläggning']
     },
     {
       serviceType: 'embassy',

@@ -19,6 +19,109 @@
     "returnHomeLink": "Return to homepage",
     "refreshPageButton": "Refresh page"
   },
+  "termsPage": {
+    "metaTitle": "Terms and Conditions | Legalization Service",
+    "metaDescription": "Read the terms and conditions governing the use of our legalization services.",
+    "lastUpdated": "Last updated: {{date}}",
+    "legalNotice": "Important: Our services are provided on an \"as is\" and \"as available\" basis without any guarantees regarding processing times, outcomes or acceptance. Processing is controlled by third parties (embassies/consulates, notaries public, chambers of commerce, the Ministry for Foreign Affairs, translators). Delays, rejections or additional requirements from these parties are outside our control and do not entitle you to compensation.",
+    "sections": {
+      "general": {
+        "title": "General Information",
+        "text": "These Terms and Conditions (\"Terms\") govern the use of Legalization Service AB (\"we\", \"us\" or \"our\") services. By using our services, you agree to these Terms. Our services are provided \"as is\" and \"as available\" without warranties of any kind, whether express or implied. The Terms apply from the moment you accept them prior to placing an order."
+      },
+      "services": {
+        "title": "Service Description",
+        "text": "We provide legalization services for documents intended for use abroad. This includes handling documents, communication with relevant authorities, embassies and other entities, as well as shipping of documents. We do not guarantee processing times, outcomes or acceptance. Processing and decisions are made by third parties (embassies/consulates, notaries public, chambers of commerce, the Ministry for Foreign Affairs, translators)."
+      },
+      "customer": {
+        "title": "Customer Responsibilities",
+        "intro": "As a customer, you are responsible for:",
+        "items": {
+          "0": "Providing accurate and complete documents",
+          "1": "Specifying the correct destination and legalization requirements",
+          "2": "Paying for the services as agreed",
+          "3": "Verifying that all information is correct before placing the order"
+        }
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "intro": "We are only responsible for the services we have undertaken to perform in accordance with these Terms. To the maximum extent permitted by law, we exclude all liability for delays, rejections, changes in requirements or other actions by third parties.",
+        "items": {
+          "0": "No guarantee of processing times, outcomes or acceptance; timelines are indicative only",
+          "1": "Third-party actions (embassies/consulates, notaries, chambers, MFA, translators) are outside our control and at their sole discretion",
+          "2": "Our total liability is limited to fees paid to us for the specific service; we are not liable for indirect, special or consequential damages"
+        }
+      },
+      "pricing": {
+        "title": "Pricing",
+        "text": "All prices are excluding VAT unless otherwise stated. Prices may change with prior notice."
+      },
+      "cancellation": {
+        "title": "Cancellation and Refunds",
+        "text": "Orders can be cancelled free of charge within 24 hours from the time of ordering, provided that processing has not started. Official fees, courier costs and other third‑party charges may be non‑refundable once incurred."
+      },
+      "forceMajeure": {
+        "title": "Force Majeure",
+        "text": "We are not responsible for delays caused by circumstances beyond our control."
+      },
+      "law": {
+        "title": "Governing Law",
+        "text": "These Terms are governed by Swedish law. Any disputes shall be resolved by Swedish courts."
+      },
+      "changes": {
+        "title": "Changes to the Terms",
+        "text": "We reserve the right to change these Terms. Changes will be announced on our website."
+      },
+      "contact": {
+        "title": "Contact Information",
+        "text": "If you have questions about these Terms, please contact us."
+      }
+    },
+    "company": {
+      "name": "Legalization Service AB",
+      "addressLine1": "Kungsgatan 12",
+      "addressLine2": "111 43 Stockholm",
+      "country": "Sweden",
+      "email": "info@legaliseringstjanst.se",
+      "phone": "+46 8 123 456 78"
+    },
+    "backToContact": "Back to contact"
+  },
+  "cookiesPage": {
+    "metaTitle": "Cookies | Legalization Service",
+    "metaDescription": "Information about our use of cookies in accordance with EU ePrivacy Directive and GDPR.",
+    "title": "Cookies",
+    "intro": "We use cookies to ensure the website functions correctly, to improve your experience and to analyze how our site is used. This page explains what cookies are, which types we use and how you can manage your choices.",
+    "whatAre": {
+      "title": "What are cookies?",
+      "text": "Cookies are small text files stored on your device when you visit a website. They help the site remember your preferences and enable important functionality such as security, session handling and language settings."
+    },
+    "types": {
+      "title": "Types of cookies we use",
+      "intro": "We use the following categories of cookies:",
+      "necessaryTitle": "Necessary cookies",
+      "necessaryDesc": "These cookies are necessary for the website to function and cannot be disabled. They are used for basic functions such as security and accessibility.",
+      "analyticsTitle": "Analytics cookies",
+      "analyticsDesc": "Help us understand how visitors use our site so we can improve it. The information is used for statistical purposes only.",
+      "functionalTitle": "Functional cookies",
+      "functionalDesc": "Enable remembering your choices and improving your experience, for example by saving your language settings."
+    },
+    "consent": {
+      "title": "Your consent and choices",
+      "text1": "Under EU rules (ePrivacy/GDPR) we obtain your consent for non‑essential cookies. You can accept all, decline all or choose only essential cookies via our cookie banner.",
+      "text2": "You can change or withdraw your consent at any time via cookie settings (usually available in the footer) or by clearing cookies in your browser."
+    },
+    "manageHint": "To read more about how we process personal data, see our",
+    "changes": {
+      "title": "Changes to this policy",
+      "text": "We may update this cookie information from time to time to reflect changes in our practices or legal requirements. The latest update date is shown below."
+    },
+    "contact": {
+      "title": "Contact",
+      "text": "If you have questions about our use of cookies, contact us at"
+    },
+    "lastUpdated": "Last updated: {{date}}"
+  },
   "servicesList": {
     "readMore": "Read more",
     "helpTitle": "Not sure which service you need?",
@@ -63,6 +166,7 @@
     "continue": "Continue",
     "yes": "Yes",
     "no": "No",
+    "or": "or",
     "item": "document",
     "items": "documents",
     "processing": "Processing...",
@@ -263,6 +367,41 @@
       "swish": "Pay with Swish",
       "invoice": "Invoice (14 days)"
     }
+  },
+  "delivery": {
+    "metaTitle": "Delivery times | Legalization Service",
+    "metaDescription": "Information about processing and delivery methods – PostNord, DHL and local courier.",
+    "title": "Delivery times",
+    "subtitle": "Overview of processing and delivery options for your documents",
+    "noticeTitle": "Please note",
+    "noticeText1": "Processing and delivery times vary depending on external authorities and embassies. We therefore cannot guarantee fixed times.",
+    "noticeText2": " For a current assessment, please contact us at",
+    "processingTitle": "Processing times",
+    "processingP1": "Our processing times vary depending on the scope of the case and which authorities or embassies need to be involved. Some steps can be quick while others require longer external handling.",
+    "processingBullets": {
+      "0": "Service type (e.g. apostille, notarization, embassy legalization)",
+      "1": "External processing with authority/embassy",
+      "2": "Season and workload (e.g. holidays, vacation periods)",
+      "3": "Document condition and any required additions"
+    },
+    "processingP2": "We always speed up the process where possible and keep you updated on changes. Need a current estimate? Contact us and we’ll provide an assessment based on the current situation.",
+    "methodsTitle": "Delivery methods",
+    "methods": {
+      "postnord": { "title": "PostNord", "desc": "Trackable delivery within Sweden. Standard or express depending on location." },
+      "dhl": { "title": "DHL", "desc": "Fast and trackable delivery, suitable for urgent or international shipments." },
+      "local": { "title": "Local courier", "desc": "Courier within Stockholm for fast and secure delivery to your door." }
+    },
+    "trackingTitle": "Tracking and notifications",
+    "tracking": {
+      "items": {
+        "0": "Tracking number is sent by email as soon as the shipment has been handed over to the carrier.",
+        "1": "For courier delivery you will receive a notification about planned delivery and any identification required.",
+        "2": "Need to change delivery method? Contact us and we will help you."
+      }
+    },
+    "contactTitle": "Questions about delivery?",
+    "contactP": "Contact Legalization Service – we’ll help you choose the delivery option that suits your needs.",
+    "contactCta": "Contact us"
   },
   "footer": {
     "title": "Footer",
