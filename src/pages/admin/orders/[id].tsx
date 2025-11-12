@@ -12,6 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
 import { downloadCoverLetter, printCoverLetter } from '@/services/coverLetterService';
+import { collection, addDoc, doc as fsDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { getFirebaseDb } from '@/firebase/config';
 
 // Define Order interface locally to match the updated interface
 interface ExtendedOrder extends Order {
@@ -52,6 +54,8 @@ function AdminOrderDetailPage() {
   const [newNote, setNewNote] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
+  const [internalNoteText, setInternalNoteText] = useState('');
+  const [internalNotesList, setInternalNotesList] = useState<Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>>([]);
   const [processingSteps, setProcessingSteps] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
@@ -63,6 +67,22 @@ function AdminOrderDetailPage() {
     if (orderId) {
       fetchOrder(orderId);
     }
+  }, [router.query.id]);
+
+  // Subscribe to append-only internal notes subcollection
+  useEffect(() => {
+    const orderId = router.query.id as string | undefined;
+    const db = getFirebaseDb();
+    if (!db || !orderId) return;
+    const q = query(
+      collection(db, 'orders', orderId, 'internalNotes'),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const notes = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      setInternalNotesList(notes);
+    });
+    return () => unsub();
   }, [router.query.id]);
 
   // Load current admin profile
@@ -365,6 +385,28 @@ function AdminOrderDetailPage() {
     } catch (err) {
       console.error('Error saving internal notes:', err);
       toast.error('Kunde inte spara interna anteckningar');
+    }
+  };
+
+  // Add a new internal note (append-only)
+  const addInternalNote = async () => {
+    const text = internalNoteText.trim();
+    if (!text) return;
+    try {
+      const db = getFirebaseDb();
+      const orderId = router.query.id as string;
+      if (!db || !orderId) return;
+      const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string;
+      await addDoc(collection(db, 'orders', orderId, 'internalNotes'), {
+        content: text,
+        createdAt: serverTimestamp(),
+        createdBy: actor
+      });
+      setInternalNoteText('');
+      toast.success('Anteckning tillagd');
+    } catch (e) {
+      console.error('Failed to add internal note:', e);
+      toast.error('Kunde inte lägga till anteckning');
     }
   };
 
@@ -1075,22 +1117,37 @@ function AdminOrderDetailPage() {
                       </div>
                     </div>
 
-                    {/* Internal Notes */}
+                    {/* Internal Notes (append-only) */}
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Interna anteckningar</h3>
+                      <h3 className="text-lg font-medium mb-3">Interna anteckningar</h3>
+                      <div className="space-y-3 mb-4">
+                        {internalNotesList.length === 0 && (
+                          <div className="text-sm text-gray-500">Inga anteckningar ännu</div>
+                        )}
+                        {internalNotesList.map((n) => (
+                          <div key={n.id} className="border border-gray-200 rounded p-3 bg-gray-50">
+                            <div className="whitespace-pre-wrap text-sm text-gray-800">{n.content}</div>
+                            <div className="mt-2 text-xs text-gray-500">
+                              Skapad {formatDate(n.createdAt)} av {n.createdBy || 'Okänd'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                       <textarea
-                        value={internalNotes}
-                        onChange={(e) => setInternalNotes(e.target.value)}
-                        placeholder="Lägg till interna anteckningar om denna order..."
+                        value={internalNoteText}
+                        onChange={(e) => setInternalNoteText(e.target.value)}
+                        placeholder="Skriv en ny intern anteckning..."
                         className="w-full border border-gray-300 rounded-lg p-3"
-                        rows={4}
+                        rows={3}
                       />
-                      <button
-                        onClick={saveInternalNotes}
-                        className="mt-2 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
-                      >
-                        Spara anteckningar
-                      </button>
+                      <div className="mt-2">
+                        <button
+                          onClick={addInternalNote}
+                          className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                        >
+                          Lägg till anteckning
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
