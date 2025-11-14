@@ -15,7 +15,7 @@ i18n
     fallbackLng: 'sv',
     defaultNS: 'common',
     ns: ['common'],
-    debug: process.env.NODE_ENV === 'development',
+    debug: false,
     interpolation: {
       escapeValue: false, // React already escapes values
     },

@@ -82,8 +82,6 @@ export default function Home() {
     if (rules.length > 0) {
       // Group by service type and get average prices - filter for Sweden (SE) since admin manages Swedish services
       const swedishRules = rules.filter(rule => rule.countryCode === 'SE');
-      console.log('📊 Landing page - Swedish rules found:', swedishRules.length);
-      console.log('📊 Landing page - Swedish apostille rules:', swedishRules.filter(r => r.serviceType === 'apostille').map(r => ({ id: r.id, processingTime: r.processingTime })));
 
       const serviceGroups: { [key: string]: PricingRule[] } = {};
       swedishRules.forEach(rule => {
@@ -98,10 +96,6 @@ export default function Home() {
         // Use the first rule for pricing (assuming all Swedish rules have similar pricing)
         const rule = serviceRules[0];
         const processingTime = rule.processingTime?.standard || rule.processingTime || 5; // Default to 5 if not set
-        console.log(`🔄 Homepage - updating ${serviceType}: processingTime=${processingTime}, rule.processingTime=`, rule.processingTime, 'type:', typeof rule.processingTime);
-        if (typeof rule.processingTime === 'object' && rule.processingTime !== null) {
-          console.log(`   - processingTime.standard:`, rule.processingTime.standard);
-        }
 
         // Find the corresponding fallback entry and update it
         const fallbackIndex = pricingData.findIndex(p => p.serviceType === serviceType);
@@ -115,9 +109,8 @@ export default function Home() {
             totalPrice: `${rule.basePrice} kr`,
             timeframe: `${processingTime} arbetsdagar`
           };
-          console.log(`✅ Homepage - updated ${serviceType} timeframe to: "${pricingData[fallbackIndex].timeframe}"`);
         } else {
-          console.log(`❌ Homepage - no fallback entry found for ${serviceType}, available types:`, pricingData.map(p => p.serviceType));
+          // No fallback entry found for this serviceType
         }
       });
     }
