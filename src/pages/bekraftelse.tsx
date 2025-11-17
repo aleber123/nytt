@@ -1,4 +1,4 @@
-import dynamic from 'next/dynamic';
+import { GetServerSideProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
@@ -357,4 +357,12 @@ export function ConfirmationPage() {
   );
 }
 
-export default dynamic(() => Promise.resolve(ConfirmationPage), { ssr: false });
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+    },
+  };
+};
+
+export default ConfirmationPage;
