@@ -1142,8 +1142,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                       <span className="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                         {t('orderFlow.step1.hagueConvention')}
                       </span>
-                    )}
-                  </button>
+                      )}
+                    </button>
                 ))
               ) : countrySearch.trim() ? (
                 <button
@@ -2038,16 +2038,17 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     );
   };
 
-  const renderQuestion9 = () => (
-    <div className="max-w-2xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          {t('orderFlow.step9.title')}
-        </h1>
-        <p className="text-lg text-gray-600">
-          {t('orderFlow.step9.subtitle')}
-        </p>
-      </div>
+  const renderQuestion9 = () => {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            {t('orderFlow.step9.title')}
+          </h1>
+          <p className="text-lg text-gray-600">
+            {t('orderFlow.step9.subtitle')}
+          </p>
+        </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <div className="flex items-center">
@@ -2063,18 +2064,18 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         </div>
       </div>
 
-      {loadingReturnServices ? (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">{t('orderFlow.step10.loadingServices')}</span>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {returnServices
-            .filter(service => !['dhl-pre-12', 'dhl-pre-9', 'stockholm-express', 'stockholm-sameday'].includes(service.id)) // Filter out premium delivery options
-            .map((service) => (
-            <div key={service.id}>
-              <button
+        {loadingReturnServices ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">{t('orderFlow.step10.loadingServices')}</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {returnServices
+              .filter(service => !['dhl-pre-12', 'dhl-pre-9', 'stockholm-express', 'stockholm-sameday'].includes(service.id)) // Filter out premium delivery options
+              .map((service) => (
+              <div key={service.id}>
+                <button
                 onClick={() => {
                   setAnswers(prev => ({
                     ...prev,
@@ -2103,7 +2104,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               </button>
 
               {/* Show premium delivery options for DHL services */}
-              {answers.returnService === service.id && ['dhl-sweden', 'dhl-europe', 'dhl-worldwide'].includes(service.id) && (
+                {answers.returnService === service.id && ['dhl-sweden', 'dhl-europe', 'dhl-worldwide'].includes(service.id) && (
                 <div className="mt-4 ml-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="text-sm font-medium text-blue-900 mb-3">🚀 Premiumleverans (valfritt)</h4>
                   <div className="space-y-3">
@@ -2132,7 +2133,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               )}
 
               {/* Show premium delivery options for Stockholm City Courier */}
-              {answers.returnService === service.id && service.id === 'stockholm-city' && (
+                {answers.returnService === service.id && service.id === 'stockholm-city' && (
                 <div className="mt-4 ml-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h4 className="text-sm font-medium text-green-900 mb-3">⚡ Expressleverans (valfritt)</h4>
                   <div className="space-y-3">
@@ -2158,44 +2159,45 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                       ))}
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* Disclaimer for variable pricing */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6 mb-6">
-        <div className="flex items-start">
-          <span className="text-2xl mr-3">⚠️</span>
-          <div>
-            <h4 className="font-medium text-amber-900 mb-1">Observera: Priserna kan variera</h4>
-            <p className="text-sm text-amber-800">
-              De angivna priserna är från-priser och kan variera beroende på vikt, storlek och destinationsadress.
-              Det slutgiltiga priset bekräftas vid leverans.
-            </p>
+        {/* Disclaimer for variable pricing */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6 mb-6">
+          <div className="flex items-start">
+            <span className="text-2xl mr-3">⚠️</span>
+            <div>
+              <h4 className="font-medium text-amber-900 mb-1">Observera: Priserna kan variera</h4>
+              <p className="text-sm text-amber-800">
+                De angivna priserna är från-priser och kan variera beroende på vikt, storlek och destinationsadress.
+                Det slutgiltiga priset bekräftas vid leverans.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-8 flex justify-between">
-        <button
-          onClick={() => setCurrentQuestion(8)}
-          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-        >
-          {t('orderFlow.backToPrevious')}
-        </button>
-        {answers.returnService && (
+        <div className="mt-8 flex justify-between">
           <button
-            onClick={() => setCurrentQuestion(10)}
-            className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
+            onClick={() => setCurrentQuestion(8)}
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
           >
-            {t('orderFlow.continueButton')}
+            {t('orderFlow.backToPrevious')}
           </button>
-        )}
+          {answers.returnService && (
+            <button
+              onClick={() => setCurrentQuestion(10)}
+              className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
+            >
+              {t('orderFlow.continueButton')}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderQuestion10 = () => (
     <div className="max-w-2xl mx-auto">
@@ -3309,19 +3311,13 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   // Send confirmation email to customer
                   try {
-                    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
-                    const customerEmailData = {
-                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
-                      email: answers.customerInfo.email,
-                      phone: answers.customerInfo.phone,
-                      subject: `Orderbekräftelse - Order #${orderId}`,
-                      message: `
+                    const customerHtml = `
 <!DOCTYPE html>
 <html lang="sv">
 <head>
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Orderbekräftelse - LegaliseringsTjänst AB</title>
+   <title>Orderbekräftelse / Order Confirmation</title>
    <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -3374,7 +3370,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 <body>
    <div class="email-container">
        <div class="header">
-           <h1>Orderbekräftelse</h1>
+           <h1>Orderbekräftelse / Order Confirmation</h1>
            <p>Tack för din beställning hos DOX Visumpartner AB</p>
        </div>
 
@@ -3451,6 +3447,54 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                    📞 08-40941900
                </p>
            </div>
+
+           <hr style="margin:24px 0; border:none; border-top:1px solid #eaecef;" />
+
+           <div class="greeting">
+               Dear ${answers.customerInfo.firstName} ${answers.customerInfo.lastName},
+           </div>
+
+           <p>Thank you for your order. We have received your order and will now start processing it. Here is a summary:</p>
+
+           <div class="order-summary">
+               <div class="order-number">
+                   Order number: #${orderId}
+               </div>
+
+               <div class="order-details">
+                   <div class="detail-row">
+                       <span class="detail-label">Date:</span>
+                       <span class="detail-value">${new Date().toLocaleDateString('en-GB')}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Country:</span>
+                       <span class="detail-value">${allCountries.find(c => c.code === answers.country)?.name}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Document type:</span>
+                       <span class="detail-value">${answers.documentType === 'birthCertificate' ? 'Birth certificate' :
+               answers.documentType === 'marriageCertificate' ? 'Marriage certificate' :
+               answers.documentType === 'diploma' ? 'Diploma' :
+               answers.documentType === 'commercial' ? 'Commercial document' :
+               answers.documentType === 'powerOfAttorney' ? 'Power of attorney' : 'Other document'}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Number of documents:</span>
+                       <span class="detail-value">${answers.quantity}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Selected services:</span>
+                       <span class="detail-value">${answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}</span>
+                   </div>
+                   <div class="detail-row">
+                       <span class="detail-label">Total amount:</span>
+                       <span class="detail-value highlight">${pricingResult.totalPrice} SEK</span>
+                   </div>
+               </div>
+           </div>
+
+           <p>You will receive a separate invoice sent to your email: ${answers.customerInfo.email}.</p>
+           <p>If anything is incorrect or if you have any questions, please feel free to contact us.</p>
        </div>
 
        <div class="footer">
@@ -3461,7 +3505,14 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
    </div>
 </body>
 </html>
-                      `.trim(),
+                    `.trim();
+
+                    const customerEmailData = {
+                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
+                      email: answers.customerInfo.email,
+                      phone: answers.customerInfo.phone,
+                      subject: `Orderbekräftelse / Order Confirmation – ${orderId}`,
+                      message: customerHtml,
                       orderId: orderId,
                       createdAt: Timestamp.now(),
                       status: 'unread'
