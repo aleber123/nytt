@@ -44,6 +44,6 @@ export const useReturnServices = () => {
     queryKey: ['returnServices'],
     queryFn: fetchReturnServices,
     staleTime: 15 * 60 * 1000, // 15 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes (formerly cacheTime)
   });
 };

@@ -433,6 +433,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [pricingBreakdown, setPricingBreakdown] = useState<any[]>([]);
   const [loadingPricing, setLoadingPricing] = useState(false);
 
+  // Calculate total price from pricing breakdown
+  const totalPrice = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+
   // Load services when country changes
   useEffect(() => {
     if (answers.country) {
@@ -1078,6 +1081,50 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       setAnswers(prev => ({ ...prev, country: 'custom' }));
       setShowCountryDropdown(false);
       navigateToStep(2);
+    }
+  };
+
+  // Handle order submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isSubmitting || submissionInProgressRef.current) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      submissionInProgressRef.current = true;
+
+      // Verify reCAPTCHA
+      const recaptchaToken = await recaptchaRef.current?.executeAsync();
+      if (!recaptchaToken) {
+        toast.error('Vänligen verifiera att du inte är en robot');
+        return;
+      }
+
+      // Create order with files
+      const result = await createOrderWithFiles({
+        ...answers,
+        recaptchaToken,
+        totalPrice,
+        pricingBreakdown
+      });
+
+      if (result.success) {
+        toast.success('Beställning mottagen!');
+        clearProgress();
+        router.push(`/order-confirmation?id=${result.orderId}`);
+      } else {
+        toast.error(result.error || 'Något gick fel');
+      }
+    } catch (error) {
+      console.error('Order submission error:', error);
+      toast.error('Kunde inte skicka beställning');
+    } finally {
+      setIsSubmitting(false);
+      submissionInProgressRef.current = false;
+      recaptchaRef.current?.reset();
     }
   };
 

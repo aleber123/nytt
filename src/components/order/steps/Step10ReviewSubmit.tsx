@@ -7,7 +7,14 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { toast } from 'react-hot-toast';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import { createOrderWithFiles } from '@/services/hybridOrderService';
+import { calculateOrderPrice } from '@/firebase/pricingService';
+import { printShippingLabel } from '@/services/shippingLabelService';
 import { StepProps } from '../types';
 
 interface Step10Props extends Omit<StepProps, 'currentLocale'> {
@@ -40,8 +47,32 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   const { t } = useTranslation('common');
   const router = useRouter();
 
+  // Local state for Step 10
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+  const [isInCooldown, setIsInCooldown] = useState(false);
+  const submissionInProgressRef = useRef(false);
+  const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function to get service name
+  const getServiceName = (serviceType: string) => {
+    const names: { [key: string]: string } = {
+      apostille: t('services.apostille.title'),
+      notarization: t('services.notarization.title'),
+      embassy: t('services.embassy.title'),
+      ud: t('services.ud.title'),
+      translation: t('services.translation.title'),
+      chamber: t('services.chamber.title')
+    };
+    return names[serviceType] || serviceType;
+  };
+
+  // Dummy clearProgress function (should be passed as prop ideally)
+  const clearProgress = () => {
+    // This would normally clear saved progress
+    sessionStorage.removeItem('orderDraft');
+  };
+
   return (
-) => (
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -446,7 +477,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                 console.log('🚀 Starting order submission...');
                 submissionInProgressRef.current = true;
-                setIsSubmitting(true);
+                // isSubmitting is managed by parent
 
                 try {
                   console.log('📤 Submitting final order...');
@@ -645,7 +676,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     }
                   );
                 } finally {
-                  setIsSubmitting(false);
+                  // isSubmitting is managed by parent
                   submissionInProgressRef.current = false;
 
                   // Start cooldown period (10 seconds)
@@ -904,7 +935,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                 console.log('🚀 Starting order submission...');
                 submissionInProgressRef.current = true;
-                setIsSubmitting(true);
+                // isSubmitting is managed by parent
 
                 try {
                   console.log('📤 Submitting final order...');
@@ -1320,7 +1351,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     }
                   );
                 } finally {
-                  setIsSubmitting(false);
+                  // isSubmitting is managed by parent
                   submissionInProgressRef.current = false;
 
                   // Start cooldown period (10 seconds)
