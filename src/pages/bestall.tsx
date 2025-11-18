@@ -29,6 +29,7 @@ import Step7ShippingOrPickup from '@/components/order/steps/Step7ShippingOrPicku
 import Step8ScannedCopies from '@/components/order/steps/Step8ScannedCopies';
 import Step9ReturnService from '@/components/order/steps/Step9ReturnService';
 import Step10ReviewSubmit from '@/components/order/steps/Step10ReviewSubmit';
+import OrderSummary from '@/components/order/OrderSummary';
 
 interface TestOrderPageProps {}
 
@@ -84,6 +85,16 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     setAnswers,
     setCurrentQuestion
   );
+
+  // Track highest step reached for navigation
+  const [highestStepReached, setHighestStepReached] = useState(1);
+
+  // Update highest step when moving forward
+  useEffect(() => {
+    if (currentQuestion > highestStepReached) {
+      setHighestStepReached(currentQuestion);
+    }
+  }, [currentQuestion, highestStepReached]);
 
   // Function to navigate to a step (creates browser history entry for back button support)
   const navigateToStep = (step: number) => {
@@ -453,7 +464,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     if (answers.services.length > 0 && answers.country) {
       calculatePricingBreakdown();
     }
-  }, [answers.services, answers.country, answers.quantity]);
+  }, [answers.services, answers.country, answers.quantity, answers.returnService, answers.scannedCopies, answers.premiumDelivery]);
 
   // Scroll to top when moving between steps
   useEffect(() => {
@@ -947,7 +958,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         returnService: answers.returnService,
         returnServices: returnServices,
         scannedCopies: answers.scannedCopies,
-        pickupService: answers.pickupService
+        pickupService: answers.pickupService,
+        premiumDelivery: answers.premiumDelivery
       });
 
       setPricingBreakdown(pricingResult.breakdown);
@@ -1140,16 +1152,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
       <main className="bg-gray-50 py-10 min-h-screen">
         <div className="container mx-auto px-4">
-          {/* Auto-save indicator */}
-          <div className="max-w-2xl mx-auto mb-4">
-            <div className="flex items-center justify-end text-sm text-gray-500">
-              <svg className="w-4 h-4 mr-1.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Dina uppgifter sparas automatiskt</span>
-            </div>
-          </div>
-
           {/* Progress indicator */}
           <div className="max-w-2xl mx-auto mb-8">
             {/* Desktop: Detailed step indicator */}
@@ -1158,8 +1160,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 <div key={step} className="flex items-center">
                   <button
                     onClick={() => {
-                      // Allow navigation to completed steps or current step only
-                      if (step <= currentQuestion) {
+                      // Allow navigation to any step up to the highest reached
+                      if (step <= highestStepReached) {
                         navigateToStep(step);
                       }
                     }}
@@ -1168,9 +1170,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                         ? 'bg-custom-button text-white hover:bg-custom-button-hover hover:scale-110 cursor-pointer shadow-md'
                         : step === currentQuestion
                         ? 'bg-custom-button text-white ring-2 ring-custom-button-light ring-offset-2 scale-110 shadow-lg'
+                        : step <= highestStepReached
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer border-2 border-blue-300'
                         : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                     }`}
-                    disabled={step > currentQuestion}
+                    disabled={step > highestStepReached}
                   >
                     {step < currentQuestion ? '✓' : step}
                   </button>
@@ -1198,8 +1202,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             </div>
           </div>
 
-          {/* Render current question */}
-          {currentQuestion === 1 && (
+          {/* Two column layout: Steps + Summary */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
+            {/* Main content - Steps */}
+            <div className="lg:col-span-2 min-h-screen">
+              {/* Render current question */}
+              {currentQuestion === 1 && (
             <Step1CountrySelection
               answers={answers}
               setAnswers={setAnswers}
@@ -1302,6 +1310,19 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               onSubmit={handleSubmit}
             />
           )}
+            </div>
+
+            {/* Sidebar - Order Summary */}
+            <div className="lg:col-span-1 self-start">
+              <OrderSummary
+                answers={answers}
+                pricingBreakdown={pricingBreakdown}
+                totalPrice={totalPrice}
+                allCountries={allCountries}
+                returnServices={returnServices}
+              />
+            </div>
+          </div>
         </div>
       </main>
     </>

@@ -326,6 +326,7 @@ export const calculateOrderPrice = async (orderData: {
   returnServices?: any[];
   scannedCopies?: boolean;
   pickupService?: boolean;
+  premiumDelivery?: string;
 }): Promise<{
   basePrice: number;
   additionalFees: number;
@@ -473,6 +474,7 @@ export const calculateOrderPrice = async (orderData: {
         unitPrice: 450
       });
     }
+
 
     return {
       basePrice: totalBasePrice,

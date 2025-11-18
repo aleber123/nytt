@@ -150,12 +150,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             </div>
           )}
 
-          {answers.scannedCopies && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step10.scannedCopies', { quantity: answers.quantity })}:</span>
-              <span className="font-medium text-gray-900">{200 * answers.quantity} kr</span>
-            </div>
-          )}
 
           {answers.returnService && (
             <div className="flex justify-between items-center py-2 border-b border-green-200">
@@ -189,22 +183,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             </div>
           )}
 
-          {answers.premiumDelivery && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">Premiumleverans:</span>
-              <span className="font-medium text-gray-900">
-                {(() => {
-                  const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
-                  if (premiumService && premiumService.price) {
-                    const priceMatch = premiumService.price.match(/(\d+)/);
-                    return priceMatch ? `${priceMatch[1]} kr` : premiumService.price;
-                  }
-                  return '0 kr';
-                })()}
-              </span>
-            </div>
-          )}
-
           {/* Total Price */}
           <div className="flex justify-between items-center py-3 border-t-2 border-green-300 bg-green-100 -mx-6 px-6 rounded-b-lg">
             <span className="text-lg font-semibold text-green-900">{t('orderFlow.step10.total')}:</span>
@@ -214,10 +192,10 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                 let total = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
 
-                // Add additional fees
+                // Add additional fees (only if not already in pricingBreakdown)
                 if (answers.expedited) total += 500;
                 if (answers.pickupService) total += 450;
-                if (answers.scannedCopies) total += 200 * answers.quantity;
+                // Scanned copies already in pricingBreakdown - don't add again
 
                 // Add return service cost
                 if (answers.returnService) {
