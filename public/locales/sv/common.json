@@ -131,7 +131,9 @@
     "prices": "Priser",
     "about": "Om oss",
     "contact": "Kontakt",
-    "order": "Beställ nu"
+    "order": "Beställ nu",
+    "admin": "Admin",
+    "orders": "Ordrar"
   },
   "home": {
     "title": "Legaliseringstjänst - Snabb och enkel legalisering av dokument",

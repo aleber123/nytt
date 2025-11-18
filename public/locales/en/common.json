@@ -181,7 +181,9 @@
     "prices": "Prices",
     "about": "About us",
     "contact": "Contact",
-    "order": "Order now"
+    "order": "Order now",
+    "admin": "Admin",
+    "orders": "Orders"
   },
   "home": {
     "title": "Legalization Service - Fast and easy document legalization",

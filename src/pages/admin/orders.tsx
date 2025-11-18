@@ -151,7 +151,10 @@ function AdminOrdersPage() {
       case 'oversattning':
         return t('services.translation.title');
       case 'utrikesdepartementet':
-        return 'Utrikesdepartementet';
+      case 'ud':
+        return t('services.ud.title');
+      case 'chamber':
+        return t('services.chamber.title');
       default:
         return serviceId;
     }

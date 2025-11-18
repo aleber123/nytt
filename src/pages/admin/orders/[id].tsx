@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import type { Timestamp as FbTimestamp } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import type { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -658,7 +660,10 @@ function AdminOrderDetailPage() {
       case 'oversattning':
         return t('services.translation.title');
       case 'utrikesdepartementet':
-        return 'Utrikesdepartementet';
+      case 'ud':
+        return t('services.ud.title');
+      case 'chamber':
+        return t('services.chamber.title');
       default:
         return serviceId;
     }
@@ -1777,5 +1782,13 @@ const ClientOnlyAdminOrderDetail = () => (
     <AdminOrderDetailPage />
   </ProtectedRoute>
 );
+
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+    },
+  };
+};
 
 export default dynamic(() => Promise.resolve(ClientOnlyAdminOrderDetail), { ssr: false });
