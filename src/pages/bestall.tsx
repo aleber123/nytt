@@ -22,7 +22,7 @@ import Step3ServicesSelection from '@/components/order/steps/Step3ServicesSelect
 import Step4Quantity from '@/components/order/steps/Step4Quantity';
 import Step5DocumentSource from '@/components/order/steps/Step5DocumentSource';
 import Step6PickupService from '@/components/order/steps/Step6PickupService';
-import Step7PickupAddress from '@/components/order/steps/Step7PickupAddress';
+import Step7ShippingOrPickup from '@/components/order/steps/Step7ShippingOrPickup';
 import Step8ScannedCopies from '@/components/order/steps/Step8ScannedCopies';
 import Step9ReturnService from '@/components/order/steps/Step9ReturnService';
 
@@ -1075,268 +1075,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       setShowCountryDropdown(false);
       navigateToStep(2);
     }
-  };
-
-  const renderQuestion7 = () => {
-    // Show shipping instructions step if customer chose to send documents themselves
-    if (!answers.pickupService && answers.documentSource === 'original') {
-      return (
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              {t('orderFlow.step7.title')}
-            </h1>
-            <p className="text-lg text-gray-600">
-              {t('orderFlow.step7.subtitle')}
-            </p>
-          </div>
-
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-red-900 mb-2">
-                  {t('orderFlow.step7.shippingAddressTitle')}
-                </h3>
-                <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address">
-                  <div className="font-medium text-gray-900 mb-1">{t('orderFlow.step7.companyName')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.attention')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.street')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.postalCode')} {t('orderFlow.step7.city')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.country')}</div>
-                </div>
-              </div>
-              <div className="ml-4">
-                <button
-                  onClick={() => {
-                    // Create a print-specific window with only the address
-                    const printWindow = window.open('', '_blank', 'width=600,height=400');
-                    if (printWindow) {
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>LegaliseringsTjänst AB - Leveransadress</title>
-                            <style>
-                              body {
-                                font-family: Arial, sans-serif;
-                                margin: 40px;
-                                text-align: center;
-                              }
-                              .address {
-                                border: 2px solid #dc2626;
-                                padding: 20px;
-                                border-radius: 8px;
-                                background: #fef2f2;
-                                display: inline-block;
-                                margin: 20px 0;
-                              }
-                              .company {
-                                font-weight: bold;
-                                font-size: 18px;
-                                color: #1f2937;
-                                margin-bottom: 8px;
-                              }
-                              .address-line {
-                                color: #374151;
-                                margin: 4px 0;
-                              }
-                              @media print {
-                                body { margin: 20px; }
-                              }
-                            </style>
-                          </head>
-                          <body>
-                            <h2>${t('orderFlow.step7.shippingAddressTitle')}</h2>
-                            <div class="address">
-                              <div class="company">${t('orderFlow.step7.companyName')}</div>
-                              <div class="address-line">${t('orderFlow.step7.attention')}</div>
-                              <div class="address-line">${t('orderFlow.step7.street')}</div>
-                              <div class="address-line">${t('orderFlow.step7.postalCode')} ${t('orderFlow.step7.city')}</div>
-                              <div class="address-line">${t('orderFlow.step7.country')}</div>
-                            </div>
-                          </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      setTimeout(() => {
-                        printWindow.print();
-                        printWindow.close();
-                      }, 250);
-                    }
-                  }}
-                  className="flex items-center justify-center w-12 h-12 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200"
-                  title={t('orderFlow.step7.printAddress')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 flex justify-between">
-            <button
-              onClick={() => setCurrentQuestion(6)}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              {t('orderFlow.backToPrevious')}
-            </button>
-            <button
-              onClick={() => setCurrentQuestion(8)}
-              className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
-            >
-              {t('orderFlow.nextButton')}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // For uploaded documents, skip this step entirely and go to return service selection
-    if (answers.documentSource === 'upload') {
-      setCurrentQuestion(9);
-      return null;
-    }
-
-    // Only show pickup address step if pickup service is selected
-    if (!answers.pickupService) {
-      // Skip to return service step
-      setCurrentQuestion(9);
-      return null;
-    }
-
-    return (
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            {t('orderFlow.pickupAddress.title')}
-          </h1>
-          <p className="text-lg text-gray-600">
-            {t('orderFlow.pickupAddress.subtitle')}
-          </p>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <span className="text-2xl mr-3">🚚</span>
-            <div>
-              <div className="font-medium text-blue-900">
-                {t('orderFlow.pickupAddress.pickupOrdered')}
-              </div>
-              <div className="text-sm text-blue-700">
-                {t('orderFlow.pickupAddress.pickupContact')}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.pickupAddress.name')} {t('orderFlow.pickupAddress.requiredField')}
-            </label>
-            <input
-              type="text"
-              value={answers.pickupAddress.name}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                pickupAddress: { ...prev.pickupAddress, name: e.target.value }
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
-              placeholder={t('orderFlow.pickupAddress.namePlaceholder')}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.pickupAddress.company')}
-            </label>
-            <input
-              type="text"
-              value={answers.pickupAddress.company}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                pickupAddress: { ...prev.pickupAddress, company: e.target.value }
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
-              placeholder={t('orderFlow.pickupAddress.companyPlaceholder')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('orderFlow.pickupAddress.street')} {t('orderFlow.pickupAddress.requiredField')}
-            </label>
-            <input
-              type="text"
-              value={answers.pickupAddress.street}
-              onChange={(e) => setAnswers(prev => ({
-                ...prev,
-                pickupAddress: { ...prev.pickupAddress, street: e.target.value }
-              }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
-              placeholder={t('orderFlow.pickupAddress.streetPlaceholder')}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.pickupAddress.postalCode')} {t('orderFlow.pickupAddress.requiredField')}
-              </label>
-              <input
-                type="text"
-                value={answers.pickupAddress.postalCode}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  pickupAddress: { ...prev.pickupAddress, postalCode: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
-                placeholder={t('orderFlow.pickupAddress.postalCodePlaceholder')}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.pickupAddress.city')} {t('orderFlow.pickupAddress.requiredField')}
-              </label>
-              <input
-                type="text"
-                value={answers.pickupAddress.city}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  pickupAddress: { ...prev.pickupAddress, city: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
-                placeholder={t('orderFlow.pickupAddress.cityPlaceholder')}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 flex justify-between">
-          <button
-            onClick={() => setCurrentQuestion(6)}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            {t('orderFlow.backToPrevious')}
-          </button>
-          <button
-            onClick={() => setCurrentQuestion(8)}
-            disabled={!answers.pickupAddress.name || !answers.pickupAddress.street || !answers.pickupAddress.postalCode || !answers.pickupAddress.city}
-            className={`px-6 py-2 rounded-md font-medium ${
-              answers.pickupAddress.name && answers.pickupAddress.street && answers.pickupAddress.postalCode && answers.pickupAddress.city
-                ? 'bg-custom-button text-white hover:bg-custom-button-hover'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {t('orderFlow.nextButton')}
-          </button>
-        </div>
-      </div>
-    );
   };
 
   const renderQuestion10 = () => (
@@ -2792,7 +2530,15 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
               onBack={() => navigateToStep(5)}
             />
           )}
-          {currentQuestion === 7 && renderQuestion7()}
+          {currentQuestion === 7 && (
+            <Step7ShippingOrPickup
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(8)}
+              onBack={() => navigateToStep(6)}
+              onSkip={() => navigateToStep(9)}
+            />
+          )}
           {currentQuestion === 8 && (
             <Step8ScannedCopies
               answers={answers}
