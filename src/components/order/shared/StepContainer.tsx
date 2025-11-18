@@ -66,7 +66,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
             <button
               onClick={onNext}
               disabled={nextDisabled}
-              className={`px-6 py-3 rounded-md font-medium transition-colors ${
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${
                 nextDisabled
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-custom-button text-white hover:bg-custom-button-hover'
