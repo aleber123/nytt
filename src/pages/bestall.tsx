@@ -81,12 +81,19 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
   // Show notification if progress was restored
   useEffect(() => {
-    const savedInfo = getSavedProgressInfo();
-    if (savedInfo.exists && !savedInfo.expired && savedInfo.step && savedInfo.step > 1) {
-      toast.success(
-        `Välkommen tillbaka! Din beställning återställdes från steg ${savedInfo.step}.`,
-        { duration: 5000, icon: '💾' }
-      );
+    // Check if we've already shown the notification
+    const notified = sessionStorage.getItem('orderDraft_notified');
+    if (notified) {
+      // Clear the flag and show notification
+      sessionStorage.removeItem('orderDraft_notified');
+      
+      const savedInfo = getSavedProgressInfo();
+      if (savedInfo.exists && !savedInfo.expired && savedInfo.step && savedInfo.step > 1) {
+        toast.success(
+          `Välkommen tillbaka! Din beställning återställdes från steg ${savedInfo.step}.`,
+          { duration: 5000, icon: '💾' }
+        );
+      }
     }
   }, []); // Run once on mount
 
@@ -2221,16 +2228,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   <div key={`${item.service}_${index}`} className="text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">
-                        • {item.description} {item.quantity > 1 ? `(${item.unitPrice} kr × ${item.quantity})` : `(${item.unitPrice} kr)`}
+                        • {item.description} {item.quantity && item.quantity > 1 && item.unitPrice ? `(${item.unitPrice} kr × ${item.quantity})` : ''}
                       </span>
-                      <span className="font-medium text-gray-900">{item.total} kr</span>
+                      <span className="font-medium text-gray-900">{item.total || 0} kr</span>
                     </div>
                   </div>
                 ))
               )}
-            </div>
-            <div className="mt-2 text-sm text-gray-600">
-              {answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}
             </div>
           </div>
 
@@ -2311,7 +2315,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               {(() => {
                 if (loadingPricing) return 'Beräknar...';
 
-                let total = pricingBreakdown.reduce((sum, item) => sum + item.total, 0);
+                let total = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
 
                 // Add additional fees
                 if (answers.expedited) total += 500;

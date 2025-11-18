@@ -338,19 +338,78 @@ export const calculateOrderPrice = async (orderData: {
     const breakdown: any[] = [];
 
     for (const serviceType of orderData.services) {
-      const rule = await getPricingRule(orderData.country, serviceType);
+      let rule = await getPricingRule(orderData.country, serviceType);
+
+      // If no country-specific rule, try to get standard Swedish rule for standard services
+      if (!rule && ['notarization', 'chamber', 'ud', 'apostille'].includes(serviceType)) {
+        rule = await getPricingRule('SE', serviceType);
+      }
+
+      // If still no rule, use fallback prices
+      if (!rule) {
+        const fallbackPrices: { [key: string]: { officialFee: number; serviceFee: number } } = {
+          'apostille': { officialFee: 440, serviceFee: 999 },
+          'notarization': { officialFee: 320, serviceFee: 999 },
+          'chamber': { officialFee: 799, serviceFee: 1199 },
+          'embassy': { officialFee: 1500, serviceFee: 1199 },
+          'ud': { officialFee: 750, serviceFee: 999 },
+          'translation': { officialFee: 0, serviceFee: 999 }
+        };
+
+        const fallback = fallbackPrices[serviceType];
+        if (fallback) {
+          rule = {
+            id: `${orderData.country}_${serviceType}_fallback`,
+            countryCode: orderData.country,
+            countryName: '',
+            serviceType: serviceType,
+            officialFee: fallback.officialFee,
+            serviceFee: fallback.serviceFee,
+            basePrice: fallback.officialFee + fallback.serviceFee,
+            processingTime: { standard: 14 },
+            currency: 'SEK',
+            updatedBy: 'system',
+            isActive: true,
+            lastUpdated: Timestamp.now()
+          } as PricingRule;
+        }
+      }
 
       if (rule) {
-        const serviceBasePrice = rule.basePrice * orderData.quantity;
-        totalBasePrice += serviceBasePrice;
+        // Get service name for description
+        const serviceNames: { [key: string]: string } = {
+          'apostille': 'Apostille',
+          'notarization': 'Notarisering',
+          'embassy': 'Ambassadlegalisering',
+          'ud': 'Utrikesdepartementets legalisering',
+          'translation': 'Auktoriserad översättning',
+          'chamber': 'Handelskammarens legalisering'
+        };
 
+        const serviceName = serviceNames[serviceType] || serviceType;
+        const officialTotal = rule.officialFee * orderData.quantity;
+        const serviceFeeTotal = rule.serviceFee;
+
+        totalBasePrice += officialTotal + serviceFeeTotal;
+
+        // Add official fee line (per document, VAT exempt)
         breakdown.push({
-          service: serviceType,
-          basePrice: serviceBasePrice,
+          service: `${serviceType}_official`,
+          description: `${serviceName} - Officiell avgift`,
           quantity: orderData.quantity,
-          unitPrice: rule.basePrice,
-          officialFee: rule.officialFee * orderData.quantity,
-          serviceFee: rule.serviceFee * orderData.quantity
+          unitPrice: rule.officialFee,
+          total: officialTotal,
+          vatRate: 0
+        });
+
+        // Add service fee line (per service, not per document, 25% VAT)
+        breakdown.push({
+          service: `${serviceType}_service`,
+          description: `${serviceName} - Serviceavgift`,
+          quantity: 1,
+          unitPrice: serviceFeeTotal,
+          total: serviceFeeTotal,
+          vatRate: 25
         });
 
         // Add express fee if applicable
@@ -358,8 +417,11 @@ export const calculateOrderPrice = async (orderData: {
           totalAdditionalFees += rule.additionalFees.express;
           breakdown.push({
             service: `${serviceType}_express`,
+            description: 'Expresstjänst',
             fee: rule.additionalFees.express,
-            description: 'Express service'
+            total: rule.additionalFees.express,
+            quantity: 1,
+            unitPrice: rule.additionalFees.express
           });
         }
       }
@@ -375,8 +437,11 @@ export const calculateOrderPrice = async (orderData: {
           totalAdditionalFees += returnCost;
           breakdown.push({
             service: 'return_service',
+            description: returnService.name,
             fee: returnCost,
-            description: returnService.name
+            total: returnCost,
+            quantity: 1,
+            unitPrice: returnCost
           });
         }
       }
@@ -384,11 +449,15 @@ export const calculateOrderPrice = async (orderData: {
 
     // Add scanned copies cost (200 kr per document)
     if (orderData.scannedCopies) {
-      totalAdditionalFees += 200 * orderData.quantity;
+      const scannedCost = 200 * orderData.quantity;
+      totalAdditionalFees += scannedCost;
       breakdown.push({
         service: 'scanned_copies',
-        fee: 200 * orderData.quantity,
-        description: 'Scanned copies'
+        description: 'Skannade kopior',
+        fee: scannedCost,
+        total: scannedCost,
+        quantity: orderData.quantity,
+        unitPrice: 200
       });
     }
 
@@ -397,8 +466,11 @@ export const calculateOrderPrice = async (orderData: {
       totalAdditionalFees += 450;
       breakdown.push({
         service: 'pickup_service',
+        description: 'Hämtning av dokument',
         fee: 450,
-        description: 'Document pickup service'
+        total: 450,
+        quantity: 1,
+        unitPrice: 450
       });
     }
 

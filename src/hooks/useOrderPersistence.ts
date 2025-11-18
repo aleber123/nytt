@@ -9,7 +9,7 @@
  * - Clear on order completion
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'orderDraft';
@@ -27,6 +27,9 @@ export const useOrderPersistence = (
   setAnswers: (answers: any) => void,
   setCurrentQuestion: (step: number) => void
 ) => {
+  // Ref to track if we've already restored on mount (prevents double restoration in React Strict Mode)
+  const hasRestoredRef = useRef(false);
+
   /**
    * Save current progress to sessionStorage
    */
@@ -49,6 +52,12 @@ export const useOrderPersistence = (
    * Restore progress from sessionStorage
    */
   const restoreProgress = useCallback(() => {
+    // Prevent double restoration in React Strict Mode
+    if (hasRestoredRef.current) {
+      logger.log('⏭️ Skipping duplicate restore call');
+      return false;
+    }
+    
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
       
@@ -68,6 +77,9 @@ export const useOrderPersistence = (
         return false;
       }
 
+      // Mark as restored BEFORE setting state to prevent race conditions
+      hasRestoredRef.current = true;
+      
       // Restore the saved data
       setAnswers(draft.answers);
       setCurrentQuestion(draft.currentStep);
@@ -76,6 +88,9 @@ export const useOrderPersistence = (
         step: draft.currentStep,
         savedAt: new Date(draft.timestamp).toLocaleString()
       });
+      
+      // Mark that we've shown the notification by setting a session flag
+      sessionStorage.setItem(`${STORAGE_KEY}_notified`, 'true');
       
       return true;
     } catch (error) {
@@ -91,6 +106,8 @@ export const useOrderPersistence = (
   const clearProgress = useCallback(() => {
     try {
       sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(`${STORAGE_KEY}_notified`);
+      hasRestoredRef.current = false; // Reset the flag
       logger.log('🗑️ Order progress cleared');
     } catch (error) {
       logger.error('Failed to clear order progress:', error);
