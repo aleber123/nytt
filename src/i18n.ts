@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { logger } from '@/utils/logger';
 
 // Check if we're on the server or client
 const isServer = typeof window === 'undefined';
@@ -41,7 +42,7 @@ if (!isServer) {
     i18n.addResourceBundle('sv', 'common', svCommon);
     i18n.addResourceBundle('en', 'common', enCommon);    
   }).catch(error => {
-    console.error('Failed to load translation files:', error);
+    logger.error('Failed to load translation files:', error);
   });
 }
 

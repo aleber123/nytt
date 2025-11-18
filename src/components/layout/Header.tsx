@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { Bars3Icon, XMarkIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -8,11 +9,15 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const { t, i18n } = useTranslation('common');
+  const safeT = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
   
   const navigation = [
-    { name: t('nav.home'), href: '/' },
-    { name: t('nav.about'), href: '/om-oss' },
-    { name: t('nav.contact'), href: '/kontakt' },
+    { name: safeT('nav.home', 'Hem'), href: '/' },
+    { name: safeT('nav.about', 'Om oss'), href: '/om-oss' },
+    { name: safeT('nav.contact', 'Kontakt'), href: '/kontakt' },
     { name: 'Orderstatus', href: '/orderstatus' },
   ];
 
@@ -30,16 +35,19 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
-              <img
+              <NextImage
                 src="/dox-logo.webp"
                 alt="DOX Visumpartner AB"
-                className="h-10 w-auto"
+                width={120}
+                height={40}
+                priority
+                style={{ height: 'auto', width: 'auto', maxHeight: '2.5rem' }}
               />
             </Link>
           </div>
           
           {/* Desktop navigation */}
-          <nav className="hidden md:flex space-x-8" aria-label={t('accessibility.mainNav')}>
+          <nav className="hidden md:flex space-x-8" aria-label={safeT('accessibility.mainNav', 'Huvudmeny')}>
             {navigation.map((item) => (
               <Link 
                 key={item.name}
@@ -65,7 +73,7 @@ const Header: React.FC = () => {
                     ? 'bg-custom-button/10 text-custom-button font-medium'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
-                aria-label={t('accessibility.switchToSwedish')}
+                aria-label={safeT('accessibility.switchToSwedish', 'Byt till svenska')}
                 aria-pressed={i18n.language === 'sv'}
               >
                 SV
@@ -77,7 +85,7 @@ const Header: React.FC = () => {
                     ? 'bg-custom-button/10 text-custom-button font-medium'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
-                aria-label={t('accessibility.switchToEnglish')}
+                aria-label={safeT('accessibility.switchToEnglish', 'Switch to English')}
                 aria-pressed={i18n.language === 'en'}
               >
                 EN
@@ -88,7 +96,7 @@ const Header: React.FC = () => {
               href="/bestall"
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button shadow-sm transition-all duration-200 hover:shadow"
             >
-              {t('nav.order')}
+              {safeT('nav.order', 'Beställ nu')}
             </Link>
           </div>
           
@@ -101,7 +109,7 @@ const Header: React.FC = () => {
               aria-expanded={isMenuOpen}
               onClick={toggleMenu}
             >
-              <span className="sr-only">{isMenuOpen ? t('accessibility.closeMenu') : t('accessibility.openMenu')}</span>
+              <span className="sr-only">{isMenuOpen ? safeT('accessibility.closeMenu', 'Stäng meny') : safeT('accessibility.openMenu', 'Öppna meny')}</span>
               {isMenuOpen ? (
                 <XMarkIcon className="h-6 w-6" aria-hidden="true" />
               ) : (

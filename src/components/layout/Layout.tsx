@@ -12,6 +12,10 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { t } = useTranslation('common');
+  const safeT = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
   const router = useRouter();
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
   const asPath = router.asPath || '/';
@@ -51,7 +55,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
       </Head>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-primary-700 focus:text-white focus:z-50">
-        {t('accessibility.skipToContent')}
+        {safeT('accessibility.skipToContent', 'Hoppa till innehåll')}
       </a>
       
       <Header />

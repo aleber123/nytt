@@ -1,18 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-};
+import { logger } from '@/utils/logger';
+import { firebaseConfig } from '@/config/env';
 
 // Lazy initialization - only initialize when first accessed
 let firebaseApp: any = null;
@@ -29,8 +19,8 @@ function initializeFirebase() {
     firebaseAuth = getAuth(firebaseApp);
     initialized = true;
   } catch (error) {
-    console.error('❌ Firebase initialization failed:', error);
-    console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
+    logger.error('❌ Firebase initialization failed:', error);
+    logger.error('❌ Error details:', error instanceof Error ? error.message : String(error));
     // Continue without Firebase - app should still work with mock services
   }
 }

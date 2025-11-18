@@ -11,6 +11,10 @@ interface BreadcrumbsProps {
 const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
   const router = useRouter();
   const { t } = useTranslation('common');
+  const safeT = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
   
   // Skapa breadcrumbs baserat på nuvarande sökväg
   const generateBreadcrumbs = () => {
@@ -34,24 +38,24 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
     });
     
     // Lägg till "Hem" som första breadcrumb
-    return [{ href: '/', text: t('nav.home') }, ...crumbList];
+    return [{ href: '/', text: safeT('nav.home', 'Hem') }, ...crumbList];
   };
   
   // Översätt sökvägsnamn till läsbara namn
   const getBreadcrumbText = (path: string) => {
     const breadcrumbMap: { [key: string]: string } = {
-      'tjanster': t('nav.services'),
-      'bestall': t('nav.order'),
-      'lander': t('nav.countries'),
-      'priser': t('nav.prices'),
-      'om-oss': t('nav.about'),
-      'kontakt': t('nav.contact'),
+      'tjanster': safeT('nav.services', 'Tjänster'),
+      'bestall': safeT('nav.order', 'Beställ'),
+      'lander': safeT('nav.countries', 'Länder'),
+      'priser': safeT('nav.prices', 'Priser'),
+      'om-oss': safeT('nav.about', 'Om oss'),
+      'kontakt': safeT('nav.contact', 'Kontakt'),
       'orderstatus': 'Orderstatus',
-      'apostille': t('services.apostille.title'),
-      'notarisering': t('services.notarization.title'),
-      'ambassad': t('services.embassy.title'),
-      'oversattning': t('services.translation.title'),
-      'bekraftelse': t('confirmation.title'),
+      'apostille': safeT('services.apostille.title', 'Apostille'),
+      'notarisering': safeT('services.notarization.title', 'Notarisering'),
+      'ambassad': safeT('services.embassy.title', 'Ambassadlegalisering'),
+      'oversattning': safeT('services.translation.title', 'Auktoriserad översättning'),
+      'bekraftelse': safeT('confirmation.title', 'Orderbekräftelse'),
     };
     
     return breadcrumbMap[path] || path;
@@ -74,7 +78,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
   if (breadcrumbs.length <= 1) return null;
   
   return (
-    <nav aria-label={t('accessibility.breadcrumbs')} className={`py-3 ${className}`}>
+    <nav aria-label={safeT('accessibility.breadcrumbs', 'Brödsmulor')} className={`py-3 ${className}`}>
       {breadcrumbLd && (
         <script
           type="application/ld+json"

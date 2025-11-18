@@ -1,6 +1,5 @@
-import { GetServerSideProps } from 'next';
+import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
@@ -46,7 +45,6 @@ interface Order {
 }
 
 export function ConfirmationPage() {
-  const { t } = useTranslation('common');
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +54,9 @@ export function ConfirmationPage() {
     const fetchOrder = async () => {
       const oid = (router.query.orderId as string) || '';
       if (!oid) {
-        setError(t('order.error.noOrderId'));
+        setError(
+          'Order-ID saknas. Vänligen använd länken från din bekräftelsemail. / No order ID found. Please use the link from your confirmation email.'
+        );
         setLoading(false);
         return;
       }
@@ -69,30 +69,34 @@ export function ConfirmationPage() {
         if (orderData) {
           setOrder(orderData);
         } else {
-          setError(t('order.error.orderNotFound'));
+          setError(
+            'Vi kunde inte hitta din order. Kontrollera att länken är korrekt. / We could not find your order. Please check that the link is correct.'
+          );
         }
       } catch (err) {
         console.error('Error fetching order:', err);
-        setError(t('order.error.fetchFailed'));
+        setError(
+          'Det gick inte att hämta din order just nu. Försök igen senare eller kontakta support. / We were unable to load your order right now. Please try again later or contact support.'
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrder();
-  }, [router.query.orderId, t]);
+  }, [router.query.orderId]);
 
   // Function to get service name
   const getServiceName = (serviceId: string) => {
     switch (serviceId) {
       case 'apostille':
-        return t('services.apostille.title');
+        return 'Apostille';
       case 'notarisering':
-        return t('services.notarization.title');
+        return 'Notarisering';
       case 'ambassad':
-        return t('services.embassy.title');
+        return 'Ambassadlegalisering';
       case 'oversattning':
-        return t('services.translation.title');
+        return 'Auktoriserad översättning';
       case 'utrikesdepartementet':
         return 'Utrikesdepartementet';
       default:
@@ -103,8 +107,11 @@ export function ConfirmationPage() {
   return (
     <>
       <Head>
-        <title>{t('confirmation.title')} | Legaliseringstjänst</title>
-        <meta name="description" content={t('confirmation.description')} />
+        <title>Orderbekräftelse / Order Confirmation | Legaliseringstjänst</title>
+        <meta
+          name="description"
+          content="Tack för din beställning hos DOX Visumpartner AB. Här ser du en sammanfattning av din order. / Thank you for your order with DOX Visumpartner AB. Here is a summary of your order."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -116,7 +123,7 @@ export function ConfirmationPage() {
             {loading ? (
               <div className="text-center py-16">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-custom-button mb-4"></div>
-                <p className="text-gray-600">{t('common.loading')}</p>
+                <p className="text-gray-600">Laddar order... / Loading order...</p>
               </div>
             ) : error ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
@@ -125,10 +132,10 @@ export function ConfirmationPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h1 className="text-2xl font-heading font-bold mb-4">{t('confirmation.error')}</h1>
+                <h1 className="text-2xl font-heading font-bold mb-4">Ett fel uppstod / An error occurred</h1>
                 <p className="text-gray-600 mb-6">{error}</p>
                 <Link href="/" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button">
-                  {t('common.backToHome')}
+                  Till startsidan / Back to home
                 </Link>
               </div>
             ) : order ? (
@@ -139,29 +146,33 @@ export function ConfirmationPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h1 className="text-3xl font-heading font-bold text-gray-900 mb-4">{t('confirmation.thankYou')}</h1>
-                  <p className="text-xl text-gray-600">{t('confirmation.orderReceived')}</p>
+                  <h1 className="text-3xl font-heading font-bold text-gray-900 mb-4">
+                    Tack för din beställning! / Thank you for your order!
+                  </h1>
+                  <p className="text-xl text-gray-600">
+                    Vi har mottagit din beställning och påbörjar nu handläggningen. / We have received your order and will now start processing it.
+                  </p>
                 </div>
 
                 <div className="border-t border-gray-200 pt-8 mb-8">
-                  <h2 className="text-2xl font-heading font-bold text-gray-900 mb-6">{t('confirmation.orderDetails')}</h2>
+                  <h2 className="text-2xl font-heading font-bold text-gray-900 mb-6">Orderdetaljer / Order details</h2>
 
                   <div className="bg-gray-50 rounded-lg p-6 mb-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <span className="text-sm text-gray-500 block mb-1">{t('confirmation.orderNumber')}:</span>
+                        <span className="text-sm text-gray-500 block mb-1">Ordernummer / Order number:</span>
                         <span className="text-lg font-semibold text-gray-900">{order.orderNumber || order.id}</span>
                       </div>
 
                       <div>
-                        <span className="text-sm text-gray-500 block mb-1">{t('confirmation.orderStatus')}:</span>
+                        <span className="text-sm text-gray-500 block mb-1">Status / Status:</span>
                         <span className="text-lg font-semibold text-gray-900 capitalize">{order.status}</span>
                       </div>
                     </div>
                   </div>
                   
                   <div className="mb-8">
-                    <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.services')}:</h3>
+                    <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">Valda tjänster / Selected services:</h3>
                     <div className="bg-white rounded-lg border border-gray-200 p-4">
                       <ul className="space-y-2">
                         {Array.isArray(order.services) ? (
@@ -187,7 +198,7 @@ export function ConfirmationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.customerInfo')}:</h3>
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">Dina uppgifter / Your details:</h3>
                       <div className="space-y-3">
                         <p className="text-gray-700">
                           <span className="font-medium">{order.customerInfo.firstName} {order.customerInfo.lastName}</span>
@@ -207,7 +218,7 @@ export function ConfirmationPage() {
                     </div>
 
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.deliveryAddress')}:</h3>
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">Leveransadress / Delivery address:</h3>
                       <div className="space-y-3">
                         <p className="text-gray-700">{order.customerInfo.address}</p>
                         <p className="text-gray-700">{order.customerInfo.postalCode} {order.customerInfo.city}</p>
@@ -311,9 +322,11 @@ export function ConfirmationPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                        <h3 className="text-lg font-heading font-semibold text-green-800">E-postbekräftelse skickad</h3>
+                        <h3 className="text-lg font-heading font-semibold text-green-800">E-postbekräftelse skickad / Email confirmation sent</h3>
                       </div>
-                      <p className="text-green-700">{t('confirmation.emailSent')}</p>
+                      <p className="text-green-700">
+                        En bekräftelse har skickats till din e-postadress. / A confirmation email has been sent to your email address.
+                      </p>
                     </div>
                   </div>
 
@@ -336,17 +349,20 @@ export function ConfirmationPage() {
 
                   <div className="text-center">
                     <Link href="/" className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button transition-colors duration-200">
-                      {t('common.backToHome')}
+                      Till startsidan / Back to home
                     </Link>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-card p-8 text-center">
-                <h1 className="text-2xl font-bold mb-4">{t('confirmation.noOrder')}</h1>
-                <p className="text-gray-600 mb-6">{t('confirmation.noOrderDescription')}</p>
+                <h1 className="text-2xl font-bold mb-4">Ingen order att visa / No order to display</h1>
+                <p className="text-gray-600 mb-6">
+                  Den här sidan kräver en giltig orderlänk. Öppna bekräftelsemailet och klicka på länken igen. / This page requires a valid order link.
+                  Please open your confirmation email and click the link again.
+                </p>
                 <Link href="/" className="inline-block px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
-                  {t('common.backToHome')}
+                  Till startsidan / Back to home
                 </Link>
               </div>
             )}
@@ -357,7 +373,7 @@ export function ConfirmationPage() {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async ({ locale }) => {
   return {
     props: {
       ...(await serverSideTranslations(locale || 'sv', ['common'])),

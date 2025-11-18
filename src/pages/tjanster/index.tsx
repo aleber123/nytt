@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Link from 'next/link';
 import Head from 'next/head';
 import Seo from '@/components/Seo';
@@ -18,6 +20,10 @@ interface ServiceOverview {
 
 const ServicesPage: React.FC = () => {
   const { t } = useTranslation('common');
+  const safeT = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [services, setServices] = useState<ServiceOverview[]>([]);
@@ -280,23 +286,23 @@ const ServicesPage: React.FC = () => {
   return (
     <>
       <Seo
-        title={`${t('services.pageTitle') || 'Tjänster & Priser'} | Legaliseringstjänst`}
-        description={t('services.pageDescription') || 'Se våra tjänster och priser för dokumentlegalisering. Apostille, notarisering, ambassadlegalisering och auktoriserad översättning med transparent prissättning.'}
+        title={`${t('services.pageTitle', { defaultValue: 'Tjänster & Priser' })} | Legaliseringstjänst`}
+        description={t('services.pageDescription', { defaultValue: 'Se våra tjänster och priser för dokumentlegalisering. Apostille, notarisering, ambassadlegalisering och auktoriserad översättning med transparent prissättning.' })}
       />
 
       <div className="container mx-auto px-4 pt-12">
         <h1 className="text-3xl font-heading font-bold text-gray-900 text-center mb-6">
-          {t('services.pageTitle') || 'Tjänster & Priser'}
+          {t('services.pageTitle', { defaultValue: 'Tjänster & Priser' })}
         </h1>
         <p className="text-lg text-gray-600 text-center mb-8">
-          {t('services.pageIntro') || 'Välj rätt tjänst för dina behov'}
+          {t('services.pageIntro', { defaultValue: 'Välj rätt tjänst för dina behov' })}
         </p>
       </div>
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto mb-16 text-center">
           <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-            {t('services.pageIntro') || 'Välj rätt tjänst för dina behov'}
+            {t('services.pageIntro', { defaultValue: 'Välj rätt tjänst för dina behov' })}
           </h2>
           <p className="text-lg text-gray-600">
             Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer
@@ -353,13 +359,13 @@ const ServicesPage: React.FC = () => {
                     href={`/bestall?service=${service.id}`}
                     className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
                   >
-                    {t('services.chooseService') || 'Välj tjänst'}
+                    {t('services.chooseService', { defaultValue: 'Välj tjänst' })}
                   </Link>
                   <Link
                     href={`/tjanster/${service.id}`}
                     className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
                   >
-                    {t('servicesList.readMore') || 'Läs mer'}
+                    {t('servicesList.readMore', { defaultValue: 'Läs mer' })}
                   </Link>
                 </div>
               </div>
@@ -370,23 +376,23 @@ const ServicesPage: React.FC = () => {
         {/* Call to Action */}
         <div className="mt-20 text-center">
           <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-            {t('servicesList.helpTitle') || 'Osäker vilken tjänst du behöver?'}
+            {t('servicesList.helpTitle', { defaultValue: 'Osäker vilken tjänst du behöver?' })}
           </h3>
           <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            {t('servicesList.helpText') || 'Kontakta oss så hjälper vi dig att välja rätt legaliseringstjänst för dina dokument och destination.'}
+            {t('servicesList.helpText', { defaultValue: 'Kontakta oss så hjälper vi dig att välja rätt legaliseringstjänst för dina dokument och destination.' })}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/kontakt"
               className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
-              {t('servicesList.contact') || 'Kontakta oss'}
+              {t('servicesList.contact', { defaultValue: 'Kontakta oss' })}
             </Link>
             <Link
               href="/bestall"
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
-              {t('servicesList.startOrder') || 'Starta beställning'}
+              {t('servicesList.startOrder', { defaultValue: 'Starta beställning' })}
             </Link>
           </div>
         </div>
@@ -395,5 +401,12 @@ const ServicesPage: React.FC = () => {
   );
 };
 
+export const getStaticProps: GetStaticProps = async ({ locale }) => {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+    },
+  };
+};
 
 export default ServicesPage;

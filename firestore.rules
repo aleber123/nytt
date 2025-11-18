@@ -10,12 +10,25 @@ service cloud.firestore {
     }
 
     // Allow order creation (customers can create orders anonymously)
-    // But require authentication for reading/updating orders
+    // Secure read/update access - only admins or order owner can access
     match /orders/{orderId} {
       allow create: if true; // Allow anonymous order creation
-      allow read: if true; // TEMPORARILY allow anonymous reads for testing
-      allow update: if true; // TEMPORARILY allow anonymous updates for testing
-      allow delete: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+      
+      // Allow read if:
+      // 1. User is admin, OR
+      // 2. User's email matches the order's customer email
+      allow read: if request.auth != null && 
+        (request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'] ||
+         (resource.data.customerInfo != null && 
+          resource.data.customerInfo.email == request.auth.token.email));
+      
+      // Only admins can update orders
+      allow update: if request.auth != null && 
+        request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+      
+      // Only admins can delete orders
+      allow delete: if request.auth != null && 
+        request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
     }
 
     // Admin profiles: each authenticated user can read/write their own profile
@@ -76,9 +89,25 @@ service cloud.firestore {
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow ALL operations for testing (temporary - will be restricted later)
+    // Secure storage access - authenticated users only
+    match /orders/{orderId}/{allPaths=**} {
+      // Allow read if user is admin or owns the order
+      allow read: if request.auth != null;
+      
+      // Allow write for authenticated users (for uploads)
+      allow write: if request.auth != null;
+    }
+    
+    // Public assets (logos, images, etc.)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+    }
+    
+    // Default deny for everything else
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

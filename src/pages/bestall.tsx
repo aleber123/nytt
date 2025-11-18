@@ -7,12 +7,13 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { createOrderWithFiles } from '@/services/hybridOrderService';
-import { getCountryPricingRules, getAllActivePricingRules, getPricingRule } from '@/firebase/pricingService';
+import { getCountryPricingRules, getAllActivePricingRules, getPricingRule, calculateOrderPrice } from '@/firebase/pricingService';
 import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { printShippingLabel } from '@/services/shippingLabelService';
+import { useOrderPersistence } from '@/hooks/useOrderPersistence';
 
 interface TestOrderPageProps {}
 
@@ -61,6 +62,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
+  // Progress persistence - auto-save and restore order data
+  const { clearProgress, getSavedProgressInfo } = useOrderPersistence(
+    answers,
+    currentQuestion,
+    setAnswers,
+    setCurrentQuestion
+  );
+
   // Function to navigate to a step (creates browser history entry for back button support)
   const navigateToStep = (step: number) => {
     setCurrentQuestion(step);
@@ -69,6 +78,17 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     url.searchParams.set('step', step.toString());
     window.history.pushState({}, '', url.toString());
   };
+
+  // Show notification if progress was restored
+  useEffect(() => {
+    const savedInfo = getSavedProgressInfo();
+    if (savedInfo.exists && !savedInfo.expired && savedInfo.step && savedInfo.step > 1) {
+      toast.success(
+        `Välkommen tillbaka! Din beställning återställdes från steg ${savedInfo.step}.`,
+        { duration: 5000, icon: '💾' }
+      );
+    }
+  }, []); // Run once on mount
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -892,74 +912,23 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const calculatePricingBreakdown = async () => {
     try {
       setLoadingPricing(true);
-      const breakdown: any[] = [];
+      
+      // Use the centralized calculateOrderPrice function from pricingService
+      const pricingResult = await calculateOrderPrice({
+        country: answers.country,
+        services: answers.services,
+        quantity: answers.quantity,
+        expedited: answers.expedited,
+        returnService: answers.returnService,
+        returnServices: returnServices,
+        scannedCopies: answers.scannedCopies,
+        pickupService: answers.pickupService
+      });
 
-      for (const serviceId of answers.services) {
-        const service = availableServices.find(s => s.id === serviceId);
-        if (!service) continue;
-
-        // Extract pricing from service price string (format: "Från XXX kr" or "XXX kr")
-        const priceMatch = service.price.match(/(\d+)/);
-        const totalServicePrice = priceMatch ? parseInt(priceMatch[1]) : 0;
-
-        // Get pricing from Firebase pricing rules
-        let officialFee = 0;
-        let serviceFee = 0;
-
-        const rule = await getPricingRule(answers.country, serviceId);
-        if (rule) {
-          officialFee = rule.officialFee;
-          serviceFee = rule.serviceFee;
-        } else {
-          // Fallback to hardcoded values
-          if (serviceId === 'apostille') {
-            officialFee = 440;
-            serviceFee = 999;
-          } else if (serviceId === 'notarization') {
-            officialFee = 320;
-            serviceFee = 999;
-          } else if (serviceId === 'chamber') {
-            officialFee = 799;
-            serviceFee = 1199;
-          } else if (serviceId === 'embassy') {
-            // Default embassy pricing
-            officialFee = 1500;
-            serviceFee = 1199;
-          } else {
-            serviceFee = 999; // Default service fee
-            officialFee = Math.max(0, totalServicePrice - serviceFee);
-          }
-        }
-
-        const officialTotal = officialFee * answers.quantity;
-        const totalPrice = officialTotal + serviceFee;
-
-        // Add official fee line (per document)
-        breakdown.push({
-          service: `${serviceId}_official`,
-          description: `${service.name} - Officiell avgift`,
-          quantity: answers.quantity,
-          unitPrice: officialFee,
-          total: officialTotal,
-          vatRate: 0 // Official fees are typically VAT exempt
-        });
-
-        // Add service fee line (per service, not per document)
-        breakdown.push({
-          service: `${serviceId}_service`,
-          description: `${service.name} - Serviceavgift`,
-          quantity: 1,
-          unitPrice: serviceFee,
-          total: serviceFee,
-          vatRate: 25 // Service fees are subject to VAT
-        });
-      }
-
-      setPricingBreakdown(breakdown);
+      setPricingBreakdown(pricingResult.breakdown);
     } catch (error) {
       console.error('Error calculating pricing breakdown:', error);
-      // Keep existing breakdown or use empty array
-      setPricingBreakdown([]);
+      toast.error('Kunde inte beräkna pris');
     } finally {
       setLoadingPricing(false);
     }
@@ -3070,119 +3039,20 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 try {
                   console.log('📤 Submitting final order...');
 
-                  // Calculate pricing using same logic as order summary for consistency
-                  let totalPrice = 0;
-                  const breakdown: any[] = [];
-
-                  for (const serviceId of answers.services) {
-                    const service = availableServices.find(s => s.id === serviceId);
-                    if (!service) continue;
-
-                    // Extract pricing from service price string (format: "Från XXX kr" or "XXX kr")
-                    const priceMatch = service.price.match(/(\d+)/);
-                    const totalServicePrice = priceMatch ? parseInt(priceMatch[1]) : 0;
-
-                    // For now, use simplified pricing breakdown - official fee per document, service fee fixed
-                    // This matches the admin panel structure where each service has officialFee + serviceFee
-                    let officialFee = 0;
-                    let serviceFee = 0;
-
-                    // Use pricing data from admin panels
-                    if (serviceId === 'apostille') {
-                      officialFee = 440;
-                      serviceFee = 999;
-                    } else if (serviceId === 'notarization') {
-                      officialFee = 320;
-                      serviceFee = 999;
-                    } else if (serviceId === 'chamber') {
-                      officialFee = 799;
-                      serviceFee = 1199;
-                    } else if (serviceId === 'embassy') {
-                      // Embassy pricing varies by country - use common values
-                      const embassyPricing: { [key: string]: { officialFee: number; serviceFee: number } } = {
-                        'AO': { officialFee: 2000, serviceFee: 1199 },
-                        'EG': { officialFee: 1500, serviceFee: 1199 },
-                        'MA': { officialFee: 950, serviceFee: 1199 },
-                        'TN': { officialFee: 800, serviceFee: 1199 },
-                        'DZ': { officialFee: 1100, serviceFee: 1199 },
-                        'ET': { officialFee: 1200, serviceFee: 1199 }
-                      };
-                      const countryPricing = embassyPricing[answers.country];
-                      if (countryPricing) {
-                        officialFee = countryPricing.officialFee;
-                        serviceFee = countryPricing.serviceFee;
-                      } else {
-                        // Default embassy pricing
-                        officialFee = 1500;
-                        serviceFee = 1199;
-                      }
-                    } else {
-                      // For other services, estimate based on total price
-                      serviceFee = 999; // Default service fee
-                      officialFee = Math.max(0, totalServicePrice - serviceFee);
-                    }
-
-                    const officialTotal = officialFee * answers.quantity;
-                    const serviceTotal = officialTotal + serviceFee;
-                    totalPrice += serviceTotal;
-
-                    // Add official fee line (per document)
-                    breakdown.push({
-                      service: `${serviceId}_official`,
-                      description: `${service.name} - Officiell avgift`,
-                      quantity: answers.quantity,
-                      unitPrice: officialFee,
-                      total: officialTotal,
-                      vatRate: 0 // Official fees are typically VAT exempt
-                    });
-
-                    // Add service fee line (per service, not per document)
-                    breakdown.push({
-                      service: `${serviceId}_service`,
-                      description: `${service.name} - Serviceavgift`,
-                      quantity: 1,
-                      unitPrice: serviceFee,
-                      total: serviceFee,
-                      vatRate: 25 // Service fees are subject to VAT
-                    });
-                  }
-
-                  // Add additional fees consistently
-                  let additionalFees = 0;
-
-                  // Add scanned copies cost (200 kr per document)
-                  if (answers.scannedCopies) {
-                    additionalFees += 200 * answers.quantity;
-                    breakdown.push({
-                      service: 'scanned_copies',
-                      fee: 200 * answers.quantity,
-                      description: 'Scanned copies'
-                    });
-                  }
-
-                  // Add return service cost
-                  if (answers.returnService) {
-                    const returnService = returnServices.find(s => s.id === answers.returnService);
-                    if (returnService && returnService.price) {
-                      const priceMatch = returnService.price.match(/(\d+)/);
-                      if (priceMatch) {
-                        const returnCost = parseInt(priceMatch[1]);
-                        additionalFees += returnCost;
-                        breakdown.push({
-                          service: 'return_service',
-                          fee: returnCost,
-                          description: returnService.name
-                        });
-                      }
-                    }
-                  }
-
-                  const pricingResult = {
-                    basePrice: totalPrice,
-                    additionalFees,
-                    totalPrice: totalPrice + additionalFees,
-                    breakdown
-                  };
+                  // Calculate pricing using Firebase pricing service
+                  console.log('💰 Calculating order price from Firebase...');
+                  const pricingResult = await calculateOrderPrice({
+                    country: answers.country,
+                    services: answers.services,
+                    quantity: answers.quantity,
+                    expedited: answers.expedited,
+                    returnService: answers.returnService,
+                    returnServices: returnServices,
+                    scannedCopies: answers.scannedCopies,
+                    pickupService: answers.pickupService
+                  });
+                  
+                  console.log('✅ Pricing calculated from Firebase:', pricingResult);
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
@@ -3211,6 +3081,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   const orderId = await createOrderWithFiles(orderData, answers.uploadedFiles || []);
 
                   console.log('✅ Order submitted successfully:', orderId);
+
+                  // Clear saved progress since order is complete
+                  clearProgress();
 
                   // Expose order number for shipping label printing in this session
                   try { (window as any).__finalOrderNumber = orderId; } catch {}
@@ -3640,6 +3513,16 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
       <main className="bg-gray-50 py-10 min-h-screen">
         <div className="container mx-auto px-4">
+          {/* Auto-save indicator */}
+          <div className="max-w-2xl mx-auto mb-4">
+            <div className="flex items-center justify-end text-sm text-gray-500">
+              <svg className="w-4 h-4 mr-1.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Dina uppgifter sparas automatiskt</span>
+            </div>
+          </div>
+
           {/* Progress indicator */}
           <div className="max-w-2xl mx-auto mb-8">
             {/* Desktop: Detailed step indicator */}

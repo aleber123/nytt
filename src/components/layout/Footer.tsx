@@ -1,52 +1,59 @@
 import React from 'react';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { useTranslation } from 'next-i18next';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation('common');
+  const safeT = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
   
   const currentYear = new Date().getFullYear();
   
   const footerNavigation = {
     services: [
-      { name: t('footer.services.apostille'), href: '/tjanster/apostille' },
-      { name: t('footer.services.notarization'), href: '/tjanster/notarisering' },
-      { name: t('footer.services.embassy'), href: '/tjanster/ambassadlegalisering' },
-      { name: t('footer.services.translation'), href: '/tjanster/oversattning' },
+      { name: safeT('footer.services.apostille', 'Apostille'), href: '/tjanster/apostille' },
+      { name: safeT('footer.services.notarization', 'Notarisering'), href: '/tjanster/notarisering' },
+      { name: safeT('footer.services.embassy', 'Ambassadlegalisering'), href: '/tjanster/ambassadlegalisering' },
+      { name: safeT('footer.services.translation', 'Auktoriserad översättning'), href: '/tjanster/oversattning' },
     ],
     support: [
-      { name: t('footer.support.faq'), href: '/faq' },
-      { name: t('footer.support.contact'), href: '/kontakt' },
-      { name: t('footer.support.pricing'), href: '/priser' },
-      { name: t('footer.support.delivery'), href: '/leveranstider' },
+      { name: safeT('footer.support.faq', 'Vanliga frågor'), href: '/faq' },
+      { name: safeT('footer.support.contact', 'Kontakta oss'), href: '/kontakt' },
+      { name: safeT('footer.support.pricing', 'Priser'), href: '/priser' },
+      { name: safeT('footer.support.delivery', 'Leveranstider'), href: '/leveranstider' },
     ],
     company: [
-      { name: t('footer.company.about'), href: '/om-oss' },
-      { name: t('footer.company.careers'), href: '/karriar' },
-      { name: t('footer.company.blog'), href: '/blogg' },
-      { name: t('footer.company.press'), href: '/press' },
+      { name: safeT('footer.company.about', 'Om oss'), href: '/om-oss' },
+      { name: safeT('footer.company.careers', 'Karriär'), href: '/karriar' },
+      { name: safeT('footer.company.blog', 'Blogg'), href: '/blogg' },
+      { name: safeT('footer.company.press', 'Press'), href: '/press' },
     ],
     legal: [
-      { name: t('footer.legal.privacy'), href: '/integritetspolicy' },
-      { name: t('footer.legal.terms'), href: '/villkor' },
-      { name: t('footer.legal.accessibility'), href: '/tillganglighet' },
-      { name: t('footer.legal.cookies'), href: '/cookies' },
+      { name: safeT('footer.legal.privacy', 'Integritetspolicy'), href: '/integritetspolicy' },
+      { name: safeT('footer.legal.terms', 'Villkor'), href: '/villkor' },
+      { name: safeT('footer.legal.accessibility', 'Tillgänglighet'), href: '/tillganglighet' },
+      { name: safeT('footer.legal.cookies', 'Cookies'), href: '/cookies' },
     ],
   };
 
   return (
     <footer aria-labelledby="footer-heading" style={{ backgroundColor: 'rgba(46,45,44,1)' }}>
       <h2 id="footer-heading" className="sr-only">
-        {t('footer.title')}
+        {safeT('footer.title', 'Sidfot')}
       </h2>
       <div className="container mx-auto px-4 py-12 lg:py-16">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           <div className="space-y-8 xl:col-span-1">
             <Link href="/" className="flex items-center">
-              <img
+              <NextImage
                 src="/dox-logo.webp"
                 alt="DOX Visumpartner AB"
-                className="h-10 w-auto"
+                width={120}
+                height={40}
+                style={{ height: 'auto', width: 'auto', maxHeight: '2.5rem' }}
               />
               <span className="ml-3 text-xl font-heading font-bold text-white">
                 Legaliseringstjänst
@@ -92,7 +99,7 @@ const Footer: React.FC = () => {
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-                  {t('footer.services.title')}
+                  {safeT('footer.services.title', 'Tjänster')}
                 </h3>
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.services.map((item) => (
@@ -106,7 +113,7 @@ const Footer: React.FC = () => {
               </div>
               <div className="mt-12 md:mt-0">
                 <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-                  {t('footer.support.title')}
+                  {safeT('footer.support.title', 'Support')}
                 </h3>
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.support.map((item) => (
@@ -122,7 +129,7 @@ const Footer: React.FC = () => {
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-                  {t('footer.company.title')}
+                  {safeT('footer.company.title', 'Företag')}
                 </h3>
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.company.map((item) => (
@@ -136,7 +143,7 @@ const Footer: React.FC = () => {
               </div>
               <div className="mt-12 md:mt-0">
                 <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-                  {t('footer.legal.title')}
+                  {safeT('footer.legal.title', 'Juridisk information')}
                 </h3>
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.legal.map((item) => (
