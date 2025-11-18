@@ -107,9 +107,9 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
               {/* Base Service */}
               <button
                 onClick={() => handleServiceSelect(service.id)}
-                className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button ${
+                className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                   answers.returnService === service.id
-                    ? 'border-custom-button bg-custom-button-light'
+                    ? 'border-custom-button bg-custom-button-bg'
                     : 'border-gray-200'
                 }`}
               >

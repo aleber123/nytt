@@ -9,12 +9,12 @@ import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 
 const DOCUMENT_TYPES = [
-  { id: 'birthCertificate', icon: '👶' },
-  { id: 'marriageCertificate', icon: '💍' },
-  { id: 'diploma', icon: '🎓' },
-  { id: 'commercial', icon: '📄' },
-  { id: 'powerOfAttorney', icon: '✍️' },
-  { id: 'other', icon: '📋' }
+  { id: 'birthCertificate' },
+  { id: 'marriageCertificate' },
+  { id: 'diploma' },
+  { id: 'commercial' },
+  { id: 'powerOfAttorney' },
+  { id: 'other' }
 ];
 
 export const Step2DocumentType: React.FC<StepProps> = ({
@@ -37,32 +37,18 @@ export const Step2DocumentType: React.FC<StepProps> = ({
       onBack={onBack}
       showNext={false}
     >
-      <div className="space-y-3">
+      <div className="space-y-4">
         {DOCUMENT_TYPES.map((docType) => (
           <button
             key={docType.id}
             onClick={() => handleSelect(docType.id)}
-            className={`w-full p-6 border-2 rounded-lg transition-all duration-200 text-left hover:border-custom-button hover:bg-custom-button-light focus:outline-none focus:ring-2 focus:ring-custom-button ${
-              answers.documentType === docType.id
-                ? 'border-custom-button bg-custom-button-light ring-2 ring-custom-button'
-                : 'border-gray-200'
-            }`}
+            className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-custom-button hover:bg-custom-button-bg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button text-left"
           >
-            <div className="flex items-center space-x-4">
-              <span className="text-3xl">{docType.icon}</span>
-              <span className="text-lg font-medium text-gray-900">
-                {t(`orderFlow.step2.${docType.id}`, docType.id)}
-              </span>
-            </div>
+            <span className="text-lg font-medium text-gray-900">
+              {t(`orderFlow.step2.${docType.id}`, docType.id)}
+            </span>
           </button>
         ))}
-      </div>
-
-      {/* Info box */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-900">
-          <strong>💡 Tips:</strong> Välj den dokumenttyp som bäst beskriver ditt dokument. Vi hanterar alla typer av officiella dokument.
-        </p>
       </div>
     </StepContainer>
   );

@@ -15,6 +15,17 @@ import ReCAPTCHA from 'react-google-recaptcha';
 import { printShippingLabel } from '@/services/shippingLabelService';
 import { useOrderPersistence } from '@/hooks/useOrderPersistence';
 
+// Import extracted step components
+import Step1CountrySelection from '@/components/order/steps/Step1CountrySelection';
+import Step2DocumentType from '@/components/order/steps/Step2DocumentType';
+import Step3ServicesSelection from '@/components/order/steps/Step3ServicesSelection';
+import Step4Quantity from '@/components/order/steps/Step4Quantity';
+import Step5DocumentSource from '@/components/order/steps/Step5DocumentSource';
+import Step6PickupService from '@/components/order/steps/Step6PickupService';
+import Step7PickupAddress from '@/components/order/steps/Step7PickupAddress';
+import Step8ScannedCopies from '@/components/order/steps/Step8ScannedCopies';
+import Step9ReturnService from '@/components/order/steps/Step9ReturnService';
+
 interface TestOrderPageProps {}
 
 export default function TestOrderPage({}: TestOrderPageProps) {
@@ -1065,6 +1076,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       navigateToStep(2);
     }
   };
+
+  // ========================================
+  // OLD RENDER FUNCTIONS - NOT USED ANYMORE
+  // These can be safely deleted - kept for reference only
+  // Steps 1-6, 8-9 now use extracted components
+  // ========================================
 
   const renderQuestion1 = () => (
     <div className="max-w-2xl mx-auto">
@@ -3576,15 +3593,85 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           </div>
 
           {/* Render current question */}
-          {currentQuestion === 1 && renderQuestion1()}
-          {currentQuestion === 2 && renderQuestion2()}
-          {currentQuestion === 3 && renderQuestion3()}
-          {currentQuestion === 4 && renderQuestion4()}
-          {currentQuestion === 5 && renderQuestion5()}
-          {currentQuestion === 6 && renderQuestion6()}
+          {currentQuestion === 1 && (
+            <Step1CountrySelection
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(2)}
+              currentLocale={currentLocale}
+            />
+          )}
+          {currentQuestion === 2 && (
+            <Step2DocumentType
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(3)}
+              onBack={() => navigateToStep(1)}
+            />
+          )}
+          {currentQuestion === 3 && (
+            <Step3ServicesSelection
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(4)}
+              onBack={() => navigateToStep(2)}
+              availableServices={availableServices}
+              loadingServices={loadingServices}
+              currentLocale={currentLocale}
+              allCountries={allCountries}
+            />
+          )}
+          {currentQuestion === 4 && (
+            <Step4Quantity
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(5)}
+              onBack={() => navigateToStep(3)}
+            />
+          )}
+          {currentQuestion === 5 && (
+            <Step5DocumentSource
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(6)}
+              onBack={() => navigateToStep(4)}
+            />
+          )}
+          {currentQuestion === 6 && (
+            <Step6PickupService
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(7)}
+              onBack={() => navigateToStep(5)}
+            />
+          )}
           {currentQuestion === 7 && renderQuestion7()}
-          {currentQuestion === 8 && renderQuestion8()}
-          {currentQuestion === 9 && renderQuestion9()}
+          {currentQuestion === 8 && (
+            <Step8ScannedCopies
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(9)}
+              onBack={() => {
+                if (answers.pickupService) {
+                  navigateToStep(7);
+                } else if (answers.documentSource === 'original') {
+                  navigateToStep(6);
+                } else {
+                  navigateToStep(5);
+                }
+              }}
+            />
+          )}
+          {currentQuestion === 9 && (
+            <Step9ReturnService
+              answers={answers}
+              setAnswers={setAnswers}
+              onNext={() => navigateToStep(10)}
+              onBack={() => navigateToStep(8)}
+              returnServices={returnServices}
+              loadingReturnServices={loadingReturnServices}
+            />
+          )}
           {currentQuestion === 10 && renderQuestion10()}
         </div>
       </main>

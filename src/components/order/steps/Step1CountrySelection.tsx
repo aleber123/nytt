@@ -66,70 +66,15 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
   return (
     <StepContainer
       title={t('orderFlow.step1.title', 'Välj land')}
-      subtitle={t('orderFlow.step1.subtitle', 'Vilket land ska dokumenten legaliseras för?')}
+      subtitle={t('orderFlow.step1.subtitle', 'Vilket land ska dokumenten användas i?')}
       onNext={onNext}
-      nextDisabled={!answers.country}
-      showBack={false}
+      showNext={false}
     >
-      {/* Selected Country Display */}
-      {answers.country && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <CountryFlag countryCode={answers.country} size="lg" />
-              <div>
-                <p className="font-semibold text-gray-900">{selectedCountryName}</p>
-                <p className="text-sm text-gray-600">
-                  {isHagueCountry ? (
-                    <span className="text-green-600">✓ Haagkonventionen (Apostille tillgänglig)</span>
-                  ) : (
-                    <span className="text-blue-600">Ambassadlegalisering krävs</span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setAnswers({ ...answers, country: '' })}
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
-            >
-              Ändra
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Popular Countries */}
+      {/* Country Search */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          {t('orderFlow.step1.popularCountries', 'Populära länder')}
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {POPULAR_COUNTRIES.map((country) => (
-            <button
-              key={country.code}
-              onClick={() => handleCountrySelect(country.code)}
-              className={`p-3 border rounded-lg hover:border-custom-button hover:bg-custom-button-light transition-all ${
-                answers.country === country.code
-                  ? 'border-custom-button bg-custom-button-light ring-2 ring-custom-button'
-                  : 'border-gray-200'
-              }`}
-            >
-              <div className="flex flex-col items-center space-y-2">
-                <CountryFlag countryCode={country.code} size="md" />
-                <span className="text-sm font-medium text-gray-900 text-center">
-                  {getCountryName(country.code)}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Search All Countries */}
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          {t('orderFlow.step1.searchCountries', 'Sök alla länder')}
-        </h3>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t('orderFlow.step1.searchLabel', 'Sök alla länder')}
+        </label>
         <div className="relative" ref={dropdownRef}>
           <input
             type="text"
@@ -140,43 +85,117 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
             }}
             onFocus={() => setShowCountryDropdown(true)}
             placeholder={t('orderFlow.step1.searchPlaceholder', 'Sök land...')}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
           />
 
           {/* Dropdown */}
-          {showCountryDropdown && countrySearch && filteredCountries.length > 0 && (
-            <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
-              {filteredCountries.map((country) => (
-                <button
-                  key={country.code}
-                  onClick={() => handleCountrySelect(country.code)}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 border-b border-gray-100 last:border-b-0"
-                >
-                  <CountryFlag countryCode={country.code} size="sm" />
-                  <span className="text-gray-900">{getCountryName(country.code)}</span>
-                  <span className="text-gray-500 text-sm">({country.code})</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* No results */}
-          {showCountryDropdown && countrySearch && filteredCountries.length === 0 && (
-            <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-              <p className="text-gray-500 text-center">
-                {t('orderFlow.step1.noResults', 'Inga länder hittades')}
-              </p>
+          {showCountryDropdown && (
+            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+              {filteredCountries.length > 0 ? (
+                filteredCountries.map((country) => (
+                  <button
+                    key={country.code}
+                    onClick={() => handleCountrySelect(country.code)}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <CountryFlag code={country.code} size={24} />
+                    <span>{getCountryName(country.code)}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-gray-500">
+                  {t('orderFlow.step1.noResults', 'Inga resultat')}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Info Box */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-900">
-          <strong>💡 Tips:</strong> Välj det land där dokumenten ska användas. Vi hanterar alla nödvändiga legaliseringar.
-        </p>
+      {/* Popular Countries */}
+      <div className="mb-8">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
+          {t('orderFlow.step1.popularCountries', 'Populära länder')}
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {POPULAR_COUNTRIES.map((country) => (
+            <button
+              key={country.code}
+              onClick={() => handleCountrySelect(country.code)}
+              className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
+            >
+              <CountryFlag code={country.code} size={24} />
+              <span className="text-sm">{getCountryName(country.code)}</span>
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Selected Country Display */}
+      {answers.country && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <CountryFlag code={answers.country} size={24} className="mr-3" />
+            <div>
+              <div className="font-medium text-green-900">
+                {selectedCountryName}
+              </div>
+              <div className="text-sm text-green-700">
+                {isHagueCountry 
+                  ? t('orderFlow.step1.hagueDescription', 'Haagkonventionen - Apostille tillgänglig')
+                  : t('orderFlow.step1.embassyDescription', 'Ambassadlegalisering krävs')
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hague Convention Info */}
+      {answers.country && isHagueCountry && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <span className="text-2xl mr-3">ℹ️</span>
+            <div>
+              <h4 className="font-medium text-blue-900 mb-1">
+                {t('orderFlow.step1.hagueConventionTitle', 'Haagkonventionen')}
+              </h4>
+              <p className="text-sm text-blue-800">
+                {t('orderFlow.step1.hagueConventionDescription', 'Detta land är anslutet till Haagkonventionen. Apostille räcker för legalisering.')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Non-Hague Info */}
+      {answers.country && !isHagueCountry && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <span className="text-2xl mr-3">📋</span>
+            <div>
+              <h4 className="font-medium text-amber-900 mb-1">
+                {t('orderFlow.step1.nonHagueTitle', 'Ambassadlegalisering')}
+              </h4>
+              <p className="text-sm text-amber-800">
+                {t('orderFlow.step1.nonHagueDescription', 'Detta land kräver ambassadlegalisering (ej Haagkonventionen).')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Continue Button */}
+      {answers.country && (
+        <div className="mt-8 flex justify-end">
+          <button
+            onClick={onNext}
+            className="px-6 py-2 bg-custom-button text-white rounded-md hover:bg-custom-button-hover"
+          >
+            {t('orderFlow.continueButton', 'Fortsätt')}
+          </button>
+        </div>
+      )}
     </StepContainer>
   );
 };

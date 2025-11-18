@@ -43,7 +43,6 @@ export const Step6PickupService: React.FC<StepProps> = ({
       {/* Pricing Info */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
         <div className="flex items-center">
-          <span className="text-2xl mr-3">💰</span>
           <div>
             <div className="font-medium text-green-900">
               {t('orderFlow.step6.pickupPrice', 'Hämtning: 450 kr')}
@@ -60,28 +59,19 @@ export const Step6PickupService: React.FC<StepProps> = ({
         {/* No Pickup */}
         <button
           onClick={() => handleSelect(false)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button text-left ${
+          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.pickupService === false
-              ? 'border-custom-button bg-custom-button-light'
+              ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
           }`}
         >
-          <div className="flex items-start">
-            <span className="text-3xl mr-4">📮</span>
-            <div className="flex-1">
-              <div className="text-lg font-medium text-gray-900 mb-2">
+          <div className="flex items-center">
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">
                 {t('orderFlow.step6.noPickup', 'Nej tack, jag skickar själv')}
               </div>
-              <div className="text-gray-600 text-sm">
+              <div className="text-gray-600">
                 {t('orderFlow.step6.noPickupDescription', 'Jag skickar dokumenten via post till er adress')}
-              </div>
-              <div className="mt-3 flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Ingen extra kostnad</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Du väljer själv hur du skickar</span>
               </div>
             </div>
           </div>
@@ -90,32 +80,19 @@ export const Step6PickupService: React.FC<StepProps> = ({
         {/* Yes Pickup */}
         <button
           onClick={() => handleSelect(true)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button text-left ${
+          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.pickupService === true
-              ? 'border-custom-button bg-custom-button-light'
+              ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
           }`}
         >
-          <div className="flex items-start">
-            <span className="text-3xl mr-4">🚚</span>
-            <div className="flex-1">
-              <div className="text-lg font-medium text-gray-900 mb-2">
+          <div className="flex items-center">
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">
                 {t('orderFlow.step6.yesPickup', 'Ja, hämta mina dokument')}
               </div>
-              <div className="text-gray-600 text-sm">
-                {t('orderFlow.step6.yesPickupDescription', 'Vi hämtar dokumenten från din adress')}
-              </div>
-              <div className="mt-3 flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Bekvämt och säkert</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Spårbar hämtning</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span className="text-custom-button">+</span>
-                <span className="text-sm font-medium text-custom-button">450 kr</span>
+              <div className="text-gray-600">
+                {t('orderFlow.step6.yesPickupDescription', 'Vi hämtar dokumenten från din adress (450 kr)')}
               </div>
             </div>
           </div>

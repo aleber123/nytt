@@ -13,6 +13,7 @@ import { HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
 interface Step3Props extends StepProps {
   availableServices: Service[];
   loadingServices: boolean;
+  allCountries?: any[];
 }
 
 export const Step3ServicesSelection: React.FC<Step3Props> = ({
@@ -22,7 +23,8 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
   onBack,
   availableServices,
   loadingServices,
-  currentLocale
+  currentLocale,
+  allCountries
 }) => {
   const { t } = useTranslation('common');
 
@@ -106,7 +108,9 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
       {/* Country & Document Summary */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <div className="flex items-center">
-          <span className="text-2xl mr-3">🌍</span>
+          <span className="text-2xl mr-3">
+            {allCountries?.find(c => c.code === answers.country)?.flag || '🌍'}
+          </span>
           <div>
             <div className="font-medium text-blue-900">
               {t('orderFlow.step3.selectedCountry', { country: getCountryName(answers.country) })}
@@ -164,8 +168,8 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                 onClick={() => handleToggleService(service.id)}
                 className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
                   isSelected
-                    ? 'border-custom-button bg-custom-button-light shadow-md'
-                    : 'border-gray-200 hover:border-custom-button hover:bg-gray-50'
+                    ? 'border-custom-button bg-custom-button-bg shadow-md'
+                    : 'border-gray-200 hover:border-custom-button-light hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-start justify-between">

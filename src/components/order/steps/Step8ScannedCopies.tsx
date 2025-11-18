@@ -53,24 +53,19 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
         {/* No Copies */}
         <button
           onClick={() => handleSelect(false)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button text-left ${
+          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.scannedCopies === false
-              ? 'border-custom-button bg-custom-button-light'
+              ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
           }`}
         >
-          <div className="flex items-start">
-            <span className="text-3xl mr-4">📋</span>
-            <div className="flex-1">
-              <div className="text-lg font-medium text-gray-900 mb-2">
+          <div className="flex items-center">
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">
                 {t('orderFlow.step8.noCopies', 'Nej tack')}
               </div>
-              <div className="text-gray-600 text-sm">
+              <div className="text-gray-600">
                 {t('orderFlow.step8.noCopiesDescription', 'Jag behöver bara de fysiska dokumenten')}
-              </div>
-              <div className="mt-3 flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Ingen extra kostnad</span>
               </div>
             </div>
           </div>
@@ -79,38 +74,19 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
         {/* Yes Copies */}
         <button
           onClick={() => handleSelect(true)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button text-left ${
+          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.scannedCopies === true
-              ? 'border-custom-button bg-custom-button-light'
+              ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
           }`}
         >
-          <div className="flex items-start">
-            <span className="text-3xl mr-4">📧</span>
-            <div className="flex-1">
-              <div className="text-lg font-medium text-gray-900 mb-2">
+          <div className="flex items-center">
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">
                 {t('orderFlow.step8.yesCopies', 'Ja tack, skicka digitala kopior')}
               </div>
-              <div className="text-gray-600 text-sm">
+              <div className="text-gray-600">
                 {t('orderFlow.step8.yesCopiesDescription', 'Få högkvalitativa skanningar via e-post')}
-              </div>
-              <div className="mt-3 flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Snabb digital leverans</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Högkvalitativa PDF-filer</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Perfekt för e-postverifiering</span>
-              </div>
-              <div className="flex items-start space-x-2 mt-2">
-                <span className="text-custom-button">+</span>
-                <span className="text-sm font-medium text-custom-button">
-                  {scannedCopiesPrice} kr ({answers.quantity} × 200 kr)
-                </span>
               </div>
             </div>
           </div>

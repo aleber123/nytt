@@ -56,28 +56,19 @@ export const Step5DocumentSource: React.FC<StepProps> = ({
         {/* Original Documents */}
         <button
           onClick={() => handleSelect('original')}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button text-left ${
+          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.documentSource === 'original'
-              ? 'border-custom-button bg-custom-button-light'
+              ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
           }`}
         >
-          <div className="flex items-start">
-            <span className="text-3xl mr-4">📮</span>
-            <div className="flex-1">
-              <div className="text-lg font-medium text-gray-900 mb-2">
+          <div className="flex items-center">
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">
                 {t('orderFlow.step5.originalDocuments', 'Skicka originaldokument')}
               </div>
-              <div className="text-gray-600 text-sm">
+              <div className="text-gray-600">
                 {t('orderFlow.step5.originalDescription', 'Du skickar fysiska originaldokument till oss via post eller hämtning')}
-              </div>
-              <div className="mt-3 flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Rekommenderas för officiella dokument</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Vi kan erbjuda hämtning (tillval)</span>
               </div>
             </div>
           </div>
@@ -86,28 +77,19 @@ export const Step5DocumentSource: React.FC<StepProps> = ({
         {/* Upload Documents */}
         <button
           onClick={() => handleSelect('upload')}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button text-left ${
+          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.documentSource === 'upload'
-              ? 'border-custom-button bg-custom-button-light'
+              ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
           }`}
         >
-          <div className="flex items-start">
-            <span className="text-3xl mr-4">☁️</span>
-            <div className="flex-1">
-              <div className="text-lg font-medium text-gray-900 mb-2">
+          <div className="flex items-center">
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">
                 {t('orderFlow.step5.uploadDocuments', 'Ladda upp dokument')}
               </div>
-              <div className="text-gray-600 text-sm">
-                {t('orderFlow.step5.uploadDescription', 'Ladda upp digitala kopior av dina dokument (PDF, JPG, PNG)')}
-              </div>
-              <div className="mt-3 flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Snabbare start på processen</span>
-              </div>
-              <div className="flex items-start space-x-2">
-                <span className="text-green-600">✓</span>
-                <span className="text-sm text-gray-700">Ingen fysisk försändelse behövs</span>
+              <div className="text-gray-600">
+                {t('orderFlow.step5.uploadDescription', 'Ladda upp skannade kopior av dina dokument')}
               </div>
             </div>
           </div>
