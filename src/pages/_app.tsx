@@ -9,6 +9,19 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/error';
 import CookieBanner from '@/components/CookieBanner';
 import Layout from '@/components/layout/Layout';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+      retry: 2,
+    },
+  },
+});
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -34,25 +47,27 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <Layout>
-          <Component {...pageProps} />
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                borderRadius: '12px',
-                fontSize: '16px',
-                maxWidth: '500px',
-              },
-            }}
-          />
-        </Layout>
-        <CookieBanner />
-      </AuthProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Layout>
+            <Component {...pageProps} />
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  maxWidth: '500px',
+                },
+              }}
+            />
+          </Layout>
+          <CookieBanner />
+        </AuthProvider>
+      </ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 
