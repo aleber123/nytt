@@ -343,15 +343,9 @@ const ServicesPage: React.FC = () => {
               </div>
 
               <div className="border-t pt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Från</p>
-                    <p className="text-lg font-bold text-custom-button">{service.price}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Leveranstid</p>
-                    <p className="text-sm font-medium">{service.timeframe}</p>
-                  </div>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500">Från</p>
+                  <p className="text-lg font-bold text-custom-button">{service.price}</p>
                 </div>
 
                 <div className="flex gap-2">
