@@ -190,35 +190,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
               {(() => {
                 if (loadingPricing) return 'Beräknar...';
 
-                let total = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
-
-                // Add additional fees (only if not already in pricingBreakdown)
-                if (answers.expedited) total += 500;
-                if (answers.pickupService) total += 450;
-                // Scanned copies already in pricingBreakdown - don't add again
-
-                // Add return service cost
-                if (answers.returnService) {
-                  const returnService = returnServices.find(s => s.id === answers.returnService);
-                  if (returnService && returnService.price) {
-                    const priceMatch = returnService.price.match(/(\d+)/);
-                    if (priceMatch) {
-                      total += parseInt(priceMatch[1]);
-                    }
-                  }
-                }
-
-                // Add premium delivery cost
-                if (answers.premiumDelivery) {
-                  const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
-                  if (premiumService && premiumService.price) {
-                    const priceMatch = premiumService.price.match(/(\d+)/);
-                    if (priceMatch) {
-                      total += parseInt(priceMatch[1]);
-                    }
-                  }
-                }
-
+                // Use totalPrice from pricingBreakdown directly - it already includes everything
+                const total = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+                
                 return `${total.toLocaleString()} kr`;
               })()}
             </span>
