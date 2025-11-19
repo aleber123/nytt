@@ -105,6 +105,9 @@ function AdminOrderDetailPage() {
     if (lineOverrides.length > 0) return;
     const initial = order.pricingBreakdown.map((item: any, idx: number) => {
       const base = (() => {
+        // Prefer total field if it exists (matches pricingService output)
+        if (typeof item.total === 'number') return item.total;
+        // Fallback to other fields for backwards compatibility
         if (typeof item.fee === 'number') return item.fee;
         if (typeof item.basePrice === 'number') return item.basePrice;
         if (typeof item.unitPrice === 'number') return item.unitPrice * (item.quantity || 1);
