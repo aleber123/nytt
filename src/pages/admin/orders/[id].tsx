@@ -102,11 +102,14 @@ function AdminOrderDetailPage() {
   // If no stored overrides, initialize defaults from breakdown once order loads
   useEffect(() => {
     if (!order || !Array.isArray(order.pricingBreakdown)) return;
-    if (lineOverrides.length > 0) return;
+    // Always reinitialize to pick up latest pricing structure
     const initial = order.pricingBreakdown.map((item: any, idx: number) => {
       const base = (() => {
         // Prefer total field if it exists (matches pricingService output)
-        if (typeof item.total === 'number') return item.total;
+        if (typeof item.total === 'number') {
+          console.log('✅ Using item.total:', item.total, 'for', item.description);
+          return item.total;
+        }
         // Fallback to other fields for backwards compatibility
         if (typeof item.fee === 'number') return item.fee;
         if (typeof item.basePrice === 'number') return item.basePrice;
@@ -117,6 +120,8 @@ function AdminOrderDetailPage() {
       const label = item.description || getServiceName(item.service) || 'Rad';
       return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
     });
+    const totalFromInitial = initial.reduce((sum, o) => sum + o.baseAmount, 0);
+    console.log('🔍 Initializing lineOverrides, total:', totalFromInitial);
     setLineOverrides(initial);
   }, [order?.pricingBreakdown]);
 

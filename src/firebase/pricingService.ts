@@ -475,6 +475,25 @@ export const calculateOrderPrice = async (orderData: {
       });
     }
 
+    // Add premium delivery cost (if selected separately from return service)
+    if (orderData.premiumDelivery && orderData.returnServices) {
+      const premiumService = orderData.returnServices.find((s: any) => s.id === orderData.premiumDelivery);
+      if (premiumService && premiumService.price) {
+        const priceMatch = premiumService.price.match(/(\d+)/);
+        if (priceMatch) {
+          const premiumCost = parseInt(priceMatch[1]);
+          totalAdditionalFees += premiumCost;
+          breakdown.push({
+            service: 'premium_delivery',
+            description: premiumService.name,
+            fee: premiumCost,
+            total: premiumCost,
+            quantity: 1,
+            unitPrice: premiumCost
+          });
+        }
+      }
+    }
 
     return {
       basePrice: totalBasePrice,
