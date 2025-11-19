@@ -460,72 +460,21 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 try {
                   console.log('📤 Submitting final order...');
 
-                  // Use the calculated pricing breakdown from state
-                  let totalPrice = pricingBreakdown.reduce((sum, item) => sum + item.total, 0);
-                  const breakdown = [...pricingBreakdown];
-
-                  // Add additional fees consistently
-                  let additionalFees = 0;
-
-                  // Add scanned copies cost (200 kr per document)
-                  if (answers.scannedCopies) {
-                    additionalFees += 200 * answers.quantity;
-                    breakdown.push({
-                      service: 'scanned_copies',
-                      description: 'Skannade kopior',
-                      quantity: answers.quantity,
-                      unitPrice: 200,
-                      total: 200 * answers.quantity,
-                      vatRate: 25
-                    });
-                  }
-
-                  // Add return service cost
-                  if (answers.returnService) {
-                    const returnService = returnServices.find(s => s.id === answers.returnService);
-                    if (returnService && returnService.price) {
-                      const priceMatch = returnService.price.match(/(\d+)/);
-                      if (priceMatch) {
-                        const returnCost = parseInt(priceMatch[1]);
-                        additionalFees += returnCost;
-                        breakdown.push({
-                          service: 'return_service',
-                          description: returnService.name,
-                          quantity: 1,
-                          unitPrice: returnCost,
-                          total: returnCost,
-                          vatRate: 25
-                        });
-                      }
-                    }
-                  }
-
-                  // Add premium delivery cost
-                  if (answers.premiumDelivery) {
-                    const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
-                    if (premiumService && premiumService.price) {
-                      const priceMatch = premiumService.price.match(/(\d+)/);
-                      if (priceMatch) {
-                        const premiumCost = parseInt(priceMatch[1]);
-                        additionalFees += premiumCost;
-                        breakdown.push({
-                          service: 'premium_delivery',
-                          description: premiumService.name,
-                          quantity: 1,
-                          unitPrice: premiumCost,
-                          total: premiumCost,
-                          vatRate: 25
-                        });
-                      }
-                    }
-                  }
-
-                  const pricingResult = {
-                    basePrice: totalPrice,
-                    additionalFees,
-                    totalPrice: totalPrice + additionalFees,
-                    breakdown
-                  };
+                  // Calculate pricing using Firebase pricing service
+                  console.log('💰 Calculating order price from Firebase...');
+                  const pricingResult = await calculateOrderPrice({
+                    country: answers.country,
+                    services: answers.services,
+                    quantity: answers.quantity,
+                    expedited: answers.expedited,
+                    returnService: answers.returnService,
+                    returnServices: returnServices,
+                    scannedCopies: answers.scannedCopies,
+                    pickupService: answers.pickupService,
+                    premiumDelivery: answers.premiumDelivery
+                  });
+                  
+                  console.log('✅ Pricing calculated from Firebase:', pricingResult);
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
@@ -928,7 +877,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     returnService: answers.returnService,
                     returnServices: returnServices,
                     scannedCopies: answers.scannedCopies,
-                    pickupService: answers.pickupService
+                    pickupService: answers.pickupService,
+                    premiumDelivery: answers.premiumDelivery
                   });
                   
                   console.log('✅ Pricing calculated from Firebase:', pricingResult);

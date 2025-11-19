@@ -129,18 +129,25 @@ function AdminOrderDetailPage() {
             return sum + (isNaN(val) ? 0 : val);
           }, 0);
         }
-        // Fallback to raw breakdown
-        return order.pricingBreakdown.reduce((sum: number, item: any) => {
+        // Fallback to raw breakdown - use total field first, then fallback to other fields
+        const calculatedTotal = order.pricingBreakdown.reduce((sum: number, item: any) => {
+          // Prefer total field if it exists
+          if (typeof item.total === 'number') return sum + item.total;
+          // Fallback to other fields
           if (typeof item.fee === 'number') return sum + item.fee;
           if (typeof item.basePrice === 'number') return sum + item.basePrice;
           if (typeof item.unitPrice === 'number') return sum + (item.unitPrice * (item.quantity || 1));
           if (typeof item.officialFee === 'number' && typeof item.serviceFee === 'number') return sum + ((item.officialFee + item.serviceFee) * (item.quantity || 1));
           return sum;
         }, 0);
+        console.log('🔍 Breakdown Total Calculated:', calculatedTotal, 'vs DB totalPrice:', order.totalPrice);
+        return calculatedTotal;
       }
       // Fallback to existing totalPrice if breakdown missing
+      console.log('⚠️ No breakdown, using order.totalPrice:', order.totalPrice);
       return Number(order.totalPrice || 0);
-    } catch {
+    } catch (e) {
+      console.error('❌ Error calculating breakdown total:', e);
       return Number(order?.totalPrice || 0);
     }
   };
@@ -854,7 +861,7 @@ function AdminOrderDetailPage() {
                        order.status === 'delivered' ? 'Levererad' :
                        order.status === 'cancelled' ? 'Avbruten' : order.status}
                     </span>
-                    <span className="text-lg font-semibold text-gray-900">{order.totalPrice} kr</span>
+                    <span className="text-lg font-semibold text-gray-900">{getComputedTotal()} kr</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <select
