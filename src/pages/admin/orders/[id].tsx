@@ -119,15 +119,21 @@ function AdminOrderDetailPage() {
 
   const getBreakdownTotal = () => {
     try {
-      if (!order) return 0;
+      if (!order) {
+        console.log('⚠️ getBreakdownTotal: No order yet');
+        return 0;
+      }
+      console.log('🔍 getBreakdownTotal called, order.pricingBreakdown:', order.pricingBreakdown);
       if (order.pricingBreakdown && Array.isArray(order.pricingBreakdown)) {
         // If overrides exist, use them respecting include toggle
         if (lineOverrides.length === order.pricingBreakdown.length) {
-          return lineOverrides.reduce((sum, o) => {
+          const overrideTotal = lineOverrides.reduce((sum, o) => {
             if (!o.include) return sum;
             const val = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
             return sum + (isNaN(val) ? 0 : val);
           }, 0);
+          console.log('🔍 Using lineOverrides, total:', overrideTotal);
+          return overrideTotal;
         }
         // Fallback to raw breakdown - use total field first, then fallback to other fields
         const calculatedTotal = order.pricingBreakdown.reduce((sum: number, item: any) => {
