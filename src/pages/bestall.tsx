@@ -1212,6 +1212,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               answers={answers}
               setAnswers={setAnswers}
               onNext={() => navigateToStep(2)}
+              onBack={() => {}} 
               currentLocale={currentLocale}
             />
           )}
@@ -1221,6 +1222,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(3)}
               onBack={() => navigateToStep(1)}
+              currentLocale={currentLocale}
             />
           )}
           {currentQuestion === 3 && (
@@ -1241,6 +1243,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(5)}
               onBack={() => navigateToStep(3)}
+              currentLocale={currentLocale}
             />
           )}
           {currentQuestion === 5 && (
@@ -1249,6 +1252,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(6)}
               onBack={() => navigateToStep(4)}
+              currentLocale={currentLocale}
             />
           )}
           {currentQuestion === 6 && (
@@ -1257,6 +1261,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(7)}
               onBack={() => navigateToStep(5)}
+              currentLocale={currentLocale}
             />
           )}
           {currentQuestion === 7 && (
@@ -1266,6 +1271,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               onNext={() => navigateToStep(8)}
               onBack={() => navigateToStep(6)}
               onSkip={() => navigateToStep(9)}
+              currentLocale={currentLocale}
             />
           )}
           {currentQuestion === 8 && (
@@ -1274,14 +1280,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(9)}
               onBack={() => {
-                if (answers.pickupService) {
-                  navigateToStep(7);
-                } else if (answers.documentSource === 'original') {
+                if (answers.documentSource === 'upload') {
                   navigateToStep(6);
                 } else {
-                  navigateToStep(5);
+                  navigateToStep(7);
                 }
               }}
+              currentLocale={currentLocale}
             />
           )}
           {currentQuestion === 9 && (
@@ -1292,12 +1297,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               onBack={() => navigateToStep(8)}
               returnServices={returnServices}
               loadingReturnServices={loadingReturnServices}
+              currentLocale={currentLocale}
             />
           )}
           {currentQuestion === 10 && (
             <Step10ReviewSubmit
               answers={answers}
               setAnswers={setAnswers}
+              onNext={() => {}}
               onBack={() => navigateToStep(9)}
               allCountries={allCountries}
               returnServices={returnServices}
@@ -1308,6 +1315,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               recaptchaRef={recaptchaRef}
               isSubmitting={isSubmitting}
               onSubmit={handleSubmit}
+              currentLocale={currentLocale}
             />
           )}
             </div>

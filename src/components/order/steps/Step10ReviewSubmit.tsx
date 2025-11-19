@@ -398,7 +398,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
           <div className="mt-8 flex justify-between">
             <button
-              onClick={() => setCurrentQuestion(5)}
+              onClick={onBack}
               className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               {t('orderFlow.backToPrevious')}
@@ -805,7 +805,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
           <div className="mt-8 flex justify-between">
             <button
-              onClick={() => setCurrentQuestion(9)}
+              onClick={onBack}
               className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               {t('orderFlow.backToPrevious')}
@@ -951,12 +951,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <div class="address">
             DOX Visumpartner AB<br/>
             Att: Dokumenthantering<br/>
-            Livdjursgatan 4<br/>
-            121 62 Johanneshov<br/>
+            Box 38<br/>
+            121 25 Stockholm-Globen<br/>
             Sverige
           </div>
           <a class="button" href="${siteUrlInternal}/shipping-label?orderId=${orderId}" target="_blank" rel="noopener">Skriv ut fraktsedel</a>
-          <div class="muted">Be kunden alltid märka med Order #${orderId}.</div>
+          <div class="muted">Be kunden alltid märka med Order #${orderId} och skicka med REK.</div>
         </div>
         ` : ''}
 
@@ -1101,11 +1101,11 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                <div class="address-box">
                    <strong>DOX Visumpartner AB</strong><br>
                    Att: Dokumenthantering<br>
-                   Livdjursgatan 4<br>
-                   121 62 Johanneshov<br>
+                   Box 38<br>
+                   121 25 Stockholm-Globen<br>
                    Sverige
                </div>
-               <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span></p>
+               <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span> och skicka med <strong>REK (rekommenderat brev)</strong></p>
            </div>`
            :
            `<div class="next-steps">
