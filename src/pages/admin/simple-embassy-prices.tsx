@@ -12,6 +12,7 @@ import {
   updatePricingRule,
   updateOrCreatePricingRule
 } from '@/firebase/pricingService';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 interface EmbassyCountry {
   code: string;
@@ -396,7 +397,7 @@ function SimpleEmbassyPricesPage() {
                 {/* Country Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
-                    <span className="text-2xl mr-3">{country.flag}</span>
+                    <span className="mr-3"><CountryFlag code={country.code} size={32} /></span>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">{country.name}</h3>
                       <p className="text-sm text-gray-500">{country.code}</p>

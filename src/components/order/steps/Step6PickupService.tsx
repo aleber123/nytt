@@ -1,7 +1,7 @@
 /**
- * Step 6: Pickup Service
- * Allows customer to choose if they want document pickup service
- * Only shown if customer selected "original documents" in Step 5
+ * Step 6: Pickup Service Selection
+ * Allows customer to select pickup service for their documents
+ * Includes premium pickup options for DHL and Stockholm City Courier
  */
 
 import React from 'react';
@@ -9,110 +9,249 @@ import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 
-export const Step6PickupService: React.FC<StepProps> = ({
+interface PickupService {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  estimatedPickup: string;
+  provider: string;
+}
+
+interface Step6Props extends StepProps {
+  pickupServices: PickupService[];
+  loadingPickupServices: boolean;
+}
+
+export const Step6PickupService: React.FC<Step6Props> = ({
   answers,
   setAnswers,
   onNext,
-  onBack
+  onBack,
+  pickupServices,
+  loadingPickupServices
 }) => {
   const { t } = useTranslation('common');
+  const [showPickupOptions, setShowPickupOptions] = React.useState(false);
 
-  const handleSelect = (wantsPickup: boolean) => {
-    if (wantsPickup) {
-      setAnswers({
-        ...answers,
-        pickupService: true
-      });
-    } else {
-      setAnswers({
-        ...answers,
-        pickupService: false,
-        pickupAddress: { name: '', company: '', street: '', postalCode: '', city: '' }
-      });
-    }
+  const handleNoPickup = () => {
+    setAnswers({
+      ...answers,
+      pickupService: false,
+      pickupMethod: undefined,
+      premiumPickup: ''
+    });
     onNext();
   };
 
+  const handleYesPickup = () => {
+    setShowPickupOptions(true);
+  };
+
+  const handleServiceSelect = (serviceId: string) => {
+    setAnswers({
+      ...answers,
+      pickupService: true,
+      pickupMethod: serviceId,
+      premiumPickup: '' // Reset premium pickup when changing base service
+    });
+  };
+
+  const handlePremiumSelect = (premiumId: string) => {
+    setAnswers({
+      ...answers,
+      premiumPickup: premiumId
+    });
+  };
+
+  // Filter out premium pickup options from main list
+  const baseServices = pickupServices.filter(
+    service => !['dhl-pre-12', 'dhl-pre-9', 'stockholm-express', 'stockholm-sameday'].includes(service.id)
+  );
+
+  // Premium DHL options
+  const dhlPremiumOptions = pickupServices.filter(
+    service => ['dhl-pre-12', 'dhl-pre-9'].includes(service.id)
+  );
+
+  // Premium Stockholm options
+  const stockholmPremiumOptions = pickupServices.filter(
+    service => ['stockholm-express', 'stockholm-sameday'].includes(service.id)
+  );
+
+  const showDHLPremium = answers.pickupMethod && ['dhl-sweden', 'dhl-europe', 'dhl-worldwide'].includes(answers.pickupMethod);
+  const showStockholmPremium = answers.pickupMethod === 'stockholm-city';
+
   return (
     <StepContainer
-      title={t('orderFlow.step6.title', 'Vill du ha hämtning?')}
-      subtitle={t('orderFlow.step6.subtitle', 'Vi kan hämta dina dokument direkt från din adress')}
+      title={t('orderFlow.step6.title', 'Önskar du att vi hämtar dina dokument?')}
+      subtitle={t('orderFlow.step6.subtitle', 'Vi kan komma och hämta dina originaldokument hemma eller på jobbet')}
+      onNext={onNext}
       onBack={onBack}
-      showNext={false}
+      nextDisabled={!answers.pickupMethod && answers.pickupService !== false}
     >
-      {/* Pricing Info */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center">
-          <div>
-            <div className="font-medium text-green-900">
-              {t('orderFlow.step6.pickupPrice', 'Hämtning: 450 kr')}
+      {!showPickupOptions ? (
+        /* Initial Choice - Two Simple Buttons */
+        <div className="space-y-4">
+          <button
+            onClick={handleNoPickup}
+            className="w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button border-gray-200"
+          >
+            <div className="text-lg font-medium text-gray-900">
+              {t('orderFlow.step6.noPickup', 'Nej tack, jag skickar själv')}
             </div>
-            <div className="text-sm text-green-700">
-              {t('orderFlow.step6.pickupNote', 'Vi hämtar dina dokument säkert och spårbart')}
+          </button>
+
+          <button
+            onClick={handleYesPickup}
+            className="w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button border-gray-200"
+          >
+            <div className="text-lg font-medium text-gray-900">
+              {t('orderFlow.step6.yesPickup', 'Ja tack, hämta mina dokument')}
             </div>
-          </div>
+          </button>
         </div>
-      </div>
+      ) : (
+        /* Pickup Service Options */
+        <>
+          {/* Loading State */}
+          {loadingPickupServices && (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">
+                {t('orderFlow.step6.loadingServices', 'Laddar upphämtningsalternativ...')}
+              </span>
+            </div>
+          )}
 
-      {/* Options */}
-      <div className="space-y-4">
-        {/* No Pickup */}
-        <button
-          onClick={() => handleSelect(false)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
-            answers.pickupService === false
-              ? 'border-custom-button bg-custom-button-bg'
-              : 'border-gray-200'
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="text-left">
-              <div className="text-lg font-medium text-gray-900">
-                {t('orderFlow.step6.noPickup', 'Nej tack, jag skickar själv')}
-              </div>
-              <div className="text-gray-600">
-                {t('orderFlow.step6.noPickupDescription', 'Jag skickar dokumenten via post till er adress')}
+          {/* Service Options */}
+          {!loadingPickupServices && (
+            <div className="space-y-4">
+              {baseServices.map((service) => (
+            <div key={service.id}>
+              {/* Base Service */}
+              <button
+                onClick={() => handleServiceSelect(service.id)}
+                className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+                  answers.pickupMethod === service.id
+                    ? 'border-custom-button bg-custom-button-bg'
+                    : 'border-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="text-left">
+                      <div className="text-lg font-medium text-gray-900">
+                        {t(`orderFlow.step6.services.${service.id}.name`, service.name)}
+                      </div>
+                      <div className="text-gray-600">
+                        {t(`orderFlow.step6.services.${service.id}.description`, service.description)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-custom-button">
+                      {t(`orderFlow.step6.services.${service.id}.price`, service.price)}
+                    </div>
+                    <div className="text-xs text-gray-500">{service.provider}</div>
+                  </div>
+                </div>
+              </button>
+
+              {/* DHL Premium Options */}
+              {answers.pickupMethod === service.id && showDHLPremium && (
+                <div className="mt-4 ml-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-900 mb-3">
+                    🚀 {t('orderFlow.step6.premiumPickup', 'Premiumhämtning (valfritt)')}
+                  </h4>
+                  <div className="space-y-3">
+                    {dhlPremiumOptions.map((premium) => (
+                      <label
+                        key={premium.id}
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
+                      >
+                        <input
+                          type="radio"
+                          name="premium-pickup"
+                          value={premium.id}
+                          checked={answers.premiumPickup === premium.id}
+                          onChange={(e) => handlePremiumSelect(e.target.value)}
+                          className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">
+                            {t(`orderFlow.step6.services.${premium.id}.name`, premium.name)}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {t(`orderFlow.step6.services.${premium.id}.description`, premium.description)}
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-custom-button">
+                          {t(`orderFlow.step6.services.${premium.id}.price`, premium.price)}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Stockholm Premium Options */}
+              {answers.pickupMethod === service.id && showStockholmPremium && (
+                <div className="mt-4 ml-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="text-sm font-medium text-green-900 mb-3">
+                    ⚡ {t('orderFlow.step6.expressPickup', 'Expresshämtning (valfritt)')}
+                  </h4>
+                  <div className="space-y-3">
+                    {stockholmPremiumOptions.map((premium) => (
+                      <label
+                        key={premium.id}
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
+                      >
+                        <input
+                          type="radio"
+                          name="premium-pickup"
+                          value={premium.id}
+                          checked={answers.premiumPickup === premium.id}
+                          onChange={(e) => handlePremiumSelect(e.target.value)}
+                          className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">
+                            {t(`orderFlow.step6.services.${premium.id}.name`, premium.name)}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {t(`orderFlow.step6.services.${premium.id}.description`, premium.description)}
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-custom-button">
+                          {t(`orderFlow.step6.services.${premium.id}.price`, premium.price)}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+            </div>
+          )}
+
+          {/* Pricing Disclaimer */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6">
+            <div className="flex items-start">
+              <span className="text-2xl mr-3">⚠️</span>
+              <div>
+                <h4 className="font-medium text-amber-900 mb-1">
+                  {t('orderFlow.step6.priceDisclaimerTitle', 'Observera: Priserna kan variera')}
+                </h4>
+                <p className="text-sm text-amber-800">
+                  {t('orderFlow.step6.priceDisclaimerText', 'De angivna priserna är från-priser och kan variera beroende på vikt, storlek och upphämtningsadress. Det slutgiltiga priset bekräftas vid upphämtning.')}
+                </p>
               </div>
             </div>
           </div>
-        </button>
-
-        {/* Yes Pickup */}
-        <button
-          onClick={() => handleSelect(true)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
-            answers.pickupService === true
-              ? 'border-custom-button bg-custom-button-bg'
-              : 'border-gray-200'
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="text-left">
-              <div className="text-lg font-medium text-gray-900">
-                {t('orderFlow.step6.yesPickup', 'Ja, hämta mina dokument')}
-              </div>
-              <div className="text-gray-600">
-                {t('orderFlow.step6.yesPickupDescription', 'Vi hämtar dokumenten från din adress (450 kr)')}
-              </div>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Info Box */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-start">
-          <span className="text-2xl mr-3">💡</span>
-          <div>
-            <h4 className="font-medium text-blue-900 mb-1">
-              {t('orderFlow.step6.infoTitle', 'Tips')}
-            </h4>
-            <p className="text-sm text-blue-800">
-              {t('orderFlow.step6.infoText', 'Hämtning är tillgänglig inom Sverige. För hämtning utanför Sverige, kontakta oss för offert.')}
-            </p>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </StepContainer>
   );
 };

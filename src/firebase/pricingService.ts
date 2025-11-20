@@ -57,6 +57,22 @@ export interface PricingStats {
   averagePrice: number;
 }
 
+export interface PickupPricing {
+  id: string;
+  method: 'dhl' | 'stockholm_courier' | 'dhl_express' | 'stockholm_sameday';
+  name: string;
+  description: string;
+  price: number; // Price in SEK
+  isActive: boolean;
+  coverage: string; // e.g., "Nationwide" or "Stockholm area"
+  isPremium?: boolean; // True for express/premium options
+  baseMethod?: 'dhl' | 'stockholm_courier'; // Reference to base method for premium options
+  estimatedPickup?: string; // e.g., "Nästa arbetsdag", "Samma dag"
+  lastUpdated: Timestamp;
+  updatedBy: string;
+  notes?: string;
+}
+
 // Create or update a pricing rule
 export const setPricingRule = async (rule: Omit<PricingRule, 'id' | 'lastUpdated'>): Promise<string> => {
   try {
@@ -326,6 +342,8 @@ export const calculateOrderPrice = async (orderData: {
   returnServices?: any[];
   scannedCopies?: boolean;
   pickupService?: boolean;
+  pickupMethod?: 'dhl' | 'stockholm_courier';
+  premiumPickup?: string;
   premiumDelivery?: string;
 }): Promise<{
   basePrice: number;
@@ -462,17 +480,50 @@ export const calculateOrderPrice = async (orderData: {
       });
     }
 
-    // Add pickup service cost (450 kr)
-    if (orderData.pickupService) {
-      totalAdditionalFees += 450;
-      breakdown.push({
-        service: 'pickup_service',
-        description: 'Hämtning av dokument',
-        fee: 450,
-        total: 450,
-        quantity: 1,
-        unitPrice: 450
-      });
+    // Add pickup service cost (dynamic pricing based on method)
+    if (orderData.pickupService && orderData.pickupMethod) {
+      const pickupPricing = await getPickupPricingByMethod(orderData.pickupMethod);
+      if (pickupPricing) {
+        totalAdditionalFees += pickupPricing.price;
+        breakdown.push({
+          service: 'pickup_service',
+          description: pickupPricing.name,
+          fee: pickupPricing.price,
+          total: pickupPricing.price,
+          quantity: 1,
+          unitPrice: pickupPricing.price,
+          vatRate: 25
+        });
+      } else {
+        // Fallback to default price if pricing not found
+        totalAdditionalFees += 450;
+        breakdown.push({
+          service: 'pickup_service',
+          description: 'Hämtning av dokument',
+          fee: 450,
+          total: 450,
+          quantity: 1,
+          unitPrice: 450,
+          vatRate: 25
+        });
+      }
+    }
+
+    // Add premium pickup cost if selected
+    if (orderData.premiumPickup) {
+      const premiumPickupPricing = await getPickupPricingByMethod(orderData.premiumPickup as any);
+      if (premiumPickupPricing) {
+        totalAdditionalFees += premiumPickupPricing.price;
+        breakdown.push({
+          service: 'premium_pickup',
+          description: premiumPickupPricing.name,
+          fee: premiumPickupPricing.price,
+          total: premiumPickupPricing.price,
+          quantity: 1,
+          unitPrice: premiumPickupPricing.price,
+          vatRate: 25
+        });
+      }
     }
 
     // Add premium delivery cost (if selected separately from return service)
@@ -2147,3 +2198,186 @@ const getAllCountries = () => [
   // Övriga
   { code: 'other', name: 'Annat land', flag: '🌍' }
 ];
+
+// ============================================================================
+// PICKUP PRICING FUNCTIONS
+// ============================================================================
+
+// Get all pickup pricing options
+export const getAllPickupPricing = async (): Promise<PickupPricing[]> => {
+  try {
+    if (!db) {
+      console.log('Firebase not initialized, returning empty array');
+      return [];
+    }
+
+    const pickupRef = collection(db, 'pickupPricing');
+    const snapshot = await getDocs(pickupRef);
+    
+    return snapshot.docs.map(doc => doc.data() as PickupPricing);
+  } catch (error) {
+    console.error('Error getting pickup pricing:', error);
+    return [];
+  }
+};
+
+// Get active pickup pricing options
+export const getActivePickupPricing = async (): Promise<PickupPricing[]> => {
+  try {
+    if (!db) {
+      console.log('Firebase not initialized, returning empty array');
+      return [];
+    }
+
+    const pickupRef = collection(db, 'pickupPricing');
+    const q = query(pickupRef, where('isActive', '==', true));
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => doc.data() as PickupPricing);
+  } catch (error) {
+    console.error('Error getting active pickup pricing:', error);
+    return [];
+  }
+};
+
+// Get specific pickup pricing by method
+export const getPickupPricingByMethod = async (method: 'dhl' | 'stockholm_courier'): Promise<PickupPricing | null> => {
+  try {
+    if (!db) {
+      console.log('Firebase not initialized, returning null');
+      return null;
+    }
+
+    const pickupRef = doc(db, 'pickupPricing', method);
+    const snapshot = await getDoc(pickupRef);
+    
+    if (snapshot.exists()) {
+      return snapshot.data() as PickupPricing;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting pickup pricing by method:', error);
+    return null;
+  }
+};
+
+// Set or update pickup pricing
+export const setPickupPricing = async (pricing: Omit<PickupPricing, 'lastUpdated'>): Promise<void> => {
+  try {
+    if (!db) {
+      console.log('Firebase not initialized, cannot set pickup pricing');
+      throw new Error('Firebase not available');
+    }
+
+    const pickupRef = doc(db, 'pickupPricing', pricing.id);
+    
+    const pricingData: PickupPricing = {
+      ...pricing,
+      lastUpdated: Timestamp.now()
+    };
+
+    await setDoc(pickupRef, pricingData);
+  } catch (error) {
+    console.error('Error setting pickup pricing:', error);
+    throw error;
+  }
+};
+
+// Update pickup pricing
+export const updatePickupPricing = async (
+  method: 'dhl' | 'stockholm_courier' | 'dhl_express' | 'stockholm_sameday',
+  updates: Partial<Omit<PickupPricing, 'id' | 'method' | 'lastUpdated'>>
+): Promise<void> => {
+  try {
+    if (!db) {
+      console.log('Firebase not initialized, cannot update pickup pricing');
+      throw new Error('Firebase not available');
+    }
+
+    const pickupRef = doc(db, 'pickupPricing', method);
+    
+    await updateDoc(pickupRef, {
+      ...updates,
+      lastUpdated: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating pickup pricing:', error);
+    throw error;
+  }
+};
+
+// Initialize default pickup pricing (call this once to set up the collection)
+export const initializePickupPricing = async (updatedBy: string): Promise<void> => {
+  try {
+    if (!db) {
+      console.log('Firebase not initialized, cannot initialize pickup pricing');
+      throw new Error('Firebase not available');
+    }
+
+    const defaultPricing: Omit<PickupPricing, 'lastUpdated'>[] = [
+      {
+        id: 'dhl',
+        method: 'dhl',
+        name: 'DHL Upphämtning',
+        description: 'Rikstäckande upphämtning med DHL',
+        price: 450,
+        isActive: true,
+        coverage: 'Hela Sverige',
+        isPremium: false,
+        estimatedPickup: 'Nästa arbetsdag',
+        updatedBy,
+        notes: 'Standard DHL upphämtning, spårbar och säker'
+      },
+      {
+        id: 'dhl_express',
+        method: 'dhl_express',
+        name: 'DHL Premium Upphämtning',
+        description: 'Snabbare upphämtning',
+        price: 750,
+        isActive: true,
+        coverage: 'Hela Sverige',
+        isPremium: true,
+        baseMethod: 'dhl',
+        estimatedPickup: 'Snabbare',
+        updatedBy,
+        notes: 'Premium upphämtning för brådskande ärenden'
+      },
+      {
+        id: 'stockholm_courier',
+        method: 'stockholm_courier',
+        name: 'Stockholm Lokalbud',
+        description: 'Snabb upphämtning med lokalbud i Stockholm',
+        price: 350,
+        isActive: true,
+        coverage: 'Stockholm med omnejd',
+        isPremium: false,
+        estimatedPickup: 'Nästa arbetsdag',
+        updatedBy,
+        notes: 'Nästa dag upphämtning i Stockholmsområdet'
+      },
+      {
+        id: 'stockholm_sameday',
+        method: 'stockholm_sameday',
+        name: 'Stockholm Premium Lokalbud',
+        description: 'Snabbare upphämtning',
+        price: 550,
+        isActive: true,
+        coverage: 'Stockholm innerstad',
+        isPremium: true,
+        baseMethod: 'stockholm_courier',
+        estimatedPickup: 'Snabbare',
+        updatedBy,
+        notes: 'Premium alternativ för Stockholm'
+      }
+    ];
+
+    for (const pricing of defaultPricing) {
+      await setPickupPricing(pricing);
+    }
+
+    console.log('✅ Pickup pricing initialized successfully');
+  } catch (error) {
+    console.error('Error initializing pickup pricing:', error);
+    throw error;
+  }
+};

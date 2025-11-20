@@ -761,7 +761,54 @@
       "noPickup": "Nej tack, jag skickar själv",
       "noPickupDescription": "Jag föredrar att posta dokumenten själv",
       "yesPickup": "Ja tack, hämta mina dokument",
-      "yesPickupDescription": "Lägg till hämtning"
+      "yesPickupDescription": "Lägg till hämtning",
+      "premiumPickup": "Premiumhämtning (valfritt)",
+      "expressPickup": "Expresshämtning (valfritt)",
+      "loadingServices": "Laddar upphämtningsalternativ...",
+      "priceDisclaimerTitle": "Observera: Priserna kan variera",
+      "priceDisclaimerText": "De angivna priserna är från-priser och kan variera beroende på vikt, storlek och upphämtningsadress. Det slutgiltiga priset bekräftas vid upphämtning.",
+      "services": {
+        "dhl-sweden": {
+          "name": "DHL Sweden",
+          "description": "DHL upphämtning inom Sverige",
+          "price": "Från 600 kr"
+        },
+        "dhl-europe": {
+          "name": "DHL Europe",
+          "description": "DHL upphämtning inom Europa",
+          "price": "Från 200 kr"
+        },
+        "dhl-worldwide": {
+          "name": "DHL Worldwide",
+          "description": "DHL internationell upphämtning",
+          "price": "Från 1600 kr"
+        },
+        "dhl-pre-12": {
+          "name": "DHL Pre 12",
+          "description": "Upphämtning före klockan 12:00 nästa arbetsdag",
+          "price": "Från 8989 kr"
+        },
+        "dhl-pre-9": {
+          "name": "DHL Pre 9",
+          "description": "Upphämtning före klockan 09:00 nästa arbetsdag",
+          "price": "Från 450 kr"
+        },
+        "stockholm-city": {
+          "name": "Stockholm City Courier",
+          "description": "Lokal budservice inom Stockholm",
+          "price": "Från 320 kr"
+        },
+        "stockholm-express": {
+          "name": "Stockholm Express",
+          "description": "Expressupphämtning inom Stockholm samma dag",
+          "price": "Från 180 kr"
+        },
+        "stockholm-sameday": {
+          "name": "Stockholm Same Day",
+          "description": "Samma dags upphämtning inom Stockholm",
+          "price": "Från 250 kr"
+        }
+      }
     },
     "step7": {
       "title": "Skicka dina originaldokument",

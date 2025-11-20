@@ -33,7 +33,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack
           returnService: orderData.returnService,
           returnServices: orderData.returnServices,
           scannedCopies: orderData.scannedCopies,
-          pickupService: orderData.pickupService
+          pickupService: orderData.pickupService,
+          pickupMethod: orderData.pickupMethod,
+          premiumPickup: orderData.premiumPickup
         };
 
         const result = await calculateOrderPrice(pricingData);

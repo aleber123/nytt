@@ -770,7 +770,54 @@
       "noPickup": "No thanks, I'll send them myself",
       "noPickupDescription": "I prefer to mail the documents myself",
       "yesPickup": "Yes please, pick up my documents",
-      "yesPickupDescription": "Add pickup service"
+      "yesPickupDescription": "Add pickup service",
+      "premiumPickup": "Premium pickup (optional)",
+      "expressPickup": "Express pickup (optional)",
+      "loadingServices": "Loading pickup options...",
+      "priceDisclaimerTitle": "Note: Prices may vary",
+      "priceDisclaimerText": "The stated prices are from-prices and may vary depending on weight, size and pickup address. The final price is confirmed upon pickup.",
+      "services": {
+        "dhl-sweden": {
+          "name": "DHL Sweden",
+          "description": "DHL pickup within Sweden",
+          "price": "From 600 kr"
+        },
+        "dhl-europe": {
+          "name": "DHL Europe",
+          "description": "DHL pickup within Europe",
+          "price": "From 200 kr"
+        },
+        "dhl-worldwide": {
+          "name": "DHL Worldwide",
+          "description": "DHL international pickup",
+          "price": "From 1600 kr"
+        },
+        "dhl-pre-12": {
+          "name": "DHL Pre 12",
+          "description": "Pickup before 12:00 next business day",
+          "price": "From 8989 kr"
+        },
+        "dhl-pre-9": {
+          "name": "DHL Pre 9",
+          "description": "Pickup before 09:00 next business day",
+          "price": "From 450 kr"
+        },
+        "stockholm-city": {
+          "name": "Stockholm City Courier",
+          "description": "Local courier service within Stockholm",
+          "price": "From 320 kr"
+        },
+        "stockholm-express": {
+          "name": "Stockholm Express",
+          "description": "Express pickup within Stockholm same day",
+          "price": "From 180 kr"
+        },
+        "stockholm-sameday": {
+          "name": "Stockholm Same Day",
+          "description": "Same day pickup within Stockholm",
+          "price": "From 250 kr"
+        }
+      }
     },
     "step7": {
       "title": "Send your original documents",

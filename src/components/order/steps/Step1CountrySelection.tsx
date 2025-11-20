@@ -8,6 +8,7 @@ import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps, Country } from '../types';
 import { ALL_COUNTRIES, POPULAR_COUNTRIES, HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
+import CountryFlag from '../../ui/CountryFlag';
 
 export const Step1CountrySelection: React.FC<StepProps> = ({
   answers,
@@ -99,7 +100,7 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
                     onClick={() => handleCountrySelect(country.code)}
                     className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
                   >
-                    <span className="text-2xl">{country.flag}</span>
+                    <CountryFlag code={country.code} size={24} />
                     <span>{getCountryName(country.code)}</span>
                   </button>
                 ))
@@ -125,7 +126,7 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
               onClick={() => handleCountrySelect(country.code)}
               className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
             >
-              <span className="text-2xl">{country.flag}</span>
+              <CountryFlag code={country.code} size={24} />
               <span className="text-sm">{getCountryName(country.code)}</span>
             </button>
           ))}
@@ -136,9 +137,9 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
       {answers.country && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
-            <span className="text-2xl mr-3">
-              {ALL_COUNTRIES.find(c => c.code === answers.country)?.flag}
-            </span>
+            <div className="mr-3">
+              <CountryFlag code={answers.country} size={32} />
+            </div>
             <div>
               <div className="font-medium text-green-900">
                 {selectedCountryName}

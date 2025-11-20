@@ -10,6 +10,8 @@ export interface OrderAnswers {
   expedited: boolean;
   documentSource: string;
   pickupService: boolean;
+  pickupMethod?: string; // Pickup service ID (dhl-sweden, dhl-europe, dhl-worldwide, stockholm-city, no-pickup)
+  premiumPickup?: string; // Premium pickup option ID (dhl-pre-12, dhl-pre-9, stockholm-express, stockholm-sameday)
   pickupAddress: {
     name: string;
     company: string;

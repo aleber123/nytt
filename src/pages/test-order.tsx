@@ -8,6 +8,7 @@ import { createOrderWithFiles } from '@/services/hybridOrderService';
 import { getCountryPricingRules, calculateOrderPrice, getAllActivePricingRules } from '@/firebase/pricingService';
 import { getPricingRule } from '@/services/mockPricingService';
 import { toast } from 'react-hot-toast';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 interface TestOrderPageProps {}
 
@@ -720,7 +721,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                     }}
                     className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 flex items-center"
                   >
-                    <span className="text-2xl mr-3">{country.flag}</span>
+                    <span className="mr-3"><CountryFlag code={country.code} size={24} /></span>
                     <span className="text-gray-900">{country.name}</span>
                     {isHagueConventionCountry(country.code) && (
                       <span className="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
@@ -758,7 +759,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   onClick={() => handleCountrySelect(country.code)}
                   className="flex flex-col items-center p-3 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <span className="text-2xl mb-1">{country.flag}</span>
+                  <div className="mb-1"><CountryFlag code={country.code} size={32} /></div>
                   <span className="text-xs font-medium text-gray-900 text-center">
                     {country.name}
                   </span>

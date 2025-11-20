@@ -3,11 +3,12 @@ import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 import { GlobeAltIcon } from '@heroicons/react/24/outline';
+import CountryFlag from './CountryFlag';
 
 interface Language {
   code: string;
   name: string;
-  flag: string;
+  countryCode: string;
 }
 
 interface LanguageSelectorProps {
@@ -21,12 +22,12 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = '' }) =
   
   // Define available languages - easy to add more languages for international expansion
   const languages: Language[] = [
-    { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
-    { code: 'en', name: 'English', flag: '🇬🇧' },
+    { code: 'sv', name: 'Svenska', countryCode: 'SE' },
+    { code: 'en', name: 'English', countryCode: 'GB' },
     // Add more languages here as needed for international expansion
-    // Example: { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    // Example: { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    // Example: { code: 'es', name: 'Español', flag: '🇪🇸' },
+    // Example: { code: 'de', name: 'Deutsch', countryCode: 'DE' },
+    // Example: { code: 'fr', name: 'Français', countryCode: 'FR' },
+    // Example: { code: 'es', name: 'Español', countryCode: 'ES' },
   ];
   
   const currentLanguage = languages.find(lang => lang.code === router.locale) || languages[0];
@@ -40,7 +41,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = '' }) =
           aria-haspopup="true"
         >
           <GlobeAltIcon className="h-5 w-5" aria-hidden="true" />
-          <span>{currentLanguage.flag}</span>
+          <CountryFlag code={currentLanguage.countryCode} size={20} />
           <span className="hidden md:inline">{currentLanguage.name}</span>
         </button>
         
@@ -66,7 +67,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className = '' }) =
                     : `Switch to ${language.name}`
                 }
               >
-                <span className="mr-2">{language.flag}</span>
+                <span className="mr-2"><CountryFlag code={language.countryCode} size={20} /></span>
                 <span>{language.name}</span>
               </Link>
             ))}

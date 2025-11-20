@@ -24,7 +24,7 @@ import Step2DocumentType from '@/components/order/steps/Step2DocumentType';
 import Step3ServicesSelection from '@/components/order/steps/Step3ServicesSelection';
 import Step4Quantity from '@/components/order/steps/Step4Quantity';
 import Step5DocumentSource from '@/components/order/steps/Step5DocumentSource';
-import Step6PickupService from '@/components/order/steps/Step6PickupService';
+import { Step6PickupService } from '@/components/order/steps/Step6PickupService';
 import Step7ShippingOrPickup from '@/components/order/steps/Step7ShippingOrPickup';
 import Step8ScannedCopies from '@/components/order/steps/Step8ScannedCopies';
 import Step9ReturnService from '@/components/order/steps/Step9ReturnService';
@@ -441,6 +441,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [loadingServices, setLoadingServices] = useState(false);
   const [returnServices, setReturnServices] = useState<any[]>([]);
   const [loadingReturnServices, setLoadingReturnServices] = useState(false);
+  const [pickupServices, setPickupServices] = useState<any[]>([]);
+  const [loadingPickupServices, setLoadingPickupServices] = useState(false);
   const [pricingBreakdown, setPricingBreakdown] = useState<any[]>([]);
   const [loadingPricing, setLoadingPricing] = useState(false);
 
@@ -454,9 +456,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     }
   }, [answers.country]);
 
-  // Load return services on component mount
+  // Load return and pickup services on component mount
   useEffect(() => {
     loadReturnServices();
+    loadPickupServices();
   }, []);
 
   // Calculate pricing breakdown when services change
@@ -945,6 +948,95 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     }
   };
 
+  const loadPickupServices = async () => {
+    try {
+      setLoadingPickupServices(true);
+
+      // Default pickup services (excluding PostNord and no-pickup since we have separate buttons)
+      const defaultPickupServices = [
+        {
+          id: 'dhl-sweden',
+          name: 'DHL Sweden',
+          description: 'DHL upphämtning inom Sverige',
+          price: 'Från 600 kr',
+          provider: 'DHL',
+          estimatedPickup: '',
+          available: true
+        },
+        {
+          id: 'dhl-pre-12',
+          name: 'DHL Pre 12',
+          description: 'Upphämtning före klockan 12:00 nästa arbetsdag',
+          price: 'Från 8989 kr',
+          provider: 'DHL',
+          estimatedPickup: '',
+          available: true
+        },
+        {
+          id: 'dhl-pre-9',
+          name: 'DHL Pre 9',
+          description: 'Upphämtning före klockan 09:00 nästa arbetsdag',
+          price: 'Från 450 kr',
+          provider: 'DHL',
+          estimatedPickup: '',
+          available: true
+        },
+        {
+          id: 'dhl-europe',
+          name: 'DHL Europe',
+          description: 'DHL upphämtning inom Europa',
+          price: 'Från 200 kr',
+          provider: 'DHL',
+          estimatedPickup: '',
+          available: true
+        },
+        {
+          id: 'dhl-worldwide',
+          name: 'DHL Worldwide',
+          description: 'DHL internationell upphämtning',
+          price: 'Från 1600 kr',
+          provider: 'DHL',
+          estimatedPickup: '',
+          available: true
+        },
+        {
+          id: 'stockholm-city',
+          name: 'Stockholm City Courier',
+          description: 'Lokal budservice inom Stockholm',
+          price: 'Från 320 kr',
+          provider: 'Lokal',
+          estimatedPickup: '',
+          available: true
+        },
+        {
+          id: 'stockholm-express',
+          name: 'Stockholm Express',
+          description: 'Expressupphämtning inom Stockholm samma dag',
+          price: 'Från 180 kr',
+          provider: 'Lokal',
+          estimatedPickup: '',
+          available: true
+        },
+        {
+          id: 'stockholm-sameday',
+          name: 'Stockholm Same Day',
+          description: 'Samma dags upphämtning inom Stockholm',
+          price: 'Från 250 kr',
+          provider: 'Lokal',
+          estimatedPickup: '',
+          available: true
+        }
+      ];
+
+      setPickupServices(defaultPickupServices);
+    } catch (error) {
+      console.error('Error loading pickup services:', error);
+      setPickupServices([]);
+    } finally {
+      setLoadingPickupServices(false);
+    }
+  };
+
   const calculatePricingBreakdown = async () => {
     try {
       setLoadingPricing(true);
@@ -1261,6 +1353,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(7)}
               onBack={() => navigateToStep(5)}
+              pickupServices={pickupServices}
+              loadingPickupServices={loadingPickupServices}
               currentLocale={currentLocale}
             />
           )}
