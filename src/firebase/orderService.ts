@@ -64,6 +64,12 @@ export interface Order {
   processingSteps?: any[];
   adminNotes?: any[];
   internalNotes?: string;
+  customerHistory?: any[];
+  // Tracking information
+  returnTrackingNumber?: string;
+  returnTrackingUrl?: string;
+  pickupTrackingNumber?: string;
+  pickupLabelFile?: any;
 }
 
 const ORDERS_COLLECTION = 'orders';

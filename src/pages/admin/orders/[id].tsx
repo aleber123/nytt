@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Timestamp as FbTimestamp } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'next-i18next';
@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { Order } from '@/firebase/orderService';
 import { toast } from 'react-hot-toast';
+import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
@@ -67,6 +68,28 @@ function AdminOrderDetailPage() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [adjustments, setAdjustments] = useState<Array<{ description: string; amount: number }>>([]);
   const [lineOverrides, setLineOverrides] = useState<Array<{ index: number; label: string; baseAmount: number; overrideAmount?: number | null; vatPercent?: number | null; include: boolean }>>([]);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [pickupTrackingNumber, setPickupTrackingNumber] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
+  const [savingTracking, setSavingTracking] = useState(false);
+  const [isUploadingPickupLabel, setIsUploadingPickupLabel] = useState(false);
+  const [sendingPickupLabel, setSendingPickupLabel] = useState(false);
+  const pickupLabelInputRef = useRef<HTMLInputElement | null>(null);
+  const [editedCustomer, setEditedCustomer] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    postalCode: '',
+    city: ''
+  });
+  const [editedPickupAddress, setEditedPickupAddress] = useState({
+    street: '',
+    postalCode: '',
+    city: ''
+  });
+  const [savingCustomerInfo, setSavingCustomerInfo] = useState(false);
 
   useEffect(() => {
     const orderId = router.query.id as string | undefined;
@@ -164,6 +187,31 @@ function AdminOrderDetailPage() {
     }
   };
 
+  const getCountryInfo = (codeOrName: string | undefined | null) => {
+    const value = (codeOrName || '').trim();
+    if (!value) return { code: '', name: '', flag: '🌍' };
+
+    const upper = value.toUpperCase();
+
+    // Try match by ISO code
+    let match = ALL_COUNTRIES.find(c => c.code === upper);
+    if (match) return { code: match.code, name: match.name, flag: match.flag };
+
+    // Try match by full name
+    match = ALL_COUNTRIES.find(c => c.name.toLowerCase() === value.toLowerCase());
+    if (match) return { code: match.code, name: match.name, flag: match.flag };
+
+    // Fallback: derive flag emoji from 2-letter country code
+    if (/^[A-Za-z]{2}$/.test(value)) {
+      const base = 127397;
+      const chars = upper.split('');
+      const flag = String.fromCodePoint(...chars.map(ch => base + ch.charCodeAt(0)));
+      return { code: upper, name: upper, flag };
+    }
+
+    return { code: value, name: value, flag: '🌍' };
+  };
+
   const getAdjustmentsTotal = () => adjustments.reduce((s, a) => s + (Number(a.amount) || 0), 0);
   const getDiscountTotal = (base: number) => (base * (Number(discountPercent) || 0) / 100) + (Number(discountAmount) || 0);
   const getComputedTotal = () => {
@@ -254,86 +302,152 @@ function AdminOrderDetailPage() {
   const initializeProcessingSteps = (orderData: ExtendedOrder): ProcessingStep[] => {
     const steps: ProcessingStep[] = [];
 
-    // Always include document receipt
+    // STEP 1: Order verification - Always first
     steps.push({
-      id: 'document_receipt',
-      name: 'Dokument mottagna',
-      description: 'Originaldokument har mottagits och registrerats',
-      status: orderData.documentSource === 'original' ? 'completed' : 'pending'
+      id: 'order_verification',
+      name: '✓ Orderverifiering',
+      description: 'Kontrollera orderdetaljer, pris och kundinformation',
+      status: 'pending'
     });
 
-    // Add service-specific steps
-    if (Array.isArray(orderData.services)) {
-      if (orderData.services.includes('chamber')) {
-        steps.push({
-          id: 'chamber_processing',
-          name: 'Handelskammaren',
-          description: 'Legaliserng hos Handelskammaren',
-          status: 'pending'
-        });
-      }
-
-      if (orderData.services.includes('notarization')) {
-        steps.push({
-          id: 'notarization',
-          name: 'Notarisering',
-          description: 'Notarisering av dokument',
-          status: 'pending'
-        });
-      }
-
-      if (orderData.services.includes('translation')) {
-        steps.push({
-          id: 'translation',
-          name: 'Översättning',
-          description: 'Auktoriserad översättning',
-          status: 'pending'
-        });
-      }
-
-      if (orderData.services.includes('ud')) {
-        steps.push({
-          id: 'ud_processing',
-          name: 'Utrikesdepartementet',
-          description: 'Legaliserng hos svenska UD',
-          status: 'pending'
-        });
-      }
-
-      if (orderData.services.includes('embassy')) {
-        steps.push({
-          id: 'embassy_processing',
-          name: 'Ambassad',
-          description: `Legaliserng på ${orderData.country} ambassad`,
-          status: 'pending'
-        });
-      }
-
-      if (orderData.services.includes('apostille')) {
-        steps.push({
-          id: 'apostille',
-          name: 'Apostille',
-          description: 'Apostille från svenska UD',
-          status: 'pending'
-        });
-      }
-    }
-
-    // Add scanned copies if requested
-    if (orderData.scannedCopies) {
+    // STEP 2: Pickup booking - If customer selected pickup service
+    if (orderData.pickupService) {
       steps.push({
-        id: 'scanning',
-        name: 'Scannade kopior',
-        description: 'Skapa digitala kopior av dokument',
+        id: 'pickup_booking',
+        name: '📦 Boka upphämtning',
+        description: `Boka upphämtning hos ${orderData.pickupAddress?.street || 'kund'}`,
         status: 'pending'
       });
     }
 
-    // Add return shipping
+    // STEP 3: Document receipt - Different based on source
+    if (orderData.documentSource === 'original') {
+      steps.push({
+        id: 'document_receipt',
+        name: '📄 Dokument mottagna',
+        description: orderData.pickupService 
+          ? 'Originaldokument har hämtats och registrerats'
+          : 'Originaldokument har mottagits och registrerats',
+        status: 'pending'
+      });
+    } else {
+      steps.push({
+        id: 'file_upload_verification',
+        name: '📤 Filuppladdning verifierad',
+        description: `Kontrollera att kund laddat upp ${orderData.quantity} st dokument`,
+        status: orderData.filesUploaded ? 'completed' : 'pending'
+      });
+    }
+
+    // STEP 4: Quality control - Check documents
+    steps.push({
+      id: 'quality_control',
+      name: '🔍 Kvalitetskontroll',
+      description: 'Granska dokument - läsbarhet, komplett, rätt typ',
+      status: 'pending'
+    });
+
+    // STEP 5-X: Service-specific steps (in logical order)
+    if (Array.isArray(orderData.services)) {
+      // Notarization usually comes first
+      if (orderData.services.includes('notarization')) {
+        steps.push({
+          id: 'notarization',
+          name: '✍️ Notarisering',
+          description: 'Notarisering av dokument hos notarius publicus',
+          status: 'pending'
+        });
+      }
+
+      // Translation
+      if (orderData.services.includes('translation')) {
+        steps.push({
+          id: 'translation',
+          name: '🌐 Översättning',
+          description: 'Auktoriserad översättning av dokument',
+          status: 'pending'
+        });
+      }
+
+      // Chamber legalization
+      if (orderData.services.includes('chamber')) {
+        steps.push({
+          id: 'chamber_processing',
+          name: '🏛️ Handelskammaren',
+          description: 'Legalisering hos Handelskammaren',
+          status: 'pending'
+        });
+      }
+
+      // UD processing
+      if (orderData.services.includes('ud')) {
+        steps.push({
+          id: 'ud_processing',
+          name: '🇸🇪 Utrikesdepartementet',
+          description: 'Legalisering hos svenska UD',
+          status: 'pending'
+        });
+      }
+
+      // Apostille (alternative to embassy)
+      if (orderData.services.includes('apostille')) {
+        steps.push({
+          id: 'apostille',
+          name: '📋 Apostille',
+          description: 'Apostille från svenska UD',
+          status: 'pending'
+        });
+      }
+
+      // Embassy legalization (usually last service)
+      if (orderData.services.includes('embassy')) {
+        steps.push({
+          id: 'embassy_processing',
+          name: '🏢 Ambassad',
+          description: `Legalisering på ${orderData.country} ambassad`,
+          status: 'pending'
+        });
+      }
+    }
+
+    // STEP: Scanning - If requested
+    if (orderData.scannedCopies) {
+      steps.push({
+        id: 'scanning',
+        name: '📸 Scannade kopior',
+        description: 'Skapa och skicka digitala kopior av dokument',
+        status: 'pending'
+      });
+    }
+
+    // STEP: Final quality check
+    steps.push({
+      id: 'final_check',
+      name: '✅ Slutkontroll',
+      description: 'Kontrollera att alla tjänster är utförda korrekt',
+      status: 'pending'
+    });
+
+    // STEP: Prepare return shipment
+    steps.push({
+      id: 'prepare_return',
+      name: '📦 Förbered retur',
+      description: `Packa dokument för ${orderData.returnService || 'retur'}`,
+      status: 'pending'
+    });
+
+    // STEP: Return shipping
     steps.push({
       id: 'return_shipping',
-      name: 'Returfrakt',
-      description: 'Skicka tillbaka legaliserade dokument',
+      name: '🚚 Returfrakt skickad',
+      description: 'Dokument skickade till kund - lägg in tracking-nummer',
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'invoicing',
+      name: '🧾 Fakturering',
+      description: 'Skapa och skicka faktura till kund',
       status: 'pending'
     });
 
@@ -353,6 +467,27 @@ function AdminOrderDetailPage() {
         setEditedStatus(extendedOrder.status);
         setInternalNotes(extendedOrder.internalNotes || '');
         setProcessingSteps(extendedOrder.processingSteps || initializeProcessingSteps(extendedOrder));
+        setTrackingNumber(extendedOrder.returnTrackingNumber || '');
+        setTrackingUrl(extendedOrder.returnTrackingUrl || '');
+        setPickupTrackingNumber((extendedOrder as any).pickupTrackingNumber || '');
+
+        const ci = extendedOrder.customerInfo || {};
+        setEditedCustomer({
+          firstName: ci.firstName || '',
+          lastName: ci.lastName || '',
+          email: ci.email || '',
+          phone: ci.phone || '',
+          address: ci.address || '',
+          postalCode: ci.postalCode || '',
+          city: ci.city || ''
+        });
+
+        const pa = extendedOrder.pickupAddress || ({} as any);
+        setEditedPickupAddress({
+          street: pa.street || '',
+          postalCode: pa.postalCode || '',
+          city: pa.city || ''
+        });
 
         // Fetch invoices for this order
         await fetchInvoices(orderId);
@@ -534,6 +669,280 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Save tracking information
+  const saveTrackingInfo = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    setSavingTracking(true);
+
+    try {
+      const mod = await import('@/services/hybridOrderService');
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
+      await updateOrder(orderId, { 
+        returnTrackingNumber: trackingNumber,
+        returnTrackingUrl: trackingUrl
+      });
+      setOrder({ ...order, returnTrackingNumber: trackingNumber, returnTrackingUrl: trackingUrl });
+      toast.success('Tracking-information sparad');
+    } catch (err) {
+      console.error('Error saving tracking info:', err);
+      toast.error('Kunde inte spara tracking-information');
+    } finally {
+      setSavingTracking(false);
+    }
+  };
+
+  const applyCustomerHistoryEntry = (entry: any) => {
+    const ci = entry?.customerInfo || {};
+    const pa = entry?.pickupAddress || {};
+    setEditedCustomer({
+      firstName: ci.firstName || '',
+      lastName: ci.lastName || '',
+      email: ci.email || '',
+      phone: ci.phone || '',
+      address: ci.address || '',
+      postalCode: ci.postalCode || '',
+      city: ci.city || ''
+    });
+    setEditedPickupAddress({
+      street: pa.street || '',
+      postalCode: pa.postalCode || '',
+      city: pa.city || ''
+    });
+    toast.success('Tidigare kunduppgifter inlästa – glöm inte att spara');
+  };
+
+  // Upload pickup label file (e.g. DHL-label)
+  const handlePickupLabelUpload = async (file: File) => {
+    if (!order) return;
+    const orderId = (order.orderNumber as string) || (router.query.id as string);
+    if (!orderId) {
+      toast.error('Ordernummer saknas, kan inte ladda upp label');
+      return;
+    }
+
+    // Enforce filename rule: must contain order number
+    if (!file.name.includes(orderId)) {
+      toast.error(`Filnamnet måste innehålla ordernumret ${orderId}`);
+      return;
+    }
+
+    setIsUploadingPickupLabel(true);
+
+    try {
+      const mod = await import('@/services/hybridOrderService');
+      const uploadFiles = (mod as any).default?.uploadFiles || (mod as any).uploadFiles;
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      if (typeof uploadFiles !== 'function' || typeof updateOrder !== 'function') {
+        toast.error('Kan inte ladda upp label just nu');
+        return;
+      }
+
+      const uploaded = await uploadFiles([file], orderId);
+      const labelMeta = uploaded && uploaded.length > 0 ? uploaded[0] : null;
+      if (!labelMeta) {
+        toast.error('Kunde inte ladda upp label');
+        return;
+      }
+
+      await updateOrder(orderId, { pickupLabelFile: labelMeta });
+      setOrder({ ...order, pickupLabelFile: labelMeta } as ExtendedOrder);
+      toast.success('Label uppladdad');
+    } catch (err) {
+      toast.error('Kunde inte ladda upp label');
+    } finally {
+      setIsUploadingPickupLabel(false);
+    }
+  };
+
+  const handlePickupLabelFileSelected = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await handlePickupLabelUpload(file);
+    event.target.value = '';
+  };
+
+  // Send uploaded pickup label to customer via email
+  const handleSendPickupLabel = async () => {
+    if (!order) return;
+    const orderId = (order.orderNumber as string) || (router.query.id as string);
+    const customerEmail = order.customerInfo?.email;
+    const labelFile: any = (order as any).pickupLabelFile;
+
+    if (!customerEmail) {
+      toast.error('Kundens e-post saknas');
+      return;
+    }
+
+    if (!labelFile || !labelFile.downloadURL) {
+      toast.error('Ingen label uppladdad ännu');
+      return;
+    }
+
+    setSendingPickupLabel(true);
+
+    try {
+      const db = getFirebaseDb();
+      if (!db) {
+        toast.error('Kan inte ansluta till databasen för att skicka e-post');
+        return;
+      }
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2a67aa;">Fraktsedel för upphämtning</h2>
+          <p>Hej ${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''},</p>
+          <p>Här är din fraktsedel för upphämtning av dokument för order <strong>${orderId}</strong>.</p>
+          <p>Vänligen skriv ut fraktsedeln, sätt den tydligt på kuvertet och lämna in den enligt instruktionerna från transportören.</p>
+          <p>Om du har några frågor är du välkommen att kontakta oss.</p>
+          <p>Med vänliga hälsningar,<br/>Legaliseringstjänst</p>
+        </div>
+      `;
+
+      const emailData: any = {
+        to: customerEmail,
+        subject: `Fraktsedel för upphämtning – order ${orderId}`,
+        html: emailHtml,
+        attachments: [
+          {
+            filename: labelFile.originalName || `Pickup-label-${orderId}.pdf`,
+            // Backend-funktionen som skickar e-post hämtar själv filen från Storage
+            downloadURL: labelFile.downloadURL,
+            storagePath: labelFile.storagePath,
+            contentType: labelFile.type || 'application/pdf',
+          },
+        ],
+        orderId,
+        orderNumber: order.orderNumber || null,
+        customerEmail,
+        type: 'pickup_label',
+        createdAt: serverTimestamp(),
+        status: 'pending',
+      };
+
+      await addDoc(collection(db, 'emailQueue'), emailData);
+      toast.success('Label skickad till kunden');
+    } catch (err) {
+      toast.error('Kunde inte skicka label via e-post');
+    } finally {
+      setSendingPickupLabel(false);
+    }
+  };
+
+  // Save pickup tracking information
+  const savePickupTrackingInfo = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    setSavingTracking(true);
+
+    try {
+      const mod = await import('@/services/hybridOrderService');
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
+      await updateOrder(orderId, {
+        pickupTrackingNumber
+      });
+      setOrder({ ...order, pickupTrackingNumber });
+      toast.success('Tracking för upphämtning sparad');
+    } catch (err) {
+      console.error('Error saving pickup tracking info:', err);
+      toast.error('Kunde inte spara tracking för upphämtning');
+    } finally {
+      setSavingTracking(false);
+    }
+  };
+
+  // Save editable customer info and append previous values to history
+  const saveCustomerInfo = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    if (!orderId) return;
+
+    const currentCustomer = order.customerInfo || {};
+    const newCustomer = {
+      firstName: editedCustomer.firstName.trim(),
+      lastName: editedCustomer.lastName.trim(),
+      email: editedCustomer.email.trim(),
+      phone: editedCustomer.phone.trim(),
+      address: editedCustomer.address.trim(),
+      postalCode: editedCustomer.postalCode.trim(),
+      city: editedCustomer.city.trim()
+    };
+
+    const currentPickup: any = order.pickupAddress || {};
+    const newPickup: any = order.pickupService
+      ? {
+          street: editedPickupAddress.street.trim(),
+          postalCode: editedPickupAddress.postalCode.trim(),
+          city: editedPickupAddress.city.trim()
+        }
+      : currentPickup;
+
+    const hasCustomerChanges =
+      (currentCustomer.firstName || '') !== newCustomer.firstName ||
+      (currentCustomer.lastName || '') !== newCustomer.lastName ||
+      (currentCustomer.email || '') !== newCustomer.email ||
+      (currentCustomer.phone || '') !== newCustomer.phone ||
+      (currentCustomer.address || '') !== newCustomer.address ||
+      (currentCustomer.postalCode || '') !== newCustomer.postalCode ||
+      (currentCustomer.city || '') !== newCustomer.city;
+
+    const hasPickupChanges = order.pickupService && (
+      (currentPickup.street || '') !== newPickup.street ||
+      (currentPickup.postalCode || '') !== newPickup.postalCode ||
+      (currentPickup.city || '') !== newPickup.city
+    );
+
+    if (!hasCustomerChanges && !hasPickupChanges) {
+      toast('Inga ändringar att spara');
+      return;
+    }
+
+    const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string;
+    const historyEntry = {
+      timestamp: new Date().toISOString(),
+      changedBy: actor,
+      customerInfo: currentCustomer,
+      pickupAddress: currentPickup
+    };
+
+    const updatedHistory = [...(order.customerHistory || []), historyEntry];
+
+    setSavingCustomerInfo(true);
+
+    try {
+      const mod = await import('@/services/hybridOrderService');
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
+
+      const updates: any = {
+        customerInfo: newCustomer,
+        customerHistory: updatedHistory
+      };
+
+      if (order.pickupService) {
+        updates.pickupAddress = newPickup;
+      }
+
+      await updateOrder(orderId, updates);
+
+      setOrder({
+        ...order,
+        customerInfo: newCustomer,
+        pickupAddress: updates.pickupAddress || order.pickupAddress,
+        customerHistory: updatedHistory
+      } as ExtendedOrder);
+
+      toast.success('Kundinformation sparad');
+    } catch (err) {
+      console.error('Error saving customer info:', err);
+      toast.error('Kunde inte spara kundinformation');
+    } finally {
+      setSavingCustomerInfo(false);
+    }
+  };
+
   // Add a new internal note (append-only)
   const addInternalNote = async () => {
     const text = internalNoteText.trim();
@@ -671,18 +1080,21 @@ function AdminOrderDetailPage() {
   const getServiceName = (serviceId: string) => {
     switch (serviceId) {
       case 'apostille':
-        return t('services.apostille.title');
+        return 'Apostille';
+      case 'notarization':
       case 'notarisering':
-        return t('services.notarization.title');
+        return 'Notarisering';
+      case 'embassy':
       case 'ambassad':
-        return t('services.embassy.title');
+        return 'Ambassadlegalisering';
+      case 'translation':
       case 'oversattning':
-        return t('services.translation.title');
+        return 'Översättning';
       case 'utrikesdepartementet':
       case 'ud':
-        return t('services.ud.title');
+        return 'Utrikesdepartementet';
       case 'chamber':
-        return t('services.chamber.title');
+        return 'Handelskammarens legalisering';
       default:
         return serviceId;
     }
@@ -798,6 +1210,21 @@ function AdminOrderDetailPage() {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getProcessingStepCardClasses = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'border-green-200 bg-green-50';
+      case 'in_progress':
+        return 'border-blue-200 bg-blue-50';
+      case 'pending':
+        return 'border-gray-200 bg-white';
+      case 'skipped':
+        return 'border-gray-200 bg-gray-50';
+      default:
+        return 'border-gray-200 bg-white';
     }
   };
 
@@ -958,46 +1385,54 @@ function AdminOrderDetailPage() {
                       <div className="p-6">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                           {/* Order Details */}
-                          <div className="lg:col-span-2 space-y-6">
-                            {/* Basic Order Info */}
+                          <div className="lg:col-span-2 space-y-4">
+                            {/* Basic Order Info + compact services */}
                             <div>
-                              <h3 className="text-lg font-medium mb-4">Orderinformation</h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <p className="text-sm text-gray-500 mb-1">Dokumenttyp</p>
-                                  <p className="font-medium">
-                                    {order.documentType === 'birthCertificate' ? 'Födelsebevis' :
-                                     order.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-                                     order.documentType === 'diploma' ? 'Examensbevis' :
-                                     order.documentType === 'commercial' ? 'Handelsdokument' :
-                                     order.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
-                                  </p>
-                                </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <p className="text-sm text-gray-500 mb-1">Land</p>
-                                  <p className="font-medium">{order.country}</p>
-                                </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <p className="text-sm text-gray-500 mb-1">Antal dokument</p>
-                                  <p className="font-medium">{order.quantity} st</p>
-                                </div>
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <p className="text-sm text-gray-500 mb-1">Källa</p>
-                                  <p className="font-medium">
-                                    {order.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
-                                  </p>
-                                </div>
-                              </div>
+                              <h3 className="text-sm font-semibold mb-1 text-gray-800">Orderinformation</h3>
+                              {(() => {
+                                const c = getCountryInfo(order.country);
+                                return (
+                                  <div className="space-y-0.5 text-xs">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-gray-500">Dokumenttyp:</span>
+                                      <span className="font-medium text-gray-900">
+                                        {order.documentType === 'birthCertificate' ? 'Födelsebevis' :
+                                         order.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+                                         order.documentType === 'diploma' ? 'Examensbevis' :
+                                         order.documentType === 'commercial' ? 'Handelsdokument' :
+                                         order.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-gray-500">Land:</span>
+                                      <span className="flex items-center space-x-1 font-medium text-gray-900">
+                                        <span aria-hidden="true">{c.flag}</span>
+                                        <span>{c.name || c.code}</span>
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-gray-500">Antal dokument:</span>
+                                      <span className="font-medium text-gray-900">{order.quantity} st</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-gray-500">Källa:</span>
+                                      <span className="font-medium text-gray-900">
+                                        {order.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
 
-                            {/* Services */}
+                            {/* Compact services */}
                             <div>
-                              <h3 className="text-lg font-medium mb-4">Valda tjänster</h3>
-                              <div className="space-y-3">
+                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Valda tjänster</h3>
+                              <div className="space-y-0.5 text-xs">
                                 {/* Additional Services (shown first) */}
                                 {order.scannedCopies && (
-                                  <div className={`flex items-center justify-between p-3 rounded-lg ${getServiceStatusColor(getServiceStatus('scanned_copies'))}`}>
-                                    <span className="font-medium">Skannade kopior</span>
+                                  <div className={`flex items-center justify-between px-3 py-2 rounded-md ${getServiceStatusColor(getServiceStatus('scanned_copies'))}`}>
+                                    <span className="font-medium text-sm">Skannade kopior</span>
                                     <div className="flex items-center space-x-2">
                                       <span className="text-sm font-medium capitalize">{getServiceStatus('scanned_copies')}</span>
                                       <button
@@ -1013,8 +1448,8 @@ function AdminOrderDetailPage() {
                                 )}
 
                                 {order.pickupService && (
-                                  <div className={`flex items-center justify-between p-3 rounded-lg ${getServiceStatusColor(getServiceStatus('pickup_service'))}`}>
-                                    <span className="font-medium">Dokumenthämtning</span>
+                                  <div className={`flex items-center justify-between px-3 py-2 rounded-md ${getServiceStatusColor(getServiceStatus('pickup_service'))}`}>
+                                    <span className="font-medium text-sm">Dokumenthämtning</span>
                                     <div className="flex items-center space-x-2">
                                       <span className="text-sm font-medium capitalize">{getServiceStatus('pickup_service')}</span>
                                       <button
@@ -1035,8 +1470,8 @@ function AdminOrderDetailPage() {
                                     const status = getServiceStatus(service);
                                     const statusColor = getServiceStatusColor(status);
                                     return (
-                                      <div key={index} className={`flex items-center justify-between p-3 rounded-lg ${statusColor}`}>
-                                        <span className="font-medium">{getServiceName(service)}</span>
+                                      <div key={index} className={`flex items-center justify-between px-3 py-2 rounded-md ${statusColor}`}>
+                                        <span className="font-medium text-sm">{getServiceName(service)}</span>
                                         <div className="flex items-center space-x-2">
                                           <span className="text-sm font-medium capitalize">{status}</span>
                                           <button
@@ -1057,8 +1492,8 @@ function AdminOrderDetailPage() {
                                     const status = getServiceStatus(service);
                                     const statusColor = getServiceStatusColor(status);
                                     return (
-                                      <div className={`flex items-center justify-between p-3 rounded-lg ${statusColor}`}>
-                                        <span className="font-medium">{getServiceName(service)}</span>
+                                      <div className={`flex items-center justify-between px-3 py-2 rounded-md ${statusColor}`}>
+                                        <span className="font-medium text-sm">{getServiceName(service)}</span>
                                         <div className="flex items-center space-x-2">
                                           <span className="text-sm font-medium capitalize">{status}</span>
                                           <button
@@ -1113,28 +1548,156 @@ function AdminOrderDetailPage() {
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
                               <h3 className="text-lg font-medium mb-4">Kundinformation</h3>
                               <div className="space-y-3">
-                                <div>
-                                  <p className="text-sm text-gray-500">Namn</p>
-                                  <p className="font-medium">
-                                    {order.customerInfo?.firstName || 'Ej angivet'} {order.customerInfo?.lastName || ''}
-                                  </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Förnamn</label>
+                                    <input
+                                      type="text"
+                                      value={editedCustomer.firstName}
+                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, firstName: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Efternamn</label>
+                                    <input
+                                      type="text"
+                                      value={editedCustomer.lastName}
+                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, lastName: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                  </div>
                                 </div>
+
                                 <div>
-                                  <p className="text-sm text-gray-500">E-post</p>
-                                  <p className="font-medium">{order.customerInfo?.email || 'Ingen e-post angiven'}</p>
+                                  <label className="block text-xs text-gray-500 mb-1">E-post</label>
+                                  <input
+                                    type="email"
+                                    value={editedCustomer.email}
+                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, email: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
                                 </div>
+
                                 <div>
-                                  <p className="text-sm text-gray-500">Telefon</p>
-                                  <p className="font-medium">{order.customerInfo?.phone || 'Inget telefonnummer angivet'}</p>
+                                  <label className="block text-xs text-gray-500 mb-1">Telefon</label>
+                                  <input
+                                    type="tel"
+                                    value={editedCustomer.phone}
+                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, phone: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
                                 </div>
+
                                 <div>
-                                  <p className="text-sm text-gray-500">Adress</p>
-                                  <p className="font-medium">
-                                    {order.customerInfo?.address || 'Ingen adress angiven'}<br/>
-                                    {order.customerInfo?.postalCode || ''} {order.customerInfo?.city || ''}
-                                  </p>
+                                  <label className="block text-xs text-gray-500 mb-1">Adress</label>
+                                  <input
+                                    type="text"
+                                    value={editedCustomer.address}
+                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, address: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-1"
+                                  />
+                                  <div className="grid grid-cols-2 gap-2 mt-1">
+                                    <input
+                                      type="text"
+                                      placeholder="Postnummer"
+                                      value={editedCustomer.postalCode}
+                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, postalCode: e.target.value })}
+                                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Ort"
+                                      value={editedCustomer.city}
+                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, city: e.target.value })}
+                                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                  </div>
+                                </div>
+
+                                {order.pickupService && (
+                                  <div className="mt-4 border-t border-gray-200 pt-3 space-y-2">
+                                    <p className="text-sm font-medium text-gray-700">Hämtningsadress</p>
+                                    <input
+                                      type="text"
+                                      placeholder="Gatuadress"
+                                      value={editedPickupAddress.street}
+                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, street: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-1"
+                                    />
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <input
+                                        type="text"
+                                        placeholder="Postnummer"
+                                        value={editedPickupAddress.postalCode}
+                                        onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, postalCode: e.target.value })}
+                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                      />
+                                      <input
+                                        type="text"
+                                        placeholder="Ort"
+                                        value={editedPickupAddress.city}
+                                        onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, city: e.target.value })}
+                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="mt-4 flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={saveCustomerInfo}
+                                    disabled={savingCustomerInfo}
+                                    className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {savingCustomerInfo ? 'Sparar...' : 'Spara kundinfo'}
+                                  </button>
                                 </div>
                               </div>
+                            </div>
+
+                            {/* Customer history */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-6">
+                              <h3 className="text-lg font-medium mb-3">Tidigare kunduppgifter</h3>
+                              {order.customerHistory && order.customerHistory.length > 0 ? (
+                                <div className="space-y-2 max-h-64 overflow-y-auto text-sm">
+                                  {order.customerHistory
+                                    .slice()
+                                    .reverse()
+                                    .slice(0, 5)
+                                    .map((h: any, idx: number) => (
+                                      <div key={idx} className="border border-gray-200 rounded p-2 bg-gray-50">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-medium text-gray-800">
+                                            {h.customerInfo?.firstName || ''} {h.customerInfo?.lastName || ''}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => applyCustomerHistoryEntry(h)}
+                                            className="text-xs text-primary-600 underline"
+                                          >
+                                            Ladda in
+                                          </button>
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                          {h.customerInfo?.address && (
+                                            <div>
+                                              {h.customerInfo.address}, {h.customerInfo.postalCode} {h.customerInfo.city}
+                                            </div>
+                                          )}
+                                          <div>{h.customerInfo?.email}</div>
+                                          <div>{h.customerInfo?.phone}</div>
+                                          <div className="mt-1 text-[11px] text-gray-500">
+                                            Ändrad {formatDate(h.timestamp)} av {h.changedBy || 'Okänd'}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500">Ingen historik ännu</p>
+                              )}
                             </div>
 
                             {/* Quick Actions */}
@@ -1382,7 +1945,7 @@ function AdminOrderDetailPage() {
                       <h3 className="text-lg font-medium mb-4">Bearbetningssteg</h3>
                       <div className="space-y-4">
                         {processingSteps.map((step, index) => (
-                          <div key={step.id} className="border border-gray-200 rounded-lg p-4">
+                          <div key={step.id} className={`border ${getProcessingStepCardClasses(step.status)} rounded-lg p-4`}>
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mr-3 ${
@@ -1419,6 +1982,94 @@ function AdminOrderDetailPage() {
                             {step.notes && (
                               <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
                                 {step.notes}
+                              </div>
+                            )}
+                            {step.id === 'pickup_booking' && (
+                              <div className="mt-3 space-y-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Tracking-nummer för upphämtning
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={pickupTrackingNumber}
+                                    onChange={(e) => setPickupTrackingNumber(e.target.value)}
+                                    onBlur={savePickupTrackingInfo}
+                                    placeholder="t.ex. 1234567890"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="text-sm text-gray-700">
+                                    <p className="font-medium">DHL-label</p>
+                                    <p className="text-xs text-gray-500">
+                                      Filnamnet måste innehålla ordernumret {order?.orderNumber || (router.query.id as string)}.
+                                    </p>
+                                  </div>
+
+                                  {order && (order as any).pickupLabelFile && (
+                                    <div className="flex items-center justify-between text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                                      <div>
+                                        <p className="font-medium">Uppladdad label</p>
+                                        <p className="text-gray-700 truncate max-w-xs">{(order as any).pickupLabelFile.originalName}</p>
+                                      </div>
+                                      {(order as any).pickupLabelFile.downloadURL && (
+                                        <a
+                                          href={(order as any).pickupLabelFile.downloadURL}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary-600 text-sm underline ml-4"
+                                        >
+                                          Öppna
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <div className="flex flex-wrap items-center gap-3">
+                                    <input
+                                      ref={pickupLabelInputRef}
+                                      type="file"
+                                      accept=".pdf,image/*"
+                                      onChange={handlePickupLabelFileSelected}
+                                      className="hidden"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => pickupLabelInputRef.current?.click()}
+                                      disabled={isUploadingPickupLabel}
+                                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {isUploadingPickupLabel ? 'Laddar upp...' : 'Ladda upp label'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleSendPickupLabel}
+                                      disabled={sendingPickupLabel || !(order as any).pickupLabelFile}
+                                      className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {sendingPickupLabel ? 'Skickar...' : 'Skicka label'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {step.id === 'return_shipping' && (
+                              <div className="mt-3 space-y-2">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Tracking-nummer för retur
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={trackingNumber}
+                                    onChange={(e) => setTrackingNumber(e.target.value)}
+                                    onBlur={saveTrackingInfo}
+                                    placeholder="t.ex. 1234567890"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>

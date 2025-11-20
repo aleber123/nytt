@@ -160,7 +160,8 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
       steps: steps,
       totalPrice: orderData.totalPrice,
       // Return tracking information
-      returnTrackingNumber: orderData.additionalNotes || null, // Could be stored in additionalNotes or a new field
+      returnTrackingNumber: (orderData as any).returnTrackingNumber || null,
+      returnTrackingUrl: (orderData as any).returnTrackingUrl || null,
       returnDate: orderData.status === 'cancelled' ? orderData.updatedAt?.toDate().toISOString() : null
     };
   };
@@ -388,7 +389,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                       )}
 
                       {/* Return tracking information */}
-                      {orderStatus.status === 'cancelled' && (
+                      {orderStatus.returnTrackingNumber && (
                         <>
                           <div className="col-span-2 border-t border-gray-200 pt-4 mt-4">
                             <h4 className="text-base font-medium text-gray-900 mb-3">
@@ -396,14 +397,22 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                             </h4>
                           </div>
 
-                          {orderStatus.returnTrackingNumber && (
-                            <div>
-                              <p className="text-sm text-gray-500 mb-1">
-                                {t('orderStatus.returnTrackingNumber') || 'Returspårningsnummer'}:
-                              </p>
-                              <p className="font-mono text-sm">{orderStatus.returnTrackingNumber}</p>
-                            </div>
-                          )}
+                          <div className="col-span-2">
+                            <p className="text-sm text-gray-500 mb-1">
+                              {t('orderStatus.returnTrackingNumber') || 'Returspårningsnummer'}:
+                            </p>
+                            <p className="font-mono text-sm font-medium">{orderStatus.returnTrackingNumber}</p>
+                            {(orderStatus as any).returnTrackingUrl && (
+                              <a 
+                                href={(orderStatus as any).returnTrackingUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
+                              >
+                                Spåra försändelse →
+                              </a>
+                            )}
+                          </div>
 
                           {orderStatus.returnDate && (
                             <div>
