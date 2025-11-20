@@ -1422,6 +1422,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 totalPrice={totalPrice}
                 allCountries={allCountries}
                 returnServices={returnServices}
+                pickupServices={pickupServices}
               />
             </div>
           </div>

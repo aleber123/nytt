@@ -12,6 +12,7 @@ interface OrderSummaryProps {
   totalPrice: number;
   allCountries: any[];
   returnServices?: any[];
+  pickupServices?: any[];
 }
 
 export const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -19,7 +20,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   pricingBreakdown,
   totalPrice,
   allCountries,
-  returnServices = []
+  returnServices = [],
+  pickupServices = []
 }) => {
   const { t, i18n } = useTranslation('common');
   const currentLocale = i18n.language;
@@ -116,10 +118,23 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
       name: currentLocale === 'en' ? 'Express handling' : 'Express-hantering'
     });
   }
-  if (answers.pickupService) {
+  if (answers.pickupService && answers.pickupMethod) {
+    // Find the selected pickup service to show its name
+    const selectedPickupService = pickupServices.find((s: any) => s.id === answers.pickupMethod);
+    const pickupServiceName = selectedPickupService ? selectedPickupService.name : (currentLocale === 'en' ? 'Pickup service' : 'Upphämtning');
     additionalServices.push({ 
-      name: currentLocale === 'en' ? 'Pickup service' : 'Upphämtning'
+      name: pickupServiceName
     });
+    
+    // Add premium pickup under pickup service if selected
+    if (answers.premiumPickup) {
+      const premiumPickupService = pickupServices.find((s: any) => s.id === answers.premiumPickup);
+      const premiumName = premiumPickupService ? `  → ${premiumPickupService.name}` : 
+                          (currentLocale === 'en' ? '  → Premium pickup' : '  → Premiumhämtning');
+      additionalServices.push({ 
+        name: premiumName
+      });
+    }
   }
   if (answers.scannedCopies) {
     const pcs = currentLocale === 'en' ? 'pcs' : 'st';
