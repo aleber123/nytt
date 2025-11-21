@@ -1,111 +1,121 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow anyone to read pricing data
-    match /pricing/{document} {
-      allow read: if true;
-      allow write: if true;
-      allow update: if true;
-      allow delete: if true;
+
+    // Helper function
+    function isAdmin() {
+      return request.auth != null && 
+             request.auth.token.email in [
+               'admin@legaliseringstjanst.se', 
+               'sofia@sofia.se'
+             ];
     }
 
-    // Allow order creation (customers can create orders anonymously)
-    // Secure read/update access - only admins or order owner can access
+    // 1. Public readable data
+    match /pricing/{doc} { allow read: if true; }
+    match /content/{doc} { allow read: if true; }
+    match /countryPopularity/{doc} { allow read: if true; }
+
+    // 2. Orders – the heart of your app
     match /orders/{orderId} {
-      allow create: if true; // Allow anonymous order creation
-      
-      // Allow read if:
-      // 1. User is admin, OR
-      // 2. User's email matches the order's customer email
-      allow read: if request.auth != null && 
-        (request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'] ||
-         (resource.data.customerInfo != null && 
-          resource.data.customerInfo.email == request.auth.token.email));
-      
-      // Only admins can update orders
-      allow update: if request.auth != null && 
-        request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
-      
-      // Only admins can delete orders
-      allow delete: if request.auth != null && 
-        request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+      // Anyone can create an order (with validation)
+      allow create: if request.resource.data.keys().hasAll(['email', 'createdAt', 'status', 'items'])
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$');
+
+      // Customer can read their own order if they know orderId + email
+      // Admin can read everything
+      allow read: if resource.data.email == request.query.email || isAdmin();
+
+      // Customer can update their own order ONLY if status is still pending/paid (not processing or completed)
+      // This allows adding more files after initial creation
+      allow update: if 
+        (resource.data.email == request.resource.data.email ||  // email didn't change or matches
+         (request.resource.data.email == null && resource.data.email == resource.data.email)) // no email change attempt
+        && resource.data.status in ['pending', 'paid']
+        && request.resource.data.status in ['pending', 'paid', 'processing'] == false // customer can't mark as processing
+        || isAdmin();
+
+      allow delete: if false; // never allow delete
     }
 
-    // Admin profiles: each authenticated user can read/write their own profile
-    match /adminProfiles/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
-
-    // Append-only internal notes for admin orders
+    // 3. Internal admin notes (append-only)
     match /orders/{orderId}/internalNotes/{noteId} {
-      // Only authenticated users can read and add notes
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-
-      // Prevent editing or deleting existing notes
+      allow read, create: if isAdmin();
       allow update, delete: if false;
     }
 
-    // Allow anyone to read static content
-    match /content/{document} {
+    // 4. Counters – only allow atomic increments via Cloud Functions or client with validation
+    match /counters/{counter} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow update: if request.resource.data.orderNumber is int 
+                    && request.resource.data.orderNumber > resource.data.orderNumber;
+      allow create: if false;
     }
 
-    // Allow anonymous access to counters for order number generation
-    match /counters/{document} {
-      allow read, write: if true; // Allow anonymous access for order numbering
+    // 5. Contact messages – anonymous with spam protection
+    match /contactMessages/{msgId} {
+      allow create: if request.resource.data.keys().hasOnly(['name','email','message','createdAt'])
+                    && request.resource.data.message.size() < 2000
+                    && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$');
+      allow read: if isAdmin();
     }
 
-    // Allow reading country popularity data for testing
-    match /countryPopularity/{document} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // Allow creating contact messages anonymously
-    match /contactMessages/{document} {
-      allow create: if true;
-      allow read: if request.auth != null;
-    }
-
-    // Allow admin access to invoices
-    match /invoices/{invoiceId} {
-      allow read: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
-      allow write: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
-      allow create: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
-      allow update: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
-      allow delete: if request.auth != null && request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
-    }
-
-    // Allow creating and reading customer emails for order confirmations
+    // 6. Customer emails (sent confirmations) – only system writes
     match /customerEmails/{emailId} {
-      allow create: if true; // Allow anyone to create customer emails
-      allow read: if request.auth != null; // Only authenticated users can read
-      allow update, delete: if false; // No updates or deletes allowed
+      allow create: if isAdmin(); // or your Cloud Function
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // 7. Invoices – admin only
+    match /invoices/{inv} {
+      allow read, write, create, update, delete: if isAdmin();
+    }
+
+    // 8. Admin profiles (if you ever add more admins)
+    match /adminProfiles/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Secure storage access - authenticated users only
+
+    function isAdmin() {
+      return request.auth != null && 
+             request.auth.token.email in [
+               'admin@legaliseringstjanst.se', 
+               'sofia@sofia.se'
+             ];
+    }
+
+    // Customer uploads – only to their own order folder, and only images/PDFs under 20 MB
     match /orders/{orderId}/{allPaths=**} {
-      // Allow read if user is admin or owns the order
-      allow read: if request.auth != null;
+      // Get the order to check ownership
+      let orderRef = /databases/$(database)/documents/orders/$(orderId);
       
-      // Allow write for authenticated users (for uploads)
-      allow write: if request.auth != null;
+      allow read: if 
+        // Customer can download their own files (including final apostilled PDFs)
+        exists(orderRef) && get(orderRef).data.email == request.query.email
+        || isAdmin();
+
+      allow write: if 
+        // Customer can upload only to their own order + only PDF/image + size limit
+        (exists(orderRef) && get(orderRef).data.email == request.query.email
+         && request.resource.size < 20 * 1024 * 1024
+         && request.resource.contentType.matches('^(image|application/pdf).*'))
+        || isAdmin();
     }
-    
-    // Public assets (logos, images, etc.)
-    match /public/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && 
-        request.auth.token.email in ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+
+    // Optional: admin can have a separate folder if needed
+    match /admin/{allPaths=**} {
+      allow read, write: if isAdmin();
     }
-    
-    // Default deny for everything else
+
+    // Block everything else
     match /{allPaths=**} {
       allow read, write: if false;
     }

@@ -1344,6 +1344,15 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(6)}
               onBack={() => navigateToStep(4)}
+              onDocumentSourceSelect={(source) => {
+                if (source === 'upload') {
+                  // Skip pickup service step and go to shipping step
+                  navigateToStep(7);
+                } else {
+                  // Go to pickup service step
+                  navigateToStep(6);
+                }
+              }}
               currentLocale={currentLocale}
             />
           )}
@@ -1373,13 +1382,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               answers={answers}
               setAnswers={setAnswers}
               onNext={() => navigateToStep(9)}
-              onBack={() => {
-                if (answers.documentSource === 'upload') {
-                  navigateToStep(6);
-                } else {
-                  navigateToStep(7);
-                }
-              }}
+              onBack={() => navigateToStep(7)}
               currentLocale={currentLocale}
             />
           )}

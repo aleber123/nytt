@@ -8,11 +8,14 @@ import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 
-export const Step5DocumentSource: React.FC<StepProps> = ({
+export const Step5DocumentSource: React.FC<StepProps & {
+  onDocumentSourceSelect?: (source: string) => void;
+}> = ({
   answers,
   setAnswers,
   onNext,
-  onBack
+  onBack,
+  onDocumentSourceSelect
 }) => {
   const { t } = useTranslation('common');
 
@@ -26,7 +29,13 @@ export const Step5DocumentSource: React.FC<StepProps> = ({
         uploadedFiles: new Array(answers.quantity).fill(null)
       });
     }
-    onNext();
+    
+    // Use custom callback if provided, otherwise fallback to onNext
+    if (onDocumentSourceSelect) {
+      onDocumentSourceSelect(source);
+    } else {
+      onNext();
+    }
   };
 
   return (
