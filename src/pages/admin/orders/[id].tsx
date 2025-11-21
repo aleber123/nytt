@@ -607,10 +607,9 @@ function AdminOrderDetailPage() {
   };
 
   // Update processing step status
-  const updateProcessingStep = async (stepId: string, status: ProcessingStep['status'], notes?: string) => {
+  const updateProcessingStep = async (stepId: string, status: ProcessingStep['status'], notes?: string, updatedStep?: Partial<ProcessingStep>) => {
     if (!order) return;
     const orderId = router.query.id as string;
-    const { Timestamp } = await import('firebase/firestore');
     const updatedSteps = processingSteps.map(step => {
       if (step.id === stepId) {
         // Create a clean object without undefined values
@@ -622,9 +621,27 @@ function AdminOrderDetailPage() {
           notes: notes || step.notes || ''
         };
 
+        // Always preserve date fields if they exist
+        if (step.submittedAt) {
+          cleanStep.submittedAt = step.submittedAt;
+        }
+        if (step.expectedCompletionDate) {
+          cleanStep.expectedCompletionDate = step.expectedCompletionDate;
+        }
+
+        // Apply any additional updates from updatedStep
+        if (updatedStep) {
+          if (updatedStep.submittedAt !== undefined) {
+            cleanStep.submittedAt = updatedStep.submittedAt;
+          }
+          if (updatedStep.expectedCompletionDate !== undefined) {
+            cleanStep.expectedCompletionDate = updatedStep.expectedCompletionDate;
+          }
+        }
+
         // Only add completedAt and completedBy if status is completed
         if (status === 'completed') {
-          cleanStep.completedAt = Timestamp.now();
+          cleanStep.completedAt = new Date();
           const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string;
           cleanStep.completedBy = actor;
         }
@@ -1100,6 +1117,11 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Function to check if a step is an authority service
+  const isAuthorityService = (stepId: string) => {
+    return ['notarization', 'chamber_processing', 'ud_processing', 'apostille', 'embassy_processing', 'translation'].includes(stepId);
+  };
+
   // Function to get service status based on processing steps
   const getServiceStatus = (serviceId: string) => {
     if (!processingSteps || processingSteps.length === 0) return 'väntar';
@@ -1425,90 +1447,56 @@ function AdminOrderDetailPage() {
                               })()}
                             </div>
 
-                            {/* Compact services */}
+                            {/* Processing Steps Overview */}
                             <div>
-                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Valda tjänster</h3>
-                              <div className="space-y-0.5 text-xs">
-                                {/* Additional Services (shown first) */}
-                                {order.scannedCopies && (
-                                  <div className={`flex items-center justify-between px-3 py-2 rounded-md ${getServiceStatusColor(getServiceStatus('scanned_copies'))}`}>
-                                    <span className="font-medium text-sm">Skannade kopior</span>
+                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Bearbetningssteg</h3>
+                              <div className="space-y-2">
+                                {processingSteps.map((step, index) => (
+                                  <div key={step.id} className={`flex items-center justify-between px-3 py-2 rounded-md ${getProcessingStepCardClasses(step.status)}`}>
+                                    <div className="flex items-center">
+                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${
+                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
+                                        'bg-red-100 text-red-800'
+                                      }`}>
+                                        {step.status === 'completed' ? '✓' :
+                                         step.status === 'in_progress' ? '⟳' :
+                                         step.status === 'pending' ? index + 1 : '✗'}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium text-sm">{step.name}</span>
+                                        <div className="text-xs text-gray-500">{step.description}</div>
+                                      </div>
+                                    </div>
                                     <div className="flex items-center space-x-2">
-                                      <span className="text-sm font-medium capitalize">{getServiceStatus('scanned_copies')}</span>
-                                      <button
-                                        onClick={() => handleRemoveService('scanned_copies')}
-                                        disabled={removingService === 'scanned_copies'}
-                                        className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
-                                        title="Ta bort skannade kopior från ordern"
-                                      >
-                                        {removingService === 'scanned_copies' ? 'Tar bort...' : 'Ta bort'}
-                                      </button>
+                                      <span className={`text-xs font-medium capitalize px-2 py-1 rounded ${
+                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
+                                        'bg-red-100 text-red-800'
+                                      }`}>
+                                        {step.status === 'completed' ? 'Klar' :
+                                         step.status === 'in_progress' ? 'Pågår' :
+                                         step.status === 'pending' ? 'Väntar' : 'Hoppas över'}
+                                      </span>
+                                      {step.status === 'completed' && step.completedAt && (
+                                        <span className="text-xs text-gray-500">
+                                          {formatDate(step.completedAt)}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
-                                )}
-
-                                {order.pickupService && (
-                                  <div className={`flex items-center justify-between px-3 py-2 rounded-md ${getServiceStatusColor(getServiceStatus('pickup_service'))}`}>
-                                    <span className="font-medium text-sm">Dokumenthämtning</span>
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-sm font-medium capitalize">{getServiceStatus('pickup_service')}</span>
-                                      <button
-                                        onClick={() => handleRemoveService('pickup_service')}
-                                        disabled={removingService === 'pickup_service'}
-                                        className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
-                                        title="Ta bort dokumenthämtning från ordern"
-                                      >
-                                        {removingService === 'pickup_service' ? 'Tar bort...' : 'Ta bort'}
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Main Services */}
-                                {Array.isArray(order.services) ? (
-                                  order.services.map((service, index) => {
-                                    const status = getServiceStatus(service);
-                                    const statusColor = getServiceStatusColor(status);
-                                    return (
-                                      <div key={index} className={`flex items-center justify-between px-3 py-2 rounded-md ${statusColor}`}>
-                                        <span className="font-medium text-sm">{getServiceName(service)}</span>
-                                        <div className="flex items-center space-x-2">
-                                          <span className="text-sm font-medium capitalize">{status}</span>
-                                          <button
-                                            onClick={() => handleRemoveService(service)}
-                                            disabled={removingService === service}
-                                            className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
-                                            title={`Ta bort ${getServiceName(service)} från ordern`}
-                                          >
-                                            {removingService === service ? 'Tar bort...' : 'Ta bort'}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  (() => {
-                                    const service = order.services as unknown as string;
-                                    const status = getServiceStatus(service);
-                                    const statusColor = getServiceStatusColor(status);
-                                    return (
-                                      <div className={`flex items-center justify-between px-3 py-2 rounded-md ${statusColor}`}>
-                                        <span className="font-medium text-sm">{getServiceName(service)}</span>
-                                        <div className="flex items-center space-x-2">
-                                          <span className="text-sm font-medium capitalize">{status}</span>
-                                          <button
-                                            onClick={() => handleRemoveService(service)}
-                                            disabled={removingService === service}
-                                            className="text-red-600 hover:text-red-800 disabled:opacity-50 text-sm underline"
-                                            title={`Ta bort ${getServiceName(service)} från ordern`}
-                                          >
-                                            {removingService === service ? 'Tar bort...' : 'Ta bort'}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })()
-                                )}
+                                ))}
+                              </div>
+                              <div className="mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('processing')}
+                                  className="text-primary-600 text-sm underline"
+                                >
+                                  Hantera bearbetning →
+                                </button>
                               </div>
                             </div>
 
@@ -1974,6 +1962,48 @@ function AdminOrderDetailPage() {
                                 <option value="skipped">Hoppas över</option>
                               </select>
                             </div>
+                            {isAuthorityService(step.id) && (
+                              <div className="mt-4 space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Datum för inlämning till myndighet
+                                    </label>
+                                    <input
+                                      type="date"
+                                      value={step.submittedAt ? new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] : ''}
+                                      onChange={(e) => {
+                                        const dateValue = e.target.value;
+                                        const updatedStep = {
+                                          ...step,
+                                          submittedAt: dateValue ? new Date(dateValue) : undefined
+                                        };
+                                        updateProcessingStep(step.id, step.status, step.notes, updatedStep);
+                                      }}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Datum klart för upphämtning
+                                    </label>
+                                    <input
+                                      type="date"
+                                      value={step.expectedCompletionDate ? new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0] : ''}
+                                      onChange={(e) => {
+                                        const dateValue = e.target.value;
+                                        const updatedStep = {
+                                          ...step,
+                                          expectedCompletionDate: dateValue ? new Date(dateValue) : undefined
+                                        };
+                                        updateProcessingStep(step.id, step.status, step.notes, updatedStep);
+                                      }}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                             {step.status === 'completed' && step.completedAt && (
                               <div className="text-xs text-gray-500 mt-2">
                                 Slutfört {formatDate(step.completedAt)} av {step.completedBy}
