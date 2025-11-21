@@ -1461,7 +1461,9 @@ function AdminOrderDetailPage() {
                                         'bg-red-100 text-red-800'
                                       }`}>
                                         {step.status === 'completed' ? '✓' :
-                                         step.status === 'in_progress' ? '⟳' :
+                                         step.status === 'in_progress' ? (
+                                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                                         ) :
                                          step.status === 'pending' ? index + 1 : '✗'}
                                       </div>
                                       <div>
