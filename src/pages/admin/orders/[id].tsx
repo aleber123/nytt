@@ -32,6 +32,8 @@ interface ProcessingStep {
   completedAt?: Date | FbTimestamp;
   completedBy?: string;
   notes?: string;
+  submittedAt?: Date | FbTimestamp;
+  expectedCompletionDate?: Date | FbTimestamp;
 }
 
 interface AdminNote {
