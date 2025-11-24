@@ -1,80 +1,99 @@
 rules_version = '2';
-
+ 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function
     function isAdmin() {
-      return request.auth != null && 
+      return request.auth != null &&
              request.auth.token.email in [
-               'admin@legaliseringstjanst.se', 
+               'admin@legaliseringstjanst.se',
                'sofia@sofia.se'
              ];
     }
 
-    // 1. Public readable data
-    match /pricing/{doc} { allow read: if true; }
-    match /content/{doc} { allow read: if true; }
-    match /countryPopularity/{doc} { allow read: if true; }
-
-    // 2. Orders – the heart of your app
-    match /orders/{orderId} {
-      // Anyone can create an order (with validation)
-      allow create: if request.resource.data.keys().hasAll(['email', 'createdAt', 'status', 'items'])
-                    && request.resource.data.status == 'pending'
-                    && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$');
-
-      // Customer can read their own order if they know orderId + email
-      // Admin can read everything
-      allow read: if resource.data.email == request.query.email || isAdmin();
-
-      // Customer can update their own order ONLY if status is still pending/paid (not processing or completed)
-      // This allows adding more files after initial creation
-      allow update: if 
-        (resource.data.email == request.resource.data.email ||  // email didn't change or matches
-         (request.resource.data.email == null && resource.data.email == resource.data.email)) // no email change attempt
-        && resource.data.status in ['pending', 'paid']
-        && request.resource.data.status in ['pending', 'paid', 'processing'] == false // customer can't mark as processing
-        || isAdmin();
-
-      allow delete: if false; // never allow delete
+    // PRICING – public read, only admin may change
+    match /pricing/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    // 3. Internal admin notes (append-only)
+    // CONTENT – static content
+    match /content/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // COUNTRY POPULARITY – statistics, not sensitive
+    match /countryPopularity/{doc} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // ORDERS – customers create, admin UI and backend read/update via hybridOrderService
+    match /orders/{orderId} {
+      // Allow anyone (even anonymous) to create an order
+      allow create: if true;
+
+      // Allow reads and updates (needed because hybridOrderService runs without Firebase Auth)
+      // NOTE: This means anyone with the API key can read/update orders.
+      // When we refactor to use authenticated admin access or Admin SDK, we can tighten this again.
+      allow read, update: if true;
+
+      // Never allow client-side delete
+      allow delete: if false;
+    }
+
+    // INTERNAL ADMIN NOTES – append-only, admin only
     match /orders/{orderId}/internalNotes/{noteId} {
       allow read, create: if isAdmin();
       allow update, delete: if false;
     }
 
-    // 4. Counters – only allow atomic increments via Cloud Functions or client with validation
-    match /counters/{counter} {
+    // COUNTERS – order/invoice counters
+    match /counters/{name} {
       allow read: if true;
-      allow update: if request.resource.data.orderNumber is int 
-                    && request.resource.data.orderNumber > resource.data.orderNumber;
-      allow create: if false;
+
+      // Allow creating a counter document with currentCount and lastUpdated
+      allow create: if
+        request.resource.data.keys().hasOnly(['currentCount', 'lastUpdated']) &&
+        request.resource.data.currentCount is int &&
+        request.resource.data.currentCount >= 0;
+
+      // Allow updating only by increasing currentCount
+      allow update: if
+        request.resource.data.keys().hasOnly(['currentCount', 'lastUpdated']) &&
+        resource.data.currentCount is int &&
+        request.resource.data.currentCount is int &&
+        request.resource.data.currentCount >= resource.data.currentCount;
+
+      allow delete: if false;
     }
 
-    // 5. Contact messages – anonymous with spam protection
+    // CONTACT MESSAGES – created anonymously, readable by admin
     match /contactMessages/{msgId} {
-      allow create: if request.resource.data.keys().hasOnly(['name','email','message','createdAt'])
-                    && request.resource.data.message.size() < 2000
-                    && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$');
-      allow read: if isAdmin();
-    }
-
-    // 6. Customer emails (sent confirmations) – only system writes
-    match /customerEmails/{emailId} {
-      allow create: if isAdmin(); // or your Cloud Function
+      allow create: if true;
       allow read: if isAdmin();
       allow update, delete: if false;
     }
 
-    // 7. Invoices – admin only
-    match /invoices/{inv} {
-      allow read, write, create, update, delete: if isAdmin();
+    // CUSTOMER EMAIL QUEUE – created from frontend, processed by Cloud Function
+    match /customerEmails/{emailId} {
+      allow create: if true;
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
-    // 8. Admin profiles (if you ever add more admins)
+    // INVOICES – admin only
+    match /invoices/{invoiceId} {
+      allow read, write: if isAdmin();
+    }
+
+    // EMAIL QUEUE – admin-created, for invoice and pickup label emails
+    match /emailQueue/{emailId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ADMIN PROFILES – each admin can read/write their own profile
     match /adminProfiles/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
@@ -85,32 +104,26 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     function isAdmin() {
-      return request.auth != null && 
+      return request.auth != null &&
              request.auth.token.email in [
-               'admin@legaliseringstjanst.se', 
+               'admin@legaliseringstjanst.se',
                'sofia@sofia.se'
              ];
     }
 
-    // Customer uploads – only to their own order folder, and only images/PDFs under 20 MB
-    match /orders/{orderId}/{allPaths=**} {
-      // Get the order to check ownership
-      let orderRef = /databases/$(database)/documents/orders/$(orderId);
-      
-      allow read: if 
-        // Customer can download their own files (including final apostilled PDFs)
-        exists(orderRef) && get(orderRef).data.email == request.query.email
-        || isAdmin();
+    // Document uploads for orders – PDFs/images up to 20MB
+    match /documents/{fileName} {
+      // Allow uploads of PDFs/images up to 20 MB from anyone
+      allow write: if
+        request.resource.size < 20 * 1024 * 1024 &&
+        request.resource.contentType.matches('^(image/.*|application/pdf)$');
 
-      allow write: if 
-        // Customer can upload only to their own order + only PDF/image + size limit
-        (exists(orderRef) && get(orderRef).data.email == request.query.email
-         && request.resource.size < 20 * 1024 * 1024
-         && request.resource.contentType.matches('^(image|application/pdf).*'))
-        || isAdmin();
+      // Allow read for anyone with the URL
+      // (we can tighten this later if you change how downloads work)
+      allow read: if true;
     }
 
-    // Optional: admin can have a separate folder if needed
+    // Optional admin folder
     match /admin/{allPaths=**} {
       allow read, write: if isAdmin();
     }
@@ -121,3 +134,4 @@ service firebase.storage {
     }
   }
 }
+

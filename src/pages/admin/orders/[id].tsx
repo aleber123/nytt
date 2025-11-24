@@ -54,7 +54,7 @@ function AdminOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedStatus, setEditedStatus] = useState<Order['status']>('pending');
-  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'price' | 'files' | 'notes' | 'invoice'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'services' | 'price' | 'files' | 'notes' | 'invoice'>('overview');
   const [newNote, setNewNote] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
@@ -65,6 +65,8 @@ function AdminOrderDetailPage() {
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
   const [removingService, setRemovingService] = useState<string | null>(null);
+  const [newServiceToAdd, setNewServiceToAdd] = useState<string>('');
+  const [addingService, setAddingService] = useState(false);
   // Pricing tab state
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [discountPercent, setDiscountPercent] = useState<number>(0);
@@ -186,6 +188,99 @@ function AdminOrderDetailPage() {
     } catch (e) {
       console.error('❌ Error calculating breakdown total:', e);
       return Number(order?.totalPrice || 0);
+    }
+  };
+
+  const handleAddService = async (serviceToAdd: string) => {
+    if (!order || !serviceToAdd) return;
+    const orderId = router.query.id as string;
+
+    setAddingService(true);
+    try {
+      let updatedServices = Array.isArray(order.services) ? [...order.services] : [];
+      let updatedScannedCopies = order.scannedCopies;
+      let updatedPickupService = order.pickupService;
+
+      if (serviceToAdd === 'scanned_copies') {
+        if (updatedScannedCopies) {
+          setAddingService(false);
+          return;
+        }
+        updatedScannedCopies = true;
+      } else if (serviceToAdd === 'pickup_service') {
+        if (updatedPickupService) {
+          setAddingService(false);
+          return;
+        }
+        updatedPickupService = true;
+      } else {
+        if (!updatedServices.includes(serviceToAdd)) {
+          updatedServices.push(serviceToAdd);
+        } else {
+          setAddingService(false);
+          return;
+        }
+      }
+
+      const { calculateOrderPrice } = await import('@/firebase/pricingService');
+      const pricingResult = await calculateOrderPrice({
+        country: order.country,
+        services: updatedServices,
+        quantity: order.quantity,
+        expedited: order.expedited,
+        deliveryMethod: order.deliveryMethod,
+        returnService: order.returnService,
+        returnServices: [],
+        scannedCopies: updatedScannedCopies,
+        pickupService: updatedPickupService
+      });
+
+      const baseSteps = (order.processingSteps && order.processingSteps.length > 0)
+        ? order.processingSteps
+        : initializeProcessingSteps(order as ExtendedOrder);
+
+      const updatedOrderForSteps = {
+        ...(order as ExtendedOrder),
+        services: updatedServices,
+        scannedCopies: updatedScannedCopies,
+        pickupService: updatedPickupService
+      } as ExtendedOrder;
+
+      const templateSteps = initializeProcessingSteps(updatedOrderForSteps);
+      const mergedSteps = templateSteps.map((step) => {
+        const existing = baseSteps.find((s: any) => s.id === step.id);
+        return existing || step;
+      });
+
+      const updatedOrder = {
+        ...order,
+        services: updatedServices,
+        scannedCopies: updatedScannedCopies,
+        pickupService: updatedPickupService,
+        totalPrice: pricingResult.totalPrice,
+        pricingBreakdown: pricingResult.breakdown,
+        processingSteps: mergedSteps
+      } as ExtendedOrder;
+
+      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
+      await updateOrder(orderId, {
+        services: updatedServices,
+        scannedCopies: updatedScannedCopies,
+        pickupService: updatedPickupService,
+        totalPrice: pricingResult.totalPrice,
+        pricingBreakdown: pricingResult.breakdown,
+        processingSteps: mergedSteps
+      });
+
+      setOrder(updatedOrder);
+      setProcessingSteps(mergedSteps);
+      setNewServiceToAdd('');
+      toast.success(`Tjänst "${getServiceName(serviceToAdd)}" har lagts till i ordern`);
+    } catch (err) {
+      console.error('Error adding service:', err);
+      toast.error('Kunde inte lägga till tjänsten i ordern');
+    } finally {
+      setAddingService(false);
     }
   };
 
@@ -1376,6 +1471,7 @@ function AdminOrderDetailPage() {
                   {[
                     { id: 'overview', label: 'Översikt', icon: '📋' },
                     { id: 'processing', label: 'Bearbetning', icon: '⚙️' },
+                    { id: 'services', label: 'Tjänster', icon: '🧩' },
                     { id: 'price', label: 'Pris', icon: '💰' },
                     { id: 'files', label: 'Filer', icon: '📎' },
                     { id: 'invoice', label: 'Faktura', icon: '🧾' },
@@ -1760,6 +1856,113 @@ function AdminOrderDetailPage() {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Services Tab */}
+                {activeTab === 'services' && (
+                  <div className="space-y-6">
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <h3 className="text-lg font-medium mb-4">Tjänster på ordern</h3>
+                      {(() => {
+                        const baseServices: string[] = Array.isArray(order.services) ? order.services : [];
+                        const extraServices: string[] = [];
+                        if (order.pickupService) extraServices.push('pickup_service');
+                        if (order.scannedCopies) extraServices.push('scanned_copies');
+                        const allServices = [...baseServices, ...extraServices];
+
+                        const currentSet = new Set(allServices);
+                        const possibleServices: { id: string; label: string }[] = [
+                          { id: 'notarization', label: getServiceName('notarization') },
+                          { id: 'translation', label: getServiceName('translation') },
+                          { id: 'chamber', label: getServiceName('chamber') },
+                          { id: 'ud', label: getServiceName('ud') },
+                          { id: 'embassy', label: getServiceName('embassy') },
+                          { id: 'apostille', label: getServiceName('apostille') },
+                          { id: 'pickup_service', label: 'Upphämtning av dokument' },
+                          { id: 'scanned_copies', label: 'Scannade kopior' }
+                        ];
+
+                        const addableServices = possibleServices.filter(s => !currentSet.has(s.id));
+
+                        return (
+                          <div className="space-y-6">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Aktiva tjänster</h4>
+                              {allServices.length === 0 ? (
+                                <p className="text-sm text-gray-500">Inga tjänster är registrerade på denna order.</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {allServices.map((serviceId) => {
+                                    const status = getServiceStatus(serviceId);
+                                    const statusColor = getServiceStatusColor(status);
+                                    return (
+                                      <div
+                                        key={serviceId}
+                                        className="flex items-center justify-between border border-gray-200 rounded-md px-3 py-2 bg-white"
+                                      >
+                                        <div>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="text-sm font-medium text-gray-900">{getServiceName(serviceId)}</span>
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColor}`}>
+                                              {status}
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-gray-500 mt-0.5">
+                                            Status baseras på bearbetningssteg.
+                                          </p>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveService(serviceId)}
+                                          disabled={removingService === serviceId}
+                                          className="px-2 py-1 text-xs border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-50"
+                                        >
+                                          {removingService === serviceId ? 'Tar bort...' : 'Ta bort'}
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Lägg till tjänst</h4>
+                              {addableServices.length === 0 ? (
+                                <p className="text-sm text-gray-500">Alla tillgängliga tjänster är redan tillagda.</p>
+                              ) : (
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                  <select
+                                    value={newServiceToAdd}
+                                    onChange={(e) => setNewServiceToAdd(e.target.value)}
+                                    className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                                  >
+                                    <option value="">Välj tjänst att lägga till...</option>
+                                    {addableServices.map((s) => (
+                                      <option key={s.id} value={s.id}>
+                                        {s.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    onClick={() => newServiceToAdd && handleAddService(newServiceToAdd)}
+                                    disabled={!newServiceToAdd || addingService}
+                                    className="px-4 py-2 bg-primary-600 text-white rounded text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {addingService ? 'Lägger till...' : 'Lägg till tjänst'}
+                                  </button>
+                                </div>
+                              )}
+                              <p className="mt-2 text-xs text-gray-500">
+                                När du lägger till eller tar bort en tjänst uppdateras priset och bearbetningsstegen automatiskt.
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
