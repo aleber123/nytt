@@ -55,6 +55,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     },
     scannedCopies: false, // New: scanned copies option
     returnService: '', // New: return service selection
+    ownReturnTrackingNumber: '',
     premiumDelivery: '', // New: premium delivery option (pre-12, pre-9)
     uploadedFiles: [] as File[],
     customerInfo: {
@@ -569,8 +570,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
            // Convert pricing rules to service objects
           const servicesFromFirebase = filteredPricingRules.map(rule => {
-            // Translation prices vary by document, so show "På förfrågan" instead of fixed price
-            const price = rule.serviceType === 'translation' ? 'På förfrågan' : `${rule.basePrice} kr`;
+            const translationOnRequest = t('orderFlow.step3.translationOnRequest', currentLocale === 'en' ? 'On request' : 'På förfrågan');
+            const price = rule.serviceType === 'translation' ? translationOnRequest : `${rule.basePrice} kr`;
 
             return {
               id: rule.serviceType,
@@ -585,11 +586,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           // Ensure translation service is always available
           const hasTranslation = servicesFromFirebase.some(s => s.id === 'translation');
           if (!hasTranslation) {
+            const translationOnRequest = t('orderFlow.step3.translationOnRequest', currentLocale === 'en' ? 'On request' : 'På förfrågan');
             servicesFromFirebase.push({
               id: 'translation',
               name: getServiceName('translation'),
               description: getServiceDescription('translation', isHagueCountry),
-              price: 'På förfrågan',
+              price: translationOnRequest,
               available: true,
               processingTime: 5
             });

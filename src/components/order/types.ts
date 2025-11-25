@@ -21,6 +21,7 @@ export interface OrderAnswers {
   };
   scannedCopies: boolean;
   returnService: string;
+  ownReturnTrackingNumber: string;
   premiumDelivery: string;
   uploadedFiles: File[];
   customerInfo: {

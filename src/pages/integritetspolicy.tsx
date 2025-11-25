@@ -30,7 +30,7 @@ const PrivacyPolicyPage: React.FC = () => {
 
               <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">1. Allmän information</h2>
               <p className="text-gray-700 mb-6">
-                Legaliseringstjänst AB ("vi", "oss" eller "vårt") respekterar din integritet och är engagerade i att skydda dina personuppgifter.
+                DOX Visumpartner AB ("vi", "oss" eller "vårt") respekterar din integritet och är engagerade i att skydda dina personuppgifter.
                 Denna integritetspolicy förklarar hur vi samlar in, använder, lagrar och skyddar dina personuppgifter när du använder våra tjänster.
               </p>
 
@@ -87,7 +87,7 @@ const PrivacyPolicyPage: React.FC = () => {
               </p>
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
                 <p className="text-gray-700">
-                  <strong>Legaliseringstjänst AB</strong><br />
+                  <strong>DOX Visumpartner AB</strong><br />
                   Kungsgatan 12<br />
                   111 43 Stockholm<br />
                   Sverige<br />

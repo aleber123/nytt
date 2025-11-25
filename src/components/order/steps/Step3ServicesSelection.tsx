@@ -122,30 +122,6 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
         </div>
       </div>
 
-      {/* Non-Hague Process Info */}
-      {!isHagueCountry && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-          <div className="flex items-start">
-            <span className="text-2xl mr-3">ℹ️</span>
-            <div>
-              <h4 className="font-medium text-amber-900 mb-2">
-                {t('orderFlow.step3.nonHagueProcess.title', 'Legaliseringsprocess för detta land')}
-              </h4>
-              <div className="text-sm text-amber-800 space-y-1">
-                <div><strong>{t('orderFlow.step3.nonHagueProcess.step1', 'Steg 1: Notarius Publicus eller Handelskammare')}</strong></div>
-                <div><strong>{t('orderFlow.step3.nonHagueProcess.step2', 'Steg 2: Utrikesdepartementet (UD)')}</strong></div>
-                <div><strong>{t('orderFlow.step3.nonHagueProcess.step3', 'Steg 3: Ambassadlegalisering')}</strong></div>
-              </div>
-              <p className="text-xs text-amber-700 mt-2">
-                <strong>{t('orderFlow.step3.nonHagueProcess.tip', 'Tips:')}</strong> {t('orderFlow.step3.nonHagueProcess.tipText', 'Välj alla tre steg för fullständig legalisering')}
-              </p>
-              <p className="text-xs text-amber-700 mt-2">
-                {t('orderFlow.step3.nonHagueProcess.note', 'Vi hanterar hela processen åt dig')}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Loading State */}
       {loadingServices && (
@@ -220,15 +196,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
         </div>
       )}
 
-      {/* Help Text */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-900">
-          <strong>💡 Tips:</strong> {isHagueCountry 
-            ? t('orderFlow.step3.hagueHelp', 'För Haagkonventionsländer räcker det ofta med apostille')
-            : t('orderFlow.step3.nonHagueHelp', 'För detta land behövs alla tre steg för fullständig legalisering')
-          }
-        </p>
-      </div>
+      {/* Help Text removed per new design */}
     </StepContainer>
   );
 };

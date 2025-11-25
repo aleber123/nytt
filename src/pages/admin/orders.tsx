@@ -7,7 +7,7 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { getAllOrders, updateOrder } from '@/services/hybridOrderService';
+import { getAllOrders } from '@/services/hybridOrderService';
 import { getInvoicesByOrderId, convertOrderToInvoice, storeInvoice } from '@/services/invoiceService';
 
 // Admin email check (temporary solution until custom claims work)
@@ -64,7 +64,6 @@ function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [creatingInvoiceForOrder, setCreatingInvoiceForOrder] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -82,25 +81,6 @@ function AdminOrdersPage() {
       setError('Failed to load orders. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
-    setUpdatingOrderId(orderId);
-    try {
-      await updateOrder(orderId, { status: newStatus });
-
-      // Update the local state
-      setOrders(orders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus, updatedAt: new Date() as any } : order
-      ));
-
-      toast.success(`Order ${orderId} status updated to ${newStatus}`);
-    } catch (err) {
-      console.error('Error updating order status:', err);
-      toast.error('Failed to update order status');
-    } finally {
-      setUpdatingOrderId(null);
     }
   };
 
@@ -531,18 +511,6 @@ function AdminOrdersPage() {
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
                           <div className="inline-flex items-center gap-2">
-                            <select
-                              disabled={updatingOrderId === order.id}
-                              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                              value={order.status}
-                              onChange={(e) => handleStatusChange(order.id!, e.target.value as Order['status'])}
-                            >
-                              <option value="pending">Väntar</option>
-                              <option value="processing">Bearbetas</option>
-                              <option value="shipped">Skickad</option>
-                              <option value="delivered">Levererad</option>
-                              <option value="cancelled">Avbruten</option>
-                            </select>
                             <Link
                               href={`/admin/orders/${order.id}`}
                               className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"

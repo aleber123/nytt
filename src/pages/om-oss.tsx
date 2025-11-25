@@ -4,6 +4,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const AboutPage: React.FC = () => {
   const { t } = useTranslation('common');
@@ -22,6 +23,17 @@ const AboutPage: React.FC = () => {
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
+          <div className="mb-10 rounded-lg overflow-hidden shadow">
+            <Image
+              src="/images/team.jpeg"
+              alt={t('about.title') || 'Team'}
+              width={1200}
+              height={600}
+              className="w-full h-auto object-cover"
+              priority
+            />
+          </div>
+
           <div className="prose prose-lg max-w-none">
             <section className="mb-12">
               <h2 className="text-2xl font-heading font-bold text-gray-900 mb-6">

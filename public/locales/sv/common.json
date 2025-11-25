@@ -156,7 +156,45 @@
     "processSubtitle": "Vår process är enkel och effektiv för att spara dig tid och besvär",
     "ctaTitle": "Redo att beställa?",
     "ctaText": "Vi hjälper dig med legalisering av dina dokument snabbt och enkelt",
-    "ctaButton": "Beställ nu"
+    "ctaButton": "Beställ nu",
+    "popularLabel": "Populär",
+    "servicesFeatures": {
+      "apostille": [
+        "Officiell legalisering",
+        "Giltig i Haag-länder",
+        "Snabb handläggning",
+        "Digital leverans"
+      ],
+      "notarization": [
+        "Notarius publicus",
+        "Juridisk giltighet",
+        "Digital leverans",
+        "Snabb handläggning"
+      ],
+      "embassy": [
+        "Ambassad/konsulat",
+        "Internationell giltighet",
+        "Komplex process",
+        "Hög säkerhet"
+      ],
+      "translation": [
+        "Certifierade översättare",
+        "Alla språk",
+        "Officiell stämpel"
+      ],
+      "chamber": [
+        "Handelskammarens stämpel",
+        "Internationell giltighet",
+        "Företagshandlingar",
+        "Officiell legalisering"
+      ],
+      "ud": [
+        "Utrikesdepartementets stämpel",
+        "Högsta myndighet",
+        "Internationell giltighet",
+        "Officiell legalisering"
+      ]
+    }
   },
   "hero": {
     "title": "Legalisering av dokument för användning utomlands",
@@ -838,6 +876,15 @@
       "returnNote": "Dina dokument kommer att returneras när legaliseringen är klar",
       "returnDescription": "Vi skickar dina dokument tillbaka till dig med valfri fraktmetod",
       "loadingServices": "Laddar fraktalternativ...",
+      "priceDisclaimerTitle": "Observera: Priserna kan variera",
+      "priceDisclaimerText": "De angivna priserna är från-priser och kan variera beroende på vikt, storlek och destinationsadress. Det slutgiltiga priset bekräftas vid leverans.",
+      "otherOptionsTitle": "Andra alternativ",
+      "ownReturnTitle": "Egen returfrakt (redan bokad)",
+      "ownReturnDescription": "Du har själv bokat returfrakt för dina dokument. Ange spårningsnumret så att vi kan koppla returen till din beställning.",
+      "ownReturnTrackingLabel": "Spårningsnummer",
+      "ownReturnTrackingPlaceholder": "Ange spårningsnummer för din retur...",
+      "officePickupTitle": "Hämtning på vårt kontor",
+      "officePickupDescription": "Du hämtar själv dina färdiga dokument på vårt kontor i Stockholm.",
       "backButton": "Tillbaka"
     },
     "step10": {
@@ -906,20 +953,6 @@
       "scannedCopiesFee": "Scannade kopior (+200 kr per dokument)",
       "totalPrice": "{{price}} kr"
     },
-    "validation": {
-      "firstNameRequired": "Förnamn är obligatoriskt",
-      "lastNameRequired": "Efternamn är obligatoriskt",
-      "emailRequired": "E-postadress är obligatorisk",
-      "emailInvalid": "Ange en giltig e-postadress",
-      "phoneRequired": "Telefonnummer är obligatoriskt",
-      "streetRequired": "Gatuadress är obligatorisk",
-      "postalCodeRequired": "Postnummer är obligatoriskt",
-      "cityRequired": "Ort är obligatorisk",
-      "filesRequired": "Alla dokument måste laddas upp",
-      "servicesRequired": "Minst en tjänst måste väljas"
-    },
-    "submitOrder": "Skicka beställning",
-    "submittingOrder": "Skickar beställning...",
     "wait10Seconds": "Vänta 10 sekunder...",
     "orderSubmitted": "🎉 Beställning skickad!",
     "orderNumber": "Ordernummer: {{orderId}}",

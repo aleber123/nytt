@@ -37,7 +37,9 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
     setAnswers({
       ...answers,
       returnService: serviceId,
-      premiumDelivery: '' // Reset premium delivery when changing base service
+      premiumDelivery: '', // Reset premium delivery when changing base service
+      // Clear tracking number when switching away from own-delivery
+      ownReturnTrackingNumber: serviceId === 'own-delivery' ? answers.ownReturnTrackingNumber : ''
     });
   };
 
@@ -66,13 +68,16 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
   const showDHLPremium = answers.returnService && ['dhl-sweden', 'dhl-europe', 'dhl-worldwide'].includes(answers.returnService);
   const showStockholmPremium = answers.returnService === 'stockholm-city';
 
+  const isOwnReturn = answers.returnService === 'own-delivery';
+  const isNextDisabled = !answers.returnService || (isOwnReturn && !answers.ownReturnTrackingNumber?.trim());
+
   return (
     <StepContainer
       title={t('orderFlow.step9.title', 'Välj returleverans')}
       subtitle={t('orderFlow.step9.subtitle', 'Hur vill du få tillbaka dina legaliserade dokument?')}
       onNext={onNext}
       onBack={onBack}
-      nextDisabled={!answers.returnService}
+      nextDisabled={isNextDisabled}
     >
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -94,7 +99,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span className="ml-2 text-gray-600">
-            {t('orderFlow.step10.loadingServices', 'Laddar leveransalternativ...')}
+            {t('orderFlow.step9.loadingServices', 'Laddar fraktalternativ...')}
           </span>
         </div>
       )}
@@ -190,6 +195,94 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
               )}
             </div>
           ))}
+
+          {/* Other return options */}
+          <div className="mt-6 border-t border-gray-200 pt-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-3">
+              {t('orderFlow.step9.otherOptionsTitle', 'Andra alternativ')}
+            </h4>
+
+            {/* Own return shipping (customer-arranged) */}
+            <button
+              type="button"
+              onClick={() => handleServiceSelect('own-delivery')}
+              className={`w-full p-4 border-2 rounded-lg text-left hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+                answers.returnService === 'own-delivery'
+                  ? 'border-custom-button bg-custom-button-bg'
+                  : 'border-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {t('orderFlow.step9.ownReturnTitle', 'Egen returfrakt (redan bokad)')}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {t(
+                      'orderFlow.step9.ownReturnDescription',
+                      'Du har själv bokat returfrakt för dina dokument. Ange spårningsnumret så att vi kan koppla returen till din beställning.'
+                    )}
+                  </div>
+                </div>
+                <div className="ml-4 text-right">
+                  <div className="text-sm font-semibold text-custom-button">0 kr</div>
+                </div>
+              </div>
+            </button>
+
+            {answers.returnService === 'own-delivery' && (
+              <div className="mt-4 ml-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-blue-900">
+                    {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}
+                  </label>
+                  <input
+                    type="text"
+                    value={answers.ownReturnTrackingNumber || ''}
+                    onChange={(e) =>
+                      setAnswers(prev => ({
+                        ...prev,
+                        ownReturnTrackingNumber: e.target.value
+                      }))
+                    }
+                    placeholder={t(
+                      'orderFlow.step9.ownReturnTrackingPlaceholder',
+                      'Ange spårningsnummer för din retur...'
+                    )}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-1 focus:ring-custom-button focus:border-custom-button sm:text-sm bg-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Pickup at office */}
+            <button
+              type="button"
+              onClick={() => handleServiceSelect('office-pickup')}
+              className={`mt-4 w-full p-4 border-2 rounded-lg text-left hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+                answers.returnService === 'office-pickup'
+                  ? 'border-custom-button bg-custom-button-bg'
+                  : 'border-gray-200'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {t('orderFlow.step9.officePickupTitle', 'Hämtning på vårt kontor')}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {t(
+                      'orderFlow.step9.officePickupDescription',
+                      'Du hämtar själv dina färdiga dokument på vårt kontor i Stockholm.'
+                    )}
+                  </div>
+                </div>
+                <div className="ml-4 text-right">
+                  <div className="text-sm font-semibold text-custom-button">0 kr</div>
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
       )}
 

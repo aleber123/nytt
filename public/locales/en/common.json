@@ -206,7 +206,45 @@
     "processSubtitle": "Our process is simple and efficient to save you time and hassle",
     "ctaTitle": "Ready to order?",
     "ctaText": "We help you with the legalization of your documents quickly and easily",
-    "ctaButton": "Order now"
+    "ctaButton": "Order now",
+    "popularLabel": "Popular",
+    "servicesFeatures": {
+      "apostille": [
+        "Official legalization",
+        "Valid in Hague Convention countries",
+        "Fast processing",
+        "Digital delivery"
+      ],
+      "notarization": [
+        "Notary public",
+        "Legal validity",
+        "Digital delivery",
+        "Fast processing"
+      ],
+      "embassy": [
+        "Embassy/consulate",
+        "International validity",
+        "Complex process",
+        "High security"
+      ],
+      "translation": [
+        "Certified translators",
+        "All languages",
+        "Official stamp"
+      ],
+      "chamber": [
+        "Chamber of Commerce stamp",
+        "International validity",
+        "Corporate documents",
+        "Official legalization"
+      ],
+      "ud": [
+        "Ministry for Foreign Affairs stamp",
+        "Highest authority",
+        "International validity",
+        "Official legalization"
+      ]
+    }
   },
   "hero": {
     "title": "Document legalization for use abroad",
@@ -735,6 +773,7 @@
         "tip": "Tip: Chamber of Commerce legalization is recommended for business documents, while notarization is better suited for personal documents.",
         "note": "All three steps are required for the document to be valid in the selected country."
       },
+      "translationOnRequest": "On request",
       "apostilleRecommended": "Recommended for Hague Convention countries",
       "chamberStep": "Step 1: Chamber of Commerce",
       "chamberDescription": "For commercial documents and business certificates",
@@ -847,12 +886,21 @@
       "returnNote": "Your documents will be returned once legalization is complete",
       "returnDescription": "We will send your documents back to you using your preferred shipping method",
       "loadingServices": "Loading shipping options...",
+      "priceDisclaimerTitle": "Note: Prices may vary",
+      "priceDisclaimerText": "The stated prices are from-prices and may vary depending on weight, size and destination address. The final price is confirmed upon delivery.",
+      "otherOptionsTitle": "Other options",
+      "ownReturnTitle": "Own return shipping (already booked)",
+      "ownReturnDescription": "You have already booked return shipping for your documents. Enter the tracking number so we can link the return to your order.",
+      "ownReturnTrackingLabel": "Tracking number",
+      "ownReturnTrackingPlaceholder": "Enter the tracking number for your return...",
+      "officePickupTitle": "Pickup at our office",
+      "officePickupDescription": "You will pick up your completed documents at our office in Stockholm.",
       "backButton": "Back"
     },
     "step10": {
       "title": "Complete your order",
       "subtitle": "Review your order and complete by filling in your details below",
-      "termsAcceptance": "I accept the terms and conditions",
+      "termsAcceptance": "I have read and accept the",
       "summaryTitle": "Final order summary",
       "country": "Country",
       "documentType": "Document type",
@@ -915,24 +963,6 @@
       "expeditedFee": "Express processing (+500 kr)",
       "pickupFee": "Document pickup (From 450 kr)",
       "scannedCopiesFee": "Scanned copies (+200 kr per document)",
-      "totalPrice": "{{price}} kr"
-    },
-    "validation": {
-      "firstNameRequired": "First name is required",
-      "lastNameRequired": "Last name is required",
-      "emailRequired": "Email address is required",
-      "emailInvalid": "Please enter a valid email address",
-      "phoneRequired": "Phone number is required",
-      "streetRequired": "Street address is required",
-      "postalCodeRequired": "Postal code is required",
-      "cityRequired": "City is required",
-      "filesRequired": "All documents must be uploaded",
-      "servicesRequired": "At least one service must be selected"
-    },
-    "success": {
-      "title": "🎉 Order submitted!",
-      "orderNumber": "Order number: {{orderId}}",
-      "documentsReturn": "✓ Your documents will be returned according to the selected shipping method",
       "redirecting": "Redirecting to confirmation..."
     },
     "error": {

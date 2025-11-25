@@ -152,35 +152,57 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
 
           {answers.returnService && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step10.returnShipping')}:</span>
-              <span className="font-medium text-gray-900">
-                {(() => {
-                  const returnService = returnServices.find(s => s.id === answers.returnService);
-                  let totalReturnCost = 0;
+            <>
+              <div className="flex justify-between items-center py-2 border-b border-green-200">
+                <span className="text-gray-700">{t('orderFlow.step10.returnShipping')}:</span>
+                <span className="font-medium text-gray-900">
+                  {(() => {
+                    const returnService = returnServices.find(s => s.id === answers.returnService);
+                    let totalReturnCost = 0;
 
-                  if (returnService && returnService.price) {
-                    const priceMatch = returnService.price.match(/(\d+)/);
-                    if (priceMatch) {
-                      totalReturnCost += parseInt(priceMatch[1]);
-                    }
-                  }
-
-                  // Add premium delivery cost
-                  if (answers.premiumDelivery) {
-                    const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
-                    if (premiumService && premiumService.price) {
-                      const priceMatch = premiumService.price.match(/(\d+)/);
+                    if (returnService && returnService.price) {
+                      const priceMatch = returnService.price.match(/(\d+)/);
                       if (priceMatch) {
                         totalReturnCost += parseInt(priceMatch[1]);
                       }
                     }
-                  }
 
-                  return `${totalReturnCost} kr`;
-                })()}
-              </span>
-            </div>
+                    // Add premium delivery cost
+                    if (answers.premiumDelivery) {
+                      const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
+                      if (premiumService && premiumService.price) {
+                        const priceMatch = premiumService.price.match(/(\d+)/);
+                        if (priceMatch) {
+                          totalReturnCost += parseInt(priceMatch[1]);
+                        }
+                      }
+                    }
+
+                    const isOwnReturn = answers.returnService === 'own-delivery';
+                    const isOfficePickup = answers.returnService === 'office-pickup';
+
+                    const label = isOwnReturn
+                      ? t('orderFlow.step9.ownReturnTitle')
+                      : isOfficePickup
+                      ? t('orderFlow.step9.officePickupTitle')
+                      : returnService?.name || '';
+
+                    return `${label ? `${label} - ` : ''}${totalReturnCost} kr`;
+                  })()}
+                </span>
+              </div>
+
+              {answers.returnService === 'own-delivery' && answers.ownReturnTrackingNumber && (
+                <div className="flex justify-between items-center py-2 border-b border-green-200">
+                  <span className="text-gray-700">
+                    {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}:
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {answers.ownReturnTrackingNumber}
+                  </span>
+                </div>
+              )}
+            </>
           )}
 
           {/* Total Price */}
@@ -275,7 +297,24 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
               </div>
               <div className="ml-3 text-sm">
                 <label htmlFor="terms-acceptance-original" className="text-gray-700">
-                  {t('orderFlow.step10.termsAcceptance')}
+                  {t('orderFlow.step10.termsAcceptance')}{' '}
+                  <Link
+                    href="/villkor"
+                    target="_blank"
+                    className="text-custom-button hover:text-custom-button-hover underline"
+                  >
+                    {t('legal.terms', 'allmänna villkor')}
+                  </Link>
+                  {' '}
+                  {t('legal.and', 'och')}{' '}
+                  <Link
+                    href="/integritetspolicy"
+                    target="_blank"
+                    className="text-custom-button hover:text-custom-button-hover underline"
+                  >
+                    {t('legal.privacy', 'integritetspolicy')}
+                  </Link>
+                  .
                 </label>
               </div>
             </div>
@@ -480,6 +519,27 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                   // Send email notification (save to Firestore for external processing, same as contact form)
                   try {
+                    let returfraktText = 'Ej vald';
+                    if (answers.returnService === 'own-delivery') {
+                      returfraktText = 'Egen returfrakt (redan bokad)';
+                      if (answers.ownReturnTrackingNumber) {
+                        returfraktText += `  Spårningsnummer: ${answers.ownReturnTrackingNumber}`;
+                      }
+                    } else if (answers.returnService === 'office-pickup') {
+                      returfraktText = 'Hämtning på vårt kontor';
+                    } else if (answers.returnService) {
+                      const rs = returnServices.find(s => s.id === answers.returnService);
+                      returfraktText = rs?.name || answers.returnService;
+                    }
+
+                    let premiumText = '';
+                    if (answers.premiumDelivery) {
+                      const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
+                      if (premiumService) {
+                        premiumText = `Premiumleverans: ${premiumService.name}`;
+                      }
+                    }
+
                     const emailData = {
                       name: `Ny beställning - Order #${orderId}`,
                       email: 'noreply@legaliseringstjanst.se',
@@ -505,8 +565,8 @@ Valda tjänster: ${answers.services.map(serviceId => getServiceName(serviceId)).
 Totalbelopp: ${pricingResult.totalPrice} kr
 
 Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
-Returfrakt: ${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}
-${answers.premiumDelivery ? `Premiumleverans: ${returnServices.find(s => s.id === answers.premiumDelivery)?.name}` : ''}
+Returfrakt: ${returfraktText}
+${premiumText}
 
 ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
                       `.trim(),
@@ -781,13 +841,22 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
               </div>
               <div className="ml-3 text-sm">
                 <label htmlFor="terms-acceptance-original" className="text-gray-700">
-                  Jag har läst och godkänner{' '}
-                  <Link href="/villkor" target="_blank" className="text-custom-button hover:text-custom-button-hover underline">
-                    allmänna villkor
+                  {t('orderFlow.step10.termsAcceptance')}{' '}
+                  <Link
+                    href="/villkor"
+                    target="_blank"
+                    className="text-custom-button hover:text-custom-button-hover underline"
+                  >
+                    {t('legal.terms', 'allmänna villkor')}
                   </Link>
-                  {' '}och{' '}
-                  <Link href="/integritetspolicy" target="_blank" className="text-custom-button hover:text-custom-button-hover underline">
-                    integritetspolicy
+                  {' '}
+                  {t('legal.and', 'och')}{' '}
+                  <Link
+                    href="/integritetspolicy"
+                    target="_blank"
+                    className="text-custom-button hover:text-custom-button-hover underline"
+                  >
+                    {t('legal.privacy', 'integritetspolicy')}
                   </Link>
                   .
                 </label>

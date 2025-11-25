@@ -13,6 +13,7 @@ import { getAllActivePricingRules, PricingRule } from '@/firebase/pricingService
 
 interface ServiceOverview {
   id: string;
+  serviceType: string;
   title: string;
   shortDescription: string;
   icon: string;
@@ -30,6 +31,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
 
+  const getServiceFeatures = (serviceType: string, fallbackFeatures: string[] = []): string[] => {
+    const key = `home.servicesFeatures.${serviceType}`;
+    const translated = t(key, { returnObjects: true }) as unknown;
+    if (Array.isArray(translated)) {
+      return (translated as unknown[]).filter((item): item is string => typeof item === 'string');
+    }
+    return fallbackFeatures;
+  };
+
   // Fetch pricing data from Firebase
   useEffect(() => {
     const fetchPricingData = async () => {
@@ -42,13 +52,14 @@ export default function Home() {
         const pricingData = getPricingData(rules);
         setServices(pricingData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
-          title: service.service,
-          shortDescription: service.description,
-          icon: getServiceIcon(service.service.toLowerCase()),
+          serviceType: service.serviceType,
+          title: t(`services.${service.serviceType}.title`),
+          shortDescription: t(`services.${service.serviceType}.description`),
+          icon: getServiceIcon(service.serviceType),
           price: service.totalPrice,
           timeframe: service.timeframe,
-          popular: service.service === 'Apostille',
-          features: service.features
+          popular: service.serviceType === 'apostille',
+          features: getServiceFeatures(service.serviceType, service.features || [])
         })));
 
       } catch (err) {
@@ -57,13 +68,14 @@ export default function Home() {
         const fallbackData = getFallbackPricingData();
         setServices(fallbackData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
-          title: service.service,
-          shortDescription: service.description,
-          icon: getServiceIcon(service.service.toLowerCase()),
+          serviceType: service.serviceType,
+          title: t(`services.${service.serviceType}.title`),
+          shortDescription: t(`services.${service.serviceType}.description`),
+          icon: getServiceIcon(service.serviceType),
           price: service.totalPrice,
           timeframe: service.timeframe,
-          popular: service.service === 'Apostille',
-          features: service.features
+          popular: service.serviceType === 'apostille',
+          features: getServiceFeatures(service.serviceType, service.features || [])
         })));
       } finally {
         setLoading(false);
@@ -122,7 +134,7 @@ export default function Home() {
     {
       serviceType: 'apostille',
       service: 'Apostille',
-      description: 'För länder anslutna till Haagkonventionen',
+      description: t('services.apostille.description'),
       officialFee: '850 kr',
       serviceFee: '100 kr',
       totalPrice: '950 kr',
@@ -132,7 +144,7 @@ export default function Home() {
     {
       serviceType: 'notarization',
       service: 'Notarisering',
-      description: 'Juridisk bekräftelse av dokument',
+      description: t('services.notarization.description'),
       officialFee: '1,200 kr',
       serviceFee: '100 kr',
       totalPrice: '1,300 kr',
@@ -142,7 +154,7 @@ export default function Home() {
     {
       serviceType: 'embassy',
       service: 'Ambassadlegalisering',
-      description: 'För länder utanför Haagkonventionen',
+      description: t('services.embassy.description'),
       officialFee: 'Från 1,500 kr (exkl. moms)',
       serviceFee: '150 kr (inkl. moms)',
       totalPrice: 'Från 1,650 kr',
@@ -152,7 +164,7 @@ export default function Home() {
     {
       serviceType: 'translation',
       service: 'Auktoriserad översättning',
-      description: 'Officiella översättningar',
+      description: t('services.translation.description'),
       officialFee: 'Från 1,350 kr',
       serviceFee: '100 kr',
       totalPrice: 'Från 1,450 kr',
@@ -162,7 +174,7 @@ export default function Home() {
     {
       serviceType: 'chamber',
       service: 'Handelskammaren',
-      description: 'Handelskammarens legalisering',
+      description: t('services.chamber.description'),
       officialFee: '2,300 kr',
       serviceFee: '100 kr',
       totalPrice: '2,400 kr',
@@ -172,7 +184,7 @@ export default function Home() {
     {
       serviceType: 'ud',
       service: 'Utrikesdepartementet',
-      description: 'UD:s legalisering',
+      description: t('services.ud.description'),
       officialFee: '1,650 kr',
       serviceFee: '100 kr',
       totalPrice: '1,750 kr',
@@ -184,22 +196,16 @@ export default function Home() {
   const getServiceIcon = (serviceType: string): string => {
     switch (serviceType) {
       case 'apostille':
-      case 'apostille':
         return 'document-check';
       case 'notarization':
-      case 'notarisering':
         return 'seal';
       case 'embassy':
-      case 'ambassad':
         return 'building';
       case 'translation':
-      case 'oversattning':
         return 'language';
       case 'chamber':
-      case 'handelskammaren':
         return 'home';
       case 'ud':
-      case 'utrikesdepartementet':
         return 'landmark';
       default:
         return 'document-check';
@@ -325,7 +331,7 @@ export default function Home() {
                     </div>
                     {service.popular && (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-custom-button/10 text-custom-button">
-                        Populär
+                        {t('home.popularLabel')}
                       </span>
                     )}
                   </div>

@@ -6,8 +6,7 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { getAllOrders, updateOrder } from '@/firebase/orderService';
 import type { Order } from '@/firebase/orderService';
-import { toast } from 'react-hot-toast';
-import { Timestamp } from 'firebase/firestore';
+import { ALL_COUNTRIES } from '@/components/order/data/countries';
 
 interface ProcessingStep {
   id: string;
@@ -43,6 +42,21 @@ function DriverDashboardPage() {
   const [filterType, setFilterType] = useState<'all' | 'pickup' | 'delivery'>('all');
 
   console.log('🚗 DriverDashboardPage component mounted');
+
+  const getCountryInfo = (codeOrName: string | undefined | null) => {
+    const value = (codeOrName || '').trim();
+    if (!value) return { code: '', name: '', flag: '🌍' };
+
+    const upper = value.toUpperCase();
+
+    let match = ALL_COUNTRIES.find((c) => c.code === upper);
+    if (match) return { code: match.code, name: match.name, flag: match.flag };
+
+    match = ALL_COUNTRIES.find((c) => c.name.toLowerCase() === value.toLowerCase());
+    if (match) return { code: match.code, name: match.name, flag: match.flag };
+
+    return { code: value, name: value, flag: '🌍' };
+  };
 
   // Simplified version of initializeProcessingSteps for driver dashboard
   const initializeProcessingSteps = (orderData: Order): ProcessingStep[] => {
@@ -391,12 +405,16 @@ function DriverDashboardPage() {
               address = 'Utrikesdepartementets kontor';
             } else if (step.id === 'embassy_delivery' || step.id === 'embassy_processing') {
               taskType = 'delivery';
-              authority = `${order.country || 'Okänt'} Ambassad`;
-              address = `${order.country || 'Okänt'} Ambassad`;
+              const c = getCountryInfo(order.country);
+              const embassyName = c.name || c.code || order.country || 'Okänt';
+              authority = `${embassyName} ambassad`;
+              address = `${embassyName} ambassad`;
             } else if (step.id === 'embassy_pickup') {
               taskType = 'pickup';
-              authority = `${order.country || 'Okänt'} Ambassad`;
-              address = `${order.country || 'Okänt'} Ambassad`;
+              const c = getCountryInfo(order.country);
+              const embassyName = c.name || c.code || order.country || 'Okänt';
+              authority = `${embassyName} ambassad`;
+              address = `${embassyName} ambassad`;
             } else if (step.id === 'return_shipping') {
               taskType = 'pickup';
               authority = 'Fraktleverantör';
@@ -504,7 +522,8 @@ function DriverDashboardPage() {
   const filteredTasks = tasks.filter(task => {
     const dateMatch = task.date === selectedDate;
     const typeMatch = filterType === 'all' || task.type === filterType;
-    return dateMatch && typeMatch;
+    const statusMatch = task.status === 'pending' || task.status === 'in_progress';
+    return dateMatch && typeMatch && statusMatch;
   });
 
   const groupedTasks = filteredTasks.reduce((acc, task) => {
@@ -522,54 +541,6 @@ function DriverDashboardPage() {
       month: 'long',
       day: 'numeric'
     });
-  };
-
-  const updateTaskStatus = async (orderId: string, stepId: string, newStatus: 'pending' | 'in_progress' | 'completed') => {
-    try {
-      const { getOrderById, updateOrder } = await import('@/firebase/orderService');
-      const order = await getOrderById(orderId);
-
-      if (!order || !order.processingSteps) {
-        console.error('❌ Order or processingSteps not found');
-        toast.error('Order eller bearbetningssteg hittades inte');
-        return;
-      }
-
-      const stepToUpdate = order.processingSteps.find(step => step.id === stepId);
-      console.log('🔍 Found step to update:', stepToUpdate ? {id: stepToUpdate.id, name: stepToUpdate.name} : 'NOT FOUND');
-
-      const updatedSteps = order.processingSteps.map(step => {
-        if (step.id === stepId) {
-          console.log('✅ Updating step:', step.id, step.name);
-          return {
-            ...step,
-            status: newStatus,
-            completedAt: newStatus === 'completed' ? Timestamp.now() : step.completedAt,
-            completedBy: newStatus === 'completed' ? 'Driver' : step.completedBy,
-            notes: newStatus === 'completed'
-              ? `${step.notes || ''}\n${new Date().toLocaleString('sv-SE')}: Markerad som klar av chaufför`.trim()
-              : step.notes
-          };
-        }
-        return step;
-      });
-
-      console.log('💾 Updating order in Firebase...');
-      await updateOrder(orderId, { 
-        processingSteps: updatedSteps,
-        status: newStatus === 'completed' 
-          ? (stepId.includes('pickup') ? 'delivered' : 'processing')
-          : order.status
-      });
-      console.log('✅ Firebase update successful');
-      await fetchDriverTasks();
-      console.log('✅ Task list refreshed');
-
-      toast.success(newStatus === 'completed' ? 'Uppgift markerad som klar!' : 'Uppgift uppdaterad!');
-    } catch (error) {
-      console.error('❌ Error updating task status:', error);
-      toast.error('Kunde inte uppdatera uppgift');
-    }
   };
 
   useEffect(() => {
@@ -1183,35 +1154,12 @@ function DriverDashboardPage() {
 
                                         {/* Actions */}
                                         <div className="w-32 text-right">
-                                          <div className="inline-flex items-center gap-2">
-                                            <select
-                                              value={task.status}
-                                              onChange={(e) => {
-                                                console.log(`🔄 Dropdown change for task:`, {
-                                                  orderId: task.orderId,
-                                                  stepId: task.stepId,
-                                                  stepName: task.stepName,
-                                                  type: task.type,
-                                                  currentStatus: task.status,
-                                                  newStatus: e.target.value
-                                                });
-                                                updateTaskStatus(task.orderId, task.stepId, e.target.value as 'pending' | 'in_progress' | 'completed');
-                                              }}
-                                              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                            >
-                                              <option value="pending">Väntar</option>
-                                              <option value="in_progress">Pågår</option>
-                                              <option value="completed">Klar</option>
-                                            </select>
-                                            <a
-                                              href={`/admin/orders/${task.orderId}`}
-                                              className={`inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 ${
-                                                task.status === 'completed' ? 'text-green-800' : 'text-blue-600 hover:text-blue-800'
-                                              }`}
-                                            >
-                                              Visa
-                                            </a>
-                                          </div>
+                                          <a
+                                            href={`/admin/orders/${task.orderId}`}
+                                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
+                                          >
+                                            Visa
+                                          </a>
                                         </div>
                                       </div>
                                     ))}
@@ -1299,35 +1247,12 @@ function DriverDashboardPage() {
 
                                         {/* Actions */}
                                         <div className="w-32 text-right">
-                                          <div className="inline-flex items-center gap-2">
-                                            <select
-                                              value={task.status}
-                                              onChange={(e) => {
-                                                console.log(`🔄 Dropdown change for task:`, {
-                                                  orderId: task.orderId,
-                                                  stepId: task.stepId,
-                                                  stepName: task.stepName,
-                                                  type: task.type,
-                                                  currentStatus: task.status,
-                                                  newStatus: e.target.value
-                                                });
-                                                updateTaskStatus(task.orderId, task.stepId, e.target.value as 'pending' | 'in_progress' | 'completed');
-                                              }}
-                                              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                            >
-                                              <option value="pending">Väntar</option>
-                                              <option value="in_progress">Pågår</option>
-                                              <option value="completed">Klar</option>
-                                            </select>
-                                            <a
-                                              href={`/admin/orders/${task.orderId}`}
-                                              className={`inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 ${
-                                                task.status === 'completed' ? 'text-green-800' : 'text-blue-600 hover:text-blue-800'
-                                              }`}
-                                            >
-                                              Visa
-                                            </a>
-                                          </div>
+                                          <a
+                                            href={`/admin/orders/${task.orderId}`}
+                                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
+                                          >
+                                            Visa
+                                          </a>
                                         </div>
                                       </div>
                                     ))}

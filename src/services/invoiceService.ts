@@ -1366,14 +1366,14 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
     // Create email data for Firestore (will be processed by external service)
     const emailData = {
       to: invoice.customerInfo.email,
-      subject: `Faktura ${invoice.invoiceNumber} från Legaliseringstjänst AB`,
+      subject: `Faktura ${invoice.invoiceNumber} från DOX Visumpartner AB`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2a67aa;">Faktura från Legaliseringstjänst AB</h2>
+          <h2 style="color: #2a67aa;">Faktura från DOX Visumpartner AB</h2>
 
           <p>Hej ${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName},</p>
 
-          <p>Tack för att du valde Legaliseringstjänst AB för dina legaliseringstjänster.</p>
+          <p>Tack för att du valde DOX Visumpartner AB för dina legaliseringstjänster.</p>
 
           <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 5px;">
             <h3 style="margin-top: 0; color: #2a67aa;">Fakturainformation</h3>
@@ -1389,7 +1389,7 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
           <p>Vid frågor, kontakta oss gärna på info@legaliseringstjanst.se eller 070-123 45 67.</p>
 
           <p>Med vänliga hälsningar,<br/>
-          Legaliseringstjänst AB<br/>
+          DOX Visumpartner AB<br/>
           Sveavägen 100<br/>
           113 50 Stockholm<br/>
           Org.nr: 556123-4567<br/>
@@ -1770,7 +1770,7 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       doc.text(footerText2, 105, footerY + 8, { align: 'center' });
 
       doc.setFontSize(8);
-      doc.text('Tack för att du valde Legaliseringstjänst AB för dina legaliseringstjänster!', 105, footerY + 15, { align: 'center' });
+      doc.text('Tack för att du valde DOX Visumpartner AB för dina legaliseringstjänster!', 105, footerY + 15, { align: 'center' });
 
       // Get PDF as Uint8Array
       const pdfOutput = doc.output('arraybuffer');

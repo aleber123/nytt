@@ -72,7 +72,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
                   : 'bg-custom-button text-white hover:bg-custom-button-hover'
               }`}
             >
-              {nextLabel || t('orderFlow.continue', 'Fortsätt')}
+              {nextLabel || t('orderFlow.continueButton', 'Fortsätt →')}
             </button>
           )}
         </div>

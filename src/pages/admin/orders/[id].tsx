@@ -200,6 +200,7 @@ function AdminOrderDetailPage() {
       let updatedServices = Array.isArray(order.services) ? [...order.services] : [];
       let updatedScannedCopies = order.scannedCopies;
       let updatedPickupService = order.pickupService;
+      let updatedReturnService = order.returnService;
 
       if (serviceToAdd === 'scanned_copies') {
         if (updatedScannedCopies) {
@@ -213,6 +214,12 @@ function AdminOrderDetailPage() {
           return;
         }
         updatedPickupService = true;
+      } else if (serviceToAdd === 'return') {
+        if (updatedReturnService) {
+          setAddingService(false);
+          return;
+        }
+        updatedReturnService = 'retur';
       } else {
         if (!updatedServices.includes(serviceToAdd)) {
           updatedServices.push(serviceToAdd);
@@ -229,7 +236,7 @@ function AdminOrderDetailPage() {
         quantity: order.quantity,
         expedited: order.expedited,
         deliveryMethod: order.deliveryMethod,
-        returnService: order.returnService,
+        returnService: updatedReturnService,
         returnServices: [],
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService
@@ -243,7 +250,8 @@ function AdminOrderDetailPage() {
         ...(order as ExtendedOrder),
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
-        pickupService: updatedPickupService
+        pickupService: updatedPickupService,
+        returnService: updatedReturnService
       } as ExtendedOrder;
 
       const templateSteps = initializeProcessingSteps(updatedOrderForSteps);
@@ -257,6 +265,7 @@ function AdminOrderDetailPage() {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
+        returnService: updatedReturnService,
         totalPrice: pricingResult.totalPrice,
         pricingBreakdown: pricingResult.breakdown,
         processingSteps: mergedSteps
@@ -267,6 +276,7 @@ function AdminOrderDetailPage() {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
+        returnService: updatedReturnService,
         totalPrice: pricingResult.totalPrice,
         pricingBreakdown: pricingResult.breakdown,
         processingSteps: mergedSteps
@@ -498,10 +508,17 @@ function AdminOrderDetailPage() {
 
       // Embassy legalization (usually last service)
       if (orderData.services.includes('embassy')) {
+        const embassyCountry = getCountryInfo(orderData.country);
         steps.push({
-          id: 'embassy_processing',
-          name: '🏢 Ambassad',
-          description: `Legalisering på ${orderData.country} ambassad`,
+          id: 'embassy_delivery',
+          name: '📤 Ambassad - lämna in',
+          description: `Lämna in dokument för legalisering på ${embassyCountry.name || embassyCountry.code || orderData.country} ambassad`,
+          status: 'pending'
+        });
+        steps.push({
+          id: 'embassy_pickup',
+          name: '📦 Ambassad - hämta',
+          description: `Hämta legaliserade dokument från ${embassyCountry.name || embassyCountry.code || orderData.country} ambassad`,
           status: 'pending'
         });
       }
@@ -1119,12 +1136,15 @@ function AdminOrderDetailPage() {
       let updatedServices = Array.isArray(order.services) ? [...order.services] : [];
       let updatedScannedCopies = order.scannedCopies;
       let updatedPickupService = order.pickupService;
+      let updatedReturnService = order.returnService;
 
       // Handle removal of additional services
       if (serviceToRemove === 'scanned_copies') {
         updatedScannedCopies = false;
       } else if (serviceToRemove === 'pickup_service') {
         updatedPickupService = false;
+      } else if (serviceToRemove === 'return') {
+        updatedReturnService = '';
       } else {
         // Remove from main services array
         updatedServices = updatedServices.filter(service => service !== serviceToRemove);
@@ -1138,7 +1158,7 @@ function AdminOrderDetailPage() {
         quantity: order.quantity,
         expedited: order.expedited,
         deliveryMethod: order.deliveryMethod,
-        returnService: order.returnService,
+        returnService: updatedReturnService,
         returnServices: [],
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService
@@ -1152,7 +1172,7 @@ function AdminOrderDetailPage() {
           if (serviceToRemove === 'notarization' && step.id === 'notarization') return false;
           if (serviceToRemove === 'translation' && step.id === 'translation') return false;
           if (serviceToRemove === 'ud' && step.id === 'ud_processing') return false;
-          if (serviceToRemove === 'embassy' && step.id === 'embassy_processing') return false;
+          if (serviceToRemove === 'embassy' && (step.id === 'embassy_processing' || step.id === 'embassy_delivery' || step.id === 'embassy_pickup')) return false;
           if (serviceToRemove === 'apostille' && step.id === 'apostille') return false;
           if (serviceToRemove === 'scanned_copies' && step.id === 'scanning') return false;
           return true;
@@ -1164,6 +1184,7 @@ function AdminOrderDetailPage() {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
+        returnService: updatedReturnService,
         totalPrice: pricingResult.totalPrice,
         pricingBreakdown: pricingResult.breakdown,
         processingSteps: updatedProcessingSteps
@@ -1174,6 +1195,7 @@ function AdminOrderDetailPage() {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
+        returnService: updatedReturnService,
         totalPrice: pricingResult.totalPrice,
         pricingBreakdown: pricingResult.breakdown,
         processingSteps: updatedProcessingSteps
@@ -1209,6 +1231,8 @@ function AdminOrderDetailPage() {
         return 'Utrikesdepartementet';
       case 'chamber':
         return 'Handelskammarens legalisering';
+      case 'return':
+        return 'Returfrakt';
       default:
         return serviceId;
     }
@@ -1216,27 +1240,59 @@ function AdminOrderDetailPage() {
 
   // Function to check if a step is an authority service
   const isAuthorityService = (stepId: string) => {
-    return ['notarization', 'chamber_processing', 'ud_processing', 'apostille', 'embassy_processing', 'translation'].includes(stepId);
+    return [
+      'notarization',
+      'chamber_processing',
+      'ud_processing',
+      'apostille',
+      'embassy_delivery',
+      'embassy_pickup',
+      'embassy_processing', // legacy
+      'translation'
+    ].includes(stepId);
   };
 
   // Function to get service status based on processing steps
   const getServiceStatus = (serviceId: string) => {
     if (!processingSteps || processingSteps.length === 0) return 'väntar';
 
+    // Special handling for embassy which now has separate delivery/pickup steps
+    if (serviceId === 'embassy' || serviceId === 'ambassad') {
+      const embassySteps = processingSteps.filter(s =>
+        ['embassy_delivery', 'embassy_pickup', 'embassy_processing'].includes(s.id)
+      );
+      if (embassySteps.length === 0) return 'väntar';
+
+      const statuses = embassySteps.map(s => s.status);
+
+      if (statuses.every(s => s === 'skipped')) {
+        return 'hoppas över';
+      }
+
+      if (statuses.every(s => s === 'completed' || s === 'skipped')) {
+        return 'klar';
+      }
+
+      if (statuses.some(s => s === 'in_progress' || s === 'completed')) {
+        return 'pågår';
+      }
+
+      return 'väntar';
+    }
+
     // Map service IDs to processing step IDs
     const serviceToStepMap: { [key: string]: string } = {
       'apostille': 'apostille',
       'notarisering': 'notarization',
       'notarization': 'notarization',
-      'ambassad': 'embassy_processing',
-      'embassy': 'embassy_processing',
       'oversattning': 'translation',
       'translation': 'translation',
       'utrikesdepartementet': 'ud_processing',
       'ud': 'ud_processing',
       'chamber': 'chamber_processing',
       'scanned_copies': 'scanning',
-      'pickup_service': 'document_receipt' // Map pickup to document receipt step
+      'pickup_service': 'document_receipt', // Map pickup to document receipt step
+      'return': 'return_shipping'
     };
 
     const stepId = serviceToStepMap[serviceId];
@@ -1870,6 +1926,7 @@ function AdminOrderDetailPage() {
                         const extraServices: string[] = [];
                         if (order.pickupService) extraServices.push('pickup_service');
                         if (order.scannedCopies) extraServices.push('scanned_copies');
+                        if (order.returnService) extraServices.push('return');
                         const allServices = [...baseServices, ...extraServices];
 
                         const currentSet = new Set(allServices);
@@ -1881,7 +1938,8 @@ function AdminOrderDetailPage() {
                           { id: 'embassy', label: getServiceName('embassy') },
                           { id: 'apostille', label: getServiceName('apostille') },
                           { id: 'pickup_service', label: 'Upphämtning av dokument' },
-                          { id: 'scanned_copies', label: 'Scannade kopior' }
+                          { id: 'scanned_copies', label: 'Scannade kopior' },
+                          { id: 'return', label: getServiceName('return') }
                         ];
 
                         const addableServices = possibleServices.filter(s => !currentSet.has(s.id));
@@ -2171,7 +2229,8 @@ function AdminOrderDetailPage() {
                             </div>
                             {isAuthorityService(step.id) && (
                               <div className="mt-4 space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Embassy delivery: only date in */}
+                                {step.id === 'embassy_delivery' && (
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                       Datum för inlämning till myndighet
@@ -2190,6 +2249,10 @@ function AdminOrderDetailPage() {
                                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                   </div>
+                                )}
+
+                                {/* Embassy pickup: only date out */}
+                                {step.id === 'embassy_pickup' && (
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                       Datum klart för upphämtning
@@ -2208,7 +2271,49 @@ function AdminOrderDetailPage() {
                                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                   </div>
-                                </div>
+                                )}
+
+                                {/* All other authorities: both date in and date out */}
+                                {step.id !== 'embassy_delivery' && step.id !== 'embassy_pickup' && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Datum för inlämning till myndighet
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={step.submittedAt ? new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] : ''}
+                                        onChange={(e) => {
+                                          const dateValue = e.target.value;
+                                          const updatedStep = {
+                                            ...step,
+                                            submittedAt: dateValue ? new Date(dateValue) : undefined
+                                          };
+                                          updateProcessingStep(step.id, step.status, step.notes, updatedStep);
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Datum klart för upphämtning
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={step.expectedCompletionDate ? new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0] : ''}
+                                        onChange={(e) => {
+                                          const dateValue = e.target.value;
+                                          const updatedStep = {
+                                            ...step,
+                                            expectedCompletionDate: dateValue ? new Date(dateValue) : undefined
+                                          };
+                                          updateProcessingStep(step.id, step.status, step.notes, updatedStep);
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                             {step.status === 'completed' && step.completedAt && (

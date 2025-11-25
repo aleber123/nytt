@@ -486,7 +486,7 @@ function AdminInvoicesPage() {
         paymentTerms: newInvoice.paymentTerms || 'Betalning inom 30 dagar',
         paymentReference: '',
         companyInfo: {
-          name: 'Legaliseringstjänst AB',
+          name: 'DOX Visumpartner AB',
           address: 'Sveavägen 100',
           postalCode: '113 50',
           city: 'Stockholm',

@@ -36,7 +36,7 @@ const TermsAndConditionsPage: React.FC = () => {
 
               <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">1. General Information</h2>
               <p className="text-gray-700 mb-6">
-                These General Terms and Conditions ("Terms") govern the use of Legaliseringstjänst AB's ("we", "us" or "our") services.
+                These General Terms and Conditions ("Terms") govern the use of DOX Visumpartner AB's ("we", "us" or "our") services.
                 By using our services, you accept these terms. These terms apply from the moment you accept them before placing an order.
               </p>
 
