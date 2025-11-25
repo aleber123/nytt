@@ -727,6 +727,9 @@
     "nextButton": "Nästa →",
     "continueButton": "Fortsätt →",
     "backToPrevious": "← Tillbaka",
+    "submitOrder": "Skicka beställning",
+    "submittingOrder": "Skickar beställning...",
+    "wait10Seconds": "Vänta 10 sekunder...",
     "step1": {
       "title": "Vilket land ska dokumentet användas i?",
       "subtitle": "Detta hjälper oss att rekommendera rätt legaliseringstjänster för ditt dokument.",
@@ -953,7 +956,6 @@
       "scannedCopiesFee": "Scannade kopior (+200 kr per dokument)",
       "totalPrice": "{{price}} kr"
     },
-    "wait10Seconds": "Vänta 10 sekunder...",
     "orderSubmitted": "🎉 Beställning skickad!",
     "orderNumber": "Ordernummer: {{orderId}}",
     "documentsReturn": "✓ Dina dokument kommer att returneras enligt valt fraktalternativ",
