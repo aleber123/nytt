@@ -31,8 +31,11 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     }
     
     try {
+      // Normalize order number to match stored format (e.g. SWE000111) regardless of user casing
+      const normalizedOrderNumber = orderNumber.trim().toUpperCase();
+
       // First try to get the order directly by document ID (which is the order number)
-      const orderDoc = await getDoc(doc(db, 'orders', orderNumber));
+      const orderDoc = await getDoc(doc(db, 'orders', normalizedOrderNumber));
 
       if (orderDoc.exists()) {
         const orderData = orderDoc.data() as Order;
@@ -53,7 +56,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
         const ordersRef = collection(db, 'orders');
         const q = query(
           ordersRef,
-          where('orderNumber', '==', orderNumber),
+          where('orderNumber', '==', normalizedOrderNumber),
           where('customerInfo.email', '==', email.toLowerCase())
         );
 

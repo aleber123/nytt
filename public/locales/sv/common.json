@@ -676,7 +676,7 @@
     "returnInfo": "Returinformation",
     "returnTrackingNumber": "Returspårningsnummer",
     "returnDate": "Returdatum",
-    "returnInstructions": "Dina dokument har returnerats. Kontakta oss om du har frågor om returen.",
+    "returnInstructions": "Vi har registrerat ett returspårningsnummer för dina dokument. Använd spårningslänken eller kontakta oss om du har frågor om returen.",
     "statuses": {
       "pending": "Väntar på behandling",
       "processing": "Under behandling",
