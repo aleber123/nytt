@@ -95,14 +95,14 @@ function DriverDashboardPage() {
           name: '📤 Notarisering - lämna in',
           description: 'Lämna in dokument för notarisering',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for delivery
+          expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'notarization_pickup',
           name: '📦 Notarisering - hämta',
           description: 'Hämta notarierbara dokument',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for pickup
+          expectedCompletionDate: undefined // Today - ready for pickup
         });
       }
 
@@ -113,14 +113,14 @@ function DriverDashboardPage() {
           name: '📤 Översättning - lämna in',
           description: 'Lämna in dokument för översättning',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for delivery
+          expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'translation_pickup',
           name: '📦 Översättning - hämta',
           description: 'Hämta översatta dokument',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for pickup
+          expectedCompletionDate: undefined // Today - ready for pickup
         });
       }
 
@@ -131,14 +131,14 @@ function DriverDashboardPage() {
           name: '📤 Handelskammaren - lämna in',
           description: 'Lämna in dokument för legalisering',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for delivery
+          expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'chamber_pickup',
           name: '📦 Handelskammaren - hämta',
           description: 'Hämta legaliserade dokument',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for pickup
+          expectedCompletionDate: undefined // Today - ready for pickup
         });
       }
 
@@ -149,14 +149,14 @@ function DriverDashboardPage() {
           name: '📤 Utrikesdepartementet - lämna in',
           description: 'Lämna in dokument för legalisering',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for delivery
+          expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'ud_pickup',
           name: '📦 Utrikesdepartementet - hämta',
           description: 'Hämta legaliserade dokument',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for pickup
+          expectedCompletionDate: undefined // Today - ready for pickup
         });
       }
 
@@ -167,14 +167,14 @@ function DriverDashboardPage() {
           name: '📤 Apostille - lämna in',
           description: 'Lämna in dokument för apostille',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for delivery
+          expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'apostille_pickup',
           name: '📦 Apostille - hämta',
           description: 'Hämta dokument med apostille',
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for pickup
+          expectedCompletionDate: undefined // Today - ready for pickup
         });
       }
 
@@ -185,14 +185,14 @@ function DriverDashboardPage() {
           name: '📤 Ambassad - lämna in',
           description: `Lämna in dokument för konsulär legalisering`,
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for delivery
+          expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'embassy_pickup',
           name: '📦 Ambassad - hämta',
           description: `Hämta konsulärt legaliserade dokument`,
           status: 'pending',
-          expectedCompletionDate: new Date() // Today - ready for pickup
+          expectedCompletionDate: undefined // Today - ready for pickup
         });
       }
     }
@@ -215,8 +215,10 @@ function DriverDashboardPage() {
       console.log('🔍 Starting to fetch driver tasks...');
       console.log('📅 Selected date:', selectedDate);
 
-      const orders = await getAllOrders();
-      console.log(`📊 Total orders fetched: ${orders.length}`);
+      const orders = (await getAllOrders()).filter(
+        (order) => order.status === 'pending' || order.status === 'processing'
+      );
+      console.log(`📊 Total active orders for driver (pending/processing): ${orders.length}`);
 
       const driverTasks: DriverTask[] = [];
       const ordersToUpdate: Array<{orderId: string, processingSteps: ProcessingStep[]}> = [];

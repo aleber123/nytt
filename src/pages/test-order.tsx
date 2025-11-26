@@ -2185,7 +2185,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   return (
     <>
       <Head>
-        <title>Test Order - Legaliseringstjänst</title>
+        <title>Beställning - Legaliseringstjänst</title>
         <meta name="description" content="Test version of our order flow" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>

@@ -502,6 +502,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pickupService: answers.pickupService,
                     pickupAddress: answers.pickupAddress,
                     returnService: answers.returnService,
+                    // If customer has chosen own delivery, persist their tracking number on the order
+                    returnTrackingNumber:
+                      answers.returnService === 'own-delivery'
+                        ? (answers.ownReturnTrackingNumber || '')
+                        : '',
                     premiumDelivery: answers.premiumDelivery,
                     customerInfo: answers.customerInfo,
                     paymentMethod: 'invoice', // Default to invoice payment
