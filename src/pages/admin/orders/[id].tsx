@@ -459,39 +459,15 @@ function AdminOrderDetailPage() {
       // Notarization usually comes first
       if (orderData.services.includes('notarization')) {
         steps.push({
-          id: 'notarization',
-          name: '✍️ Notarisering',
-          description: 'Notarisering av dokument hos notarius publicus',
+          id: 'notarization_delivery',
+          name: '✍️ Notarisering - lämna in',
+          description: 'Lämna in dokument för notarisering hos notarius publicus',
           status: 'pending'
         });
-      }
-
-      // Translation
-      if (orderData.services.includes('translation')) {
         steps.push({
-          id: 'translation',
-          name: '🌐 Översättning',
-          description: 'Auktoriserad översättning av dokument',
-          status: 'pending'
-        });
-      }
-
-      // Chamber legalization
-      if (orderData.services.includes('chamber')) {
-        steps.push({
-          id: 'chamber_processing',
-          name: '🏛️ Handelskammaren',
-          description: 'Legalisering hos Handelskammaren',
-          status: 'pending'
-        });
-      }
-
-      // UD processing
-      if (orderData.services.includes('ud')) {
-        steps.push({
-          id: 'ud_processing',
-          name: '🇸🇪 Utrikesdepartementet',
-          description: 'Legalisering hos svenska UD',
+          id: 'notarization_pickup',
+          name: '✍️ Notarisering - hämta',
+          description: 'Hämta notariserade dokument från notarius publicus',
           status: 'pending'
         });
       }
@@ -506,7 +482,39 @@ function AdminOrderDetailPage() {
         });
       }
 
-      // Embassy legalization (usually last service)
+      // Chamber legalization
+      if (orderData.services.includes('chamber')) {
+        steps.push({
+          id: 'chamber_delivery',
+          name: '🏛️ Handelskammaren - lämna in',
+          description: 'Lämna in dokument för legalisering hos Handelskammaren',
+          status: 'pending'
+        });
+        steps.push({
+          id: 'chamber_pickup',
+          name: '🏛️ Handelskammaren - hämta',
+          description: 'Hämta legaliserade dokument från Handelskammaren',
+          status: 'pending'
+        });
+      }
+
+      // UD processing
+      if (orderData.services.includes('ud')) {
+        steps.push({
+          id: 'ud_delivery',
+          name: '🇸🇪 Utrikesdepartementet - lämna in',
+          description: 'Lämna in dokument för legalisering hos svenska UD',
+          status: 'pending'
+        });
+        steps.push({
+          id: 'ud_pickup',
+          name: '🇸🇪 Utrikesdepartementet - hämta',
+          description: 'Hämta legaliserade dokument från svenska UD',
+          status: 'pending'
+        });
+      }
+
+      // Embassy legalization (usually after UD)
       if (orderData.services.includes('embassy')) {
         const embassyCountry = getCountryInfo(orderData.country);
         steps.push({
@@ -519,6 +527,22 @@ function AdminOrderDetailPage() {
           id: 'embassy_pickup',
           name: '📦 Ambassad - hämta',
           description: `Hämta legaliserade dokument från ${embassyCountry.name || embassyCountry.code || orderData.country} ambassad`,
+          status: 'pending'
+        });
+      }
+
+      // Translation (usually last)
+      if (orderData.services.includes('translation')) {
+        steps.push({
+          id: 'translation_delivery',
+          name: '🌐 Översättning - lämna in',
+          description: 'Lämna in dokument för auktoriserad översättning',
+          status: 'pending'
+        });
+        steps.push({
+          id: 'translation_pickup',
+          name: '🌐 Översättning - hämta',
+          description: 'Hämta översatta dokument från översättaren',
           status: 'pending'
         });
       }
@@ -1252,14 +1276,28 @@ function AdminOrderDetailPage() {
   // Function to check if a step is an authority service
   const isAuthorityService = (stepId: string) => {
     return [
-      'notarization',
-      'chamber_processing',
-      'ud_processing',
+      // Notarization
+      'notarization', // legacy single-step
+      'notarization_delivery',
+      'notarization_pickup',
+      // Chamber
+      'chamber_processing', // legacy single-step
+      'chamber_delivery',
+      'chamber_pickup',
+      // UD
+      'ud_processing', // legacy single-step
+      'ud_delivery',
+      'ud_pickup',
+      // Translation
+      'translation', // legacy single-step
+      'translation_delivery',
+      'translation_pickup',
+      // Apostille (always single-step)
       'apostille',
+      // Embassy
       'embassy_delivery',
       'embassy_pickup',
-      'embassy_processing', // legacy
-      'translation'
+      'embassy_processing' // legacy
     ].includes(stepId);
   };
 
@@ -1267,49 +1305,63 @@ function AdminOrderDetailPage() {
   const getServiceStatus = (serviceId: string) => {
     if (!processingSteps || processingSteps.length === 0) return 'väntar';
 
-    // Special handling for embassy which now has separate delivery/pickup steps
-    if (serviceId === 'embassy' || serviceId === 'ambassad') {
-      const embassySteps = processingSteps.filter(s =>
-        ['embassy_delivery', 'embassy_pickup', 'embassy_processing'].includes(s.id)
-      );
-      if (embassySteps.length === 0) return 'väntar';
+    const aggregateStatuses = (steps: ProcessingStep[]) => {
+      if (!steps || steps.length === 0) return 'väntar';
 
-      const statuses = embassySteps.map(s => s.status);
+      const statuses = steps.map((s) => s.status);
 
-      if (statuses.every(s => s === 'skipped')) {
+      if (statuses.every((s) => s === 'skipped')) {
         return 'hoppas över';
       }
 
-      if (statuses.every(s => s === 'completed' || s === 'skipped')) {
+      if (statuses.every((s) => s === 'completed' || s === 'skipped')) {
         return 'klar';
       }
 
-      if (statuses.some(s => s === 'in_progress' || s === 'completed')) {
+      if (statuses.some((s) => s === 'in_progress' || s === 'completed')) {
         return 'pågår';
       }
 
       return 'väntar';
+    };
+
+    // Special handling for embassy which now has separate delivery/pickup steps
+    if (serviceId === 'embassy' || serviceId === 'ambassad') {
+      const embassySteps = processingSteps.filter((s) =>
+        ['embassy_delivery', 'embassy_pickup', 'embassy_processing'].includes(s.id)
+      );
+      return aggregateStatuses(embassySteps as ProcessingStep[]);
     }
 
-    // Map service IDs to processing step IDs
+    // Multi-step services: notarization, translation, UD, chamber
+    const multiStepServiceMap: { [key: string]: string[] } = {
+      notarization: ['notarization_delivery', 'notarization_pickup', 'notarization'],
+      notarisering: ['notarization_delivery', 'notarization_pickup', 'notarization'],
+      translation: ['translation_delivery', 'translation_pickup', 'translation'],
+      oversattning: ['translation_delivery', 'translation_pickup', 'translation'],
+      utrikesdepartementet: ['ud_delivery', 'ud_pickup', 'ud_processing'],
+      ud: ['ud_delivery', 'ud_pickup', 'ud_processing'],
+      chamber: ['chamber_delivery', 'chamber_pickup', 'chamber_processing']
+    };
+
+    const multiStepIds = multiStepServiceMap[serviceId];
+    if (multiStepIds) {
+      const stepsForService = processingSteps.filter((s) => multiStepIds.includes(s.id));
+      return aggregateStatuses(stepsForService as ProcessingStep[]);
+    }
+
+    // Map remaining service IDs to single processing step IDs
     const serviceToStepMap: { [key: string]: string } = {
-      'apostille': 'apostille',
-      'notarisering': 'notarization',
-      'notarization': 'notarization',
-      'oversattning': 'translation',
-      'translation': 'translation',
-      'utrikesdepartementet': 'ud_processing',
-      'ud': 'ud_processing',
-      'chamber': 'chamber_processing',
-      'scanned_copies': 'scanning',
-      'pickup_service': 'document_receipt', // Map pickup to document receipt step
-      'return': 'return_shipping'
+      apostille: 'apostille',
+      scanned_copies: 'scanning',
+      pickup_service: 'document_receipt', // Map pickup to document receipt step
+      return: 'return_shipping'
     };
 
     const stepId = serviceToStepMap[serviceId];
     if (!stepId) return 'väntar';
 
-    const step = processingSteps.find(s => s.id === stepId);
+    const step = processingSteps.find((s) => s.id === stepId) as ProcessingStep | undefined;
     if (!step) return 'väntar';
 
     switch (step.status) {
@@ -2251,7 +2303,7 @@ function AdminOrderDetailPage() {
                             {isAuthorityService(step.id) && (
                               <div className="mt-4 space-y-4">
                                 {/* Embassy delivery: only date in */}
-                                {step.id === 'embassy_delivery' && (
+                                {step.id.endsWith('_delivery') && (
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                       Datum för inlämning till myndighet
@@ -2273,7 +2325,7 @@ function AdminOrderDetailPage() {
                                 )}
 
                                 {/* Embassy pickup: only date out */}
-                                {step.id === 'embassy_pickup' && (
+                                {step.id.endsWith('_pickup') && (
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                       Datum klart för upphämtning
@@ -2295,7 +2347,7 @@ function AdminOrderDetailPage() {
                                 )}
 
                                 {/* All other authorities: both date in and date out */}
-                                {step.id !== 'embassy_delivery' && step.id !== 'embassy_pickup' && (
+                                {!step.id.endsWith('_delivery') && !step.id.endsWith('_pickup') && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-1">
