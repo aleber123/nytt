@@ -56,20 +56,76 @@ interface Order {
 }
 import { toast } from 'react-hot-toast';
 
+const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending'];
+const ALL_STATUSES: Order['status'][] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'completed'];
+const STATUS_LABELS: Record<Order['status'], string> = {
+  pending: 'Väntar',
+  processing: 'Bearbetas',
+  shipped: 'Skickad',
+  delivered: 'Levererad',
+  cancelled: 'Avbruten',
+  completed: 'Slutförd',
+};
+
 function AdminOrdersPage() {
   const { t } = useTranslation('common');
-  const { signOut } = useAuth();
+  const { currentUser, signOut } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedStatuses, setSelectedStatuses] = useState<Order['status'][]>([]);
   const [creatingInvoiceForOrder, setCreatingInvoiceForOrder] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<Order['status'] | ''>('');
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+    const defaultStatuses = DEFAULT_STATUS_FILTER;
+
+    if (typeof window === 'undefined') {
+      setSelectedStatuses(defaultStatuses);
+      return;
+    }
+
+    const userId = currentUser?.uid || currentUser?.email || 'guest';
+    const storageKey = `adminOrdersStatusFilter:${userId}`;
+
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed: unknown = JSON.parse(stored);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed.every((s) => (ALL_STATUSES as string[]).includes(s as string))
+        ) {
+          setSelectedStatuses(parsed as Order['status'][]);
+          return;
+        }
+      }
+    } catch {
+    }
+
+    setSelectedStatuses(defaultStatuses);
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const userId = currentUser?.uid || currentUser?.email || 'guest';
+    const storageKey = `adminOrdersStatusFilter:${userId}`;
+
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(selectedStatuses));
+    } catch {
+    }
+  }, [selectedStatuses, currentUser]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -81,6 +137,45 @@ function AdminOrdersPage() {
       setError('Failed to load orders. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatus || selectedOrderIds.length === 0) return;
+
+    if (bulkStatus === 'cancelled' && typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `6a8 4c4 Är du säker på att du vill sätta ${selectedOrderIds.length} ordrar till status "Avbruten"?`
+      );
+      if (!confirmed) return;
+    }
+
+    setIsBulkUpdating(true);
+    try {
+      const mod = await import('@/services/hybridOrderService');
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
+
+      await Promise.all(
+        selectedOrderIds.map((orderId) => updateOrder(orderId, { status: bulkStatus }))
+      );
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id && selectedOrderIds.includes(order.id)
+            ? { ...order, status: bulkStatus }
+            : order
+        )
+      );
+
+      toast.success(`Status uppdaterad för ${selectedOrderIds.length} ordrar`);
+      setSelectedOrderIds([]);
+      setBulkStatus('');
+    } catch (err) {
+      console.error('Error bulk updating order status:', err);
+      toast.error('Kunde inte uppdatera status för alla valda ordrar');
+    } finally {
+      setIsBulkUpdating(false);
     }
   };
 
@@ -181,7 +276,10 @@ function AdminOrdersPage() {
 
   // Filter orders based on status and search query
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const byStatus = statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter);
+  const byStatus =
+    selectedStatuses.length === 0
+      ? orders
+      : orders.filter((o) => selectedStatuses.includes(o.status));
   const filteredOrders = normalizedQuery
     ? byStatus.filter((o) => {
         const fields = [
@@ -311,13 +409,11 @@ function AdminOrdersPage() {
                 <div>
                   <h2 className="text-lg font-medium text-gray-800">Orderhantering</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    {statusFilter === 'all'
+                    {selectedStatuses.length === 0
                       ? `Visar alla ${filteredOrders.length} ordrar`
-                      : `Visar ${filteredOrders.length} ordrar med status "${statusFilter === 'pending' ? 'Väntar' :
-                          statusFilter === 'processing' ? 'Bearbetas' :
-                          statusFilter === 'shipped' ? 'Skickad' :
-                          statusFilter === 'delivered' ? 'Levererad' : 'Avbruten'}"`
-                    }
+                      : `Visar ${filteredOrders.length} ordrar med status "${selectedStatuses
+                          .map((status: Order['status']) => STATUS_LABELS[status] || status)
+                          .join(', ')}"`}
                   </p>
                 </div>
 
@@ -339,49 +435,92 @@ function AdminOrdersPage() {
                       </svg>
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <label htmlFor="status-filter" className="mr-2 text-sm text-gray-600 font-medium">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <span className="mr-2 text-sm text-gray-600 font-medium">
                       Status:
-                    </label>
-                    <select
-                      id="status-filter"
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="all">Alla ordrar</option>
-                      <option value="pending">Väntar på hantering</option>
-                      <option value="processing">Bearbetas</option>
-                      <option value="shipped">Skickade</option>
-                      <option value="delivered">Levererade</option>
-                      <option value="cancelled">Avbrutna</option>
-                    </select>
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedStatuses((prev: Order['status'][]) =>
+                            prev.includes('pending')
+                              ? prev.filter((s: Order['status']) => s !== 'pending')
+                              : [...prev, 'pending']
+                          )
+                        }
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          selectedStatuses.includes('pending')
+                            ? 'bg-blue-100 text-blue-800 border-blue-200'
+                            : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                        }`}
+                      >
+                        Väntar
+                      </button>
+                      {ALL_STATUSES.filter((status) => status !== 'pending').map((status: Order['status']) => {
+                        const isActive = selectedStatuses.includes(status);
+                        return (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() =>
+                              setSelectedStatuses((prev: Order['status'][]) =>
+                                prev.includes(status)
+                                  ? prev.filter((s: Order['status']) => s !== status)
+                                  : [...prev, status]
+                              )
+                            }
+                            className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                              isActive
+                                ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                            }`}
+                          >
+                            {STATUS_LABELS[status] || status}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStatuses([])}
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          selectedStatuses.length === 0
+                            ? 'bg-blue-100 text-blue-800 border-blue-200'
+                            : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                        }`}
+                      >
+                        Alla
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600 font-medium">Snabbfilter:</span>
                     <button
-                      onClick={() => setStatusFilter('all')}
+                      type="button"
+                      onClick={() => setSelectedStatuses([])}
                       className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                        statusFilter === 'all' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        selectedStatuses.length === 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       Alla ({orders.length})
                     </button>
                     <button
-                      onClick={() => setStatusFilter('pending')}
+                      type="button"
+                      onClick={() => setSelectedStatuses(['pending'])}
                       className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                        statusFilter === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        selectedStatuses.includes('pending') ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       Väntar ({orders.filter(o => o.status === 'pending').length})
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         // Filter for orders with files
                         const fileOrders = orders.filter(o => o.uploadedFiles && o.uploadedFiles.length > 0);
                         // For now, just show all - could implement custom filter
-                        setStatusFilter('all');
+                        setSelectedStatuses([]);
                       }}
                       className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
                     >
@@ -401,6 +540,43 @@ function AdminOrdersPage() {
                 </div>
               </div>
             </div>
+
+            {selectedOrderIds.length > 0 && (
+              <div className="px-4 py-3 border-b border-gray-200 bg-yellow-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="text-sm text-gray-700">
+                  {selectedOrderIds.length} ordrar valda
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value as Order['status'] | '')}
+                    className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">Välj ny status...</option>
+                    {ALL_STATUSES.map((status: Order['status']) => (
+                      <option key={status} value={status}>
+                        {STATUS_LABELS[status] || status}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleBulkStatusUpdate}
+                    disabled={!bulkStatus || isBulkUpdating}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  >
+                    {isBulkUpdating ? 'Uppdaterar...' : 'Uppdatera status'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedOrderIds([]); setBulkStatus(''); }}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Rensa val
+                  </button>
+                </div>
+              </div>
+            )}
             
             {loading ? (
               <div className="space-y-4">
@@ -437,13 +613,11 @@ function AdminOrdersPage() {
                 </svg>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Inga ordrar hittades</h3>
                 <p className="text-gray-500">
-                  {statusFilter === 'all'
+                  {selectedStatuses.length === 0
                     ? 'Det finns inga ordrar att visa just nu.'
-                    : `Inga ordrar med status "${statusFilter === 'pending' ? 'Väntar' :
-                        statusFilter === 'processing' ? 'Bearbetas' :
-                        statusFilter === 'shipped' ? 'Skickad' :
-                        statusFilter === 'delivered' ? 'Levererad' : 'Avbruten'}" hittades.`
-                  }
+                    : `Inga ordrar med status "${selectedStatuses
+                        .map((status: Order['status']) => STATUS_LABELS[status] || status)
+                        .join(', ')}" hittades.`}
                 </p>
               </div>
             ) : (
@@ -451,6 +625,27 @@ function AdminOrdersPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-4 py-2 w-10">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 text-primary-600 border-gray-300 rounded"
+                          checked={
+                            filteredOrders.length > 0 &&
+                            filteredOrders.every((o) => o.id && selectedOrderIds.includes(o.id))
+                          }
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            if (checked) {
+                              const ids = filteredOrders
+                                .map((o) => o.id)
+                                .filter((id): id is string => Boolean(id));
+                              setSelectedOrderIds(ids);
+                            } else {
+                              setSelectedOrderIds([]);
+                            }
+                          }}
+                        />
+                      </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ordernummer</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tjänster</th>
@@ -473,6 +668,24 @@ function AdminOrdersPage() {
                           }
                         }}
                       >
+                        <td className="px-4 py-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-primary-600 border-gray-300 rounded"
+                            checked={order.id ? selectedOrderIds.includes(order.id) : false}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const orderId = order.id;
+                              if (!orderId) return;
+                              setSelectedOrderIds((prev: string[]) =>
+                                checked
+                                  ? [...prev.filter((id) => id !== orderId), orderId]
+                                  : prev.filter((id) => id !== orderId)
+                              );
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
                         <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">#{order.orderNumber || order.id}</td>
                         <td className="px-4 py-2 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getStatusBadgeColor(order.status)}`}>
