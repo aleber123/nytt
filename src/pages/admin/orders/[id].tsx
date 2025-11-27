@@ -1669,6 +1669,10 @@ function AdminOrderDetailPage() {
                                         {order.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
                                       </span>
                                     </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-gray-500">Kundens ref:</span>
+                                      <span className="font-medium text-gray-900">{order.invoiceReference}</span>
+                                    </div>
                                   </div>
                                 );
                               })()}

@@ -136,7 +136,7 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
     'DOX Visumpartner AB',
     'Box 38',
     '121 25 Stockholm-Globen',
-    'info@legaliseringstjanst.se'
+    'info@doxvl.se'
   ];
 
   // Body container
@@ -228,7 +228,7 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   doc.setFontSize(8);
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text(
-    `DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • info@legaliseringstjanst.se`,
+    `DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • info@doxvl.se`,
     105,
     footerY,
     { align: 'center' }
@@ -303,7 +303,7 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     'DOX Visumpartner AB',
     'Box 38',
     '121 25 Stockholm-Globen',
-    'info@legaliseringstjanst.se'
+    'info@doxvl.se'
   ];
 
   let y = 56;
@@ -445,7 +445,7 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.setFontSize(8);
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text(
-    'DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • info@legaliseringstjanst.se',
+    'DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • info@doxvl.se',
     105,
     footerY,
     { align: 'center' }

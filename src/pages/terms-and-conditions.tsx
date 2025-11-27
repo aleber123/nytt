@@ -106,7 +106,7 @@ const TermsAndConditionsPage: React.FC = () => {
                   111 43 Stockholm<br />
                   Sweden<br />
                   <br />
-                  Email: info@legaliseringstjanst.se<br />
+                  Email: info@doxvl.se<br />
                   Phone: 08-123 45 67
                 </p>
               </div>

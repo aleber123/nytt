@@ -93,7 +93,7 @@ export const COMPANY_INFO = {
   orgNumber: '559015-4521',
   vatNumber: 'SE556123456701',
   phone: '08-123 45 67',
-  email: 'info@legaliseringstjanst.se'
+  email: 'info@doxvl.se'
 };
 
 // Generate unique invoice number
@@ -1386,7 +1386,7 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
 
           <p>Fakturan är bifogad som PDF. Vänligen betala enligt betalningsvillkoren.</p>
 
-          <p>Vid frågor, kontakta oss gärna på info@legaliseringstjanst.se eller 070-123 45 67.</p>
+          <p>Vid frågor, kontakta oss gärna på info@doxvl.se eller 070-123 45 67.</p>
 
           <p>Med vänliga hälsningar,<br/>
           DOX Visumpartner AB<br/>

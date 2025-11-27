@@ -1036,7 +1036,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
         ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Övriga kommentarer</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
 
-        <div class="muted">DOX Visumpartner AB • info@legaliseringstjanst.se • 08-40941900</div>
+        <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
       </div>
     </div>
   </body>
@@ -1193,7 +1193,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                <h3>Har du frågor?</h3>
                <p>Kontakta oss gärna:</p>
                <p>
-                   📧 <a href="mailto:info@legaliseringstjanst.se">info@legaliseringstjanst.se</a><br>
+                   📧 <a href="mailto:info@doxvl.se">info@doxvl.se</a><br>
                    📞 08-40941900
                </p>
            </div>

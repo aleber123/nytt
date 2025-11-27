@@ -55,7 +55,7 @@ const CookiesPage: React.FC = () => {
 
             <section className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
               <h2 className="text-xl font-heading font-bold text-gray-900 mb-3">{t('cookiesPage.contact.title')}</h2>
-              <p className="text-gray-700">{t('cookiesPage.contact.text')} <a className="underline" href="mailto:info@legaliseringstjanst.se">info@legaliseringstjanst.se</a>.</p>
+              <p className="text-gray-700">{t('cookiesPage.contact.text')} <a className="underline" href="mailto:info@doxvl.se">info@doxvl.se</a>.</p>
             </section>
 
             <p className="text-xs text-gray-500 mt-6">{t('cookiesPage.lastUpdated', { date: formattedDate })}</p>

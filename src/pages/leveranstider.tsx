@@ -27,7 +27,7 @@ const DeliveryTimesPage: React.FC = () => {
             <p className="text-yellow-900">
               {t('delivery.noticeText1')}
               {t('delivery.noticeText2')}
-              <a href="mailto:info@legaliseringstjanst.se" className="underline"> info@legaliseringstjanst.se</a>
+              <a href="mailto:info@doxvl.se" className="underline"> info@doxvl.se</a>
               {" "}
               {t('common.or')}
               {" "}

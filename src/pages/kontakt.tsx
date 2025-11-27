@@ -126,7 +126,7 @@ const ContactPage: React.FC = () => {
                     </h3>
                     <p className="text-gray-600">
                       <strong>Telefon:</strong> 08-123 45 67<br />
-                      <strong>E-post:</strong> info@legaliseringstjanst.se
+                      <strong>E-post:</strong> info@doxvl.se
                     </p>
                   </div>
                 </div>

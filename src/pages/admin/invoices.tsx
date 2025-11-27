@@ -493,7 +493,7 @@ function AdminInvoicesPage() {
           orgNumber: '556123-4567',
           vatNumber: 'SE556123456701',
           phone: '070-123 45 67',
-          email: 'info@legaliseringstjanst.se'
+          email: 'info@doxvl.se'
         },
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now()

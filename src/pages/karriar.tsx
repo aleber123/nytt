@@ -52,7 +52,7 @@ const CareersPage: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-heading font-bold text-gray-900 mb-3">Spontanansökan</h2>
             <p className="text-gray-700 mb-4">Skicka CV och en kort presentation om varför du vill arbeta hos oss.</p>
-            <a href="mailto:info@legaliseringstjanst.se?subject=Spontanans%C3%B6kan%20-%20DOX%20Visumpartner" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button">Skicka ansökan</a>
+            <a href="mailto:info@doxvl.se?subject=Spontanans%C3%B6kan%20-%20DOX%20Visumpartner" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button">Skicka ansökan</a>
           </div>
         </div>
       </div>

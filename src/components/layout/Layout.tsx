@@ -46,7 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               contactPoint: [{
                 '@type': 'ContactPoint',
                 contactType: 'customer service',
-                email: 'info@legaliseringstjanst.se',
+                email: 'info@doxvl.se',
                 areaServed: 'SE',
                 availableLanguage: ['sv', 'en']
               }]

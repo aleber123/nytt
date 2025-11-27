@@ -9,7 +9,7 @@ import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 
 const MIN_QUANTITY = 1;
-const MAX_QUANTITY = 10;
+const MAX_QUANTITY = 100;
 
 export const Step4Quantity: React.FC<StepProps> = ({
   answers,
@@ -255,7 +255,7 @@ export const Step4Quantity: React.FC<StepProps> = ({
                 Maximum antal nått
               </h4>
               <p className="text-sm text-amber-800">
-                För beställningar över 10 dokument, vänligen kontakta oss direkt för en skräddarsydd offert.
+                För beställningar över 100 dokument, vänligen kontakta oss direkt för en skräddarsydd offert.
               </p>
             </div>
           </div>

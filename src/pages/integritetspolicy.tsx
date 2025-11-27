@@ -92,7 +92,7 @@ const PrivacyPolicyPage: React.FC = () => {
                   111 43 Stockholm<br />
                   Sverige<br />
                   <br />
-                  E-post: info@legaliseringstjanst.se<br />
+                  E-post: info@doxvl.se<br />
                   Telefon: 08-123 45 67
                 </p>
               </div>
