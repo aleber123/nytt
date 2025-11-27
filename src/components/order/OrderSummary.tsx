@@ -80,6 +80,34 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
     return names[type] || type;
   };
 
+  const documentTypesToDisplay: string[] = Array.isArray(answers.documentTypes) && answers.documentTypes.length > 0
+    ? answers.documentTypes
+    : answers.documentType
+    ? [answers.documentType]
+    : [];
+
+  const getQuantityBreakdown = () => {
+    const total = answers.quantity || 0;
+    const unitLabel = currentLocale === 'en' ? 'pcs' : 'st';
+    const totalLabel = total > 0 ? `${total} ${unitLabel}` : '';
+
+    const quantitiesMap = (answers as any).documentTypeQuantities || {};
+
+    if (!documentTypesToDisplay.length || total <= 0) {
+      return { totalLabel, parts: [] as string[] };
+    }
+
+    const parts = documentTypesToDisplay
+      .map((type: string) => {
+        const count = typeof quantitiesMap[type] === 'number' ? quantitiesMap[type] : 0;
+        if (count <= 0) return null;
+        return `${count} ${getDocumentTypeName(type)}`;
+      })
+      .filter(Boolean) as string[];
+
+    return { totalLabel, parts };
+  };
+
   // Calculate total including all services
   const calculateTotal = () => {
     let total = totalPrice;
@@ -181,26 +209,40 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
       )}
 
       {/* Document Type */}
-      {answers.documentType && (
+      {documentTypesToDisplay.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">{currentLocale === 'en' ? 'Document Type' : 'Dokumenttyp'}:</span>
-            <span className="font-semibold text-gray-900 capitalize">
-              {getDocumentTypeName(answers.documentType)}
-            </span>
+          </div>
+          <div className="mt-1 ml-4 space-y-0.5">
+            {documentTypesToDisplay.map((type: string) => (
+              <div key={type} className="text-xs text-gray-600">
+                • {getDocumentTypeName(type)}
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Quantity */}
-      {answers.quantity > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">{currentLocale === 'en' ? 'Number of documents' : 'Antal dokument'}:</span>
-            <span className="font-semibold text-gray-900">{answers.quantity} {currentLocale === 'en' ? 'pcs' : 'st'}</span>
+      {answers.quantity > 0 && (() => {
+        const breakdown = getQuantityBreakdown();
+        return (
+          <div className="mb-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">{currentLocale === 'en' ? 'Number of documents' : 'Antal dokument'}:</span>
+              <span className="font-semibold text-gray-900">{breakdown.totalLabel}</span>
+            </div>
+            {breakdown.parts.length > 0 && (
+              <div className="mt-1 ml-4 space-y-0.5">
+                {breakdown.parts.map((part: string) => (
+                  <div key={part} className="text-xs text-gray-600">• {part}</div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Services */}
       {answers.services && answers.services.length > 0 && (
@@ -238,7 +280,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
 
 
       {/* Empty State */}
-      {!answers.country && !answers.documentType && answers.services.length === 0 && (
+      {!answers.country && documentTypesToDisplay.length === 0 && answers.services.length === 0 && (
         <div className="text-center py-8">
           <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

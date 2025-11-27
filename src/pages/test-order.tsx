@@ -19,6 +19,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [answers, setAnswers] = useState({
     country: '',
     documentType: '',
+    documentTypes: [] as string[],
+    documentTypeQuantities: {} as { [key: string]: number },
     services: [] as string[],
     quantity: 1,
     expedited: false,

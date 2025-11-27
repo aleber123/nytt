@@ -719,8 +719,8 @@
     "refresh": "Uppdatera sidan"
   },
   "orderFlow": {
-    "pageTitle": "Test Order - Legaliseringstjänst",
-    "pageDescription": "Test version of our order flow",
+    "pageTitle": "Beställning - Legaliseringstjänst",
+    "pageDescription": "Beställ legalisering av dokument online hos Legaliseringstjänst",
     "stepIndicator": "Steg {{current}} av {{total}}",
     "clickToGoBack": "Klicka på ett tidigare steg för att gå tillbaka",
     "backButton": "Tillbaka till startsidan",

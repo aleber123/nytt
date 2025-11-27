@@ -82,6 +82,16 @@ export const Step6PickupService: React.FC<Step6Props> = ({
   const showDHLPremium = answers.pickupMethod && ['dhl-sweden', 'dhl-europe', 'dhl-worldwide'].includes(answers.pickupMethod);
   const showStockholmPremium = answers.pickupMethod === 'stockholm-city';
 
+  const handlePremiumOptionKeyDown = (
+    event: React.KeyboardEvent<HTMLLabelElement>,
+    premiumId: string
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handlePremiumSelect(premiumId);
+    }
+  };
+
   return (
     <StepContainer
       title={t('orderFlow.step6.title', 'Önskar du att vi hämtar dina dokument?')}
@@ -164,11 +174,15 @@ export const Step6PickupService: React.FC<Step6Props> = ({
                   <h4 className="text-sm font-medium text-blue-900 mb-3">
                     🚀 {t('orderFlow.step6.premiumPickup', 'Premiumhämtning (valfritt)')}
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step6.premiumPickup', 'Premiumhämtning (valfritt)')}>
                     {dhlPremiumOptions.map((premium) => (
                       <label
                         key={premium.id}
                         className="flex items-center space-x-3 cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
+                        role="radio"
+                        aria-checked={answers.premiumPickup === premium.id}
+                        tabIndex={0}
+                        onKeyDown={(event) => handlePremiumOptionKeyDown(event, premium.id)}
                       >
                         <input
                           type="radio"
@@ -177,6 +191,7 @@ export const Step6PickupService: React.FC<Step6Props> = ({
                           checked={answers.premiumPickup === premium.id}
                           onChange={(e) => handlePremiumSelect(e.target.value)}
                           className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                          tabIndex={-1}
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-gray-900">
@@ -201,11 +216,15 @@ export const Step6PickupService: React.FC<Step6Props> = ({
                   <h4 className="text-sm font-medium text-green-900 mb-3">
                     ⚡ {t('orderFlow.step6.expressPickup', 'Expresshämtning (valfritt)')}
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step6.expressPickup', 'Expresshämtning (valfritt)')}>
                     {stockholmPremiumOptions.map((premium) => (
                       <label
                         key={premium.id}
                         className="flex items-center space-x-3 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
+                        role="radio"
+                        aria-checked={answers.premiumPickup === premium.id}
+                        tabIndex={0}
+                        onKeyDown={(event) => handlePremiumOptionKeyDown(event, premium.id)}
                       >
                         <input
                           type="radio"
@@ -214,6 +233,7 @@ export const Step6PickupService: React.FC<Step6Props> = ({
                           checked={answers.premiumPickup === premium.id}
                           onChange={(e) => handlePremiumSelect(e.target.value)}
                           className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                          tabIndex={-1}
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-gray-900">

@@ -71,6 +71,16 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
   const isOwnReturn = answers.returnService === 'own-delivery';
   const isNextDisabled = !answers.returnService || (isOwnReturn && !answers.ownReturnTrackingNumber?.trim());
 
+  const handlePremiumOptionKeyDown = (
+    event: React.KeyboardEvent<HTMLLabelElement>,
+    premiumId: string
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handlePremiumSelect(premiumId);
+    }
+  };
+
   return (
     <StepContainer
       title={t('orderFlow.step9.title', 'Välj returleverans')}
@@ -138,11 +148,15 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                   <h4 className="text-sm font-medium text-blue-900 mb-3">
                     🚀 {t('orderFlow.step9.premiumDelivery', 'Premiumleverans (valfritt)')}
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step9.premiumDelivery', 'Premiumleverans (valfritt)')}>
                     {dhlPremiumOptions.map((premium) => (
                       <label
                         key={premium.id}
                         className="flex items-center space-x-3 cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
+                        role="radio"
+                        aria-checked={answers.premiumDelivery === premium.id}
+                        tabIndex={0}
+                        onKeyDown={(event) => handlePremiumOptionKeyDown(event, premium.id)}
                       >
                         <input
                           type="radio"
@@ -151,6 +165,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                           checked={answers.premiumDelivery === premium.id}
                           onChange={(e) => handlePremiumSelect(e.target.value)}
                           className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                          tabIndex={-1}
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-gray-900">{premium.name}</div>
@@ -169,11 +184,15 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                   <h4 className="text-sm font-medium text-green-900 mb-3">
                     ⚡ {t('orderFlow.step9.expressDelivery', 'Expressleverans (valfritt)')}
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step9.expressDelivery', 'Expressleverans (valfritt)')}>
                     {stockholmPremiumOptions.map((premium) => (
                       <label
                         key={premium.id}
                         className="flex items-center space-x-3 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
+                        role="radio"
+                        aria-checked={answers.premiumDelivery === premium.id}
+                        tabIndex={0}
+                        onKeyDown={(event) => handlePremiumOptionKeyDown(event, premium.id)}
                       >
                         <input
                           type="radio"
@@ -182,6 +201,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                           checked={answers.premiumDelivery === premium.id}
                           onChange={(e) => handlePremiumSelect(e.target.value)}
                           className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
+                          tabIndex={-1}
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-gray-900">{premium.name}</div>

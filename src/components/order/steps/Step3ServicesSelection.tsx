@@ -66,6 +66,11 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
       powerOfAttorney: t('orderFlow.step2.powerOfAttorney', 'Fullmakt'),
       other: t('orderFlow.step2.other', 'Annat dokument')
     };
+    if (Array.isArray(answers.documentTypes) && answers.documentTypes.length > 0) {
+      const names = answers.documentTypes.map((type) => typeMap[type] || type);
+      return names.join(', ');
+    }
+
     return typeMap[answers.documentType] || answers.documentType;
   };
 
@@ -95,6 +100,13 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
       }
     };
     return badges[serviceId];
+  };
+
+  const handleServiceKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, serviceId: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleToggleService(serviceId);
+    }
   };
 
   return (
@@ -141,7 +153,11 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
             return (
               <div
                 key={service.id}
+                role="checkbox"
+                aria-checked={isSelected}
+                tabIndex={0}
                 onClick={() => handleToggleService(service.id)}
+                onKeyDown={(event) => handleServiceKeyDown(event, service.id)}
                 className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
                   isSelected
                     ? 'border-custom-button bg-custom-button-bg shadow-md'
@@ -177,6 +193,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                         handleToggleService(service.id);
                       }}
                       className="h-5 w-5 accent-custom-button rounded focus:ring-custom-button pointer-events-none"
+                      tabIndex={-1}
                       readOnly
                     />
                   </div>

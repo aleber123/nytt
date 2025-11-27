@@ -41,6 +41,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [answers, setAnswers] = useState({
     country: '',
     documentType: '',
+    documentTypes: [] as string[],
+    documentTypeQuantities: {} as { [key: string]: number },
     services: [] as string[],
     quantity: 1,
     expedited: false,
@@ -1320,24 +1322,24 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             />
           )}
           {currentQuestion === 3 && (
-            <Step3ServicesSelection
+            <Step4Quantity
               answers={answers}
               setAnswers={setAnswers}
               onNext={() => navigateToStep(4)}
               onBack={() => navigateToStep(2)}
-              availableServices={availableServices}
-              loadingServices={loadingServices}
               currentLocale={currentLocale}
-              allCountries={allCountries}
             />
           )}
           {currentQuestion === 4 && (
-            <Step4Quantity
+            <Step3ServicesSelection
               answers={answers}
               setAnswers={setAnswers}
               onNext={() => navigateToStep(5)}
               onBack={() => navigateToStep(3)}
+              availableServices={availableServices}
+              loadingServices={loadingServices}
               currentLocale={currentLocale}
+              allCountries={allCountries}
             />
           )}
           {currentQuestion === 5 && (
@@ -1349,7 +1351,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               onDocumentSourceSelect={(source) => {
                 if (source === 'upload') {
                   // Skip pickup service step and go to shipping step
-                  navigateToStep(7);
+                  navigateToStep(8);
                 } else {
                   // Go to pickup service step
                   navigateToStep(6);
@@ -1375,7 +1377,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               setAnswers={setAnswers}
               onNext={() => navigateToStep(8)}
               onBack={() => navigateToStep(6)}
-              onSkip={() => navigateToStep(9)}
+              onSkip={() => { if (answers.documentSource === 'upload') { navigateToStep(8); } else { navigateToStep(9); } }}
               currentLocale={currentLocale}
             />
           )}
@@ -1384,7 +1386,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               answers={answers}
               setAnswers={setAnswers}
               onNext={() => navigateToStep(9)}
-              onBack={() => navigateToStep(7)}
+              onBack={() => { if (answers.documentSource === 'upload') { navigateToStep(5); } else { navigateToStep(7); } }}
               currentLocale={currentLocale}
             />
           )}

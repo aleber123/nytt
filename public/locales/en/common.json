@@ -719,8 +719,8 @@
     }
   },
   "orderFlow": {
-    "pageTitle": "Test Order - Legalization Service",
-    "pageDescription": "Test version of our order flow",
+    "pageTitle": "Order Legalization - Legalization Service",
+    "pageDescription": "Order professional document legalization services online from Legalization Service",
     "stepIndicator": "Step {{current}} of {{total}}",
     "clickToGoBack": "Click on a previous step to go back",
     "backButton": "Back to Homepage",

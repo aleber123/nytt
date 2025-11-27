@@ -5,6 +5,8 @@
 export interface OrderAnswers {
   country: string;
   documentType: string;
+  documentTypes: string[];
+  documentTypeQuantities: { [key: string]: number };
   services: string[];
   quantity: number;
   expedited: boolean;
