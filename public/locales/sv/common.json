@@ -654,11 +654,150 @@
     "moreQuestions": "Hittar du inte svaret på din fråga?",
     "contactUs": "Kontakta oss"
   },
+  "admin": {
+    "index": {
+      "metaTitle": "Admin Panel - Legaliseringstjänst",
+      "heading": "Admin Panel",
+      "subheading": "Hantera priser, beställningar och allt annat för din legaliseringstjänst",
+      "openButton": "Öppna →",
+      "stats": {
+        "embassyCountries": "Länder med ambassadpriser",
+        "services": "Olika tjänster",
+        "priceCombinations": "Möjliga priskombinationer"
+      },
+      "pages": {
+        "embassyPrices": {
+          "title": "Ambassadpriser",
+          "description": "Hantera priser för ambassadlegalisering per land",
+          "badge": "10+ länder"
+        },
+        "standardPrices": {
+          "title": "Standardpriser",
+          "description": "Konfigurera priser för grundläggande tjänster",
+          "badge": "6 tjänster"
+        },
+        "shipping": {
+          "title": "Frakt & Leverans",
+          "description": "Hantera fraktpriser och leveransalternativ",
+          "badge": "3 leverantörer"
+        },
+        "driver": {
+          "title": "Chaufför",
+          "description": "Dagliga körningar - lämna in och hämta dokument från myndigheter",
+          "badge": "Dagliga uppgifter"
+        },
+        "orders": {
+          "title": "Beställningar",
+          "description": "Se och hantera kundbeställningar",
+          "badge": "Alla ordrar"
+        },
+        "invoices": {
+          "title": "Fakturor",
+          "description": "Se och hantera kundfakturor",
+          "badge": "Alla fakturor"
+        },
+        "profile": {
+          "title": "Profil",
+          "description": "Uppdatera namn och telefon för ditt admin-konto",
+          "badge": "Konto"
+        },
+        "stats": {
+          "title": "Statistik",
+          "description": "Analysera försäljning och prestation",
+          "badge": "Analytics"
+        }
+      },
+      "quickActions": {
+        "title": "Snabba åtgärder",
+        "updateEmbassyPrices": "Uppdatera ambassadpriser",
+        "previewPrices": "Förhandsgranska priser"
+      },
+      "help": {
+        "title": "Behöver du hjälp?",
+        "embassy": {
+          "title": "Ambassadpriser",
+          "text": "Använd \"Ambassadpriser\" för att snabbt uppdatera priser per land"
+        },
+        "standard": {
+          "title": "Standardpriser",
+          "text": "Använd när du vill spara priser permanent i systemet"
+        },
+        "shipping": {
+          "title": "Frakt & Leverans",
+          "text": "Hantera priser för PostNord, DHL och lokala budtjänster"
+        },
+        "driver": {
+          "title": "Chaufför",
+          "text": "Se dagliga körningar och hantera inlämning/hämtning av dokument"
+        },
+        "orders": {
+          "title": "Beställningar",
+          "text": "Se och hantera kundbeställningar"
+        },
+        "invoices": {
+          "title": "Fakturor",
+          "text": "Se och hantera kundfakturor, uppdatera status och ladda ner PDF"
+        },
+        "tipLabel": "Tips:",
+        "tipText": "Om Firebase inte fungerar används alltid standardpriser som fallback"
+      }
+    },
+    "orders": {
+      "metaTitle": "Admin - Beställningar | Legaliseringstjänst",
+      "metaDescription": "Adminpanel för att hantera beställningar",
+      "heading": "Admin - Beställningar",
+      "headerSignOut": "Logga ut",
+      "headerDashboard": "Dashboard",
+      "summaryTotal": "Totala ordrar",
+      "summaryPending": "Väntar",
+      "summaryShipped": "Skickade",
+      "summaryDelivered": "Levererade",
+      "panelTitle": "Orderhantering",
+      "summaryAll": "Visar alla {{count}} ordrar",
+      "summaryWithStatus": "Visar {{count}} ordrar med status \"{{statuses}}\"",
+      "searchLabel": "Sök",
+      "searchPlaceholder": "Sök ordernummer, kund, e-post, land eller status...",
+      "statusLabel": "Status:",
+      "quickFilterLabel": "Snabbfilter:",
+      "quickFilterAll": "Alla ({{count}})",
+      "quickFilterPending": "Väntar ({{count}})",
+      "quickFilterWithFiles": "Med filer ({{count}})",
+      "refreshButton": "Uppdatera",
+      "bulkSelected": "{{count}} ordrar valda",
+      "bulkSelectStatusPlaceholder": "Välj ny status...",
+      "bulkUpdateProcessing": "Uppdaterar...",
+      "bulkUpdateButton": "Uppdatera status",
+      "bulkClearSelection": "Rensa val",
+      "emptyTitle": "Inga ordrar hittades",
+      "emptyNoOrders": "Det finns inga ordrar att visa just nu.",
+      "emptyNoOrdersWithStatus": "Inga ordrar med status \"{{statuses}}\" hittades.",
+      "table": {
+        "orderNumber": "Ordernummer",
+        "status": "Status",
+        "services": "Tjänster",
+        "contact": "Kontaktperson",
+        "return": "Retur",
+        "actions": "Åtgärder",
+        "view": "Visa"
+      }
+    },
+    "orderDetail": {
+      "labels": {
+        "source": "Källa",
+        "customerRef": "Kundens ref"
+      },
+      "source": {
+        "original": "Originaldokument",
+        "files": "Uppladdade filer"
+      }
+    }
+  },
   "orderStatus": {
     "pageTitle": "Orderstatus - Legaliseringstjänst",
     "pageDescription": "Kontrollera status på din beställning av legaliseringstjänster.",
     "title": "Kontrollera orderstatus",
     "subtitle": "Ange ditt ordernummer och e-post för att kontrollera status",
+    "trackTitle": "Spåra din beställning",
     "orderNumber": "Ordernummer",
     "email": "E-post",
     "check": "Kontrollera status",
@@ -677,6 +816,28 @@
     "returnTrackingNumber": "Returspårningsnummer",
     "returnDate": "Returdatum",
     "returnInstructions": "Vi har registrerat ett returspårningsnummer för dina dokument. Använd spårningslänken eller kontakta oss om du har frågor om returen.",
+    "steps": {
+      "orderReceived": {
+        "name": "Beställning mottagen",
+        "description": "Din beställning har registrerats i vårt system"
+      },
+      "processing": {
+        "name": "Dokument under behandling",
+        "description": "Vi bearbetar dina dokument enligt gällande krav"
+      },
+      "legalized": {
+        "name": "Dokument legaliserade",
+        "description": "Alla dokument har legaliserats och är klara"
+      },
+      "shipped": {
+        "name": "Dokument skickade",
+        "description": "Dokumenten har skickats till dig"
+      },
+      "delivered": {
+        "name": "Levererade",
+        "description": "Dokumenten har levererats till dig"
+      }
+    },
     "statuses": {
       "pending": "Väntar på behandling",
       "processing": "Under behandling",
@@ -684,6 +845,15 @@
       "shipped": "Skickad",
       "delivered": "Levererad",
       "cancelled": "Avbruten/Returnerad"
+    },
+    "statusDescriptions": {
+      "pending": "Din beställning väntar på att behandlas",
+      "processing": "Vi arbetar aktivt med dina dokument",
+      "completed": "Dokumenten är klara för leverans",
+      "shipped": "Dokumenten är på väg till dig",
+      "delivered": "Dokumenten har levererats",
+      "cancelled": "Beställningen har avbrutits eller returnerats",
+      "default": "Status uppdateras snart"
     },
     "errors": {
       "missingFields": "Vänligen fyll i både ordernummer och e-post",

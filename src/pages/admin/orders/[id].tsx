@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import type { GetServerSideProps } from 'next';
 import type { Timestamp as FbTimestamp } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -1544,7 +1546,7 @@ function AdminOrderDetailPage() {
                     <select
                       value={editedStatus}
                       onChange={(e) => setEditedStatus(e.target.value as Order['status'])}
-                      className="border border-gray-300 rounded px-3 py-1 text-sm"
+                      className="border border-gray-300 rounded px-3 py-2 text-sm"
                       disabled={isUpdating}
                     >
                       <option value="pending">Väntar</option>
@@ -1556,7 +1558,7 @@ function AdminOrderDetailPage() {
                     <button
                       onClick={handleStatusUpdate}
                       disabled={isUpdating || order.status === editedStatus}
-                      className="px-4 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 text-sm"
+                      className="px-4 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
                     >
                       {isUpdating ? 'Uppdaterar...' : 'Uppdatera'}
                     </button>
@@ -1637,40 +1639,60 @@ function AdminOrderDetailPage() {
                           <div className="lg:col-span-2 space-y-4">
                             {/* Basic Order Info + compact services */}
                             <div>
-                              <h3 className="text-sm font-semibold mb-1 text-gray-800">Orderinformation</h3>
+                              <h3 className="text-sm font-semibold mb-1 text-gray-800">
+                                {t('order.summary.orderDetails', 'Orderinformation')}
+                              </h3>
                               {(() => {
                                 const c = getCountryInfo(order.country);
                                 return (
                                   <div className="space-y-0.5 text-xs">
                                     <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">Dokumenttyp:</span>
+                                      <span className="text-gray-500">
+                                        {t('order.summary.documentType', 'Dokumenttyp')}:
+                                      </span>
                                       <span className="font-medium text-gray-900">
-                                        {order.documentType === 'birthCertificate' ? 'Födelsebevis' :
-                                         order.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-                                         order.documentType === 'diploma' ? 'Examensbevis' :
-                                         order.documentType === 'commercial' ? 'Handelsdokument' :
-                                         order.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
+                                        {order.documentType === 'birthCertificate'
+                                          ? t('documents.birthCertificate', 'Födelsebevis')
+                                          : order.documentType === 'marriageCertificate'
+                                          ? t('documents.marriageCertificate', 'Vigselbevis')
+                                          : order.documentType === 'diploma'
+                                          ? t('documents.diploma', 'Examensbevis')
+                                          : order.documentType === 'commercial'
+                                          ? t('documents.commercialDocuments', 'Handelsdokument')
+                                          : order.documentType === 'powerOfAttorney'
+                                          ? t('documents.powerOfAttorney', 'Fullmakt')
+                                          : t('documents.other', 'Annat dokument')}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">Land:</span>
+                                      <span className="text-gray-500">
+                                        {t('order.summary.country', 'Land')}:
+                                      </span>
                                       <span className="flex items-center space-x-1 font-medium text-gray-900">
                                         <span aria-hidden="true">{c.flag}</span>
                                         <span>{c.name || c.code}</span>
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">Antal dokument:</span>
-                                      <span className="font-medium text-gray-900">{order.quantity} st</span>
+                                      <span className="text-gray-500">
+                                        {t('order.summary.quantity', 'Antal dokument')}:
+                                      </span>
+                                      <span className="font-medium text-gray-900">{order.quantity}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">Källa:</span>
+                                      <span className="text-gray-500">
+                                        {t('admin.orderDetail.labels.source', 'Källa')}:
+                                      </span>
                                       <span className="font-medium text-gray-900">
-                                        {order.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
+                                        {order.documentSource === 'original'
+                                          ? t('admin.orderDetail.source.original', 'Originaldokument')
+                                          : t('admin.orderDetail.source.files', 'Uppladdade filer')}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">Kundens ref:</span>
+                                      <span className="text-gray-500">
+                                        {t('admin.orderDetail.labels.customerRef', 'Kundens ref')}:
+                                      </span>
                                       <span className="font-medium text-gray-900">{order.invoiceReference}</span>
                                     </div>
                                   </div>
@@ -2085,7 +2107,7 @@ function AdminOrderDetailPage() {
                                     type="button"
                                     onClick={() => newServiceToAdd && handleAddService(newServiceToAdd)}
                                     disabled={!newServiceToAdd || addingService}
-                                    className="px-4 py-2 bg-primary-600 text-white rounded text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {addingService ? 'Lägger till...' : 'Lägg till tjänst'}
                                   </button>
@@ -2463,7 +2485,6 @@ function AdminOrderDetailPage() {
                                       {isUploadingPickupLabel ? 'Laddar upp...' : 'Ladda upp label'}
                                     </button>
                                     <button
-                                      type="button"
                                       onClick={handleSendPickupLabel}
                                       disabled={sendingPickupLabel || !(order as any).pickupLabelFile}
                                       className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2873,3 +2894,11 @@ const ClientOnlyAdminOrderDetail = () => (
 );
 
 export default dynamic(() => Promise.resolve(ClientOnlyAdminOrderDetail), { ssr: false });
+
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  return {
+    props: {
+      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+    },
+  };
+};

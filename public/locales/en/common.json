@@ -582,6 +582,144 @@
     "moreQuestions": "Can't find the answer to your question?",
     "contactUs": "Contact us"
   },
+  "admin": {
+    "index": {
+      "metaTitle": "Admin Panel - Legalization Service",
+      "heading": "Admin Panel",
+      "subheading": "Manage prices, orders and everything else for your legalization service",
+      "openButton": "Open →",
+      "stats": {
+        "embassyCountries": "Countries with embassy pricing",
+        "services": "Different services",
+        "priceCombinations": "Possible price combinations"
+      },
+      "pages": {
+        "embassyPrices": {
+          "title": "Embassy prices",
+          "description": "Manage prices for embassy legalization per country",
+          "badge": "10+ countries"
+        },
+        "standardPrices": {
+          "title": "Standard prices",
+          "description": "Configure prices for core services",
+          "badge": "6 services"
+        },
+        "shipping": {
+          "title": "Shipping & Delivery",
+          "description": "Manage shipping prices and delivery options",
+          "badge": "3 providers"
+        },
+        "driver": {
+          "title": "Driver",
+          "description": "Daily runs – drop off and pick up documents from authorities",
+          "badge": "Daily tasks"
+        },
+        "orders": {
+          "title": "Orders",
+          "description": "View and manage customer orders",
+          "badge": "All orders"
+        },
+        "invoices": {
+          "title": "Invoices",
+          "description": "View and manage customer invoices",
+          "badge": "All invoices"
+        },
+        "profile": {
+          "title": "Profile",
+          "description": "Update name and phone number for your admin account",
+          "badge": "Account"
+        },
+        "stats": {
+          "title": "Statistics",
+          "description": "Analyze sales and performance",
+          "badge": "Analytics"
+        }
+      },
+      "quickActions": {
+        "title": "Quick actions",
+        "updateEmbassyPrices": "Update embassy prices",
+        "previewPrices": "Preview prices"
+      },
+      "help": {
+        "title": "Need help?",
+        "embassy": {
+          "title": "Embassy prices",
+          "text": "Use \"Embassy prices\" to quickly update prices per country"
+        },
+        "standard": {
+          "title": "Standard prices",
+          "text": "Use when you want to save prices permanently in the system"
+        },
+        "shipping": {
+          "title": "Shipping & Delivery",
+          "text": "Manage prices for PostNord, DHL and local courier services"
+        },
+        "driver": {
+          "title": "Driver",
+          "text": "View daily routes and manage drop-off/pick-up of documents"
+        },
+        "orders": {
+          "title": "Orders",
+          "text": "View and manage customer orders"
+        },
+        "invoices": {
+          "title": "Invoices",
+          "text": "View and manage customer invoices, update status and download PDF"
+        },
+        "tipLabel": "Tip:",
+        "tipText": "If Firebase is unavailable, default prices are always used as fallback"
+      }
+    },
+    "orders": {
+      "metaTitle": "Admin - Orders | Legalization Service",
+      "metaDescription": "Admin panel for managing orders",
+      "heading": "Admin - Orders",
+      "headerSignOut": "Sign Out",
+      "headerDashboard": "Dashboard",
+      "summaryTotal": "Total orders",
+      "summaryPending": "Pending",
+      "summaryShipped": "Shipped",
+      "summaryDelivered": "Delivered",
+      "panelTitle": "Order management",
+      "summaryAll": "Showing all {{count}} orders",
+      "summaryWithStatus": "Showing {{count}} orders with status \"{{statuses}}\"",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search order number, customer, email, country or status...",
+      "statusLabel": "Status:",
+      "quickFilterLabel": "Quick filters:",
+      "quickFilterAll": "All ({{count}})",
+      "quickFilterPending": "Pending ({{count}})",
+      "quickFilterWithFiles": "With files ({{count}})",
+      "refreshButton": "Refresh",
+      "bulkSelected": "{{count}} orders selected",
+      "bulkSelectStatusPlaceholder": "Select new status...",
+      "bulkUpdateProcessing": "Updating...",
+      "bulkUpdateButton": "Update status",
+      "bulkClearSelection": "Clear selection",
+      "emptyTitle": "No orders found",
+      "emptyNoOrders": "There are no orders to display right now.",
+      "emptyNoOrdersWithStatus": "No orders with status \"{{statuses}}\" were found.",
+      "table": {
+        "orderNumber": "Order number",
+        "status": "Status",
+        "services": "Services",
+        "contact": "Contact person",
+        "return": "Return",
+        "actions": "Actions",
+        "view": "View"
+      }
+    },
+    "orderDetail": {
+      "labels": {
+        "source": "Source",
+        "customerRef": "Customer ref"
+      },
+      "source": {
+        "original": "Original documents",
+        "files": "Uploaded files"
+      }
+    }
+  },
   "errorBoundary": {
     "title": "Something went wrong",
     "subtitle": "We apologize for the inconvenience",
@@ -686,6 +824,7 @@
     "pageDescription": "Check the status of your document legalization order.",
     "title": "Check Order Status",
     "subtitle": "Enter your order number and email to check status",
+    "trackTitle": "Track your order",
     "orderNumber": "Order Number",
     "email": "Email",
     "check": "Check Status",
@@ -704,6 +843,28 @@
     "returnTrackingNumber": "Return Tracking Number",
     "returnDate": "Return Date",
     "returnInstructions": "Your documents have been returned. Contact us if you have questions about the return.",
+    "steps": {
+      "orderReceived": {
+        "name": "Order received",
+        "description": "Your order has been registered in our system"
+      },
+      "processing": {
+        "name": "Documents in processing",
+        "description": "We are processing your documents according to applicable requirements"
+      },
+      "legalized": {
+        "name": "Documents legalized",
+        "description": "All documents have been legalized and are ready"
+      },
+      "shipped": {
+        "name": "Documents shipped",
+        "description": "The documents have been shipped to you"
+      },
+      "delivered": {
+        "name": "Delivered",
+        "description": "The documents have been delivered to you"
+      }
+    },
     "statuses": {
       "pending": "Waiting for processing",
       "processing": "Being processed",
@@ -711,6 +872,15 @@
       "shipped": "Shipped",
       "delivered": "Delivered",
       "cancelled": "Cancelled/Returned"
+    },
+    "statusDescriptions": {
+      "pending": "Your order is waiting to be processed",
+      "processing": "We are actively working on your documents",
+      "completed": "The documents are ready for shipment",
+      "shipped": "The documents are on their way to you",
+      "delivered": "The documents have been delivered",
+      "cancelled": "The order has been cancelled or returned",
+      "default": "Status will be updated soon"
     },
     "errors": {
       "missingFields": "Please fill in both order number and email",
