@@ -58,14 +58,6 @@ import { toast } from 'react-hot-toast';
 
 const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending'];
 const ALL_STATUSES: Order['status'][] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'completed'];
-const STATUS_LABELS: Record<Order['status'], string> = {
-  pending: 'Väntar',
-  processing: 'Bearbetas',
-  shipped: 'Skickad',
-  delivered: 'Levererad',
-  cancelled: 'Avbruten',
-  completed: 'Slutförd',
-};
 
 function AdminOrdersPage() {
   const { t } = useTranslation('common');
@@ -273,6 +265,11 @@ function AdminOrdersPage() {
         break;
     }
   };
+  
+  // Get translated status label for admin views
+  const getStatusLabel = (status: Order['status']) => {
+    return t(`orderStatus.statuses.${status}`, status);
+  };
 
   // Filter orders based on status and search query
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -297,8 +294,8 @@ function AdminOrdersPage() {
   return (
     <>
       <Head>
-        <title>Admin - Orders | Legaliseringstjänst</title>
-        <meta name="description" content="Admin panel for managing orders" />
+        <title>{t('admin.orders.metaTitle', 'Admin - Orders | Legaliseringstjänst')}</title>
+        <meta name="description" content={t('admin.orders.metaDescription', 'Admin panel for managing orders')} />
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -313,17 +310,17 @@ function AdminOrdersPage() {
                     <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
                   </svg>
                 </Link>
-                <h1 className="text-2xl font-bold text-gray-800">Admin - Orders</h1>
+                <h1 className="text-2xl font-bold text-gray-800">{t('admin.orders.heading', 'Admin - Orders')}</h1>
               </div>
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => signOut()}
                   className="text-gray-600 hover:text-gray-800"
                 >
-                  Sign Out
+                  {t('admin.orders.headerSignOut', 'Sign Out')}
                 </button>
                 <Link href="/admin" className="text-primary-600 hover:text-primary-800">
-                  Dashboard
+                  {t('admin.orders.headerDashboard', 'Dashboard')}
                 </Link>
               </div>
             </div>
@@ -353,7 +350,7 @@ function AdminOrdersPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Totala ordrar</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryTotal', 'Totala ordrar')}</p>
                   <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
                 </div>
               </div>
@@ -367,7 +364,7 @@ function AdminOrdersPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Väntar</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryPending', 'Väntar')}</p>
                   <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'pending').length}</p>
                 </div>
               </div>
@@ -381,7 +378,7 @@ function AdminOrdersPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Skickade</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryShipped', 'Skickade')}</p>
                   <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'shipped').length}</p>
                 </div>
               </div>
@@ -395,7 +392,7 @@ function AdminOrdersPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Levererade</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryDelivered', 'Levererade')}</p>
                   <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'delivered').length}</p>
                 </div>
               </div>
@@ -407,27 +404,34 @@ function AdminOrdersPage() {
             <div className="p-4 border-b border-gray-200 bg-gray-50">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h2 className="text-lg font-medium text-gray-800">Orderhantering</h2>
+                  <h2 className="text-lg font-medium text-gray-800">{t('admin.orders.panelTitle', 'Orderhantering')}</h2>
                   <p className="text-sm text-gray-500 mt-1">
                     {selectedStatuses.length === 0
-                      ? `Visar alla ${filteredOrders.length} ordrar`
-                      : `Visar ${filteredOrders.length} ordrar med status "${selectedStatuses
-                          .map((status: Order['status']) => STATUS_LABELS[status] || status)
-                          .join(', ')}"`}
+                      ? t('admin.orders.summaryAll', 'Visar alla {{count}} ordrar', { count: filteredOrders.length })
+                      : t(
+                          'admin.orders.summaryWithStatus',
+                          'Visar {{count}} ordrar med status "{{statuses}}"',
+                          {
+                            count: filteredOrders.length,
+                            statuses: selectedStatuses
+                              .map((status: Order['status']) => getStatusLabel(status))
+                              .join(', ')
+                          }
+                        )}
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 w-full justify-between">
                   {/* Search */}
                   <div className="flex items-center gap-2 flex-1 min-w-[220px]">
-                    <label htmlFor="order-search" className="sr-only">Sök</label>
+                    <label htmlFor="order-search" className="sr-only">{t('admin.orders.searchLabel', 'Sök')}</label>
                     <div className="relative w-full max-w-sm">
                       <input
                         id="order-search"
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Sök ordernummer, kund, e-post, land eller status..."
+                        placeholder={t('admin.orders.searchPlaceholder', 'Sök ordernummer, kund, e-post, land eller status...')}
                         className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       />
                       <svg className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -437,7 +441,7 @@ function AdminOrdersPage() {
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                     <span className="mr-2 text-sm text-gray-600 font-medium">
-                      Status:
+                      {t('admin.orders.statusLabel', 'Status:')}
                     </span>
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -455,7 +459,7 @@ function AdminOrdersPage() {
                             : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
                         }`}
                       >
-                        Väntar
+                        {getStatusLabel('pending')}
                       </button>
                       {ALL_STATUSES.filter((status) => status !== 'pending').map((status: Order['status']) => {
                         const isActive = selectedStatuses.includes(status);
@@ -476,7 +480,7 @@ function AdminOrdersPage() {
                                 : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
                             }`}
                           >
-                            {STATUS_LABELS[status] || status}
+                            {getStatusLabel(status)}
                           </button>
                         );
                       })}
@@ -489,13 +493,13 @@ function AdminOrdersPage() {
                             : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
                         }`}
                       >
-                        Alla
+                        {t('admin.orders.filterAllLabel', 'Alla')}
                       </button>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600 font-medium">Snabbfilter:</span>
+                    <span className="text-sm text-gray-600 font-medium">{t('admin.orders.quickFilterLabel', 'Snabbfilter:')}</span>
                     <button
                       type="button"
                       onClick={() => setSelectedStatuses([])}
@@ -503,7 +507,7 @@ function AdminOrdersPage() {
                         selectedStatuses.length === 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      Alla ({orders.length})
+                      {t('admin.orders.quickFilterAll', 'Alla ({{count}})', { count: orders.length })}
                     </button>
                     <button
                       type="button"
@@ -512,7 +516,7 @@ function AdminOrdersPage() {
                         selectedStatuses.includes('pending') ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      Väntar ({orders.filter(o => o.status === 'pending').length})
+                      {t('admin.orders.quickFilterPending', 'Väntar ({{count}})', { count: orders.filter(o => o.status === 'pending').length })}
                     </button>
                     <button
                       type="button"
@@ -524,7 +528,7 @@ function AdminOrdersPage() {
                       }}
                       className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
                     >
-                      Med filer ({orders.filter(o => o.uploadedFiles && o.uploadedFiles.length > 0).length})
+                      {t('admin.orders.quickFilterWithFiles', 'Med filer ({{count}})', { count: orders.filter(o => o.uploadedFiles && o.uploadedFiles.length > 0).length })}
                     </button>
                   </div>
 
@@ -535,7 +539,7 @@ function AdminOrdersPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Uppdatera
+                    {t('admin.orders.refreshButton', 'Uppdatera')}
                   </button>
                 </div>
               </div>
@@ -544,7 +548,7 @@ function AdminOrdersPage() {
             {selectedOrderIds.length > 0 && (
               <div className="px-4 py-3 border-b border-gray-200 bg-yellow-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="text-sm text-gray-700">
-                  {selectedOrderIds.length} ordrar valda
+                  {t('admin.orders.bulkSelected', '{{count}} ordrar valda', { count: selectedOrderIds.length })}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <select
@@ -552,10 +556,10 @@ function AdminOrdersPage() {
                     onChange={(e) => setBulkStatus(e.target.value as Order['status'] | '')}
                     className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
-                    <option value="">Välj ny status...</option>
+                    <option value="">{t('admin.orders.bulkSelectStatusPlaceholder', 'Välj ny status...')}</option>
                     {ALL_STATUSES.map((status: Order['status']) => (
                       <option key={status} value={status}>
-                        {STATUS_LABELS[status] || status}
+                        {t(`orderStatus.statuses.${status}`, status)}
                       </option>
                     ))}
                   </select>
@@ -565,14 +569,16 @@ function AdminOrdersPage() {
                     disabled={!bulkStatus || isBulkUpdating}
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                   >
-                    {isBulkUpdating ? 'Uppdaterar...' : 'Uppdatera status'}
+                    {isBulkUpdating
+                      ? t('admin.orders.bulkUpdateProcessing', 'Uppdaterar...')
+                      : t('admin.orders.bulkUpdateButton', 'Uppdatera status')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setSelectedOrderIds([]); setBulkStatus(''); }}
                     className="text-xs text-gray-500 hover:text-gray-700 underline"
                   >
-                    Rensa val
+                    {t('admin.orders.bulkClearSelection', 'Rensa val')}
                   </button>
                 </div>
               </div>
@@ -611,13 +617,19 @@ function AdminOrdersPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Inga ordrar hittades</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t('admin.orders.emptyTitle', 'Inga ordrar hittades')}</h3>
                 <p className="text-gray-500">
                   {selectedStatuses.length === 0
-                    ? 'Det finns inga ordrar att visa just nu.'
-                    : `Inga ordrar med status "${selectedStatuses
-                        .map((status: Order['status']) => STATUS_LABELS[status] || status)
-                        .join(', ')}" hittades.`}
+                    ? t('admin.orders.emptyNoOrders', 'Det finns inga ordrar att visa just nu.')
+                    : t(
+                        'admin.orders.emptyNoOrdersWithStatus',
+                        'Inga ordrar med status "{{statuses}}" hittades.',
+                        {
+                          statuses: selectedStatuses
+                            .map((status: Order['status']) => getStatusLabel(status))
+                            .join(', ')
+                        }
+                      )}
                 </p>
               </div>
             ) : (
@@ -646,12 +658,12 @@ function AdminOrdersPage() {
                           }}
                         />
                       </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ordernummer</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tjänster</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kontaktperson</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retur</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Åtgärder</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.orderNumber', 'Ordernummer')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.status', 'Status')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.services', 'Tjänster')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.contact', 'Kontaktperson')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.return', 'Retur')}</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.actions', 'Åtgärder')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -689,11 +701,7 @@ function AdminOrdersPage() {
                         <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">#{order.orderNumber || order.id}</td>
                         <td className="px-4 py-2 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getStatusBadgeColor(order.status)}`}>
-                            {order.status === 'pending' ? 'Väntar' :
-                             order.status === 'processing' ? 'Bearbetas' :
-                             order.status === 'shipped' ? 'Skickad' :
-                             order.status === 'delivered' ? 'Levererad' :
-                             order.status === 'cancelled' ? 'Avbruten' : order.status}
+                            {getStatusLabel(order.status)}
                           </span>
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700">
@@ -728,7 +736,7 @@ function AdminOrdersPage() {
                               href={`/admin/orders/${order.id}`}
                               className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
                             >
-                              Visa
+                              {t('admin.orders.table.view', 'Visa')}
                             </Link>
                           </div>
                         </td>

@@ -84,74 +84,110 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
   
   // Format order data for display
   const formatOrderForDisplay = (orderId: string, orderData: Order) => {
-    // Create steps based on order status with clearer messaging
+    const status = orderData.status;
+
+    const createdAtIso = orderData.createdAt?.toDate().toISOString();
+    const updatedAtIso = orderData.updatedAt?.toDate().toISOString();
+
+    const isProcessingStarted = ['processing', 'completed', 'shipped', 'delivered'].includes(status);
+    const isProcessingCompleted = ['completed', 'shipped', 'delivered'].includes(status);
+    const isShipped = ['shipped', 'delivered'].includes(status);
+    const isDelivered = status === 'delivered';
+
+    // Customer-facing steps based on high-level order status
     const steps = [
       {
-        name: 'Beställning mottagen',
-        description: 'Din beställning har registrerats i vårt system',
+        name: t('orderStatus.steps.orderReceived.name', 'Beställning mottagen'),
+        description: t(
+          'orderStatus.steps.orderReceived.description',
+          'Din beställning har registrerats i vårt system'
+        ),
         completed: true,
-        date: orderData.createdAt?.toDate().toISOString(),
-        status: 'completed'
+        date: createdAtIso
       },
       {
-        name: 'Betalning bekräftad',
-        description: 'Betalning har mottagits och behandlas',
-        completed: ['processing', 'shipped', 'delivered'].includes(orderData.status),
-        date: ['processing', 'shipped', 'delivered'].includes(orderData.status) ?
-          orderData.updatedAt?.toDate().toISOString() : undefined,
-        status: ['processing', 'shipped', 'delivered'].includes(orderData.status) ? 'completed' : 'pending'
+        name: t('orderStatus.steps.processing.name', 'Dokument under behandling'),
+        description: t(
+          'orderStatus.steps.processing.description',
+          'Vi bearbetar dina dokument enligt gällande krav'
+        ),
+        completed: isProcessingCompleted || isShipped || isDelivered,
+        date: isProcessingStarted ? updatedAtIso : undefined
       },
       {
-        name: 'Dokument under behandling',
-        description: 'Vi bearbetar dina dokument enligt gällande krav',
-        completed: ['processing', 'shipped', 'delivered'].includes(orderData.status),
-        date: ['processing', 'shipped', 'delivered'].includes(orderData.status) ?
-          orderData.updatedAt?.toDate().toISOString() : undefined,
-        status: orderData.status === 'processing' ? 'current' :
-               ['shipped', 'delivered'].includes(orderData.status) ? 'completed' : 'pending'
+        name: t('orderStatus.steps.legalized.name', 'Dokument legaliserade'),
+        description: t(
+          'orderStatus.steps.legalized.description',
+          'Alla dokument har legaliserats och är klara'
+        ),
+        completed: isShipped || isDelivered,
+        date: isProcessingCompleted ? updatedAtIso : undefined
       },
       {
-        name: 'Dokument legaliserade',
-        description: 'Alla dokument har legaliserats och är klara',
-        completed: ['shipped', 'delivered'].includes(orderData.status),
-        date: ['shipped', 'delivered'].includes(orderData.status) ?
-          orderData.updatedAt?.toDate().toISOString() : undefined,
-        status: ['shipped', 'delivered'].includes(orderData.status) ? 'completed' : 'pending'
+        name: t('orderStatus.steps.shipped.name', 'Dokument skickade'),
+        description: t(
+          'orderStatus.steps.shipped.description',
+          'Dokumenten har skickats till dig'
+        ),
+        completed: isShipped || isDelivered,
+        date: status === 'shipped' ? updatedAtIso : undefined
       },
       {
-        name: 'Dokument skickade',
-        description: 'Dokumenten har skickats till dig',
-        completed: ['shipped', 'delivered'].includes(orderData.status),
-        date: orderData.status === 'shipped' ?
-          orderData.updatedAt?.toDate().toISOString() : undefined,
-        status: orderData.status === 'shipped' ? 'completed' :
-               orderData.status === 'delivered' ? 'completed' : 'pending'
-      },
-      {
-        name: 'Levererade',
-        description: 'Dokumenten har levererats till dig',
-        completed: orderData.status === 'delivered',
-        date: orderData.status === 'delivered' ?
-          orderData.updatedAt?.toDate().toISOString() : undefined,
-        status: orderData.status === 'delivered' ? 'completed' : 'pending'
+        name: t('orderStatus.steps.delivered.name', 'Levererade'),
+        description: t(
+          'orderStatus.steps.delivered.description',
+          'Dokumenten har levererats till dig'
+        ),
+        completed: isDelivered,
+        date: isDelivered ? updatedAtIso : undefined
       }
     ];
 
-    // Note: Return functionality can be added later when 'returned' status is added to Order interface
-    
-    // Calculate estimated delivery (7 days from order date)
+    // Helper to add business days (Mon-Fri)
+    const addBusinessDays = (startDate: Date, businessDays: number) => {
+      const date = new Date(startDate);
+      let added = 0;
+      while (added < businessDays) {
+        date.setDate(date.getDate() + 1);
+        const day = date.getDay();
+        if (day !== 0 && day !== 6) {
+          added++;
+        }
+      }
+      return date;
+    };
+
     const createdDate = orderData.createdAt?.toDate();
-    const estimatedDelivery = createdDate ? new Date(createdDate) : new Date();
-    if (createdDate) {
-      estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
+    const processingSteps = (orderData as any).processingSteps as any[] | undefined;
+
+    // If return shipping step is completed, estimate 2 business days after that
+    const returnShippingStep = processingSteps?.find(
+      (s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt
+    );
+
+    let estimatedDeliveryDate: Date;
+
+    if (returnShippingStep && returnShippingStep.completedAt) {
+      const baseDate: Date = returnShippingStep.completedAt.toDate
+        ? returnShippingStep.completedAt.toDate()
+        : new Date(returnShippingStep.completedAt);
+      estimatedDeliveryDate = addBusinessDays(baseDate, 2);
+    } else if (createdDate) {
+      // Fallback: 7 calendar days after order creation
+      estimatedDeliveryDate = new Date(createdDate);
+      estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
+    } else {
+      // Last resort: 7 days from today
+      estimatedDeliveryDate = new Date();
+      estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
     }
-    
+
     // Format the order for display
     return {
       orderNumber: orderId,
       status: orderData.status,
-      createdAt: orderData.createdAt?.toDate().toISOString(),
-      estimatedDelivery: estimatedDelivery.toISOString().split('T')[0],
+      createdAt: createdAtIso,
+      estimatedDelivery: estimatedDeliveryDate.toISOString().split('T')[0],
       service: Array.isArray(orderData.services) ? orderData.services[0] : orderData.services,
       services: orderData.services,
       customer: {
@@ -189,43 +225,43 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
         return {
           text: t('orderStatus.statuses.pending') || 'Väntar på behandling',
           color: 'bg-gray-100 text-gray-800',
-          description: 'Din beställning väntar på att behandlas'
+          description: t('orderStatus.statusDescriptions.pending', 'Din beställning väntar på att behandlas')
         };
       case 'processing':
         return {
           text: t('orderStatus.statuses.processing') || 'Under behandling',
           color: 'bg-yellow-100 text-yellow-800',
-          description: 'Vi arbetar aktivt med dina dokument'
+          description: t('orderStatus.statusDescriptions.processing', 'Vi arbetar aktivt med dina dokument')
         };
       case 'completed':
         return {
           text: t('orderStatus.statuses.completed') || 'Färdigbehandlad',
           color: 'bg-blue-100 text-blue-800',
-          description: 'Dokumenten är klara för leverans'
+          description: t('orderStatus.statusDescriptions.completed', 'Dokumenten är klara för leverans')
         };
       case 'shipped':
         return {
           text: t('orderStatus.statuses.shipped') || 'Skickad',
           color: 'bg-purple-100 text-purple-800',
-          description: 'Dokumenten är på väg till dig'
+          description: t('orderStatus.statusDescriptions.shipped', 'Dokumenten är på väg till dig')
         };
       case 'delivered':
         return {
           text: t('orderStatus.statuses.delivered') || 'Levererad',
           color: 'bg-green-100 text-green-800',
-          description: 'Dokumenten har levererats'
+          description: t('orderStatus.statusDescriptions.delivered', 'Dokumenten har levererats')
         };
       case 'cancelled':
         return {
           text: t('orderStatus.statuses.cancelled') || 'Avbruten/Returnerad',
           color: 'bg-red-100 text-red-800',
-          description: 'Beställningen har avbrutits eller returnerats'
+          description: t('orderStatus.statusDescriptions.cancelled', 'Beställningen har avbrutits eller returnerats')
         };
       default:
         return {
           text: status,
           color: 'bg-gray-100 text-gray-800',
-          description: 'Status uppdateras snart'
+          description: t('orderStatus.statusDescriptions.default', 'Status uppdateras snart')
         };
     }
   };
@@ -256,7 +292,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
           <div className="max-w-2xl mx-auto">
             <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-xl font-heading font-bold text-gray-900 mb-6 text-center">
-                Spåra din beställning
+                {t('orderStatus.trackTitle', 'Spåra din beställning')}
               </h3>
 
               <form onSubmit={checkOrderStatus} className="space-y-4">

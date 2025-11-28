@@ -55,14 +55,11 @@ const Footer: React.FC = () => {
                 height={40}
                 style={{ height: 'auto', width: 'auto', maxHeight: '2.5rem' }}
               />
-              <span className="ml-3 text-xl font-heading font-bold text-white">
-                Legaliseringstjänst
-              </span>
             </Link>
             <p className="text-base text-gray-300 whitespace-pre-line">
               Sveriges bästa visum & legaliseringsföretag
               {"\n"}
-              © DOX Visumpartner AB.
+              &copy; DOX Visumpartner AB.
               {"\n"}
               Box: 38
               {"\n"}

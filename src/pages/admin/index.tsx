@@ -1,11 +1,13 @@
 import React from 'react';
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function AdminIndexPage() {
+  const { t } = useTranslation('common');
   const renderIcon = (iconName: string) => {
     const iconClasses = "h-8 w-8 text-primary-600";
 
@@ -57,74 +59,74 @@ function AdminIndexPage() {
 
   const adminPages = [
     {
-      title: 'Ambassadpriser',
-      description: 'Hantera priser för ambassadlegalisering per land',
+      title: t('admin.index.pages.embassyPrices.title', 'Ambassadpriser'),
+      description: t('admin.index.pages.embassyPrices.description', 'Hantera priser för ambassadlegalisering per land'),
       href: '/admin/simple-embassy-prices',
       color: 'bg-blue-600 hover:bg-blue-700',
       icon: 'building',
-      badge: '10+ länder',
+      badge: t('admin.index.pages.embassyPrices.badge', '10+ länder'),
       category: 'pricing'
     },
     {
-      title: 'Standardpriser',
-      description: 'Konfigurera priser för grundläggande tjänster',
+      title: t('admin.index.pages.standardPrices.title', 'Standardpriser'),
+      description: t('admin.index.pages.standardPrices.description', 'Konfigurera priser för grundläggande tjänster'),
       href: '/admin/standard-services-prices',
       color: 'bg-blue-600 hover:bg-blue-700',
       icon: 'calculator',
-      badge: '6 tjänster',
+      badge: t('admin.index.pages.standardPrices.badge', '6 tjänster'),
       category: 'pricing'
     },
     {
-      title: 'Frakt & Leverans',
-      description: 'Hantera fraktpriser och leveransalternativ',
+      title: t('admin.index.pages.shipping.title', 'Frakt & Leverans'),
+      description: t('admin.index.pages.shipping.description', 'Hantera fraktpriser och leveransalternativ'),
       href: '/admin/shipping-services',
       color: 'bg-green-600 hover:bg-green-700',
       icon: 'truck',
-      badge: '3 leverantörer',
+      badge: t('admin.index.pages.shipping.badge', '3 leverantörer'),
       category: 'operations'
     },
     {
-      title: 'Chaufför',
-      description: 'Dagliga körningar - lämna in och hämta dokument från myndigheter',
+      title: t('admin.index.pages.driver.title', 'Chaufför'),
+      description: t('admin.index.pages.driver.description', 'Dagliga körningar - lämna in och hämta dokument från myndigheter'),
       href: '/admin/driver',
       color: 'bg-indigo-600 hover:bg-indigo-700',
       icon: 'car',
-      badge: 'Dagliga uppgifter',
+      badge: t('admin.index.pages.driver.badge', 'Dagliga uppgifter'),
       category: 'operations'
     },
     {
-      title: 'Beställningar',
-      description: 'Se och hantera kundbeställningar',
+      title: t('admin.index.pages.orders.title', 'Beställningar'),
+      description: t('admin.index.pages.orders.description', 'Se och hantera kundbeställningar'),
       href: '/admin/orders',
       color: 'bg-orange-600 hover:bg-orange-700',
-      badge: 'Alla ordrar',
+      badge: t('admin.index.pages.orders.badge', 'Alla ordrar'),
       icon: 'clipboard-list',
       category: 'orders'
     },
     {
-      title: 'Fakturor',
-      description: 'Se och hantera kundfakturor',
+      title: t('admin.index.pages.invoices.title', 'Fakturor'),
+      description: t('admin.index.pages.invoices.description', 'Se och hantera kundfakturor'),
       href: '/admin/invoices',
       color: 'bg-purple-600 hover:bg-purple-700',
-      badge: 'Alla fakturor',
+      badge: t('admin.index.pages.invoices.badge', 'Alla fakturor'),
       icon: 'receipt',
       category: 'billing'
     },
     {
-      title: 'Profil',
-      description: 'Uppdatera namn och telefon för ditt admin-konto',
+      title: t('admin.index.pages.profile.title', 'Profil'),
+      description: t('admin.index.pages.profile.description', 'Uppdatera namn och telefon för ditt admin-konto'),
       href: '/admin/profile',
       color: 'bg-gray-700 hover:bg-gray-800',
-      badge: 'Konto',
+      badge: t('admin.index.pages.profile.badge', 'Konto'),
       icon: 'clipboard-list',
       category: 'operations'
     },
     {
-      title: 'Statistik',
-      description: 'Analysera försäljning och prestation',
+      title: t('admin.index.pages.stats.title', 'Statistik'),
+      description: t('admin.index.pages.stats.description', 'Analysera försäljning och prestation'),
       href: '/admin/stats',
       color: 'bg-red-600 hover:bg-red-700',
-      badge: 'Analytics',
+      badge: t('admin.index.pages.stats.badge', 'Analytics'),
       icon: 'calculator',
       category: 'analytics'
     }
@@ -133,7 +135,7 @@ function AdminIndexPage() {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Admin Panel - Legaliseringstjänst</title>
+        <title>{t('admin.index.metaTitle', 'Admin Panel - Legaliseringstjänst')}</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-8">
@@ -141,10 +143,10 @@ function AdminIndexPage() {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Admin Panel
+              {t('admin.index.heading', 'Admin Panel')}
             </h1>
             <p className="text-xl text-gray-600">
-              Hantera priser, beställningar och allt annat för din legaliseringstjänst
+              {t('admin.index.subheading', 'Hantera priser, beställningar och allt annat för din legaliseringstjänst')}
             </p>
           </div>
 
@@ -157,7 +159,7 @@ function AdminIndexPage() {
                 </svg>
               </div>
               <div className="text-3xl font-bold text-primary-600 mb-2">10+</div>
-              <div className="text-sm text-gray-600">Länder med ambassadpriser</div>
+              <div className="text-sm text-gray-600">{t('admin.index.stats.embassyCountries', 'Länder med ambassadpriser')}</div>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 text-center hover:shadow-lg hover:border-primary-200 transition-all duration-300">
               <div className="p-3 bg-custom-button/10 rounded-lg w-fit mx-auto mb-3">
@@ -166,7 +168,7 @@ function AdminIndexPage() {
                 </svg>
               </div>
               <div className="text-3xl font-bold text-primary-600 mb-2">6</div>
-              <div className="text-sm text-gray-600">Olika tjänster</div>
+              <div className="text-sm text-gray-600">{t('admin.index.stats.services', 'Olika tjänster')}</div>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 text-center hover:shadow-lg hover:border-primary-200 transition-all duration-300">
               <div className="p-3 bg-secondary-100 rounded-lg w-fit mx-auto mb-3">
@@ -175,7 +177,7 @@ function AdminIndexPage() {
                 </svg>
               </div>
               <div className="text-3xl font-bold text-primary-600 mb-2">∞</div>
-              <div className="text-sm text-gray-600">Möjliga priskombinationer</div>
+              <div className="text-sm text-gray-600">{t('admin.index.stats.priceCombinations', 'Möjliga priskombinationer')}</div>
             </div>
           </div>
 
@@ -229,7 +231,7 @@ function AdminIndexPage() {
                     </div>
                   </div>
                   <div className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white ${page.color} transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5 mt-auto`}>
-                    Öppna →
+                    {t('admin.index.openButton', 'Öppna →')}
                   </div>
                 </div>
               </Link>
@@ -238,7 +240,7 @@ function AdminIndexPage() {
 
           {/* Quick Actions */}
           <div className="mt-12 bg-white rounded-xl shadow-sm border border-primary-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Snabba åtgärder</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.index.quickActions.title', 'Snabba åtgärder')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => window.open('/admin/simple-embassy-prices', '_blank')}
@@ -247,7 +249,7 @@ function AdminIndexPage() {
                 <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Uppdatera ambassadpriser
+                {t('admin.index.quickActions.updateEmbassyPrices', 'Uppdatera ambassadpriser')}
               </button>
               <button
                 onClick={() => window.open('/priser', '_blank')}
@@ -257,7 +259,7 @@ function AdminIndexPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                Förhandsgranska priser
+                {t('admin.index.quickActions.previewPrices', 'Förhandsgranska priser')}
               </button>
             </div>
           </div>
@@ -265,32 +267,32 @@ function AdminIndexPage() {
           {/* Help Section */}
           <div className="mt-8 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-100 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Behöver du hjälp?
+              {t('admin.index.help.title', 'Behöver du hjälp?')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <h4 className="font-medium text-gray-800 mb-1">Ambassadpriser</h4>
-                <p className="text-gray-600">Använd "Ambassadpriser" för att snabbt uppdatera priser per land</p>
+                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.embassy.title', 'Ambassadpriser')}</h4>
+                <p className="text-gray-600">{t('admin.index.help.embassy.text', 'Använd "Ambassadpriser" för att snabbt uppdatera priser per land')}</p>
               </div>
               <div>
-                <h4 className="font-medium text-gray-800 mb-1">Standardpriser</h4>
-                <p className="text-gray-600">Använd när du vill spara priser permanent i systemet</p>
+                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.standard.title', 'Standardpriser')}</h4>
+                <p className="text-gray-600">{t('admin.index.help.standard.text', 'Använd när du vill spara priser permanent i systemet')}</p>
               </div>
               <div>
-                <h4 className="font-medium text-gray-800 mb-1">Frakt & Leverans</h4>
-                <p className="text-gray-600">Hantera priser för PostNord, DHL och lokala budtjänster</p>
+                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.shipping.title', 'Frakt & Leverans')}</h4>
+                <p className="text-gray-600">{t('admin.index.help.shipping.text', 'Hantera priser för PostNord, DHL och lokala budtjänster')}</p>
               </div>
               <div>
-                <h4 className="font-medium text-gray-800 mb-1">Chaufför</h4>
-                <p className="text-gray-600">Se dagliga körningar och hantera inlämning/hämtning av dokument</p>
+                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.driver.title', 'Chaufför')}</h4>
+                <p className="text-gray-600">{t('admin.index.help.driver.text', 'Se dagliga körningar och hantera inlämning/hämtning av dokument')}</p>
               </div>
               <div>
-                <h4 className="font-medium text-gray-800 mb-1">Beställningar</h4>
-                <p className="text-gray-600">Se och hantera kundbeställningar</p>
+                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.orders.title', 'Beställningar')}</h4>
+                <p className="text-gray-600">{t('admin.index.help.orders.text', 'Se och hantera kundbeställningar')}</p>
               </div>
               <div>
-                <h4 className="font-medium text-gray-800 mb-1">Fakturor</h4>
-                <p className="text-gray-600">Se och hantera kundfakturor, uppdatera status och ladda ner PDF</p>
+                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.invoices.title', 'Fakturor')}</h4>
+                <p className="text-gray-600">{t('admin.index.help.invoices.text', 'Se och hantera kundfakturor, uppdatera status och ladda ner PDF')}</p>
               </div>
             </div>
             <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-primary-50 rounded-xl border border-blue-200">
@@ -299,7 +301,7 @@ function AdminIndexPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="text-sm text-blue-800">
-                  <strong>Tips:</strong> Om Firebase inte fungerar används alltid standardpriser som fallback
+                  <strong>{t('admin.index.help.tipLabel', 'Tips:')}</strong> {t('admin.index.help.tipText', 'Om Firebase inte fungerar används alltid standardpriser som fallback')}
                 </p>
               </div>
             </div>
