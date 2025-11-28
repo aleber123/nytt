@@ -384,6 +384,7 @@
       "orderDetails": "Order information",
       "service": "Service",
       "documentType": "Document type",
+      "country": "Country",
       "quantity": "Quantity",
       "expedited": "Express service",
       "deliveryMethod": "Delivery method",
@@ -717,6 +718,17 @@
       "source": {
         "original": "Original documents",
         "files": "Uploaded files"
+      },
+      "processing": {
+        "overviewTitle": "Processing steps",
+        "tabTitle": "Processing steps",
+        "manageLink": "Manage processing →",
+        "status": {
+          "completed": "Completed",
+          "in_progress": "In progress",
+          "pending": "Pending",
+          "skipped": "Skipped"
+        }
       }
     }
   },

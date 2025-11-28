@@ -414,8 +414,8 @@ function AdminOrderDetailPage() {
     // STEP 1: Order verification - Always first
     steps.push({
       id: 'order_verification',
-      name: '✓ Orderverifiering',
-      description: 'Kontrollera orderdetaljer, pris och kundinformation',
+      name: '✓ Order verification',
+      description: 'Check order details, pricing and customer information',
       status: 'pending'
     });
 
@@ -423,8 +423,8 @@ function AdminOrderDetailPage() {
     if (orderData.pickupService) {
       steps.push({
         id: 'pickup_booking',
-        name: '📦 Boka upphämtning',
-        description: `Boka upphämtning hos ${orderData.pickupAddress?.street || 'kund'}`,
+        name: '📦 Schedule pickup',
+        description: `Schedule pickup at ${orderData.pickupAddress?.street || 'customer'}`,
         status: 'pending'
       });
     }
@@ -433,17 +433,17 @@ function AdminOrderDetailPage() {
     if (orderData.documentSource === 'original') {
       steps.push({
         id: 'document_receipt',
-        name: '📄 Dokument mottagna',
-        description: orderData.pickupService 
-          ? 'Originaldokument har hämtats och registrerats'
-          : 'Originaldokument har mottagits och registrerats',
+        name: '📄 Documents received',
+        description: orderData.pickupService
+          ? 'Original documents have been picked up and registered'
+          : 'Original documents have been received and registered',
         status: 'pending'
       });
     } else {
       steps.push({
         id: 'file_upload_verification',
-        name: '📤 Filuppladdning verifierad',
-        description: `Kontrollera att kund laddat upp ${orderData.quantity} st dokument`,
+        name: '📤 File upload verified',
+        description: `Verify that the customer has uploaded ${orderData.quantity} documents`,
         status: orderData.filesUploaded ? 'completed' : 'pending'
       });
     }
@@ -451,8 +451,8 @@ function AdminOrderDetailPage() {
     // STEP 4: Quality control - Check documents
     steps.push({
       id: 'quality_control',
-      name: '🔍 Kvalitetskontroll',
-      description: 'Granska dokument - läsbarhet, komplett, rätt typ',
+      name: '🔍 Quality control',
+      description: 'Review documents – readability, completeness, correct type',
       status: 'pending'
     });
 
@@ -462,14 +462,14 @@ function AdminOrderDetailPage() {
       if (orderData.services.includes('notarization')) {
         steps.push({
           id: 'notarization_delivery',
-          name: '✍️ Notarisering - lämna in',
-          description: 'Lämna in dokument för notarisering hos notarius publicus',
+          name: '✍️ Notarization – drop off',
+          description: 'Submit documents for notarization with the notary public',
           status: 'pending'
         });
         steps.push({
           id: 'notarization_pickup',
-          name: '✍️ Notarisering - hämta',
-          description: 'Hämta notariserade dokument från notarius publicus',
+          name: '✍️ Notarization – pick up',
+          description: 'Pick up notarized documents from the notary public',
           status: 'pending'
         });
       }
@@ -479,7 +479,7 @@ function AdminOrderDetailPage() {
         steps.push({
           id: 'apostille',
           name: '📋 Apostille',
-          description: 'Apostille från svenska UD',
+          description: 'Apostille from the Swedish Ministry for Foreign Affairs',
           status: 'pending'
         });
       }
@@ -488,14 +488,14 @@ function AdminOrderDetailPage() {
       if (orderData.services.includes('chamber')) {
         steps.push({
           id: 'chamber_delivery',
-          name: '🏛️ Handelskammaren - lämna in',
-          description: 'Lämna in dokument för legalisering hos Handelskammaren',
+          name: '🏛️ Chamber of Commerce – drop off',
+          description: 'Submit documents for legalization at the Chamber of Commerce',
           status: 'pending'
         });
         steps.push({
           id: 'chamber_pickup',
-          name: '🏛️ Handelskammaren - hämta',
-          description: 'Hämta legaliserade dokument från Handelskammaren',
+          name: '🏛️ Chamber of Commerce – pick up',
+          description: 'Pick up legalized documents from the Chamber of Commerce',
           status: 'pending'
         });
       }
@@ -504,14 +504,14 @@ function AdminOrderDetailPage() {
       if (orderData.services.includes('ud')) {
         steps.push({
           id: 'ud_delivery',
-          name: '🇸🇪 Utrikesdepartementet - lämna in',
-          description: 'Lämna in dokument för legalisering hos svenska UD',
+          name: '🇸🇪 Ministry for Foreign Affairs – drop off',
+          description: 'Submit documents for legalization at the Swedish Ministry for Foreign Affairs',
           status: 'pending'
         });
         steps.push({
           id: 'ud_pickup',
-          name: '🇸🇪 Utrikesdepartementet - hämta',
-          description: 'Hämta legaliserade dokument från svenska UD',
+          name: '🇸🇪 Ministry for Foreign Affairs – pick up',
+          description: 'Pick up legalized documents from the Swedish Ministry for Foreign Affairs',
           status: 'pending'
         });
       }
@@ -521,14 +521,14 @@ function AdminOrderDetailPage() {
         const embassyCountry = getCountryInfo(orderData.country);
         steps.push({
           id: 'embassy_delivery',
-          name: '📤 Ambassad - lämna in',
-          description: `Lämna in dokument för legalisering på ${embassyCountry.name || embassyCountry.code || orderData.country} ambassad`,
+          name: '📤 Embassy – drop off',
+          description: `Submit documents for legalization at the ${embassyCountry.name || embassyCountry.code || orderData.country} embassy`,
           status: 'pending'
         });
         steps.push({
           id: 'embassy_pickup',
-          name: '📦 Ambassad - hämta',
-          description: `Hämta legaliserade dokument från ${embassyCountry.name || embassyCountry.code || orderData.country} ambassad`,
+          name: '📦 Embassy – pick up',
+          description: `Pick up legalized documents from the ${embassyCountry.name || embassyCountry.code || orderData.country} embassy`,
           status: 'pending'
         });
       }
@@ -537,14 +537,14 @@ function AdminOrderDetailPage() {
       if (orderData.services.includes('translation')) {
         steps.push({
           id: 'translation_delivery',
-          name: '🌐 Översättning - lämna in',
-          description: 'Lämna in dokument för auktoriserad översättning',
+          name: '🌐 Translation – drop off',
+          description: 'Submit documents for certified translation',
           status: 'pending'
         });
         steps.push({
           id: 'translation_pickup',
-          name: '🌐 Översättning - hämta',
-          description: 'Hämta översatta dokument från översättaren',
+          name: '🌐 Translation – pick up',
+          description: 'Pick up translated documents from the translator',
           status: 'pending'
         });
       }
@@ -554,8 +554,8 @@ function AdminOrderDetailPage() {
     if (orderData.scannedCopies) {
       steps.push({
         id: 'scanning',
-        name: '📸 Scannade kopior',
-        description: 'Skapa och skicka digitala kopior av dokument',
+        name: '📸 Scanned copies',
+        description: 'Create and send digital copies of the documents',
         status: 'pending'
       });
     }
@@ -563,31 +563,31 @@ function AdminOrderDetailPage() {
     // STEP: Final quality check
     steps.push({
       id: 'final_check',
-      name: '✅ Slutkontroll',
-      description: 'Kontrollera att alla tjänster är utförda korrekt',
+      name: '✅ Final check',
+      description: 'Verify that all services have been completed correctly',
       status: 'pending'
     });
 
     // STEP: Prepare return shipment
     steps.push({
       id: 'prepare_return',
-      name: '📦 Förbered retur',
-      description: `Packa dokument för ${orderData.returnService || 'retur'}`,
+      name: '📦 Prepare return',
+      description: `Pack documents for ${orderData.returnService || 'return'}`,
       status: 'pending'
     });
 
     // STEP: Return shipping
     steps.push({
       id: 'return_shipping',
-      name: '🚚 Returfrakt skickad',
-      description: 'Dokument skickade till kund - lägg in tracking-nummer',
+      name: '🚚 Return shipment sent',
+      description: 'Documents sent to the customer – add tracking number',
       status: 'pending'
     });
 
     steps.push({
       id: 'invoicing',
-      name: '🧾 Fakturering',
-      description: 'Skapa och skicka faktura till kund',
+      name: '🧾 Invoicing',
+      description: 'Create and send invoice to the customer',
       status: 'pending'
     });
 
@@ -830,10 +830,10 @@ function AdminOrderDetailPage() {
       if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
       await updateOrder(orderId, { internalNotes });
       setOrder({ ...order, internalNotes });
-      toast.success('Interna anteckningar sparade');
+      toast.success('Internal notes saved');
     } catch (err) {
       console.error('Error saving internal notes:', err);
-      toast.error('Kunde inte spara interna anteckningar');
+      toast.error('Could not save internal notes');
     }
   };
 
@@ -1525,7 +1525,7 @@ function AdminOrderDetailPage() {
           {loading ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">Laddar orderdetaljer...</p>
+              <p className="text-gray-600">Loading order details...</p>
             </div>
           ) : order ? (
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -1534,11 +1534,11 @@ function AdminOrderDetailPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex items-center space-x-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeColor(order.status)}`}>
-                      {order.status === 'pending' ? 'Väntar' :
-                       order.status === 'processing' ? 'Bearbetas' :
-                       order.status === 'shipped' ? 'Skickad' :
-                       order.status === 'delivered' ? 'Levererad' :
-                       order.status === 'cancelled' ? 'Avbruten' : order.status}
+                      {order.status === 'pending' ? 'Pending' :
+                       order.status === 'processing' ? 'Processing' :
+                       order.status === 'shipped' ? 'Shipped' :
+                       order.status === 'delivered' ? 'Delivered' :
+                       order.status === 'cancelled' ? 'Cancelled' : order.status}
                     </span>
                     <span className="text-lg font-semibold text-gray-900">{getComputedTotal()} kr</span>
                   </div>
@@ -1549,48 +1549,48 @@ function AdminOrderDetailPage() {
                       className="border border-gray-300 rounded px-3 py-2 text-sm"
                       disabled={isUpdating}
                     >
-                      <option value="pending">Väntar</option>
-                      <option value="processing">Bearbetas</option>
-                      <option value="shipped">Skickad</option>
-                      <option value="delivered">Levererad</option>
-                      <option value="cancelled">Avbruten</option>
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
                     </select>
                     <button
                       onClick={handleStatusUpdate}
                       disabled={isUpdating || order.status === editedStatus}
                       className="px-4 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
                     >
-                      {isUpdating ? 'Uppdaterar...' : 'Uppdatera'}
+                      {isUpdating ? 'Updating...' : 'Update status'}
                     </button>
                     <button
                       onClick={handleDownloadCover}
                       className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
-                      title="Ladda ner följesedel som PDF"
+                      title="Download packing slip as PDF"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Följesedel PDF
+                      Packing slip PDF
                     </button>
                     <button
                       onClick={handleDownloadOrderConfirmation}
                       className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
-                      title="Ladda ner orderbekräftelse som PDF"
+                      title="Download order confirmation as PDF"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Orderbekräftelse PDF
+                      Order confirmation PDF
                     </button>
                     <button
                       onClick={handlePrintCover}
                       className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
-                      title="Skriv ut följesedel"
+                      title="Print packing slip"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-3a2 2 0 00-2-2h-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v3H5a2 2 0 00-2 2v3a2 2 0 002 2h2m2 0h6v4H7v-4h6z" />
                       </svg>
-                      Skriv ut
+                      Print
                     </button>
                   </div>
                 </div>
@@ -1600,13 +1600,13 @@ function AdminOrderDetailPage() {
               <div className="p-4 border-b border-gray-200 bg-gray-50">
                 <nav className="flex">
                   {[
-                    { id: 'overview', label: 'Översikt', icon: '📋' },
-                    { id: 'processing', label: 'Bearbetning', icon: '⚙️' },
-                    { id: 'services', label: 'Tjänster', icon: '🧩' },
-                    { id: 'price', label: 'Pris', icon: '💰' },
-                    { id: 'files', label: 'Filer', icon: '📎' },
-                    { id: 'invoice', label: 'Faktura', icon: '🧾' },
-                    { id: 'notes', label: 'Anteckningar', icon: '📝' }
+                    { id: 'overview', label: 'Overview', icon: '📋' },
+                    { id: 'processing', label: 'Processing', icon: '⚙️' },
+                    { id: 'services', label: 'Services', icon: '🧩' },
+                    { id: 'price', label: 'Price', icon: '💰' },
+                    { id: 'files', label: 'Files', icon: '📎' },
+                    { id: 'invoice', label: 'Invoice', icon: '🧾' },
+                    { id: 'notes', label: 'Notes', icon: '📝' }
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1631,7 +1631,7 @@ function AdminOrderDetailPage() {
                     {/* Order Summary Card */}
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                       <div className="p-4 border-b border-gray-200 bg-gray-50">
-                        <h3 className="text-lg font-medium text-gray-800">Orderöversikt</h3>
+                        <h3 className="text-lg font-medium text-gray-800">Order overview</h3>
                       </div>
                       <div className="p-6">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1702,7 +1702,7 @@ function AdminOrderDetailPage() {
 
                             {/* Processing Steps Overview */}
                             <div>
-                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Bearbetningssteg</h3>
+                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Processing steps</h3>
                               <div className="space-y-2">
                                 {processingSteps.map((step, index) => (
                                   <div key={step.id} className={`flex items-center justify-between px-3 py-2 rounded-md ${getProcessingStepCardClasses(step.status)}`}>
@@ -1731,9 +1731,9 @@ function AdminOrderDetailPage() {
                                         step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
                                         'bg-red-100 text-red-800'
                                       }`}>
-                                        {step.status === 'completed' ? 'Klar' :
-                                         step.status === 'in_progress' ? 'Pågår' :
-                                         step.status === 'pending' ? 'Väntar' : 'Hoppas över'}
+                                        {step.status === 'completed' ? 'Completed' :
+                                         step.status === 'in_progress' ? 'In progress' :
+                                         step.status === 'pending' ? 'Pending' : 'Skipped'}
                                       </span>
                                       {step.status === 'completed' && step.completedAt && (
                                         <span className="text-xs text-gray-500">
@@ -1750,7 +1750,7 @@ function AdminOrderDetailPage() {
                                   onClick={() => setActiveTab('processing')}
                                   className="text-primary-600 text-sm underline"
                                 >
-                                  Hantera bearbetning →
+                                  Manage processing →
                                 </button>
                               </div>
                             </div>
@@ -1759,28 +1759,28 @@ function AdminOrderDetailPage() {
 
                             {/* Notes summary in Overview */}
                             <div>
-                              <h3 className="text-lg font-medium mb-4">Anteckningar</h3>
+                              <h3 className="text-lg font-medium mb-4">Notes</h3>
                               <div className="space-y-3">
                                 {internalNotesList.length === 0 && (
-                                  <div className="text-sm text-gray-500">Inga anteckningar ännu</div>
+                                  <div className="text-sm text-gray-500">No notes yet</div>
                                 )}
                                 {internalNotesList.slice(0, 5).map((n) => (
                                   <div key={n.id} className="border border-gray-200 rounded p-3 bg-white">
                                     <div className="whitespace-pre-wrap text-sm text-gray-800">{n.content}</div>
                                     <div className="mt-2 text-xs text-gray-500">
-                                      Skapad {formatDate(n.createdAt)} av {n.createdBy || 'Okänd'}
+                                      Created {formatDate(n.createdAt)} by {n.createdBy || 'Unknown'}
                                     </div>
                                   </div>
                                 ))}
                                 {internalNotesList.length > 5 && (
-                                  <div className="text-sm text-gray-600">Visar de senaste 5 anteckningarna</div>
+                                  <div className="text-sm text-gray-600">Showing the latest 5 notes</div>
                                 )}
                                 <button
                                   type="button"
                                   onClick={() => setActiveTab('processing')}
                                   className="text-primary-600 text-sm underline"
                                 >
-                                  Visa alla anteckningar →
+                                  View all notes →
                                 </button>
                               </div>
                             </div>
@@ -2294,7 +2294,7 @@ function AdminOrderDetailPage() {
                 {activeTab === 'processing' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Bearbetningssteg</h3>
+                      <h3 className="text-lg font-medium mb-4">Processing steps</h3>
                       <div className="space-y-4">
                         {processingSteps.map((step, index) => (
                           <div key={step.id} className={`border ${getProcessingStepCardClasses(step.status)} rounded-lg p-4`}>
@@ -2320,10 +2320,10 @@ function AdminOrderDetailPage() {
                                 onChange={(e) => updateProcessingStep(step.id, e.target.value as ProcessingStep['status'])}
                                 className="border border-gray-300 rounded px-2 py-1 text-sm"
                               >
-                                <option value="pending">Väntar</option>
-                                <option value="in_progress">Pågår</option>
-                                <option value="completed">Klar</option>
-                                <option value="skipped">Hoppas över</option>
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="skipped">Skipped</option>
                               </select>
                             </div>
                             {isAuthorityService(step.id) && (
@@ -2519,16 +2519,16 @@ function AdminOrderDetailPage() {
 
                     {/* Internal Notes (append-only) */}
                     <div>
-                      <h3 className="text-lg font-medium mb-3">Interna anteckningar</h3>
+                      <h3 className="text-lg font-medium mb-3">Internal notes</h3>
                       <div className="space-y-3 mb-4">
                         {internalNotesList.length === 0 && (
-                          <div className="text-sm text-gray-500">Inga anteckningar ännu</div>
+                          <div className="text-sm text-gray-500">No notes yet</div>
                         )}
                         {internalNotesList.map((n) => (
                           <div key={n.id} className="border border-gray-200 rounded p-3 bg-gray-50">
                             <div className="whitespace-pre-wrap text-sm text-gray-800">{n.content}</div>
                             <div className="mt-2 text-xs text-gray-500">
-                              Skapad {formatDate(n.createdAt)} av {n.createdBy || 'Okänd'}
+                              Created {formatDate(n.createdAt)} by {n.createdBy || 'Unknown'}
                             </div>
                           </div>
                         ))}
@@ -2536,7 +2536,7 @@ function AdminOrderDetailPage() {
                       <textarea
                         value={internalNoteText}
                         onChange={(e) => setInternalNoteText(e.target.value)}
-                        placeholder="Skriv en ny intern anteckning..."
+                        placeholder="Write a new internal note..."
                         className="w-full border border-gray-300 rounded-lg p-3"
                         rows={3}
                       />
@@ -2545,7 +2545,7 @@ function AdminOrderDetailPage() {
                           onClick={addInternalNote}
                           className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
                         >
-                          Lägg till anteckning
+                          Add note
                         </button>
                       </div>
                     </div>
@@ -2808,7 +2808,7 @@ function AdminOrderDetailPage() {
 
                     {/* Existing Notes */}
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Tidigare anteckningar</h3>
+                      <h3 className="text-lg font-medium mb-4">Previous notes</h3>
                       {order.adminNotes && order.adminNotes.length > 0 ? (
                         <div className="space-y-4">
                           {order.adminNotes.map((note: AdminNote, index: number) => (
@@ -2826,12 +2826,12 @@ function AdminOrderDetailPage() {
                                     note.type === 'processing' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-gray-100 text-gray-800'
                                   }`}>
-                                    {note.type === 'general' ? 'Allmänt' :
-                                     note.type === 'processing' ? 'Bearbetning' :
-                                     note.type === 'customer' ? 'Kund' : 'Problem'}
+                                    {note.type === 'general' ? 'General' :
+                                     note.type === 'processing' ? 'Processing' :
+                                     note.type === 'customer' ? 'Customer' : 'Issue'}
                                   </span>
                                   <span className="text-sm text-gray-600">
-                                    {formatDate(note.createdAt)} av {note.createdBy}
+                                    {formatDate(note.createdAt)} by {note.createdBy}
                                   </span>
                                 </div>
                               </div>
@@ -2844,7 +2844,7 @@ function AdminOrderDetailPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
-                          <p>Inga anteckningar än</p>
+                          <p>No notes yet</p>
                         </div>
                       )}
                     </div>

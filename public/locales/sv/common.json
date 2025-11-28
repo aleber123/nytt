@@ -384,6 +384,7 @@
       "orderDetails": "Beställningsinformation",
       "service": "Tjänst",
       "documentType": "Dokumenttyp",
+      "country": "Land",
       "quantity": "Antal",
       "expedited": "Expresstjänst",
       "deliveryMethod": "Leveranssätt",
@@ -789,6 +790,17 @@
       "source": {
         "original": "Originaldokument",
         "files": "Uppladdade filer"
+      },
+      "processing": {
+        "overviewTitle": "Bearbetningssteg",
+        "tabTitle": "Bearbetningssteg",
+        "manageLink": "Hantera bearbetning",
+        "status": {
+          "completed": "Klar",
+          "in_progress": "Pågår",
+          "pending": "Väntar",
+          "skipped": "Hoppas över"
+        }
       }
     }
   },
