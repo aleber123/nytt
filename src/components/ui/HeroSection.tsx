@@ -12,7 +12,7 @@ interface HeroSectionProps {
 const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, ctaLink }) => {
   const { t } = useTranslation('common');
   return (
-    <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/hero-background.jpg)' }}>
+    <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/AdobeStock_343503546.jpeg)' }}>
       {/* Mörkt overlay för bättre textläsbarhet */}
       <div className="absolute inset-0 bg-black bg-opacity-50"></div>
       
@@ -32,18 +32,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, cta
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               href={ctaLink}
-              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
+              className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
               aria-label={ctaText}
             >
               {ctaText}
-            </Link>
-            
-            <Link
-              href="/tjanster"
-              className="inline-flex items-center justify-center px-6 py-3 border border-white text-base font-medium rounded-md text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
-              aria-label={t('hero.learnMoreServices') || 'Läs mer om våra tjänster'}
-            >
-              {t('hero.learnMoreServices') || 'Läs mer om våra tjänster'}
             </Link>
           </div>
         </div>

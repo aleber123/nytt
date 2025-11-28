@@ -181,7 +181,7 @@
     "prices": "Prices",
     "about": "About us",
     "contact": "Contact",
-    "order": "Order now",
+    "order": "Get started",
     "admin": "Admin",
     "orders": "Orders"
   },
@@ -249,7 +249,7 @@
   "hero": {
     "title": "Document legalization for use abroad",
     "subtitle": "We help you with apostille, notarization, and embassy legalization. Fast, easy, and secure.",
-    "cta": "Order now",
+    "cta": "Get started",
     "learnMoreServices": "Learn more about our services"
   },
   "services": {
