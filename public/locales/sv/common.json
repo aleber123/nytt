@@ -925,7 +925,11 @@
       "selectedCountry": "Valt land: {{country}}",
       "hagueDescription": "Land anslutet till Haagkonventionen - Apostille tillgänglig",
       "embassyDescription": "Ambassadlegalisering rekommenderas",
-      "apostilleAvailable": "Apostille"
+      "apostilleAvailable": "Apostille",
+      "hagueConventionTitle": "Haagkonventionen",
+      "hagueConventionDescription": "Detta land är anslutet till Haagkonventionen. Apostille räcker för legalisering.",
+      "nonHagueTitle": "Ambassadlegalisering",
+      "nonHagueDescription": "Detta land kräver ambassadlegalisering (ej Haagkonventionen)."
     },
     "step2": {
       "title": "Vilken typ av dokument behöver du legalisera?",
@@ -1039,14 +1043,25 @@
     "step7": {
       "title": "Skicka dina originaldokument",
       "subtitle": "Här är adressen dit du ska skicka dina dokument",
-      "shippingAddressTitle": "Skicka dina originaldokument till denna adress:",
+      "shippingAddressTitle": "Skicka dina originaldokument till rätt adress:",
       "companyName": "DOX Visumpartner AB",
       "attention": "Att: Dokumenthantering",
       "street": "Box 38",
       "postalCode": "121 25",
       "city": "Stockholm-Globen",
       "country": "Sverige",
-      "printAddress": "Skriv ut adress"
+      "printAddress": "Skriv ut REK-adress",
+      "rekTab": "REK (rekommenderad post)",
+      "rekLabel": "Rekommenderat brev (REK) – boxadress",
+      "rekCompanyLine": "REK DOX Visumpartner AB",
+      "rekInfo": "För rekommenderat brev (REK) ska du alltid använda boxadressen ovan.",
+      "courierLabel": "Bud / DHL – besöksadress",
+      "courierStreet": "Livdjursgatan 4, våning 6",
+      "courierPostalCode": "121 62",
+      "courierCity": "Johanneshov",
+      "courierCountry": "Sverige",
+      "courierWarning": "Viktigt: Skicka inte REK till denna adress.",
+      "courierTab": "BUD (t.ex. DHL, Bring m.m.)"
     },
     "step8": {
       "title": "Önskar du scannade kopior av ditt dokument?",

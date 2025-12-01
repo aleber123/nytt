@@ -931,7 +931,11 @@
       "selectedCountry": "Selected country: {{country}}",
       "hagueDescription": "Country part of the Hague Convention - Apostille available",
       "embassyDescription": "Embassy legalization recommended",
-      "apostilleAvailable": "Apostille"
+      "apostilleAvailable": "Apostille",
+      "hagueConventionTitle": "Hague Convention",
+      "hagueConventionDescription": "This country is part of the Hague Convention. Apostille is sufficient for legalization.",
+      "nonHagueTitle": "Embassy legalization",
+      "nonHagueDescription": "This country requires embassy legalization (non-Hague Convention)."
     },
     "step2": {
       "title": "What type of document do you need to legalize?",
@@ -1053,7 +1057,18 @@
       "postalCode": "121 25",
       "city": "Stockholm-Globen",
       "country": "Sweden",
-      "printAddress": "Print address"
+      "printAddress": "Print REK address label",
+      "rekTab": "REK (registered mail)",
+      "rekLabel": "Registered mail (REK) – PO box address",
+      "rekCompanyLine": "REK DOX Visumpartner AB",
+      "rekInfo": "For registered mail (REK), always use the PO box address above.",
+      "courierLabel": "Courier / DHL – visiting address",
+      "courierStreet": "Livdjursgatan 4, floor 6",
+      "courierPostalCode": "121 62",
+      "courierCity": "Johanneshov",
+      "courierCountry": "Sweden",
+      "courierWarning": "Important: Do not send registered mail (REK) to this address.",
+      "courierTab": "Courier (e.g. DHL, Bring)"
     },
     "step8": {
       "title": "Would you like scanned copies of your document?",
