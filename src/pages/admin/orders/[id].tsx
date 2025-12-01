@@ -1943,7 +1943,7 @@ function AdminOrderDetailPage() {
 
                             {/* Quick Actions */}
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
-                              <h3 className="text-lg font-medium mb-4">Snabba åtgärder</h3>
+                              <h3 className="text-lg font-medium mb-4">Quick actions</h3>
                               <div className="space-y-2">
                                 {invoices.length === 0 && (
                                   <button
@@ -1954,14 +1954,14 @@ function AdminOrderDetailPage() {
                                     {creatingInvoice ? (
                                       <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                                        Skapar faktura...
+                                        Creating invoice...
                                       </>
                                     ) : (
                                       <>
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
-                                        Skapa faktura
+                                        Create invoice
                                       </>
                                     )}
                                   </button>
@@ -1974,7 +1974,7 @@ function AdminOrderDetailPage() {
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    Visa fakturor ({invoices.length})
+                                    View invoices ({invoices.length})
                                   </button>
                                 )}
                                 <Link
@@ -1993,7 +1993,7 @@ function AdminOrderDetailPage() {
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                   </svg>
-                                  Skicka e-post
+                                  Send email
                                 </Link>
                                 <button
                                   onClick={() => window.print()}
@@ -2002,7 +2002,7 @@ function AdminOrderDetailPage() {
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                   </svg>
-                                  Skriv ut
+                                  Print
                                 </button>
                               </div>
                             </div>

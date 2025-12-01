@@ -5,9 +5,11 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 
 function AdminIndexPage() {
   const { t } = useTranslation('common');
+  const { signOut } = useAuth();
   const renderIcon = (iconName: string) => {
     const iconClasses = "h-8 w-8 text-primary-600";
 
@@ -59,6 +61,24 @@ function AdminIndexPage() {
 
   const adminPages = [
     {
+      title: t('admin.index.pages.orders.title', 'Beställningar'),
+      description: t('admin.index.pages.orders.description', 'Se och hantera kundbeställningar'),
+      href: '/admin/orders',
+      color: 'bg-orange-600 hover:bg-orange-700',
+      badge: t('admin.index.pages.orders.badge', 'Alla ordrar'),
+      icon: 'clipboard-list',
+      category: 'orders'
+    },
+    {
+      title: t('admin.index.pages.driver.title', 'Chaufför'),
+      description: t('admin.index.pages.driver.description', 'Dagliga körningar - lämna in och hämta dokument från myndigheter'),
+      href: '/admin/driver',
+      color: 'bg-indigo-600 hover:bg-indigo-700',
+      icon: 'car',
+      badge: t('admin.index.pages.driver.badge', 'Dagliga uppgifter'),
+      category: 'operations'
+    },
+    {
       title: t('admin.index.pages.embassyPrices.title', 'Ambassadpriser'),
       description: t('admin.index.pages.embassyPrices.description', 'Hantera priser för ambassadlegalisering per land'),
       href: '/admin/simple-embassy-prices',
@@ -84,24 +104,6 @@ function AdminIndexPage() {
       icon: 'truck',
       badge: t('admin.index.pages.shipping.badge', '3 leverantörer'),
       category: 'operations'
-    },
-    {
-      title: t('admin.index.pages.driver.title', 'Chaufför'),
-      description: t('admin.index.pages.driver.description', 'Dagliga körningar - lämna in och hämta dokument från myndigheter'),
-      href: '/admin/driver',
-      color: 'bg-indigo-600 hover:bg-indigo-700',
-      icon: 'car',
-      badge: t('admin.index.pages.driver.badge', 'Dagliga uppgifter'),
-      category: 'operations'
-    },
-    {
-      title: t('admin.index.pages.orders.title', 'Beställningar'),
-      description: t('admin.index.pages.orders.description', 'Se och hantera kundbeställningar'),
-      href: '/admin/orders',
-      color: 'bg-orange-600 hover:bg-orange-700',
-      badge: t('admin.index.pages.orders.badge', 'Alla ordrar'),
-      icon: 'clipboard-list',
-      category: 'orders'
     },
     {
       title: t('admin.index.pages.invoices.title', 'Fakturor'),
@@ -141,13 +143,23 @@ function AdminIndexPage() {
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-6">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               {t('admin.index.heading', 'Admin Panel')}
             </h1>
             <p className="text-xl text-gray-600">
               {t('admin.index.subheading', 'Hantera priser, beställningar och allt annat för din legaliseringstjänst')}
             </p>
+          </div>
+
+          {/* Top actions (including Sign Out) */}
+          <div className="flex justify-end mb-8">
+            <button
+              onClick={() => signOut()}
+              className="text-sm font-medium text-gray-600 hover:text-gray-800"
+            >
+              {t('admin.orders.headerSignOut', 'Sign Out')}
+            </button>
           </div>
 
           {/* Quick Stats */}

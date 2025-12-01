@@ -75,6 +75,36 @@ function getDocumentTypeName(docType?: string): string {
   }
 }
 
+function getCountryName(country?: string): string {
+  if (!country) return '';
+
+  const map: Record<string, string> = {
+    US: 'USA',
+    GB: 'United Kingdom',
+    DE: 'Germany',
+    SE: 'Sweden',
+    TH: 'Thailand',
+    NO: 'Norway',
+    DK: 'Denmark',
+    FI: 'Finland',
+    VN: 'Vietnam',
+    FR: 'France',
+    IR: 'Iran',
+    ES: 'Spain',
+    IT: 'Italy',
+    BD: 'Bangladesh',
+    NL: 'Netherlands',
+    LK: 'Sri Lanka',
+    PL: 'Poland',
+    CA: 'Canada',
+    AU: 'Australia',
+    TR: 'Turkey'
+  };
+
+  const upper = country.toUpperCase();
+  return map[upper] || country;
+}
+
 function getServiceName(id: string): string {
   const map: Record<string, string> = {
     apostille: 'Apostille',
@@ -179,15 +209,15 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   if (customerName) details.push(['Customer', customerName]);
 
   details.push(['Document type', getDocumentTypeName(order.documentType)]);
-  details.push(['Country of use', order.country]);
+  details.push(['Country of use', getCountryName(order.country)]);
   details.push(['Quantity', `${order.quantity}`]);
 
-  const servicesStr = Array.isArray(order.services)
-    ? order.services.map(getServiceName).join(', ')
-    : getServiceName(order.services as unknown as string);
-  details.push(['Selected services', servicesStr]);
+  const serviceNames: string[] = Array.isArray(order.services)
+    ? order.services.map(getServiceName)
+    : order.services
+      ? [getServiceName(order.services as unknown as string)]
+      : [];
 
-  // Render details with labels left and values right column
   const leftX = 20;
   const midX = 110;
   const rowH = 8;
@@ -209,7 +239,75 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   doc.line(20, y, 190, y);
   y += 12;
 
+  // Selected services (vertical list)
+  if (serviceNames.length > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(46, 45, 44);
+    doc.text('Selected services', 20, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(text[0], text[1], text[2]);
+
+    serviceNames.forEach((name) => {
+      doc.text(name, 20, y);
+      y += 5;
+    });
+
+    y += 8;
+  }
+
   // Removed checklist per request
+
+  // Service checklist for driver (only for selected core services)
+  const serviceIds = Array.isArray(order.services)
+    ? order.services
+    : order.services
+      ? [order.services as unknown as string]
+      : [];
+
+  const hasChamber = serviceIds.some((id) => id === 'chamber');
+  const hasNotarization = serviceIds.some((id) => id === 'notarisering' || id === 'notarization');
+  const hasMinistry = serviceIds.some((id) => id === 'utrikesdepartementet' || id === 'ud');
+  const hasEmbassy = serviceIds.some((id) => id === 'ambassad' || id === 'embassy');
+
+  const checklistItems: string[] = [];
+  if (hasChamber) checklistItems.push('Chamber of Commerce');
+  if (hasNotarization) checklistItems.push('Notarization');
+  if (hasMinistry) checklistItems.push('Ministry for Foreign Affairs');
+  if (hasEmbassy) checklistItems.push('Embassy Legalisation');
+
+  if (checklistItems.length > 0) {
+    // Section title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(46, 45, 44);
+    doc.text('Service checklist', 20, y);
+    y += 6;
+
+    // Checklist lines with empty boxes for manual ticking
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(text[0], text[1], text[2]);
+    doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+
+    const boxSize = 4;
+    const lineGap = 8;
+    const boxX = 20;
+
+    checklistItems.forEach((label) => {
+      const baselineY = y;
+      // Draw empty checkbox
+      doc.rect(boxX, baselineY - boxSize + 1, boxSize, boxSize);
+      // Label to the right of checkbox
+      doc.text(label, boxX + boxSize + 4, baselineY + 1);
+      y += lineGap;
+    });
+
+    y += 6;
+  }
 
   // Notes box
   doc.setFillColor(255, 255, 255);
@@ -340,13 +438,14 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   if (customerName) details.push(['Customer', customerName]);
 
   details.push(['Document type', getDocumentTypeName(order.documentType)]);
-  details.push(['Country of use', order.country]);
+  details.push(['Country of use', getCountryName(order.country)]);
   details.push(['Quantity', `${order.quantity}`]);
 
-  const servicesStr = Array.isArray(order.services)
-    ? order.services.map(getServiceName).join(', ')
-    : getServiceName(order.services as unknown as string);
-  details.push(['Selected services', servicesStr]);
+  const serviceNames: string[] = Array.isArray(order.services)
+    ? order.services.map(getServiceName)
+    : order.services
+      ? [getServiceName(order.services as unknown as string)]
+      : [];
 
   // Return address (from customer info)
   const addressParts: string[] = [];
@@ -414,6 +513,26 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   doc.line(20, y, 190, y);
   y += 10;
+
+   // Selected services (vertical list)
+  if (serviceNames.length > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(46, 45, 44);
+    doc.text('Selected services', 20, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(text[0], text[1], text[2]);
+
+    serviceNames.forEach((name) => {
+      doc.text(name, 20, y);
+      y += 5;
+    });
+
+    y += 8;
+  }
 
   // Internal notes section
   doc.setFont('helvetica', 'bold');
