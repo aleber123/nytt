@@ -9,13 +9,13 @@ const {
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAaQfVaMxCMjDbDa4l-S6IjSy4uTcQbHyo",
-  authDomain: "legapp-2720a.firebaseapp.com",
-  projectId: "legapp-2720a",
-  storageBucket: "legapp-2720a.firebasestorage.app",
-  messagingSenderId: "1003184294483",
-  appId: "1:1003184294483:web:55e86d1f5833ee0cad14a6",
-  measurementId: "G-V694ZBTV7F"
+  apiKey: "YOUR_FIREBASE_API_KEY_HERE",
+  authDomain: "your-firebase-auth-domain.firebaseapp.com",
+  projectId: "your-firebase-project-id",
+  storageBucket: "your-firebase-storage-bucket.firebasestorage.app",
+  messagingSenderId: "000000000000",
+  appId: "your-firebase-app-id",
+  measurementId: "YOUR_MEASUREMENT_ID_HERE"
 };
 
 // Initialize Firebase
