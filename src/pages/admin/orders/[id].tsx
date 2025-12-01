@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import type { GetServerSideProps } from 'next';
 import type { Timestamp as FbTimestamp } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -1789,11 +1787,11 @@ function AdminOrderDetailPage() {
                           {/* Customer Info Sidebar */}
                           <div className="space-y-6">
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
-                              <h3 className="text-lg font-medium mb-4">Kundinformation</h3>
+                              <h3 className="text-lg font-medium mb-4">Customer information</h3>
                               <div className="space-y-3">
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Förnamn</label>
+                                    <label className="block text-xs text-gray-500 mb-1">First name</label>
                                     <input
                                       type="text"
                                       value={editedCustomer.firstName}
@@ -1802,7 +1800,7 @@ function AdminOrderDetailPage() {
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Efternamn</label>
+                                    <label className="block text-xs text-gray-500 mb-1">Last name</label>
                                     <input
                                       type="text"
                                       value={editedCustomer.lastName}
@@ -1813,7 +1811,7 @@ function AdminOrderDetailPage() {
                                 </div>
 
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">E-post</label>
+                                  <label className="block text-xs text-gray-500 mb-1">Email</label>
                                   <input
                                     type="email"
                                     value={editedCustomer.email}
@@ -1823,7 +1821,7 @@ function AdminOrderDetailPage() {
                                 </div>
 
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Telefon</label>
+                                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
                                   <input
                                     type="tel"
                                     value={editedCustomer.phone}
@@ -1833,7 +1831,7 @@ function AdminOrderDetailPage() {
                                 </div>
 
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Adress</label>
+                                  <label className="block text-xs text-gray-500 mb-1">Address</label>
                                   <input
                                     type="text"
                                     value={editedCustomer.address}
@@ -1843,14 +1841,14 @@ function AdminOrderDetailPage() {
                                   <div className="grid grid-cols-2 gap-2 mt-1">
                                     <input
                                       type="text"
-                                      placeholder="Postnummer"
+                                      placeholder="Postal code"
                                       value={editedCustomer.postalCode}
                                       onChange={(e) => setEditedCustomer({ ...editedCustomer, postalCode: e.target.value })}
                                       className="border border-gray-300 rounded px-2 py-1 text-sm"
                                     />
                                     <input
                                       type="text"
-                                      placeholder="Ort"
+                                      placeholder="City"
                                       value={editedCustomer.city}
                                       onChange={(e) => setEditedCustomer({ ...editedCustomer, city: e.target.value })}
                                       className="border border-gray-300 rounded px-2 py-1 text-sm"
@@ -1860,10 +1858,10 @@ function AdminOrderDetailPage() {
 
                                 {order.pickupService && (
                                   <div className="mt-4 border-t border-gray-200 pt-3 space-y-2">
-                                    <p className="text-sm font-medium text-gray-700">Hämtningsadress</p>
+                                    <p className="text-sm font-medium text-gray-700">Pickup address</p>
                                     <input
                                       type="text"
-                                      placeholder="Gatuadress"
+                                      placeholder="Street address"
                                       value={editedPickupAddress.street}
                                       onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, street: e.target.value })}
                                       className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-1"
@@ -1871,14 +1869,14 @@ function AdminOrderDetailPage() {
                                     <div className="grid grid-cols-2 gap-2">
                                       <input
                                         type="text"
-                                        placeholder="Postnummer"
+                                        placeholder="Postal code"
                                         value={editedPickupAddress.postalCode}
                                         onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, postalCode: e.target.value })}
                                         className="border border-gray-300 rounded px-2 py-1 text-sm"
                                       />
                                       <input
                                         type="text"
-                                        placeholder="Ort"
+                                        placeholder="City"
                                         value={editedPickupAddress.city}
                                         onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, city: e.target.value })}
                                         className="border border-gray-300 rounded px-2 py-1 text-sm"
@@ -1894,7 +1892,7 @@ function AdminOrderDetailPage() {
                                     disabled={savingCustomerInfo}
                                     className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    {savingCustomerInfo ? 'Sparar...' : 'Spara kundinfo'}
+                                    {savingCustomerInfo ? 'Saving...' : 'Save customer info'}
                                   </button>
                                 </div>
                               </div>
@@ -1902,7 +1900,7 @@ function AdminOrderDetailPage() {
 
                             {/* Customer history */}
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
-                              <h3 className="text-lg font-medium mb-3">Tidigare kunduppgifter</h3>
+                              <h3 className="text-lg font-medium mb-3">Previous customer details</h3>
                               {order.customerHistory && order.customerHistory.length > 0 ? (
                                 <div className="space-y-2 max-h-64 overflow-y-auto text-sm">
                                   {order.customerHistory
@@ -1920,7 +1918,7 @@ function AdminOrderDetailPage() {
                                             onClick={() => applyCustomerHistoryEntry(h)}
                                             className="text-xs text-primary-600 underline"
                                           >
-                                            Ladda in
+                                            Load
                                           </button>
                                         </div>
                                         <div className="text-xs text-gray-600">
@@ -1932,14 +1930,14 @@ function AdminOrderDetailPage() {
                                           <div>{h.customerInfo?.email}</div>
                                           <div>{h.customerInfo?.phone}</div>
                                           <div className="mt-1 text-[11px] text-gray-500">
-                                            Ändrad {formatDate(h.timestamp)} av {h.changedBy || 'Okänd'}
+                                            Updated {formatDate(h.timestamp)} by {h.changedBy || 'Unknown'}
                                           </div>
                                         </div>
                                       </div>
                                     ))}
                                 </div>
                               ) : (
-                                <p className="text-sm text-gray-500">Ingen historik ännu</p>
+                                <p className="text-sm text-gray-500">No history yet</p>
                               )}
                             </div>
 
@@ -2894,11 +2892,3 @@ const ClientOnlyAdminOrderDetail = () => (
 );
 
 export default dynamic(() => Promise.resolve(ClientOnlyAdminOrderDetail), { ssr: false });
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
-    },
-  };
-};

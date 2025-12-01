@@ -911,6 +911,7 @@
     "submitOrder": "Submit Order",
     "submittingOrder": "Submitting order...",
     "wait10Seconds": "Wait 10 seconds...",
+    "restoredDraftMessage": "Welcome back! Your order was restored from step {{step}}.",
     "orderSubmitted": "🎉 Order submitted!",
     "orderNumber": "Order number: {{orderId}}",
     "documentsReturn": "✓ Your documents will be returned according to the selected shipping method",
@@ -981,7 +982,9 @@
       "originalDocuments": "Original documents",
       "originalDescription": "I have physical original documents that I will send by mail",
       "uploadDocuments": "Upload documents",
-      "uploadDescription": "I want to upload digital copies for legalization"
+      "uploadDescription": "I want to upload digital copies for legalization",
+      "infoTitle": "Good to know",
+      "infoText": "For some countries and document types, original documents may be required. We will contact you if this applies to your order."
     },
     "step6": {
       "title": "Would you like us to pick up your documents?",

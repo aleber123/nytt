@@ -912,6 +912,7 @@
     "submitOrder": "Skicka beställning",
     "submittingOrder": "Skickar beställning...",
     "wait10Seconds": "Vänta 10 sekunder...",
+    "restoredDraftMessage": "Välkommen tillbaka! Din beställning återställdes från steg {{step}}.",
     "step1": {
       "title": "Vilket land ska dokumentet användas i?",
       "subtitle": "Detta hjälper oss att rekommendera rätt legaliseringstjänster för ditt dokument.",
@@ -974,7 +975,9 @@
       "originalDocuments": "Originaldokument",
       "originalDescription": "Jag har fysiska originaldokument som jag skickar per post",
       "uploadDocuments": "Ladda upp dokument",
-      "uploadDescription": "Jag vill ladda upp digitala kopior för legalisering"
+      "uploadDescription": "Jag vill ladda upp digitala kopior för legalisering",
+      "infoTitle": "Viktigt att veta",
+      "infoText": "För vissa länder och dokumenttyper kan originaldokument krävas. Vi kontaktar dig om detta gäller din beställning."
     },
     "step6": {
       "title": "Önskar du att vi hämtar dina dokument?",

@@ -42,7 +42,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, cta
       </div>
       
       {/* Vågform i botten för visuellt intresse */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div className="absolute left-0 right-0" style={{ bottom: '-1px' }}>
         <svg className="block w-full" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 120L48 105C96 90 192 60 288 50C384 40 480 50 576 55C672 60 768 60 864 65C960 70 1056 80 1152 75C1248 70 1344 50 1392 40L1440 30V120H1392C1344 120 1248 120 1152 120C1056 120 960 120 864 120C768 120 672 120 576 120C480 120 384 120 288 120C192 120 96 120 48 120H0Z" fill="white"/>
         </svg>

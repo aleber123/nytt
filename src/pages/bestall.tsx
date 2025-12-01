@@ -119,7 +119,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       const savedInfo = getSavedProgressInfo();
       if (savedInfo.exists && !savedInfo.expired && savedInfo.step && savedInfo.step > 1) {
         toast.success(
-          `Välkommen tillbaka! Din beställning återställdes från steg ${savedInfo.step}.`,
+          t(
+            'orderFlow.restoredDraftMessage',
+            'Välkommen tillbaka! Din beställning återställdes från steg {{step}}.',
+            { step: savedInfo.step }
+          ),
           { duration: 5000, icon: '💾' }
         );
       }
