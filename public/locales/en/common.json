@@ -491,6 +491,7 @@
     "totalAmount": "Total Amount",
     "paymentMethod": "Payment Method",
     "emailSent": "A confirmation has been sent to your email.",
+    "emailConfirmationTitle": "Email confirmation sent",
     "trackOrder": "Track your order",
     "noOrder": "No order found",
     "noOrderDescription": "We could not find any order with the specified ID number.",

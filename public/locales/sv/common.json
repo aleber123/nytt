@@ -491,6 +491,7 @@
     "totalAmount": "Totalt belopp",
     "paymentMethod": "Betalningsmetod",
     "emailSent": "En bekräftelse har skickats till din e-post.",
+    "emailConfirmationTitle": "E-postbekräftelse skickad",
     "trackOrder": "Spåra din order",
     "noOrder": "Ingen order hittades",
     "noOrderDescription": "Vi kunde inte hitta någon order med det angivna ID-numret.",
