@@ -9,6 +9,7 @@ import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps, Service } from '../types';
 import { HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
+import CountryFlag from '../../ui/CountryFlag';
 
 interface Step3Props extends StepProps {
   availableServices: Service[];
@@ -121,7 +122,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <div className="flex items-center">
           <span className="text-2xl mr-3">
-            {allCountries?.find(c => c.code === answers.country)?.flag || '🌍'}
+            <CountryFlag code={answers.country} size={24} />
           </span>
           <div>
             <div className="font-medium text-blue-900">

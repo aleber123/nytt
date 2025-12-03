@@ -89,14 +89,86 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     const createdAtIso = orderData.createdAt?.toDate().toISOString();
     const updatedAtIso = orderData.updatedAt?.toDate().toISOString();
 
+    const processingSteps = (orderData as any).processingSteps as any[] | undefined;
+    const hasProcessingSteps = Array.isArray(processingSteps) && processingSteps.length > 0;
+
     const isProcessingStarted = ['processing', 'completed', 'shipped', 'delivered'].includes(status);
     const isProcessingCompleted = ['completed', 'shipped', 'delivered'].includes(status);
     const isShipped = ['shipped', 'delivered'].includes(status);
     const isDelivered = status === 'delivered';
 
-    // Customer-facing steps based on high-level order status
-    const steps = [
-      {
+    const getStepDate = (value: any): Date | undefined => {
+      if (!value) return undefined;
+      if (typeof value.toDate === 'function') {
+        try {
+          return value.toDate();
+        } catch {
+          // fall back to Date constructor
+        }
+      }
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? undefined : date;
+    };
+
+    let steps: {
+      name: string;
+      description: string;
+      completed: boolean;
+      date?: string;
+    }[] = [];
+
+    if (hasProcessingSteps) {
+      const coreProcessingStepIds = new Set<string>([
+        'document_receipt',
+        'pickup_booking',
+        'notarization_delivery',
+        'notarization_pickup',
+        'translation_delivery',
+        'translation_pickup',
+        'chamber_delivery',
+        'chamber_pickup',
+        'ud_delivery',
+        'ud_pickup',
+        'embassy_delivery',
+        'embassy_pickup',
+        'scanning'
+      ]);
+
+      const coreCompletedSteps = processingSteps
+        .filter(
+          (s: any) =>
+            coreProcessingStepIds.has(s.id) &&
+            s.status === 'completed' &&
+            s.completedAt
+        );
+
+      let earliestCoreCompletedDate: Date | undefined;
+      let latestCoreCompletedDate: Date | undefined;
+
+      coreCompletedSteps.forEach((s: any) => {
+        const date = getStepDate(s.completedAt);
+        if (!date) return;
+        if (!earliestCoreCompletedDate || date < earliestCoreCompletedDate) {
+          earliestCoreCompletedDate = date;
+        }
+        if (!latestCoreCompletedDate || date > latestCoreCompletedDate) {
+          latestCoreCompletedDate = date;
+        }
+      });
+
+      const allCoreStepsCompleted =
+        processingSteps.filter((s: any) => coreProcessingStepIds.has(s.id)).length > 0 &&
+        processingSteps
+          .filter((s: any) => coreProcessingStepIds.has(s.id))
+          .every((s: any) => s.status === 'completed');
+
+      const finalCheckStep = processingSteps.find((s: any) => s.id === 'final_check');
+      const finalCheckCompletedDate =
+        finalCheckStep && finalCheckStep.status === 'completed'
+          ? getStepDate(finalCheckStep.completedAt)
+          : undefined;
+
+      const orderReceivedStep = {
         name: t('orderStatus.steps.orderReceived.name', 'Beställning mottagen'),
         description: t(
           'orderStatus.steps.orderReceived.description',
@@ -104,35 +176,62 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
         ),
         completed: true,
         date: createdAtIso
-      },
-      {
+      };
+
+      const processingStep = {
         name: t('orderStatus.steps.processing.name', 'Dokument under behandling'),
         description: t(
           'orderStatus.steps.processing.description',
           'Vi bearbetar dina dokument enligt gällande krav'
         ),
-        completed: isProcessingCompleted || isShipped || isDelivered,
-        date: isProcessingStarted ? updatedAtIso : undefined
-      },
-      {
+        completed: !!earliestCoreCompletedDate,
+        date: earliestCoreCompletedDate ? earliestCoreCompletedDate.toISOString() : undefined
+      };
+
+      let legalizedCompleted = false;
+      let legalizedDate: Date | undefined;
+
+      if (finalCheckCompletedDate) {
+        legalizedCompleted = true;
+        legalizedDate = finalCheckCompletedDate;
+      } else if (allCoreStepsCompleted && latestCoreCompletedDate) {
+        legalizedCompleted = true;
+        legalizedDate = latestCoreCompletedDate;
+      }
+
+      const legalizedStep = {
         name: t('orderStatus.steps.legalized.name', 'Dokument legaliserade'),
         description: t(
           'orderStatus.steps.legalized.description',
           'Alla dokument har legaliserats och är klara'
         ),
-        completed: isShipped || isDelivered,
-        date: isProcessingCompleted ? updatedAtIso : undefined
-      },
-      {
+        completed: legalizedCompleted,
+        date: legalizedDate ? legalizedDate.toISOString() : undefined
+      };
+
+      const returnShippingStep = processingSteps.find(
+        (s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt
+      );
+
+      const shippedDate = returnShippingStep
+        ? getStepDate(returnShippingStep.completedAt)
+        : undefined;
+
+      const shippedStep = {
         name: t('orderStatus.steps.shipped.name', 'Dokument skickade'),
         description: t(
           'orderStatus.steps.shipped.description',
           'Dokumenten har skickats till dig'
         ),
-        completed: isShipped || isDelivered,
-        date: status === 'shipped' ? updatedAtIso : undefined
-      },
-      {
+        completed: !!shippedDate || isShipped || isDelivered,
+        date: shippedDate
+          ? shippedDate.toISOString()
+          : status === 'shipped'
+          ? updatedAtIso
+          : undefined
+      };
+
+      const deliveredStep = {
         name: t('orderStatus.steps.delivered.name', 'Levererade'),
         description: t(
           'orderStatus.steps.delivered.description',
@@ -140,8 +239,59 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
         ),
         completed: isDelivered,
         date: isDelivered ? updatedAtIso : undefined
-      }
-    ];
+      };
+
+      steps = [orderReceivedStep, processingStep, legalizedStep, shippedStep, deliveredStep];
+    } else {
+      // Fallback: customer-facing steps based on high-level order status
+      steps = [
+        {
+          name: t('orderStatus.steps.orderReceived.name', 'Beställning mottagen'),
+          description: t(
+            'orderStatus.steps.orderReceived.description',
+            'Din beställning har registrerats i vårt system'
+          ),
+          completed: true,
+          date: createdAtIso
+        },
+        {
+          name: t('orderStatus.steps.processing.name', 'Dokument under behandling'),
+          description: t(
+            'orderStatus.steps.processing.description',
+            'Vi bearbetar dina dokument enligt gällande krav'
+          ),
+          completed: isProcessingCompleted || isShipped || isDelivered,
+          date: isProcessingStarted ? updatedAtIso : undefined
+        },
+        {
+          name: t('orderStatus.steps.legalized.name', 'Dokument legaliserade'),
+          description: t(
+            'orderStatus.steps.legalized.description',
+            'Alla dokument har legaliserats och är klara'
+          ),
+          completed: isShipped || isDelivered,
+          date: isProcessingCompleted ? updatedAtIso : undefined
+        },
+        {
+          name: t('orderStatus.steps.shipped.name', 'Dokument skickade'),
+          description: t(
+            'orderStatus.steps.shipped.description',
+            'Dokumenten har skickats till dig'
+          ),
+          completed: isShipped || isDelivered,
+          date: status === 'shipped' ? updatedAtIso : undefined
+        },
+        {
+          name: t('orderStatus.steps.delivered.name', 'Levererade'),
+          description: t(
+            'orderStatus.steps.delivered.description',
+            'Dokumenten har levererats till dig'
+          ),
+          completed: isDelivered,
+          date: isDelivered ? updatedAtIso : undefined
+        }
+      ];
+    }
 
     // Helper to add business days (Mon-Fri)
     const addBusinessDays = (startDate: Date, businessDays: number) => {
@@ -158,19 +308,18 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     };
 
     const createdDate = orderData.createdAt?.toDate();
-    const processingSteps = (orderData as any).processingSteps as any[] | undefined;
 
     // If return shipping step is completed, estimate 2 business days after that
-    const returnShippingStep = processingSteps?.find(
-      (s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt
-    );
+    const returnShippingStep = hasProcessingSteps
+      ? processingSteps.find(
+          (s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt
+        )
+      : undefined;
 
     let estimatedDeliveryDate: Date;
 
     if (returnShippingStep && returnShippingStep.completedAt) {
-      const baseDate: Date = returnShippingStep.completedAt.toDate
-        ? returnShippingStep.completedAt.toDate()
-        : new Date(returnShippingStep.completedAt);
+      const baseDate: Date = getStepDate(returnShippingStep.completedAt) || new Date();
       estimatedDeliveryDate = addBusinessDays(baseDate, 2);
     } else if (createdDate) {
       // Fallback: 7 calendar days after order creation

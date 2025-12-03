@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import type { Order } from '@/firebase/orderService';
 import { toast } from 'react-hot-toast';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import CountryFlag from '@/components/ui/CountryFlag';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
@@ -1667,7 +1668,9 @@ function AdminOrderDetailPage() {
                                         {t('order.summary.country', 'Land')}:
                                       </span>
                                       <span className="flex items-center space-x-1 font-medium text-gray-900">
-                                        <span aria-hidden="true">{c.flag}</span>
+                                        <span aria-hidden="true">
+                                          <CountryFlag code={c.code || order.country || ''} size={16} />
+                                        </span>
                                         <span>{c.name || c.code}</span>
                                       </span>
                                     </div>

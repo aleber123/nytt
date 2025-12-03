@@ -55,6 +55,9 @@ export const Step6PickupService: React.FC<Step6Props> = ({
       pickupMethod: serviceId,
       premiumPickup: '' // Reset premium pickup when changing base service
     });
+    if (onNext) {
+      onNext();
+    }
   };
 
   const handlePremiumSelect = (premiumId: string) => {
@@ -98,7 +101,7 @@ export const Step6PickupService: React.FC<Step6Props> = ({
       subtitle={t('orderFlow.step6.subtitle', 'Vi kan komma och hämta dina originaldokument hemma eller på jobbet')}
       onNext={onNext}
       onBack={onBack}
-      nextDisabled={!answers.pickupMethod && answers.pickupService !== false}
+      showNext={false}
     >
       {!showPickupOptions ? (
         /* Initial Choice - Two Simple Buttons */

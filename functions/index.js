@@ -5,12 +5,14 @@ const nodemailer = require('nodemailer');
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Configure nodemailer with Gmail (you'll need to set up app password)
+// Configure nodemailer transport (now using SMTP, e.g. Microsoft 365)
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: functions.config().email.host || 'smtp.office365.com',
+  port: Number(functions.config().email.port) || 587,
+  secure: false,
   auth: {
     user: functions.config().email.user, // Set this in Firebase config
-    pass: functions.config().email.pass  // Set this in Firebase config (app password)
+    pass: functions.config().email.pass  // Set this in Firebase config
   }
 });
 
@@ -68,8 +70,8 @@ exports.sendContactEmail = functions.firestore
     const htmlBody = messageData.html || defaultHtml;
     const textBody = messageData.text || (messageData.message ? String(messageData.message) : '');
     const mailOptions = {
-      from: `"Legaliseringstjänst" <${functions.config().email.user}>`,
-      to: 'alexander.bergqvist@gmail.com',
+      from: `"DOX Visumpartner" <${functions.config().email.user}>`,
+      to: 'info@doxvl.se,info@visumpartner.se',
       subject: messageData.subject || `Nytt kontaktmeddelande från ${messageData.name}`,
       html: htmlBody,
       text: textBody.replace(/<[^>]*>?/gm, '')
@@ -78,7 +80,7 @@ exports.sendContactEmail = functions.firestore
     try {
       // Send email
       await transporter.sendMail(mailOptions);
-      console.log('Contact email sent successfully to alexander.bergqvist@gmail.com');
+      console.log('Contact email sent successfully to info@doxvl.se and info@visumpartner.se');
 
       // Update the message status to 'emailed'
       await snap.ref.update({
@@ -111,7 +113,7 @@ exports.sendCustomerConfirmationEmail = functions.firestore
     
     try {
       const mailOptions = {
-        from: `"Legaliseringstjänst" <${functions.config().email.user}>`,
+        from: `"DOX Visumpartner" <${functions.config().email.user}>`,
         to: emailData.email,
         subject: emailData.subject || 'Bekräftelse på din beställning',
         html: emailData.message,
@@ -152,7 +154,7 @@ exports.sendInvoiceEmail = functions.firestore
     
     try {
       const mailOptions = {
-        from: `"Legaliseringstjänst" <${functions.config().email.user}>`,
+        from: `"DOX Visumpartner" <${functions.config().email.user}>`,
         to: emailData.to,
         subject: emailData.subject || 'Din faktura från Legaliseringstjänst',
         html: emailData.html,
@@ -185,7 +187,7 @@ exports.sendInvoiceEmail = functions.firestore
 // Test function to verify email setup
 exports.testEmail = functions.https.onCall(async (data, context) => {
   const mailOptions = {
-    from: `"Legaliseringstjänst Test" <${functions.config().email.user}>`,
+    from: `"DOX Visumpartner Test" <${functions.config().email.user}>`,
     to: 'alexander.bergqvist@gmail.com',
     subject: 'Test Email från Firebase Functions',
     html: `

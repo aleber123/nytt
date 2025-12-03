@@ -98,7 +98,8 @@ function getCountryName(country?: string): string {
     PL: 'Poland',
     CA: 'Canada',
     AU: 'Australia',
-    TR: 'Turkey'
+    TR: 'Turkey',
+    KW: 'Kuwait'
   };
 
   const upper = country.toUpperCase();
@@ -475,10 +476,10 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
       'office-pickup': 'Hämtning på vårt kontor'
     };
     returnMethod = returnLabelMap[returnMethod] || returnMethod;
-    if (order.returnTrackingNumber) {
-      returnMethod += ` - Spårningsnummer: ${order.returnTrackingNumber}`;
-    }
     details.push(['Return method', returnMethod]);
+  }
+  if (order.returnTrackingNumber) {
+    details.push(['Tracking number', String(order.returnTrackingNumber)]);
   }
 
   // Billing information
@@ -513,6 +514,101 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   doc.line(20, y, 190, y);
   y += 10;
+
+  // Pricing summary box
+  const hasPricingData = Array.isArray(order.pricingBreakdown) || typeof order.totalPrice === 'number';
+  if (hasPricingData) {
+    doc.setFillColor(softBg[0], softBg[1], softBg[2]);
+    doc.roundedRect(16, y - 6, 178, 10, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(46, 45, 44);
+    doc.text('Pricing summary', 20, y);
+    y += 8;
+
+    let officialTotal = 0;
+    let serviceTotal = 0;
+    let otherFees = 0;
+
+    if (Array.isArray(order.pricingBreakdown)) {
+      order.pricingBreakdown.forEach((item: any) => {
+        const svc = String(item.service || '');
+        const total = typeof item.total === 'number' ? item.total : 0;
+        if (!total) return;
+
+        if (svc.endsWith('_official')) {
+          officialTotal += total;
+        } else if (svc.endsWith('_service')) {
+          serviceTotal += total;
+        } else {
+          otherFees += total;
+        }
+      });
+    }
+
+    const labelX = 20;
+    const valueX = 188;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(text[0], text[1], text[2]);
+
+    if (officialTotal > 0) {
+      let officialLabel = 'Official fees';
+
+      // If breakdown is available, try to show quantity × unit price
+      if (Array.isArray(order.pricingBreakdown)) {
+        const officialItems = order.pricingBreakdown.filter((item: any) => {
+          const svc = String(item.service || '');
+          const total = typeof item.total === 'number' ? item.total : 0;
+          return total && svc.endsWith('_official');
+        });
+
+        if (officialItems.length > 0) {
+          const totalQty = officialItems.reduce((sum: number, it: any) => {
+            return sum + (typeof it.quantity === 'number' ? it.quantity : 0);
+          }, 0);
+
+          const unitPrices = new Set<number>();
+          officialItems.forEach((it: any) => {
+            if (typeof it.unitPrice === 'number') {
+              unitPrices.add(it.unitPrice);
+            }
+          });
+
+          if (totalQty > 0 && unitPrices.size === 1) {
+            const unit = Array.from(unitPrices)[0];
+            officialLabel = `Official fees (${totalQty} × ${unit})`;
+          }
+        }
+      }
+
+      doc.text(officialLabel, labelX, y);
+      doc.text(formatCurrency(officialTotal), valueX, y, { align: 'right' });
+      y += 5;
+    }
+
+    if (serviceTotal > 0) {
+      doc.text('Service fees', labelX, y);
+      doc.text(formatCurrency(serviceTotal), valueX, y, { align: 'right' });
+      y += 5;
+    }
+
+    if (otherFees > 0) {
+      doc.text('Additional fees', labelX, y);
+      doc.text(formatCurrency(otherFees), valueX, y, { align: 'right' });
+      y += 5;
+    }
+
+    if (typeof order.totalPrice === 'number') {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total', labelX, y);
+      doc.text(formatCurrency(order.totalPrice), valueX, y, { align: 'right' });
+      y += 6;
+    }
+
+    y += 6;
+  }
 
    // Selected services (vertical list)
   if (serviceNames.length > 0) {

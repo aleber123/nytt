@@ -16,6 +16,7 @@ import { createOrderWithFiles } from '@/services/hybridOrderService';
 import { calculateOrderPrice } from '@/firebase/pricingService';
 import { printShippingLabel } from '@/services/shippingLabelService';
 import { StepProps } from '../types';
+import CountryFlag from '../../ui/CountryFlag';
 
 interface Step10Props extends Omit<StepProps, 'currentLocale'> {
   allCountries: any[];
@@ -94,7 +95,16 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           <div className="flex justify-between items-center py-2 border-b border-green-200">
             <span className="text-gray-700">{t('orderFlow.step10.country')}:</span>
             <span className="font-medium text-gray-900">
-              {allCountries.find(c => c.code === answers.country)?.name} {allCountries.find(c => c.code === answers.country)?.flag}
+              {(() => {
+                const country = allCountries.find(c => c.code === answers.country);
+                const name = country?.name || answers.country;
+                return (
+                  <span className="inline-flex items-center space-x-1">
+                    <CountryFlag code={answers.country} size={20} />
+                    <span>{name}</span>
+                  </span>
+                );
+              })()}
             </span>
           </div>
 
@@ -1047,7 +1057,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     // This uses the already-deployed sendCustomerConfirmationEmail function which sends HTML as-is
                     await addDoc(collection(db, 'customerEmails'), {
                       name: `Order #${orderId}`,
-                      email: 'alexander.bergqvist@gmail.com',
+                      email: 'info@doxvl.se,info@visumpartner.se',
                       subject: `Ny beställning - Order ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
                       message: internalHtml, // HTML body is supported by that function
                       createdAt: Timestamp.now(),

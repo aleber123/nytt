@@ -56,7 +56,10 @@ export default function Home() {
           title: t(`services.${service.serviceType}.title`),
           shortDescription: t(`services.${service.serviceType}.description`),
           icon: getServiceIcon(service.serviceType),
-          price: service.totalPrice,
+          price:
+            service.serviceType === 'translation'
+              ? t('home.translationPriceLabel', 'Offert')
+              : service.totalPrice,
           timeframe: service.timeframe,
           popular: service.serviceType === 'apostille',
           features: getServiceFeatures(service.serviceType, service.features || [])
@@ -72,7 +75,10 @@ export default function Home() {
           title: t(`services.${service.serviceType}.title`),
           shortDescription: t(`services.${service.serviceType}.description`),
           icon: getServiceIcon(service.serviceType),
-          price: service.totalPrice,
+          price:
+            service.serviceType === 'translation'
+              ? t('home.translationPriceLabel', 'Offert')
+              : service.totalPrice,
           timeframe: service.timeframe,
           popular: service.serviceType === 'apostille',
           features: getServiceFeatures(service.serviceType, service.features || [])
