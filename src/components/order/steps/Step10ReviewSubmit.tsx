@@ -1061,7 +1061,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     totalPrice: pricingResult.totalPrice,
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
-                    additionalNotes: answers.additionalNotes
+                    additionalNotes: answers.additionalNotes,
+                    locale: locale
                   };
                   console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 

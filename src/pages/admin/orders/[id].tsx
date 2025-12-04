@@ -855,7 +855,7 @@ function AdminOrderDetailPage() {
     ) {
       if (typeof window !== 'undefined') {
         shouldSendDocumentReceiptEmail = window.confirm(
-          'Vill du skicka en bekräftelse till kunden på att vi har mottagit dokumenten?'
+          'Do you want to send a confirmation to the customer that we have received their documents?'
         );
       }
     }
@@ -869,7 +869,7 @@ function AdminOrderDetailPage() {
     ) {
       if (typeof window !== 'undefined') {
         const confirmReturn = window.confirm(
-          'Vill du skicka ett mail till kunden med information om att retursändelsen har skickats och spårningsnumret?'
+          'Do you want to send an email to the customer informing them that the return shipment has been sent, including the tracking number?'
         );
         if (confirmReturn) {
           shouldSendReturnShipmentEmail = true;
@@ -900,11 +900,11 @@ function AdminOrderDetailPage() {
         // Initial mail: first time status becomes in_progress and we have a date, and no previous notification
         if (status === 'in_progress' && !notifiedStr) {
           const serviceNames = getAuthorityPickupServiceNames(previousStep.id, order as ExtendedOrder);
-          const serviceName = serviceNames.sv;
+          const serviceName = serviceNames.en;
 
           if (typeof window !== 'undefined') {
             const confirmInitial = window.confirm(
-              `Vill du skicka ett mail till kunden med information om att ärendet är inlämnat hos ${serviceName} och beräknat klart datum?`
+              `Do you want to send an email to the customer informing them that the case has been submitted to ${serviceName} with the expected completion date?`
             );
             if (confirmInitial) {
               shouldSendPickupInitialEmail = true;
@@ -929,11 +929,11 @@ function AdminOrderDetailPage() {
           Object.prototype.hasOwnProperty.call(updatedStep, 'expectedCompletionDate')
         ) {
           const serviceNames = getAuthorityPickupServiceNames(previousStep.id, order as ExtendedOrder);
-          const serviceName = serviceNames.sv;
+          const serviceName = serviceNames.en;
 
           if (typeof window !== 'undefined') {
             const confirmUpdate = window.confirm(
-              `Vill du skicka ett uppdaterat mail till kunden med nytt förväntat klart datum hos ${serviceName}?`
+              `Do you want to send an updated email to the customer with the new expected completion date at ${serviceName}?`
             );
             if (confirmUpdate) {
               shouldSendPickupUpdateEmail = true;
