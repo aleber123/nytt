@@ -70,7 +70,7 @@ exports.sendContactEmail = functions.firestore
     const htmlBody = messageData.html || defaultHtml;
     const textBody = messageData.text || (messageData.message ? String(messageData.message) : '');
     const mailOptions = {
-      from: `"DOX Visumpartner" <${functions.config().email.user}>`,
+      from: `"DOX Visumpartner" <${functions.config().email.from || functions.config().email.user}>`,
       to: 'info@doxvl.se,info@visumpartner.se',
       subject: messageData.subject || `Nytt kontaktmeddelande från ${messageData.name}`,
       html: htmlBody,
@@ -113,7 +113,7 @@ exports.sendCustomerConfirmationEmail = functions.firestore
     
     try {
       const mailOptions = {
-        from: `"DOX Visumpartner" <${functions.config().email.user}>`,
+        from: `"DOX Visumpartner" <${functions.config().email.from || functions.config().email.user}>`,
         to: emailData.email,
         subject: emailData.subject || 'Bekräftelse på din beställning',
         html: emailData.message,
@@ -154,7 +154,7 @@ exports.sendInvoiceEmail = functions.firestore
     
     try {
       const mailOptions = {
-        from: `"DOX Visumpartner" <${functions.config().email.user}>`,
+        from: `"DOX Visumpartner" <${functions.config().email.from || functions.config().email.user}>`,
         to: emailData.to,
         subject: emailData.subject || 'Din faktura från Legaliseringstjänst',
         html: emailData.html,
@@ -187,7 +187,7 @@ exports.sendInvoiceEmail = functions.firestore
 // Test function to verify email setup
 exports.testEmail = functions.https.onCall(async (data, context) => {
   const mailOptions = {
-    from: `"DOX Visumpartner Test" <${functions.config().email.user}>`,
+    from: `"DOX Visumpartner Test" <${functions.config().email.from || functions.config().email.user}>`,
     to: 'alexander.bergqvist@gmail.com',
     subject: 'Test Email från Firebase Functions',
     html: `

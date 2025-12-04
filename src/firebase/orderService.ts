@@ -22,6 +22,7 @@ export interface Order {
   id?: string;
   orderNumber?: string; // New formatted order ID (SWE000001)
   userId?: string; // Firebase Auth UID of the user who created the order
+  locale?: string; // 'sv' or 'en' – language used when placing the order
   services: string[];
   documentType: string;
   country: string;

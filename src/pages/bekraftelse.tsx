@@ -53,13 +53,20 @@ export function ConfirmationPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!router.isReady) return;
+
     const fetchOrder = async () => {
       const oid = (router.query.orderId as string) || '';
       if (!oid) {
+        setOrder(null);
         setError(t('confirmation.noOrderDescription'));
         setLoading(false);
         return;
       }
+
+      // Start a fresh load cycle for this order ID
+      setLoading(true);
+      setError(null);
 
       try {
         // Dynamically import to avoid SSR importing Firebase-dependent code
@@ -68,11 +75,14 @@ export function ConfirmationPage() {
         const orderData = await getOrderById(oid);
         if (orderData) {
           setOrder(orderData);
+          setError(null);
         } else {
+          setOrder(null);
           setError(t('confirmation.noOrderDescription'));
         }
       } catch (err) {
         console.error('Error fetching order:', err);
+        setOrder(null);
         setError(t('confirmation.error'));
       } finally {
         setLoading(false);
@@ -80,7 +90,7 @@ export function ConfirmationPage() {
     };
 
     fetchOrder();
-  }, [router.query.orderId, t]);
+  }, [router.isReady, router.query.orderId, t]);
 
   // Function to get localized service name
   const getServiceName = (serviceId: string) => {

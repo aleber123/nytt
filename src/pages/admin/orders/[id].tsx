@@ -35,6 +35,7 @@ interface ProcessingStep {
   notes?: string;
   submittedAt?: Date | FbTimestamp;
   expectedCompletionDate?: Date | FbTimestamp;
+  notifiedExpectedCompletionDate?: string;
 }
 
 interface AdminNote {
@@ -189,6 +190,29 @@ function AdminOrderDetailPage() {
     } catch (e) {
       console.error('❌ Error calculating breakdown total:', e);
       return Number(order?.totalPrice || 0);
+    }
+  };
+
+  const getAuthorityPickupServiceNames = (stepId: string, orderData: ExtendedOrder) => {
+    const embassyCountry = getCountryInfo(orderData.country);
+    const embassyName = embassyCountry.name || embassyCountry.code || orderData.country || '';
+
+    switch (stepId) {
+      case 'notarization_pickup':
+        return { sv: 'notarien', en: 'the notary public' };
+      case 'chamber_pickup':
+        return { sv: 'Handelskammaren', en: 'the Chamber of Commerce' };
+      case 'ud_pickup':
+        return { sv: 'Utrikesdepartementet', en: 'the Ministry for Foreign Affairs' };
+      case 'embassy_pickup':
+        return {
+          sv: embassyName ? `${embassyName} ambassad` : 'ambassaden',
+          en: embassyName ? `the ${embassyName} embassy` : 'the embassy'
+        };
+      case 'translation_pickup':
+        return { sv: 'översättaren', en: 'the translator' };
+      default:
+        return { sv: 'myndigheten', en: 'the authority' };
     }
   };
 
@@ -760,6 +784,83 @@ function AdminOrderDetailPage() {
   const updateProcessingStep = async (stepId: string, status: ProcessingStep['status'], notes?: string, updatedStep?: Partial<ProcessingStep>) => {
     if (!order) return;
     const orderId = router.query.id as string;
+
+    const previousStep = processingSteps.find((step) => step.id === stepId) as ProcessingStep | undefined;
+    const customerEmail = order.customerInfo?.email || '';
+    let shouldSendDocumentReceiptEmail = false;
+
+    // Helper for date-only string (YYYY-MM-DD)
+    const toDateOnlyString = (value: any): string => {
+      if (!value) return '';
+      const jsDate = value instanceof Date ? value : value.toDate ? value.toDate() : null;
+      return jsDate ? jsDate.toISOString().split('T')[0] : '';
+    };
+
+    // Pickup/authority notification logic
+    const isPickupAuthorityStep = previousStep && isAuthorityService(previousStep.id) && previousStep.id.endsWith('_pickup');
+    let shouldSendPickupInitialEmail = false;
+    let shouldSendPickupUpdateEmail = false;
+    let pickupExpectedDateForEmail: Date | null = null;
+    let pickupServiceNameSv = '';
+    let pickupServiceNameEn = '';
+    let nextNotifiedExpectedCompletionDate: string = (previousStep as any)?.notifiedExpectedCompletionDate || '';
+
+    if (
+      previousStep &&
+      previousStep.id === 'document_receipt' &&
+      previousStep.status !== 'completed' &&
+      status === 'completed' &&
+      customerEmail
+    ) {
+      if (typeof window !== 'undefined') {
+        shouldSendDocumentReceiptEmail = window.confirm(
+          'Vill du skicka en bekräftelse till kunden på att vi har mottagit dokumenten?'
+        );
+      }
+    }
+
+    if (previousStep && isPickupAuthorityStep && customerEmail) {
+      const prevAny: any = previousStep;
+      let nextExpected: any = prevAny.expectedCompletionDate;
+
+      if (updatedStep && Object.prototype.hasOwnProperty.call(updatedStep, 'expectedCompletionDate')) {
+        nextExpected = updatedStep.expectedCompletionDate;
+      }
+
+      const nextExpectedStr = toDateOnlyString(nextExpected);
+      const notifiedStr = typeof nextNotifiedExpectedCompletionDate === 'string'
+        ? nextNotifiedExpectedCompletionDate
+        : '';
+
+      if (nextExpectedStr) {
+        const serviceNames = getAuthorityPickupServiceNames(previousStep.id, order as ExtendedOrder);
+        pickupServiceNameSv = serviceNames.sv;
+        pickupServiceNameEn = serviceNames.en;
+
+        // Initial mail: first time status becomes in_progress and we have a date, and no previous notification
+        if (status === 'in_progress' && !notifiedStr) {
+          shouldSendPickupInitialEmail = true;
+          nextNotifiedExpectedCompletionDate = nextExpectedStr;
+          const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
+          pickupExpectedDateForEmail = jsDate || null;
+        }
+
+        // Update mail: date changed while step is in_progress and we have already notified once
+        if (
+          status === 'in_progress' &&
+          notifiedStr &&
+          nextExpectedStr !== notifiedStr &&
+          updatedStep &&
+          Object.prototype.hasOwnProperty.call(updatedStep, 'expectedCompletionDate')
+        ) {
+          shouldSendPickupUpdateEmail = true;
+          nextNotifiedExpectedCompletionDate = nextExpectedStr;
+          const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
+          pickupExpectedDateForEmail = jsDate || null;
+        }
+      }
+    }
+
     const updatedSteps = processingSteps.map(step => {
       if (step.id === stepId) {
         // Create a clean object without undefined values
@@ -789,6 +890,13 @@ function AdminOrderDetailPage() {
           }
         }
 
+        // Preserve or update notifiedExpectedCompletionDate for pickup authority steps
+        if (isPickupAuthorityStep && nextNotifiedExpectedCompletionDate) {
+          cleanStep.notifiedExpectedCompletionDate = nextNotifiedExpectedCompletionDate;
+        } else if ((step as any).notifiedExpectedCompletionDate) {
+          cleanStep.notifiedExpectedCompletionDate = (step as any).notifiedExpectedCompletionDate;
+        }
+
         // Only add completedAt and completedBy if status is completed
         if (status === 'completed') {
           cleanStep.completedAt = new Date();
@@ -812,6 +920,463 @@ function AdminOrderDetailPage() {
       setProcessingSteps(updatedSteps);
       setOrder(updatedOrder);
       toast.success('Bearbetningssteg uppdaterat');
+
+      if (shouldSendDocumentReceiptEmail) {
+        try {
+          const db = getFirebaseDb();
+          if (db) {
+            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Kund';
+            const orderNumber = order.orderNumber || orderId;
+            const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
+            const messageHtml = emailLocale === 'en'
+              ? `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documents received</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .order-details { margin: 16px 0; }
+    .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eaecef; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-label { font-weight:500; color:#5f6368; }
+    .detail-value { font-weight:700; color:#202124; }
+    .contact-info { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:18px; margin:22px 0; text-align:center; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} .detail-row{flex-direction:column; gap:4px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Documents received</h1>
+      <p>Update for your order with DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Dear ${customerName},
+      </div>
+
+      <p>We confirm that we have received your documents for order ${orderNumber}.</p>
+      <p>We will now start the legalization process according to the services you have ordered.</p>
+
+      <div class="order-summary">
+        <div class="order-number">
+          Order number: #${orderNumber}
+        </div>
+        <div class="order-details">
+          <div class="detail-row">
+            <span class="detail-label">Date:</span>
+            <span class="detail-value">${new Date().toLocaleDateString('en-GB')}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Number of documents:</span>
+            <span class="detail-value">${order.quantity || ''}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-info">
+        <h3>Questions?</h3>
+        <p>Feel free to contact us:</p>
+        <p>
+          📧 <a href="mailto:info@doxvl.se">info@doxvl.se</a><br>
+          📞 08-40941900
+        </p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professional document legalisation for many years</p>
+      <p>This is an automatically generated message.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim()
+              : `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dokument mottagna</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .order-details { margin: 16px 0; }
+    .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eaecef; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-label { font-weight:500; color:#5f6368; }
+    .detail-value { font-weight:700; color:#202124; }
+    .contact-info { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:18px; margin:22px 0; text-align:center; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} .detail-row{flex-direction:column; gap:4px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Dokument mottagna</h1>
+      <p>Uppdatering för din order hos DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Hej ${customerName}!
+      </div>
+
+      <p>Vi bekräftar härmed att vi har mottagit dina dokument för order ${orderNumber}.</p>
+      <p>Våra handläggare kommer nu att börja behandla ditt ärende enligt de tjänster du har beställt.</p>
+
+      <div class="order-summary">
+        <div class="order-number">
+          Ordernummer: #${orderNumber}
+        </div>
+        <div class="order-details">
+          <div class="detail-row">
+            <span class="detail-label">Datum:</span>
+            <span class="detail-value">${new Date().toLocaleDateString('sv-SE')}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Antal dokument:</span>
+            <span class="detail-value">${order.quantity || ''}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-info">
+        <h3>Har du frågor?</h3>
+        <p>Kontakta oss gärna:</p>
+        <p>
+          📧 <a href="mailto:info@doxvl.se">info@doxvl.se</a><br>
+          📞 08-40941900
+        </p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professionell dokumentlegalisering sedan många år</p>
+      <p>Detta är ett automatiskt genererat meddelande.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim();
+
+            const subject = emailLocale === 'en'
+              ? `Confirmation: We have received your documents – ${orderNumber}`
+              : `Bekräftelse: Vi har mottagit dina dokument – ${orderNumber}`;
+
+            await addDoc(collection(db, 'customerEmails'), {
+              name: customerName,
+              email: customerEmail,
+              phone: order.customerInfo?.phone || '',
+              subject,
+              message: messageHtml,
+              orderId: orderNumber,
+              createdAt: serverTimestamp(),
+              status: 'unread'
+            });
+            toast.success('Bekräftelsemail till kund har köats');
+          }
+        } catch (emailErr) {
+          console.error('Error queuing customer document receipt email:', emailErr);
+          toast.error('Kunde inte skapa bekräftelsemail till kund');
+        }
+      }
+
+      if ((shouldSendPickupInitialEmail || shouldSendPickupUpdateEmail) && pickupExpectedDateForEmail) {
+        try {
+          const db = getFirebaseDb();
+          if (db) {
+            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Kund';
+            const orderNumber = order.orderNumber || orderId;
+            const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
+            const expectedDateFormatted = emailLocale === 'en'
+              ? pickupExpectedDateForEmail.toLocaleDateString('en-GB')
+              : pickupExpectedDateForEmail.toLocaleDateString('sv-SE');
+            const serviceName = emailLocale === 'en' ? pickupServiceNameEn : pickupServiceNameSv;
+            const isUpdate = shouldSendPickupUpdateEmail;
+
+            const messageHtml = emailLocale === 'en'
+              ? `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${isUpdate ? 'Updated expected pickup date' : 'Documents submitted'}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eaecef; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-label { font-weight:500; color:#5f6368; }
+    .detail-value { font-weight:700; color:#202124; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} .detail-row{flex-direction:column; gap:4px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>${isUpdate ? 'Updated expected pickup date' : 'Documents submitted to ' + serviceName}</h1>
+      <p>Update for your order with DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Dear ${customerName},
+      </div>
+
+      <p>
+        ${isUpdate
+          ? `We have updated the expected date when your documents will be ready for pickup from ${serviceName}.`
+          : `We have now submitted your documents to ${serviceName}.`}
+      </p>
+
+      <p>
+        ${isUpdate
+          ? `New expected pickup date: <strong>${expectedDateFormatted}</strong>.`
+          : `Expected date when your documents will be ready for pickup: <strong>${expectedDateFormatted}</strong>.`}
+      </p>
+
+      <div class="order-summary">
+        <div class="order-number">
+          Order number: #${orderNumber}
+        </div>
+      </div>
+
+      <p>If you have any questions, you are welcome to contact us at
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> or by phone.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professional document legalisation for many years</p>
+      <p>This is an automatically generated message.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim()
+              : `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${isUpdate ? 'Uppdaterat förväntat klart datum' : 'Ärende inlämnat'}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .detail-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eaecef; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-label { font-weight:500; color:#5f6368; }
+    .detail-value { font-weight:700; color:#202124; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} .detail-row{flex-direction:column; gap:4px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>${isUpdate ? 'Uppdaterat förväntat klart datum' : 'Ärende inlämnat till ' + serviceName}</h1>
+      <p>Uppdatering för din order hos DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Hej ${customerName}!
+      </div>
+
+      <p>
+        ${isUpdate
+          ? `Vi har uppdaterat det förväntade datumet då dina dokument är klara för upphämtning från ${serviceName}.`
+          : `Vi har nu lämnat in dina dokument till ${serviceName}.`}
+      </p>
+
+      <p>
+        ${isUpdate
+          ? `Nytt förväntat klart datum: <strong>${expectedDateFormatted}</strong>.`
+          : `Beräknat datum då dina dokument är klara för upphämtning: <strong>${expectedDateFormatted}</strong>.`}
+      </p>
+
+      <div class="order-summary">
+        <div class="order-number">
+          Ordernummer: #${orderNumber}
+        </div>
+      </div>
+
+      <p>Har du frågor är du välkommen att kontakta oss på
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> eller via telefon.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professionell dokumentlegalisering sedan många år</p>
+      <p>Detta är ett automatiskt genererat meddelande.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim();
+
+            const subject = emailLocale === 'en'
+              ? isUpdate
+                ? `Update: New expected pickup date at ${serviceName} – ${orderNumber}`
+                : `Confirmation: Your documents have been submitted to ${serviceName} – ${orderNumber}`
+              : isUpdate
+                ? `Uppdatering: Nytt förväntat klart datum hos ${serviceName} – ${orderNumber}`
+                : `Bekräftelse: Ärendet är inlämnat till ${serviceName} – ${orderNumber}`;
+
+            await addDoc(collection(db, 'customerEmails'), {
+              name: customerName,
+              email: customerEmail,
+              phone: order.customerInfo?.phone || '',
+              subject,
+              message: messageHtml,
+              orderId: orderNumber,
+              createdAt: serverTimestamp(),
+              status: 'unread'
+            });
+
+            toast.success('Kundmail om upphämtning har köats');
+          }
+        } catch (pickupEmailErr) {
+          console.error('Error queuing pickup expected completion email:', pickupEmailErr);
+          toast.error('Kunde inte skapa upphämtningsmail till kund');
+        }
+      }
     } catch (err) {
       console.error('Error updating processing step:', err);
       toast.error('Kunde inte uppdatera bearbetningssteg');

@@ -76,9 +76,38 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Helper: internal business notification email queued from Step 10
+    function isBusinessQueueEmail() {
+      return
+        request.resource.data.keys().hasOnly(['name', 'email', 'subject', 'message', 'createdAt', 'status']) &&
+        request.resource.data.name is string &&
+        request.resource.data.email is string &&
+        request.resource.data.subject is string &&
+        request.resource.data.message is string &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.status == 'queued' &&
+        // Business notifications should always go to the internal inboxes
+        request.resource.data.email == 'info@doxvl.se,info@visumpartner.se';
+    }
+
+    // Helper: customer confirmation email queued from Step 10
+    function isCustomerQueueEmail() {
+      return
+        request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'subject', 'message', 'orderId', 'createdAt', 'status']) &&
+        request.resource.data.name is string &&
+        request.resource.data.email is string &&
+        request.resource.data.phone is string &&
+        request.resource.data.subject is string &&
+        request.resource.data.message is string &&
+        request.resource.data.orderId is string &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.status == 'unread';
+    }
+
     // CUSTOMER EMAIL QUEUE – created from frontend, processed by Cloud Function
     match /customerEmails/{emailId} {
-      allow create: if true;
+      // Only allow well-formed documents used by the application
+      allow create: if isBusinessQueueEmail() || isCustomerQueueEmail();
       allow read: if isAdmin();
       allow update, delete: if false;
     }
