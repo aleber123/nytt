@@ -24,7 +24,9 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
   onSkip
 }) => {
   const { t } = useTranslation('common');
-  const [selectedShippingMethod, setSelectedShippingMethod] = React.useState<'rek' | 'courier' | null>(null);
+  const [selectedShippingMethod, setSelectedShippingMethod] = React.useState<'rek' | 'courier' | null>(
+    (answers.shippingMethod as 'rek' | 'courier' | null) ?? null
+  );
 
   // Skip logic
   React.useEffect(() => {
@@ -61,7 +63,13 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
           {/* REK card */}
           <button
             type="button"
-            onClick={() => setSelectedShippingMethod('rek')}
+            onClick={() => {
+              setSelectedShippingMethod('rek');
+              setAnswers((prev) => ({
+                ...prev,
+                shippingMethod: 'rek'
+              }));
+            }}
             className={`w-full p-6 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
               selectedShippingMethod === 'rek'
                 ? 'border-custom-button bg-custom-button-bg'
@@ -176,7 +184,13 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
           {/* Courier / DHL card */}
           <button
             type="button"
-            onClick={() => setSelectedShippingMethod('courier')}
+            onClick={() => {
+              setSelectedShippingMethod('courier');
+              setAnswers((prev) => ({
+                ...prev,
+                shippingMethod: 'courier'
+              }));
+            }}
             className={`w-full p-6 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
               selectedShippingMethod === 'courier'
                 ? 'border-custom-button bg-custom-button-bg'

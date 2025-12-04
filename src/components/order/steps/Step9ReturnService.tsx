@@ -89,21 +89,6 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
       onBack={onBack}
       nextDisabled={isNextDisabled}
     >
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center">
-          <span className="text-2xl mr-3">📦</span>
-          <div>
-            <div className="font-medium text-blue-900">
-              {t('orderFlow.step9.returnNote', 'Säker returleverans')}
-            </div>
-            <div className="text-sm text-blue-700">
-              {t('orderFlow.step9.returnDescription', 'Vi skickar tillbaka dina dokument säkert och spårbart')}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Loading State */}
       {loadingReturnServices && (
         <div className="flex justify-center items-center py-8">

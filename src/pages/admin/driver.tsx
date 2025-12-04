@@ -41,6 +41,13 @@ function DriverDashboardPage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [filterType, setFilterType] = useState<'all' | 'pickup' | 'delivery'>('all');
 
+  // Simple daily report state for hours & expenses
+  const [hoursWorked, setHoursWorked] = useState('');
+  const [parkingCost, setParkingCost] = useState('');
+  const [embassyCost, setEmbassyCost] = useState('');
+  const [otherCost, setOtherCost] = useState('');
+  const [driverNotes, setDriverNotes] = useState('');
+
   console.log('🚗 DriverDashboardPage component mounted');
 
   const getCountryInfo = (codeOrName: string | undefined | null) => {
@@ -56,6 +63,31 @@ function DriverDashboardPage() {
     if (match) return { code: match.code, name: match.name, flag: match.flag };
 
     return { code: value, name: value, flag: '🌍' };
+  };
+
+  const handleOpenReportEmail = () => {
+    const to = 'info@doxvl.se,info@visumpartner.se';
+    const subject = `Chaufförrapport ${selectedDate}`;
+
+    const bodyLines = [
+      `Datum: ${formatDate(selectedDate)} (${selectedDate})`,
+      `Antal timmar: ${hoursWorked || '-'}`,
+      `Parkering: ${parkingCost || '0'} kr`,
+      `Ambassadutlägg: ${embassyCost || '0'} kr`,
+      `Övriga utlägg: ${otherCost || '0'} kr`,
+      '',
+      'Kommentar:',
+      driverNotes || '-',
+      '',
+      '---',
+      'Skickad från DOX chaufförssidan'
+    ];
+
+    const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+
+    if (typeof window !== 'undefined') {
+      window.location.href = mailto;
+    }
   };
 
   // Simplified version of initializeProcessingSteps for driver dashboard
@@ -907,6 +939,103 @@ function DriverDashboardPage() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Daily report: hours & expenses (mobile-friendly) */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              Dagsrapport – timmar & utlägg
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Fyll i dina timmar och utlägg för <span className="font-medium">{formatDate(selectedDate)}</span> och tryck på knappen för att öppna ett färdigt mail till kontoret.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Antal timmar
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.25"
+                  value={hoursWorked}
+                  onChange={(e) => setHoursWorked(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 7.5"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Parkering (kr)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  value={parkingCost}
+                  onChange={(e) => setParkingCost(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 120"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ambassadutlägg (kr)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  value={embassyCost}
+                  onChange={(e) => setEmbassyCost(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 300"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Övriga utlägg (kr)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  value={otherCost}
+                  onChange={(e) => setOtherCost(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 0"
+                />
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kommentar (valfritt)
+              </label>
+              <textarea
+                rows={3}
+                value={driverNotes}
+                onChange={(e) => setDriverNotes(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="T.ex. vilken ambassad, extra info om parkering eller körningar..."
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenReportEmail}
+              className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+            >
+              <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Öppna mail med rapport
+            </button>
           </div>
 
           {loading ? (

@@ -48,6 +48,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     expedited: false,
     documentSource: '', // 'original' or 'upload'
     pickupService: false, // New: pickup service option
+    shippingMethod: null as 'rek' | 'courier' | null,
     pickupAddress: { // New: pickup address
       name: '',
       company: '',
@@ -1302,130 +1303,142 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             </div>
           </div>
 
-          {/* Two column layout: Steps + Summary */}
+          {/* Layout: two column grid with OrderSummary visible in all steps */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
             {/* Main content - Steps */}
             <div className="lg:col-span-2 min-h-screen">
               {/* Render current question */}
               {currentQuestion === 1 && (
-            <Step1CountrySelection
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(2)}
-              onBack={() => {}} 
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 2 && (
-            <Step2DocumentType
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(3)}
-              onBack={() => navigateToStep(1)}
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 3 && (
-            <Step4Quantity
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(4)}
-              onBack={() => navigateToStep(2)}
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 4 && (
-            <Step3ServicesSelection
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(5)}
-              onBack={() => navigateToStep(3)}
-              availableServices={availableServices}
-              loadingServices={loadingServices}
-              currentLocale={currentLocale}
-              allCountries={allCountries}
-            />
-          )}
-          {currentQuestion === 5 && (
-            <Step5DocumentSource
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(6)}
-              onBack={() => navigateToStep(4)}
-              onDocumentSourceSelect={(source) => {
-                if (source === 'upload') {
-                  // Skip pickup service step and go to shipping step
-                  navigateToStep(8);
-                } else {
-                  // Go to pickup service step
-                  navigateToStep(6);
-                }
-              }}
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 6 && (
-            <Step6PickupService
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(7)}
-              onBack={() => navigateToStep(5)}
-              pickupServices={pickupServices}
-              loadingPickupServices={loadingPickupServices}
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 7 && (
-            <Step7ShippingOrPickup
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(8)}
-              onBack={() => navigateToStep(6)}
-              onSkip={() => { if (answers.documentSource === 'upload') { navigateToStep(8); } else { navigateToStep(9); } }}
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 8 && (
-            <Step8ScannedCopies
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(9)}
-              onBack={() => { if (answers.documentSource === 'upload') { navigateToStep(5); } else { navigateToStep(7); } }}
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 9 && (
-            <Step9ReturnService
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => navigateToStep(10)}
-              onBack={() => navigateToStep(8)}
-              returnServices={returnServices}
-              loadingReturnServices={loadingReturnServices}
-              currentLocale={currentLocale}
-            />
-          )}
-          {currentQuestion === 10 && (
-            <Step10ReviewSubmit
-              answers={answers}
-              setAnswers={setAnswers}
-              onNext={() => {}}
-              onBack={() => navigateToStep(9)}
-              allCountries={allCountries}
-              returnServices={returnServices}
-              loadingReturnServices={loadingReturnServices}
-              pricingBreakdown={pricingBreakdown}
-              loadingPricing={loadingPricing}
-              totalPrice={totalPrice}
-              recaptchaRef={recaptchaRef}
-              isSubmitting={isSubmitting}
-              onSubmit={handleSubmit}
-              currentLocale={currentLocale}
-            />
-          )}
+                <Step1CountrySelection
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(2)}
+                  onBack={() => {}}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 2 && (
+                <Step2DocumentType
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(3)}
+                  onBack={() => navigateToStep(1)}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 3 && (
+                <Step4Quantity
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(4)}
+                  onBack={() => navigateToStep(2)}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 4 && (
+                <Step3ServicesSelection
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(5)}
+                  onBack={() => navigateToStep(3)}
+                  availableServices={availableServices}
+                  loadingServices={loadingServices}
+                  currentLocale={currentLocale}
+                  allCountries={allCountries}
+                />
+              )}
+              {currentQuestion === 5 && (
+                <Step5DocumentSource
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(6)}
+                  onBack={() => navigateToStep(4)}
+                  onDocumentSourceSelect={(source) => {
+                    if (source === 'upload') {
+                      // Skip pickup service step and go to shipping step
+                      navigateToStep(8);
+                    } else {
+                      // Go to pickup service step
+                      navigateToStep(6);
+                    }
+                  }}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 6 && (
+                <Step6PickupService
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(7)}
+                  onBack={() => navigateToStep(5)}
+                  pickupServices={pickupServices}
+                  loadingPickupServices={loadingPickupServices}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 7 && (
+                <Step7ShippingOrPickup
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(8)}
+                  onBack={() => navigateToStep(6)}
+                  onSkip={() => {
+                    if (answers.documentSource === 'upload') {
+                      navigateToStep(8);
+                    } else {
+                      navigateToStep(9);
+                    }
+                  }}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 8 && (
+                <Step8ScannedCopies
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(9)}
+                  onBack={() => {
+                    if (answers.documentSource === 'upload') {
+                      navigateToStep(5);
+                    } else {
+                      navigateToStep(7);
+                    }
+                  }}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 9 && (
+                <Step9ReturnService
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(10)}
+                  onBack={() => navigateToStep(8)}
+                  returnServices={returnServices}
+                  loadingReturnServices={loadingReturnServices}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {currentQuestion === 10 && (
+                <Step10ReviewSubmit
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => {}}
+                  onBack={() => navigateToStep(9)}
+                  allCountries={allCountries}
+                  returnServices={returnServices}
+                  loadingReturnServices={loadingReturnServices}
+                  pricingBreakdown={pricingBreakdown}
+                  loadingPricing={loadingPricing}
+                  totalPrice={totalPrice}
+                  recaptchaRef={recaptchaRef}
+                  isSubmitting={isSubmitting}
+                  onSubmit={handleSubmit}
+                  currentLocale={currentLocale}
+                />
+              )}
             </div>
 
-            {/* Sidebar - Order Summary */}
+            {/* Sidebar - Order Summary (visible in all steps) */}
             <div className="lg:col-span-1 self-start">
               <OrderSummary
                 answers={answers}
