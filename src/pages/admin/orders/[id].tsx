@@ -204,6 +204,8 @@ function AdminOrderDetailPage() {
         return { sv: 'Handelskammaren', en: 'the Chamber of Commerce' };
       case 'ud_pickup':
         return { sv: 'Utrikesdepartementet', en: 'the Ministry for Foreign Affairs' };
+      case 'apostille_pickup':
+        return { sv: 'Utrikesdepartementet', en: 'the Ministry for Foreign Affairs' };
       case 'embassy_pickup':
         return {
           sv: embassyName ? `${embassyName} ambassad` : 'ambassaden',
@@ -500,9 +502,15 @@ function AdminOrderDetailPage() {
       // Apostille (alternative to embassy)
       if (orderData.services.includes('apostille')) {
         steps.push({
-          id: 'apostille',
-          name: '📋 Apostille',
-          description: 'Apostille from the Swedish Ministry for Foreign Affairs',
+          id: 'apostille_delivery',
+          name: '📋 Apostille – drop off',
+          description: 'Submit documents for apostille at the Swedish Ministry for Foreign Affairs',
+          status: 'pending'
+        });
+        steps.push({
+          id: 'apostille_pickup',
+          name: '📋 Apostille – pick up',
+          description: 'Pick up apostilled documents from the Swedish Ministry for Foreign Affairs',
           status: 'pending'
         });
       }
@@ -788,6 +796,10 @@ function AdminOrderDetailPage() {
     const previousStep = processingSteps.find((step) => step.id === stepId) as ProcessingStep | undefined;
     const customerEmail = order.customerInfo?.email || '';
     let shouldSendDocumentReceiptEmail = false;
+    let shouldSendReturnShipmentEmail = false;
+
+    const trackingNumberForEmail = trackingNumber || (order as any).returnTrackingNumber || '';
+    const trackingUrlForEmail = trackingUrl || (order as any).returnTrackingUrl || '';
 
     // Helper for date-only string (YYYY-MM-DD)
     const toDateOnlyString = (value: any): string => {
@@ -805,6 +817,35 @@ function AdminOrderDetailPage() {
     let pickupServiceNameEn = '';
     let nextNotifiedExpectedCompletionDate: string = (previousStep as any)?.notifiedExpectedCompletionDate || '';
 
+    // Validate required dates for authority services before changing status via dropdown
+    if (
+      previousStep &&
+      updatedStep === undefined &&
+      status !== previousStep.status &&
+      status !== 'skipped' &&
+      isAuthorityService(previousStep.id)
+    ) {
+      const hasSubmitted = !!previousStep.submittedAt;
+      const hasExpected = !!previousStep.expectedCompletionDate;
+      let missingRequiredDate = false;
+
+      if (previousStep.id.endsWith('_delivery')) {
+        // Delivery step: require submittedAt (Datum för inlämning till myndighet)
+        missingRequiredDate = !hasSubmitted;
+      } else if (previousStep.id.endsWith('_pickup')) {
+        // Pickup step: require expectedCompletionDate (Datum klart för upphämtning)
+        missingRequiredDate = !hasExpected;
+      } else {
+        // Legacy single-step authority: require at least one of the dates
+        missingRequiredDate = !hasSubmitted && !hasExpected;
+      }
+
+      if (missingRequiredDate) {
+        toast.error('Du måste ange datum på detta steg innan du kan ändra status.');
+        return;
+      }
+    }
+
     if (
       previousStep &&
       previousStep.id === 'document_receipt' &&
@@ -816,6 +857,25 @@ function AdminOrderDetailPage() {
         shouldSendDocumentReceiptEmail = window.confirm(
           'Vill du skicka en bekräftelse till kunden på att vi har mottagit dokumenten?'
         );
+      }
+    }
+
+    if (
+      previousStep &&
+      previousStep.id === 'return_shipping' &&
+      previousStep.status !== 'completed' &&
+      status === 'completed' &&
+      customerEmail
+    ) {
+      if (typeof window !== 'undefined') {
+        const confirmReturn = window.confirm(
+          'Vill du skicka ett mail till kunden med information om att retursändelsen har skickats och spårningsnumret?'
+        );
+        if (confirmReturn) {
+          shouldSendReturnShipmentEmail = true;
+        }
+      } else {
+        shouldSendReturnShipmentEmail = true;
       }
     }
 
@@ -839,10 +899,25 @@ function AdminOrderDetailPage() {
 
         // Initial mail: first time status becomes in_progress and we have a date, and no previous notification
         if (status === 'in_progress' && !notifiedStr) {
-          shouldSendPickupInitialEmail = true;
-          nextNotifiedExpectedCompletionDate = nextExpectedStr;
-          const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
-          pickupExpectedDateForEmail = jsDate || null;
+          const serviceNames = getAuthorityPickupServiceNames(previousStep.id, order as ExtendedOrder);
+          const serviceName = serviceNames.sv;
+
+          if (typeof window !== 'undefined') {
+            const confirmInitial = window.confirm(
+              `Vill du skicka ett mail till kunden med information om att ärendet är inlämnat hos ${serviceName} och beräknat klart datum?`
+            );
+            if (confirmInitial) {
+              shouldSendPickupInitialEmail = true;
+              nextNotifiedExpectedCompletionDate = nextExpectedStr;
+              const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
+              pickupExpectedDateForEmail = jsDate || null;
+            }
+          } else {
+            shouldSendPickupInitialEmail = true;
+            nextNotifiedExpectedCompletionDate = nextExpectedStr;
+            const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
+            pickupExpectedDateForEmail = jsDate || null;
+          }
         }
 
         // Update mail: date changed while step is in_progress and we have already notified once
@@ -853,10 +928,25 @@ function AdminOrderDetailPage() {
           updatedStep &&
           Object.prototype.hasOwnProperty.call(updatedStep, 'expectedCompletionDate')
         ) {
-          shouldSendPickupUpdateEmail = true;
-          nextNotifiedExpectedCompletionDate = nextExpectedStr;
-          const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
-          pickupExpectedDateForEmail = jsDate || null;
+          const serviceNames = getAuthorityPickupServiceNames(previousStep.id, order as ExtendedOrder);
+          const serviceName = serviceNames.sv;
+
+          if (typeof window !== 'undefined') {
+            const confirmUpdate = window.confirm(
+              `Vill du skicka ett uppdaterat mail till kunden med nytt förväntat klart datum hos ${serviceName}?`
+            );
+            if (confirmUpdate) {
+              shouldSendPickupUpdateEmail = true;
+              nextNotifiedExpectedCompletionDate = nextExpectedStr;
+              const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
+              pickupExpectedDateForEmail = jsDate || null;
+            }
+          } else {
+            shouldSendPickupUpdateEmail = true;
+            nextNotifiedExpectedCompletionDate = nextExpectedStr;
+            const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
+            pickupExpectedDateForEmail = jsDate || null;
+          }
         }
       }
     }
@@ -1377,6 +1467,217 @@ function AdminOrderDetailPage() {
           toast.error('Kunde inte skapa upphämtningsmail till kund');
         }
       }
+
+      if (shouldSendReturnShipmentEmail) {
+        try {
+          const db = getFirebaseDb();
+          if (db) {
+            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Kund';
+            const orderNumber = order.orderNumber || orderId;
+            const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
+            const trackingNumberText = trackingNumberForEmail || '';
+            const trackingUrlText = trackingUrlForEmail || '';
+
+            const trackingHtmlSv = trackingNumberText
+              ? `<p>Spårningsnummer: <strong>${trackingNumberText}</strong></p>`
+              : '';
+            const trackingHtmlEn = trackingNumberText
+              ? `<p>Tracking number: <strong>${trackingNumberText}</strong></p>`
+              : '';
+
+            const trackingLinkSv = trackingUrlText
+              ? `<p>Du kan följa din försändelse här: <a href="${trackingUrlText}">${trackingUrlText}</a></p>`
+              : '';
+            const trackingLinkEn = trackingUrlText
+              ? `<p>You can track your shipment here: <a href="${trackingUrlText}">${trackingUrlText}</a></p>`
+              : '';
+
+            const messageHtml = emailLocale === 'en'
+              ? `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Return shipment sent</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Your documents have been shipped</h1>
+      <p>Update for your order with DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Dear ${customerName},
+      </div>
+
+      <p>We have now sent your documents to the return address you provided.</p>
+
+      ${trackingHtmlEn}
+      ${trackingLinkEn}
+
+      <div class="order-summary">
+        <div class="order-number">
+          Order number: #${orderNumber}
+        </div>
+      </div>
+
+      <p>If you have any questions, you are welcome to contact us at
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> or by phone.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professional document legalisation for many years</p>
+      <p>This is an automatically generated message.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim()
+              : `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Returförsändelse skickad</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Dina dokument har skickats</h1>
+      <p>Uppdatering för din order hos DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Hej ${customerName}!
+      </div>
+
+      <p>Vi har nu skickat dina dokument till den returadress du angav.</p>
+
+      ${trackingHtmlSv}
+      ${trackingLinkSv}
+
+      <div class="order-summary">
+        <div class="order-number">
+          Ordernummer: #${orderNumber}
+        </div>
+      </div>
+
+      <p>Har du frågor är du välkommen att kontakta oss på
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> eller via telefon.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professionell dokumentlegalisering sedan många år</p>
+      <p>Detta är ett automatiskt genererat meddelande.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim();
+
+            const subject = emailLocale === 'en'
+              ? `Your documents have been shipped – ${orderNumber}`
+              : `Dina dokument har skickats – ${orderNumber}`;
+
+            await addDoc(collection(db, 'customerEmails'), {
+              name: customerName,
+              email: customerEmail,
+              phone: order.customerInfo?.phone || '',
+              subject,
+              message: messageHtml,
+              orderId: orderNumber,
+              createdAt: serverTimestamp(),
+              status: 'unread'
+            });
+
+            toast.success('Returförsändelsemail till kund har köats');
+          }
+        } catch (returnEmailErr) {
+          console.error('Error queuing return shipment email:', returnEmailErr);
+          toast.error('Kunde inte skapa mail om returförsändelse till kund');
+        }
+      }
     } catch (err) {
       console.error('Error updating processing step:', err);
       toast.error('Kunde inte uppdatera bearbetningssteg');
@@ -1774,7 +2075,7 @@ function AdminOrderDetailPage() {
           if (serviceToRemove === 'translation' && step.id === 'translation') return false;
           if (serviceToRemove === 'ud' && step.id === 'ud_processing') return false;
           if (serviceToRemove === 'embassy' && (step.id === 'embassy_processing' || step.id === 'embassy_delivery' || step.id === 'embassy_pickup')) return false;
-          if (serviceToRemove === 'apostille' && step.id === 'apostille') return false;
+          if (serviceToRemove === 'apostille' && (step.id === 'apostille' || step.id === 'apostille_delivery' || step.id === 'apostille_pickup')) return false;
           if (serviceToRemove === 'scanned_copies' && step.id === 'scanning') return false;
           return true;
         });
@@ -1860,6 +2161,8 @@ function AdminOrderDetailPage() {
       'translation_pickup',
       // Apostille (always single-step)
       'apostille',
+      'apostille_delivery',
+      'apostille_pickup',
       // Embassy
       'embassy_delivery',
       'embassy_pickup',
@@ -1907,7 +2210,8 @@ function AdminOrderDetailPage() {
       oversattning: ['translation_delivery', 'translation_pickup', 'translation'],
       utrikesdepartementet: ['ud_delivery', 'ud_pickup', 'ud_processing'],
       ud: ['ud_delivery', 'ud_pickup', 'ud_processing'],
-      chamber: ['chamber_delivery', 'chamber_pickup', 'chamber_processing']
+      chamber: ['chamber_delivery', 'chamber_pickup', 'chamber_processing'],
+      apostille: ['apostille_delivery', 'apostille_pickup', 'apostille']
     };
 
     const multiStepIds = multiStepServiceMap[serviceId];
