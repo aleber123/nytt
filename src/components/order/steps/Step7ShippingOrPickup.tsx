@@ -10,6 +10,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
+import { ALL_COUNTRIES } from '@/components/order/data/countries';
 
 interface Step7Props extends Omit<StepProps, 'currentLocale'> {
   onSkip: () => void; // Called when step should be skipped
@@ -27,6 +28,24 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
   const [selectedShippingMethod, setSelectedShippingMethod] = React.useState<'rek' | 'courier' | null>(
     (answers.shippingMethod as 'rek' | 'courier' | null) ?? null
   );
+
+  const [pickupCountrySearch, setPickupCountrySearch] = React.useState<string>('');
+
+  // Earliest allowed pickup date: next business day (skip weekends)
+  const earliestPickupDate = React.useMemo(() => {
+    const today = new Date();
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    // Move to next calendar day
+    d.setDate(d.getDate() + 1);
+    // Skip Saturday (6) and Sunday (0)
+    while (d.getDay() === 0 || d.getDay() === 6) {
+      d.setDate(d.getDate() + 1);
+    }
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
   // Skip logic
   React.useEffect(() => {
@@ -240,7 +259,9 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
       answers.pickupAddress.name &&
       answers.pickupAddress.street &&
       answers.pickupAddress.postalCode &&
-      answers.pickupAddress.city;
+      answers.pickupAddress.city &&
+      !!answers.pickupDate &&
+      (!answers.pickupDate || answers.pickupDate >= earliestPickupDate);
 
     return (
       <StepContainer
@@ -355,6 +376,90 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
                 placeholder={t('orderFlow.pickupAddress.cityPlaceholder')}
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('orderFlow.pickupAddress.country', 'Land')} {t('orderFlow.pickupAddress.requiredField')}
+            </label>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={pickupCountrySearch}
+                onChange={(e) => setPickupCountrySearch(e.target.value)}
+                placeholder={t('orderFlow.pickupAddress.countrySearchPlaceholder', 'Sök land (t.ex. "no" för Norge)...')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
+              />
+              {(() => {
+                const search = pickupCountrySearch.trim().toLowerCase();
+                const filtered = search
+                  ? ALL_COUNTRIES.filter((c) => c.name.toLowerCase().includes(search))
+                  : ALL_COUNTRIES;
+                return (
+                  <select
+                    value={answers.pickupAddress.country || 'SE'}
+                    onChange={(e) =>
+                      setAnswers((prev) => ({
+                        ...prev,
+                        pickupAddress: { ...prev.pickupAddress, country: e.target.value },
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button bg-white"
+                  >
+                    {filtered.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+                );
+              })()}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.pickupAddress.date', 'Önskat upphämtningsdatum')} {t('orderFlow.pickupAddress.requiredField')}
+              </label>
+              <input
+                type="date"
+                value={answers.pickupDate || ''}
+                min={earliestPickupDate}
+                onChange={(e) =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    pickupDate: e.target.value,
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {t(
+                  'orderFlow.pickupAddress.dateHelp',
+                  'Du kan välja tidigast nästa vardag. Vi bokar upphämtning utifrån ditt önskemål.'
+                )}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('orderFlow.pickupAddress.timeWindow', 'Önskat tidsfönster (valfritt)')}
+              </label>
+              <select
+                value={answers.pickupTimeWindow || ''}
+                onChange={(e) =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    pickupTimeWindow: e.target.value,
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button bg-white"
+              >
+                <option value="">{t('orderFlow.pickupAddress.timeWindowAny', 'Hela dagen (09–17)')}</option>
+                <option value="morning">{t('orderFlow.pickupAddress.timeWindowMorning', 'Förmiddag (09–12)')}</option>
+                <option value="afternoon">{t('orderFlow.pickupAddress.timeWindowAfternoon', 'Eftermiddag (12–17)')}</option>
+              </select>
             </div>
           </div>
         </div>

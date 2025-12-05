@@ -184,6 +184,134 @@ exports.sendInvoiceEmail = functions.firestore
     }
   });
 
+// Callable function to create a mock DHL shipment for a given order
+exports.createDhlShipment = functions.https.onCall(async (data, context) => {
+  const db = admin.firestore();
+
+  const orderId = data && typeof data.orderId === 'string' ? data.orderId.trim() : '';
+  if (!orderId) {
+    throw new functions.https.HttpsError('invalid-argument', 'orderId is required');
+  }
+
+  try {
+    // Try to load order by document ID first
+    let orderDoc = await db.collection('orders').doc(orderId).get();
+    let docId = orderId;
+
+    if (!orderDoc.exists) {
+      // Fallback: lookup by orderNumber field
+      const querySnap = await db
+        .collection('orders')
+        .where('orderNumber', '==', orderId)
+        .limit(1)
+        .get();
+
+      if (querySnap.empty) {
+        throw new functions.https.HttpsError('not-found', `Order ${orderId} not found`);
+      }
+
+      orderDoc = querySnap.docs[0];
+      docId = orderDoc.id;
+    }
+
+    const orderData = orderDoc.data() || {};
+    const customerInfo = orderData.customerInfo || {};
+
+    // Generate mock DHL tracking data
+    const randomSuffix = Math.floor(100000000 + Math.random() * 900000000);
+    const trackingNumber = `DHL-MOCK-${randomSuffix}`;
+
+    const trackingUrl = `https://www.dhl.com/global-en/home/tracking/tracking-express.html?AWB=${encodeURIComponent(
+      trackingNumber
+    )}&brand=DHL`;
+
+    // Persist tracking info on the order (return shipment)
+    await db.collection('orders').doc(docId).update({
+      returnTrackingNumber: trackingNumber,
+      returnTrackingUrl: trackingUrl,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return {
+      orderId: docId,
+      trackingNumber,
+      trackingUrl,
+      customer: {
+        name: `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),
+        email: customerInfo.email || ''
+      }
+    };
+  } catch (error) {
+    console.error('Error creating mock DHL shipment:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    const message = (error && error.message) ? String(error.message) : String(error);
+    throw new functions.https.HttpsError('internal', `Failed to create DHL shipment: ${message}`);
+  }
+});
+
+// Callable function to create a mock DHL pickup for a given order
+exports.createDhlPickup = functions.https.onCall(async (data, context) => {
+  const db = admin.firestore();
+
+  const orderId = data && typeof data.orderId === 'string' ? data.orderId.trim() : '';
+  if (!orderId) {
+    throw new functions.https.HttpsError('invalid-argument', 'orderId is required');
+  }
+
+  try {
+    // Try to load order by document ID first
+    let orderDoc = await db.collection('orders').doc(orderId).get();
+    let docId = orderId;
+
+    if (!orderDoc.exists) {
+      // Fallback: lookup by orderNumber field
+      const querySnap = await db
+        .collection('orders')
+        .where('orderNumber', '==', orderId)
+        .limit(1)
+        .get();
+
+      if (querySnap.empty) {
+        throw new functions.https.HttpsError('not-found', `Order ${orderId} not found`);
+      }
+
+      orderDoc = querySnap.docs[0];
+      docId = orderDoc.id;
+    }
+
+    const orderData = orderDoc.data() || {};
+    const customerInfo = orderData.customerInfo || {};
+
+    // Generate mock DHL pickup tracking number
+    const randomSuffix = Math.floor(100000000 + Math.random() * 900000000);
+    const trackingNumber = `DHL-PICKUP-MOCK-${randomSuffix}`;
+
+    // Persist pickup tracking info on the order
+    await db.collection('orders').doc(docId).update({
+      pickupTrackingNumber: trackingNumber,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return {
+      orderId: docId,
+      trackingNumber,
+      customer: {
+        name: `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),
+        email: customerInfo.email || ''
+      }
+    };
+  } catch (error) {
+    console.error('Error creating mock DHL pickup:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    const message = (error && error.message) ? String(error.message) : String(error);
+    throw new functions.https.HttpsError('internal', `Failed to create DHL pickup: ${message}`);
+  }
+});
+
 // Test function to verify email setup
 exports.testEmail = functions.https.onCall(async (data, context) => {
   const mailOptions = {

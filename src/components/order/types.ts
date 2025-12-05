@@ -21,7 +21,10 @@ export interface OrderAnswers {
     street: string;
     postalCode: string;
     city: string;
+    country: string;
   };
+  pickupDate?: string; // Desired pickup date (YYYY-MM-DD), required when pickupService is true
+  pickupTimeWindow?: string; // Optional time window text/id for pickup
   scannedCopies: boolean;
   returnService: string;
   ownReturnTrackingNumber: string;

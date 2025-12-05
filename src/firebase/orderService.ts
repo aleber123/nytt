@@ -35,6 +35,8 @@ export interface Order {
     postalCode: string;
     city: string;
   };
+  pickupDate?: string; // Desired pickup date (YYYY-MM-DD) when pickup service is used
+  pickupTimeWindow?: string; // Optional pickup time window label/value
   scannedCopies: boolean; // Whether scanned copies are requested
   returnService: string; // Return service selection
   customerInfo?: {

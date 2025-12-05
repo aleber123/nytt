@@ -54,8 +54,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       company: '',
       street: '',
       postalCode: '',
-      city: ''
+      city: '',
+      country: 'SE'
     },
+    pickupDate: '',
+    pickupTimeWindow: '',
     scannedCopies: false, // New: scanned copies option
     returnService: '', // New: return service selection
     ownReturnTrackingNumber: '',
@@ -967,7 +970,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-sweden',
           name: 'DHL Sweden',
           description: 'DHL upphämtning inom Sverige',
-          price: 'Från 600 kr',
+          price: 'Från 180 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -976,7 +979,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-pre-12',
           name: 'DHL Pre 12',
           description: 'Upphämtning före klockan 12:00 nästa arbetsdag',
-          price: 'Från 8989 kr',
+          price: 'Från 350 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -994,7 +997,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-europe',
           name: 'DHL Europe',
           description: 'DHL upphämtning inom Europa',
-          price: 'Från 200 kr',
+          price: 'Från 250 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -1003,7 +1006,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-worldwide',
           name: 'DHL Worldwide',
           description: 'DHL internationell upphämtning',
-          price: 'Från 1600 kr',
+          price: 'Från 450 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -1036,8 +1039,31 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           available: true
         }
       ];
+      try {
+        const allRules = await getAllActivePricingRules();
+        const pickupIds = ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'dhl-pre-12', 'dhl-pre-9'];
 
-      setPickupServices(defaultPickupServices);
+        const pickupRulesMap = new Map<string, any>();
+        allRules.forEach((rule: any) => {
+          if (pickupIds.includes(rule.serviceType) && rule.countryCode === 'GLOBAL') {
+            pickupRulesMap.set(rule.serviceType, rule);
+          }
+        });
+
+        const mergedPickupServices = defaultPickupServices.map((service) => {
+          const rule = pickupRulesMap.get(service.id);
+          if (!rule) return service;
+          return {
+            ...service,
+            price: `${rule.basePrice} kr`
+          };
+        });
+
+        setPickupServices(mergedPickupServices);
+      } catch (pricingError) {
+        console.log('⚠️ Firebase pricing for pickup failed, using defaults:', pricingError);
+        setPickupServices(defaultPickupServices);
+      }
     } catch (error) {
       console.error('Error loading pickup services:', error);
       setPickupServices([]);

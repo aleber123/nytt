@@ -15,7 +15,9 @@ import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvo
 import { Invoice } from '@/services/invoiceService';
 import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation } from '@/services/coverLetterService';
 import { collection, addDoc, doc as fsDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { getFirebaseDb } from '@/firebase/config';
+import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { downloadDhlReturnLabel } from '@/services/shippingLabelService';
 
 // Define Order interface locally to match the updated interface
 interface ExtendedOrder extends Order {
@@ -78,6 +80,8 @@ function AdminOrderDetailPage() {
   const [pickupTrackingNumber, setPickupTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
   const [savingTracking, setSavingTracking] = useState(false);
+  const [bookingDhlShipment, setBookingDhlShipment] = useState(false);
+  const [bookingDhlPickup, setBookingDhlPickup] = useState(false);
   const [isUploadingPickupLabel, setIsUploadingPickupLabel] = useState(false);
   const [sendingPickupLabel, setSendingPickupLabel] = useState(false);
   const pickupLabelInputRef = useRef<HTMLInputElement | null>(null);
@@ -1712,7 +1716,7 @@ function AdminOrderDetailPage() {
       const mod = await import('@/services/hybridOrderService');
       const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
       if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
-      await updateOrder(orderId, { 
+      await updateOrder(orderId, {
         returnTrackingNumber: trackingNumber,
         returnTrackingUrl: trackingUrl
       });
@@ -1723,6 +1727,102 @@ function AdminOrderDetailPage() {
       toast.error('Kunde inte spara tracking-information');
     } finally {
       setSavingTracking(false);
+    }
+  };
+
+  const bookDhlShipment = async () => {
+    if (!order) {
+      toast.error('Order saknas, kan inte boka DHL-frakt');
+      return;
+    }
+
+    const lookupId = (order.orderNumber as string) || (router.query.id as string);
+    if (!lookupId) {
+      toast.error('Ordernummer saknas, kan inte boka DHL-frakt');
+      return;
+    }
+
+    try {
+      setBookingDhlShipment(true);
+
+      const app = getFirebaseApp();
+      if (!app) {
+        throw new Error('Firebase app not initialized');
+      }
+
+      const functions = getFunctions(app);
+      const createDhlShipment = httpsCallable(functions, 'createDhlShipment');
+      const result: any = await createDhlShipment({ orderId: lookupId });
+      const data = result?.data || {};
+
+      const newTrackingNumber: string = data.trackingNumber || '';
+      const newTrackingUrl: string = data.trackingUrl || '';
+
+      if (newTrackingNumber) {
+        setTrackingNumber(newTrackingNumber);
+      }
+      if (newTrackingUrl) {
+        setTrackingUrl(newTrackingUrl);
+      }
+
+      if (newTrackingNumber || newTrackingUrl) {
+        setOrder({
+          ...order,
+          returnTrackingNumber: newTrackingNumber || (order as any).returnTrackingNumber,
+          returnTrackingUrl: newTrackingUrl || (order as any).returnTrackingUrl
+        });
+      }
+
+      toast.success('DHL-returfrakt (mock) bokad och tracking uppdaterad');
+    } catch (err) {
+      console.error('Error booking DHL shipment:', err);
+      toast.error('Kunde inte boka DHL-returfrakt');
+    } finally {
+      setBookingDhlShipment(false);
+    }
+  };
+
+  const bookDhlPickup = async () => {
+    if (!order) {
+      toast.error('Order saknas, kan inte boka DHL-upph e4mtning');
+      return;
+    }
+
+    const lookupId = (order.orderNumber as string) || (router.query.id as string);
+    if (!lookupId) {
+      toast.error('Ordernummer saknas, kan inte boka DHL-upph e4mtning');
+      return;
+    }
+
+    try {
+      setBookingDhlPickup(true);
+
+      const app = getFirebaseApp();
+      if (!app) {
+        throw new Error('Firebase app not initialized');
+      }
+
+      const functions = getFunctions(app);
+      const createDhlPickup = httpsCallable(functions, 'createDhlPickup');
+      const result: any = await createDhlPickup({ orderId: lookupId });
+      const data = result?.data || {};
+
+      const newTrackingNumber: string = data.trackingNumber || '';
+
+      if (newTrackingNumber) {
+        setPickupTrackingNumber(newTrackingNumber);
+        setOrder({
+          ...order,
+          pickupTrackingNumber: newTrackingNumber || (order as any).pickupTrackingNumber
+        });
+      }
+
+      toast.success('DHL-upph e4mtning (mock) bokad och tracking uppdaterad');
+    } catch (err) {
+      console.error('Error booking DHL pickup:', err);
+      toast.error('Kunde inte boka DHL-upph e4mtning');
+    } finally {
+      setBookingDhlPickup(false);
     }
   };
 
@@ -3309,6 +3409,16 @@ function AdminOrderDetailPage() {
                                     placeholder="t.ex. 1234567890"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   />
+                                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={bookDhlPickup}
+                                      disabled={bookingDhlPickup || !order}
+                                      className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {bookingDhlPickup ? 'Bokar DHL-upphämtning...' : 'Boka DHL-upphämtning (mock)'}
+                                    </button>
+                                  </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -3379,6 +3489,24 @@ function AdminOrderDetailPage() {
                                     placeholder="t.ex. 1234567890"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   />
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                  <button
+                                    type="button"
+                                    onClick={bookDhlShipment}
+                                    disabled={bookingDhlShipment || !order}
+                                    className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {bookingDhlShipment ? 'Bokar DHL-returfrakt...' : 'Boka DHL-returfrakt (mock)'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => order && downloadDhlReturnLabel(order as any)}
+                                    disabled={!order || !trackingNumber}
+                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    Skriv ut DHL-returetikett
+                                  </button>
                                 </div>
                               </div>
                             )}

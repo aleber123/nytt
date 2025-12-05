@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'next-i18next';
 
@@ -10,12 +10,111 @@ interface OrderFormProps {
 
 const OrderForm: React.FC<OrderFormProps> = ({ initialData, onSubmit, onBack }) => {
   const { t } = useTranslation('common');
-  const { register, handleSubmit, formState: { errors }, watch } = useForm({
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
     defaultValues: initialData
   });
-
   const selectedDeliveryMethod = watch('deliveryMethod');
   const isPickupSelected = selectedDeliveryMethod === 'pickup';
+
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
+
+  const addressRegister = register('customerInfo.address', { required: !isPickupSelected });
+
+  // Load Google Maps JavaScript API with Places library on the client
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const w = window as any;
+
+    if (w.google?.maps?.places) {
+      setIsGoogleLoaded(true);
+      return;
+    }
+
+    const existingScript = document.getElementById('google-maps-js');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => setIsGoogleLoaded(true));
+      return;
+    }
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.warn('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set');
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-maps-js';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=sv`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setIsGoogleLoaded(true);
+    document.head.appendChild(script);
+  }, []);
+
+  // Attach Places Autocomplete to the address field and map components to form fields
+  useEffect(() => {
+    if (!isGoogleLoaded) return;
+    if (!addressInputRef.current) return;
+    if (typeof window === 'undefined') return;
+
+    const w = window as any;
+    if (!w.google?.maps?.places) return;
+
+    const autocomplete = new w.google.maps.places.Autocomplete(addressInputRef.current, {
+      types: ['address'],
+      fields: ['address_components', 'formatted_address']
+    });
+
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (!place || !place.address_components) return;
+
+      let street = '';
+      let postalCode = '';
+      let city = '';
+      let countryCode = '';
+
+      (place.address_components || []).forEach((component: any) => {
+        const types = component.types || [];
+        if (types.includes('street_number')) {
+          street = street ? `${street} ${component.long_name}` : component.long_name;
+        }
+        if (types.includes('route')) {
+          street = street ? `${component.long_name} ${street}` : component.long_name;
+        }
+        if (types.includes('postal_code')) {
+          postalCode = component.long_name;
+        }
+        if (types.includes('locality') || types.includes('postal_town')) {
+          city = component.long_name;
+        }
+        if (types.includes('country')) {
+          countryCode = component.short_name;
+        }
+      });
+
+      if (street) {
+        setValue('customerInfo.address', street, { shouldValidate: true, shouldDirty: true });
+      }
+      if (postalCode) {
+        setValue('customerInfo.postalCode', postalCode, { shouldValidate: true, shouldDirty: true });
+      }
+      if (city) {
+        setValue('customerInfo.city', city, { shouldValidate: true, shouldDirty: true });
+      }
+      if (countryCode) {
+        setValue('country', countryCode, { shouldValidate: true, shouldDirty: true });
+      }
+    });
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+    };
+  }, [isGoogleLoaded, setValue]);
 
   const countries = [
     // Afrika (54 länder)
@@ -438,7 +537,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ initialData, onSubmit, onBack }) 
                <input
                  type="text"
                  id="address"
-                 {...register('customerInfo.address', { required: !isPickupSelected })}
+                 {...addressRegister}
+                 ref={(el) => {
+                   addressRegister.ref(el);
+                   addressInputRef.current = el;
+                 }}
                  className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
                    (errors as any).customerInfo?.address ? 'border-red-500' : ''
                  }`}
