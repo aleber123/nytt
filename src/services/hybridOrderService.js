@@ -60,19 +60,36 @@ function formatOrderId(number) {
   return `SWE${number.toString().padStart(6, '0')}`;
 }
 
-// Get next order number
+// Get next order number (self-healing based on both counter doc and actual orders count)
 async function getNextOrderNumber() {
   if (firebaseAvailable && db) {
     try {
-      // Try to get and update the counter document
+      // Try to get the counter document
       const counterRef = doc(db, 'counters', 'orders');
       const counterSnap = await getDoc(counterRef);
 
-      let nextNumber = 1;
+      let currentCount = 0;
       if (counterSnap.exists()) {
-        const currentCount = counterSnap.data().currentCount || 0;
-        nextNumber = currentCount + 1;
+        const data = counterSnap.data();
+        currentCount = typeof data.currentCount === 'number' ? data.currentCount : 0;
       }
+
+      // Self-healing: compare with actual number of orders in the collection
+      try {
+        const { getCountFromServer } = require('firebase/firestore');
+        const ordersCollectionRef = collection(db, 'orders');
+        const snapshot = await getCountFromServer(ordersCollectionRef);
+        const realCount = snapshot.data().count || 0;
+
+        if (realCount > currentCount) {
+          console.log('🔄 Self-healing order counter: realCount', realCount, 'is greater than currentCount', currentCount);
+          currentCount = realCount;
+        }
+      } catch (innerError) {
+        console.log('⚠️ Unable to self-heal order counter via getCountFromServer:', innerError.message);
+      }
+
+      const nextNumber = currentCount + 1;
 
       // Update the counter (create if doesn't exist)
       await setDoc(counterRef, {
@@ -80,7 +97,7 @@ async function getNextOrderNumber() {
         lastUpdated: Timestamp.now()
       });
 
-      console.log('✅ Firebase counter updated:', nextNumber);
+      console.log('✅ Firebase counter updated (self-healing):', nextNumber);
       return nextNumber;
     } catch (error) {
       console.log('⚠️ Firebase counter failed, using mock counter:', error.message);
@@ -106,18 +123,54 @@ const createOrder = async (orderData) => {
         const formattedOrderId = formatOrderId(nextNumber);
 
         const orderWithTimestamps = {
-           ...orderData,
-           status: 'pending',
-           createdAt: Timestamp.now(),
-           updatedAt: Timestamp.now(),
-           orderNumber: formattedOrderId
-         };
+          ...orderData,
+          status: 'pending',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          orderNumber: formattedOrderId
+        };
 
-         await setDoc(doc(db, 'orders', formattedOrderId), {
-           ...orderWithTimestamps,
-           orderNumber: formattedOrderId // Store the formatted order number as a field
-         });
-         console.log('✅ Order saved to Firebase with pricing breakdown:', orderWithTimestamps.pricingBreakdown);
+        await setDoc(doc(db, 'orders', formattedOrderId), {
+          ...orderWithTimestamps,
+          orderNumber: formattedOrderId // Store the formatted order number as a field
+        });
+        console.log('✅ Order saved to Firebase with pricing breakdown:', orderWithTimestamps.pricingBreakdown);
+
+        // Optionally create a public confirmation document keyed by a random token
+        const publicAccessToken = orderData && orderData.publicAccessToken ? orderData.publicAccessToken : null;
+        if (publicAccessToken) {
+          try {
+            const confirmationRef = doc(db, 'orderConfirmations', publicAccessToken);
+
+            // Store only the minimal, non-sensitive subset needed for the public confirmation view
+            const confirmationData = {
+              orderNumber: formattedOrderId,
+              status: orderWithTimestamps.status,
+              services: orderWithTimestamps.services,
+              documentType: orderWithTimestamps.documentType,
+              country: orderWithTimestamps.country,
+              quantity: orderWithTimestamps.quantity,
+              expedited: orderWithTimestamps.expedited,
+              documentSource: orderWithTimestamps.documentSource,
+              scannedCopies: orderWithTimestamps.scannedCopies,
+              pickupService: orderWithTimestamps.pickupService,
+              pickupAddress: orderWithTimestamps.pickupAddress,
+              returnService: orderWithTimestamps.returnService,
+              customerInfo: orderWithTimestamps.customerInfo,
+              paymentMethod: orderWithTimestamps.paymentMethod,
+              totalPrice: orderWithTimestamps.totalPrice,
+              invoiceReference: orderWithTimestamps.invoiceReference,
+              additionalNotes: orderWithTimestamps.additionalNotes,
+              createdAt: orderWithTimestamps.createdAt
+            };
+
+            await setDoc(confirmationRef, confirmationData);
+            console.log('✅ Order confirmation document saved (minimized payload):', publicAccessToken);
+          } catch (confirmationError) {
+            console.error('⚠️ Failed to save order confirmation document, continuing without public copy:', confirmationError.message);
+          }
+        }
+
         console.log('✅ Order created in Firebase:', formattedOrderId);
         return formattedOrderId;
 
@@ -216,6 +269,46 @@ const getOrderById = async (orderId) => {
 
   } catch (error) {
     console.error('❌ Error in getOrderById:', error);
+    console.error('Stack:', error.stack);
+    throw error;
+  }
+};
+
+// Get public order confirmation by token
+const getOrderConfirmationByToken = async (token) => {
+  console.log('🔍 getOrderConfirmationByToken called with token:', token);
+
+  if (!token) {
+    console.error('❌ Error: No token provided to getOrderConfirmationByToken');
+    return null;
+  }
+
+  try {
+    if (firebaseAvailable && db) {
+      try {
+        const confirmationRef = doc(db, 'orderConfirmations', token);
+        const confirmationSnap = await getDoc(confirmationRef);
+
+        if (confirmationSnap.exists()) {
+          console.log('✅ Order confirmation retrieved from Firebase by token:', token);
+          return {
+            id: confirmationSnap.id,
+            ...confirmationSnap.data()
+          };
+        }
+
+        console.log('⚠️ Order confirmation not found for token:', token);
+      } catch (firebaseError) {
+        console.error('❌ Firebase retrieval failed in getOrderConfirmationByToken:', firebaseError);
+        console.error('Stack:', firebaseError.stack);
+      }
+    } else {
+      console.log('ℹ️ Firebase not available in getOrderConfirmationByToken');
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ Error in getOrderConfirmationByToken:', error);
     console.error('Stack:', error.stack);
     throw error;
   }
@@ -446,13 +539,14 @@ const clearAllOrders = () => {
 };
 
 module.exports = {
-  createOrder,
-  createOrderWithFiles,
-  uploadFiles,
-  getOrderById,
-  getAllOrders,
-  updateOrder,
-  clearAllOrders,
-  formatOrderId,
-  firebaseAvailable
+createOrder,
+createOrderWithFiles,
+uploadFiles,
+getOrderById,
+getOrderConfirmationByToken,
+getAllOrders,
+updateOrder,
+clearAllOrders,
+formatOrderId,
+firebaseAvailable
 };

@@ -628,6 +628,12 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
+                  const publicAccessToken =
+                    typeof window !== 'undefined' &&
+                    window.crypto &&
+                    'randomUUID' in window.crypto
+                      ? (window.crypto as any).randomUUID()
+                      : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
                   const orderData = {
                     country: answers.country,
                     documentType: answers.documentType,
@@ -651,7 +657,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
-                    locale: locale
+                    locale: locale,
+                    publicAccessToken
                   };
                   console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 
@@ -752,7 +759,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   // Redirect to confirmation page after a short delay
                   setTimeout(() => {
-                    router.push(`/bekraftelse?orderId=${orderId}`);
+                    router.push(`/bekraftelse?orderId=${orderId}&token=${publicAccessToken}`);
                   }, 2000);
 
                 } catch (error) {
@@ -1146,6 +1153,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
+                  const publicAccessToken =
+                    typeof window !== 'undefined' &&
+                    window.crypto &&
+                    'randomUUID' in window.crypto
+                      ? (window.crypto as any).randomUUID()
+                      : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
                   const orderData = {
                     country: answers.country,
                     documentType: answers.documentType,
@@ -1164,7 +1177,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
-                    locale: locale
+                    locale: locale,
+                    publicAccessToken
                   };
                   console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 
@@ -1612,7 +1626,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   // Redirect to confirmation page after a short delay
                   setTimeout(() => {
-                    router.push(`/bekraftelse?orderId=${orderId}`);
+                    router.push(`/bekraftelse?orderId=${orderId}&token=${publicAccessToken}`);
                   }, 2000);
 
                 } catch (error) {

@@ -964,7 +964,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     try {
       setLoadingPickupServices(true);
 
-      // Default pickup services (excluding PostNord and no-pickup since we have separate buttons)
+      // Default pickup services (fallback om Firebase inte ger regler)
       const defaultPickupServices = [
         {
           id: 'dhl-sweden',
@@ -1039,27 +1039,64 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           available: true
         }
       ];
+
       try {
         const allRules = await getAllActivePricingRules();
-        const pickupIds = ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'dhl-pre-12', 'dhl-pre-9'];
 
-        const pickupRulesMap = new Map<string, any>();
-        allRules.forEach((rule: any) => {
-          if (pickupIds.includes(rule.serviceType) && rule.countryCode === 'GLOBAL') {
-            pickupRulesMap.set(rule.serviceType, rule);
-          }
-        });
+        // Pickup-tjänster som ska styras via GLOBAL-fraktregler (samma koder som i admin/shipping-services)
+        const pickupIds = [
+          'dhl-sweden',
+          'dhl-europe',
+          'dhl-worldwide',
+          'dhl-pre-12',
+          'dhl-pre-9',
+          'stockholm-city',
+          'stockholm-express',
+          'stockholm-sameday'
+        ];
 
-        const mergedPickupServices = defaultPickupServices.map((service) => {
-          const rule = pickupRulesMap.get(service.id);
-          if (!rule) return service;
-          return {
-            ...service,
-            price: `${rule.basePrice} kr`
-          };
-        });
+        const pickupRules = allRules.filter((rule: any) =>
+          pickupIds.includes(rule.serviceType) && rule.countryCode === 'GLOBAL'
+        );
 
-        setPickupServices(mergedPickupServices);
+        // Bygg pickup-tjänster direkt från Firebase-reglerna
+        const servicesFromFirebase = pickupRules.map((rule: any) => ({
+          id: rule.serviceType,
+          name: getShippingServiceName(rule.serviceType),
+          description: getShippingServiceDescription(rule.serviceType),
+          price: `Från ${rule.basePrice} kr`,
+          provider: getShippingProvider(rule.serviceType),
+          estimatedPickup: getShippingDeliveryTime(rule.serviceType),
+          available: true
+        }));
+
+        if (servicesFromFirebase.length > 0) {
+          // Sortera pickup-tjänster i en bestämd ordning (så att t.ex. DHL Sweden visas före DHL Europe)
+          const pickupOrder = [
+            'dhl-sweden',
+            'dhl-europe',
+            'dhl-worldwide',
+            'dhl-pre-12',
+            'dhl-pre-9',
+            'stockholm-city',
+            'stockholm-express',
+            'stockholm-sameday'
+          ];
+
+          const orderedServices = servicesFromFirebase.sort((a, b) => {
+            const indexA = pickupOrder.indexOf(a.id);
+            const indexB = pickupOrder.indexOf(b.id);
+            const sortA = indexA === -1 ? 99 : indexA;
+            const sortB = indexB === -1 ? 99 : indexB;
+            return sortA - sortB;
+          });
+
+          // När Firebase-regler finns ska de styra helt (inga hårdkodade priser)
+          setPickupServices(orderedServices);
+        } else {
+          // Fallback om inga regler hittas
+          setPickupServices(defaultPickupServices);
+        }
       } catch (pricingError) {
         console.log('⚠️ Firebase pricing for pickup failed, using defaults:', pricingError);
         setPickupServices(defaultPickupServices);

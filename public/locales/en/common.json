@@ -1009,43 +1009,35 @@
       "services": {
         "dhl-sweden": {
           "name": "DHL Sweden",
-          "description": "DHL pickup within Sweden",
-          "price": "From 600 kr"
+          "description": "DHL pickup within Sweden"
         },
         "dhl-europe": {
           "name": "DHL Europe",
-          "description": "DHL pickup within Europe",
-          "price": "From 200 kr"
+          "description": "DHL pickup within Europe"
         },
         "dhl-worldwide": {
           "name": "DHL Worldwide",
-          "description": "DHL international pickup",
-          "price": "From 1600 kr"
+          "description": "DHL international pickup"
         },
         "dhl-pre-12": {
           "name": "DHL Pre 12",
-          "description": "Pickup before 12:00 next business day",
-          "price": "From 8989 kr"
+          "description": "Pickup before 12:00 next business day"
         },
         "dhl-pre-9": {
           "name": "DHL Pre 9",
-          "description": "Pickup before 09:00 next business day",
-          "price": "From 450 kr"
+          "description": "Pickup before 09:00 next business day"
         },
         "stockholm-city": {
           "name": "Stockholm City Courier",
-          "description": "Local courier service within Stockholm",
-          "price": "From 320 kr"
+          "description": "Local courier service within Stockholm"
         },
         "stockholm-express": {
           "name": "Stockholm Express",
-          "description": "Express pickup within Stockholm same day",
-          "price": "From 180 kr"
+          "description": "Express pickup within Stockholm same day"
         },
         "stockholm-sameday": {
           "name": "Stockholm Same Day",
-          "description": "Same day pickup within Stockholm",
-          "price": "From 250 kr"
+          "description": "Same day pickup within Stockholm"
         }
       }
     },

@@ -49,6 +49,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /orderConfirmations/{token} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if isAdmin();
+    }
+
     // COUNTERS – order/invoice counters
     match /counters/{name} {
       allow read: if true;

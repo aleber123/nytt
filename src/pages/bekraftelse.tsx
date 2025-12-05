@@ -57,22 +57,34 @@ export function ConfirmationPage() {
 
     const fetchOrder = async () => {
       const oid = (router.query.orderId as string) || '';
-      if (!oid) {
+      const token = (router.query.token as string) || '';
+
+      if (!oid && !token) {
         setOrder(null);
         setError(t('confirmation.noOrderDescription'));
         setLoading(false);
         return;
       }
 
-      // Start a fresh load cycle for this order ID
       setLoading(true);
       setError(null);
 
       try {
-        // Dynamically import to avoid SSR importing Firebase-dependent code
         const hybridOrderService = (await import('@/services/hybridOrderService')).default;
-        const { getOrderById } = hybridOrderService;
-        const orderData = await getOrderById(oid);
+        const { getOrderById, getOrderConfirmationByToken } = hybridOrderService;
+
+        let orderData: any = null;
+
+        // 1) Försök först med hemlig länk via token (orderConfirmations)
+        if (token && typeof getOrderConfirmationByToken === 'function') {
+          orderData = await getOrderConfirmationByToken(token);
+        }
+
+        // 2) Fallback: om inget hittades via token, försök med orderId (för gamla länkar eller dev/mock-läge)
+        if (!orderData && oid && typeof getOrderById === 'function') {
+          orderData = await getOrderById(oid);
+        }
+
         if (orderData) {
           setOrder(orderData);
           setError(null);
@@ -90,7 +102,7 @@ export function ConfirmationPage() {
     };
 
     fetchOrder();
-  }, [router.isReady, router.query.orderId, t]);
+  }, [router.isReady, router.query.orderId, router.query.token, t]);
 
   // Function to get localized service name
   const getServiceName = (serviceId: string) => {

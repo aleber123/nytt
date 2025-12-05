@@ -1002,43 +1002,35 @@
       "services": {
         "dhl-sweden": {
           "name": "DHL Sweden",
-          "description": "DHL upphämtning inom Sverige",
-          "price": "Från 600 kr"
+          "description": "DHL upphämtning inom Sverige"
         },
         "dhl-europe": {
           "name": "DHL Europe",
-          "description": "DHL upphämtning inom Europa",
-          "price": "Från 200 kr"
+          "description": "DHL upphämtning inom Europa"
         },
         "dhl-worldwide": {
           "name": "DHL Worldwide",
-          "description": "DHL internationell upphämtning",
-          "price": "Från 1600 kr"
+          "description": "DHL internationell upphämtning"
         },
         "dhl-pre-12": {
           "name": "DHL Pre 12",
-          "description": "Upphämtning före klockan 12:00 nästa arbetsdag",
-          "price": "Från 8989 kr"
+          "description": "Upphämtning före klockan 12:00 nästa arbetsdag"
         },
         "dhl-pre-9": {
           "name": "DHL Pre 9",
-          "description": "Upphämtning före klockan 09:00 nästa arbetsdag",
-          "price": "Från 450 kr"
+          "description": "Upphämtning före klockan 09:00 nästa arbetsdag"
         },
         "stockholm-city": {
           "name": "Stockholm City Courier",
-          "description": "Lokal budservice inom Stockholm",
-          "price": "Från 320 kr"
+          "description": "Lokal budservice inom Stockholm"
         },
         "stockholm-express": {
           "name": "Stockholm Express",
-          "description": "Expressupphämtning inom Stockholm samma dag",
-          "price": "Från 180 kr"
+          "description": "Expressupphämtning inom Stockholm samma dag"
         },
         "stockholm-sameday": {
           "name": "Stockholm Same Day",
-          "description": "Samma dags upphämtning inom Stockholm",
-          "price": "Från 250 kr"
+          "description": "Samma dags upphämtning inom Stockholm"
         }
       }
     },
