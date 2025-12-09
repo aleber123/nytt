@@ -10,7 +10,7 @@ export const HAGUE_CONVENTION_COUNTRIES = [
   'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
   'AT', 'BE', 'CH', 'CZ', 'EE', 'GR', 'HU', 'IE', 'IS', 'LI', 'LT', 'LU',
   'LV', 'MT', 'PT', 'SK', 'SI', 'BG', 'HR', 'CY', 'RO', 'TR', 'AU', 'CA',
-  'JP', 'KR', 'MX', 'NZ', 'ZA'
+  'JP', 'KR', 'MX', 'NZ', 'ZA', 'PH'
 ];
 
 // Popular countries sorted by selection frequency

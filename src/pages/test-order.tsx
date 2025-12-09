@@ -40,7 +40,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       phone: '',
       address: '',
       postalCode: '',
-      city: ''
+      city: '',
+      country: '',
+      countryCode: ''
     },
     shippingMethod: '', // New: selected shipping method
     paymentMethod: ''
@@ -51,7 +53,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
     'AT', 'BE', 'CH', 'CZ', 'EE', 'GR', 'HU', 'IE', 'IS', 'LI', 'LT', 'LU',
     'LV', 'MT', 'PT', 'SK', 'SI', 'BG', 'HR', 'CY', 'RO', 'TR', 'AU', 'CA',
-    'JP', 'KR', 'MX', 'NZ', 'ZA'
+    'JP', 'KR', 'MX', 'NZ', 'ZA', 'PH'
   ];
 
   // Popular countries sorted by selection frequency (most popular first)
@@ -440,21 +442,21 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'chamber',
           name: 'Handelskammarens legalisering',
           description: 'Legaliserng av handelsdokument genom Handelskammaren',
-          price: '2400 kr',
+          price: '0 kr',
           available: true
         },
         {
           id: 'notarization',
           name: 'Notarisering',
           description: 'Officiell notarisering av dokument',
-          price: '1300 kr',
+          price: '0 kr',
           available: true
         },
         {
           id: 'translation',
           name: 'Auktoriserad översättning',
           description: 'Översättning av dokument',
-          price: 'Från 1450 kr', // Use "Från" format for translation
+          price: '0 kr',
           available: true
         }
       ];
@@ -465,21 +467,21 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'ud',
           name: 'Utrikesdepartementet',
           description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer',
-          price: 'Från 1750 kr', // Use "Från" format for UD
+          price: '0 kr',
           available: !isHagueCountry
         },
         {
           id: 'embassy',
           name: 'Ambassadlegalisering',
           description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige',
-          price: 'Från 1295 kr',
+          price: '0 kr',
           available: !isHagueCountry
         },
         {
           id: 'apostille',
           name: 'Apostille',
           description: 'För länder som är anslutna till Haagkonventionen',
-          price: '950 kr',
+          price: '0 kr',
           available: isHagueCountry
         }
       ];
@@ -492,20 +494,20 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       // Final fallback - ensure core services are always available
       const isHagueCountry = isHagueConventionCountry(countryCode);
       const fallbackServices = [
-        { id: 'chamber', name: 'Handelskammarens legalisering', description: 'Legaliserng av handelsdokument genom Handelskammaren', price: '2400 kr', available: true },
-        { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '1300 kr', available: true },
-        { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: 'Från 1450 kr', available: true }
+        { id: 'chamber', name: 'Handelskammarens legalisering', description: 'Legaliserng av handelsdokument genom Handelskammaren', price: '0 kr', available: true },
+        { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '0 kr', available: true },
+        { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: '0 kr', available: true }
       ];
 
       // Add country-specific services (using admin panel prices)
       if (!isHagueCountry) {
         fallbackServices.push(
-          { id: 'ud', name: 'Utrikesdepartementet', description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer', price: 'Från 1750 kr', available: true },
-          { id: 'embassy', name: 'Ambassadlegalisering', description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige', price: 'Från 1295 kr', available: true }
+          { id: 'ud', name: 'Utrikesdepartementet', description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer', price: '0 kr', available: true },
+          { id: 'embassy', name: 'Ambassadlegalisering', description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige', price: '0 kr', available: true }
         );
       } else {
         fallbackServices.push(
-          { id: 'apostille', name: 'Apostille', description: 'För länder som är anslutna till Haagkonventionen', price: '950 kr', available: true }
+          { id: 'apostille', name: 'Apostille', description: 'För länder som är anslutna till Haagkonventionen', price: '0 kr', available: true }
         );
       }
 
@@ -543,15 +545,15 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       console.error('❌ Error loading shipping options:', error);
       // Use default shipping options if Firebase fails
       const defaultShippingOptions = [
-        { id: 'postnord-rek', name: 'PostNord REK', description: 'Rekommenderat brev - spårbart och försäkrat', price: '85 kr', provider: 'PostNord', estimatedDelivery: '2-5 arbetsdagar' },
-        { id: 'postnord-express', name: 'PostNord Express', description: 'Expressleverans inom Sverige', price: '150 kr', provider: 'PostNord', estimatedDelivery: '1-2 arbetsdagar' },
-        { id: 'dhl-europe', name: 'DHL Europe', description: 'DHL leverans inom Europa', price: '250 kr', provider: 'DHL', estimatedDelivery: '2-4 arbetsdagar' },
-        { id: 'dhl-worldwide', name: 'DHL Worldwide', description: 'DHL internationell leverans', price: '450 kr', provider: 'DHL', estimatedDelivery: '3-7 arbetsdagar' },
-        { id: 'dhl-pre-12', name: 'DHL Pre 12', description: 'Leverans före klockan 12:00 nästa arbetsdag', price: '350 kr', provider: 'DHL', estimatedDelivery: 'Nästa arbetsdag före 12:00' },
-        { id: 'dhl-pre-9', name: 'DHL Pre 9', description: 'Leverans före klockan 09:00 nästa arbetsdag', price: '450 kr', provider: 'DHL', estimatedDelivery: 'Nästa arbetsdag före 09:00' },
-        { id: 'stockholm-city', name: 'Stockholm City Courier', description: 'Lokal budservice inom Stockholm', price: '120 kr', provider: 'Lokal', estimatedDelivery: 'Samma dag (före 16:00)' },
-        { id: 'stockholm-express', name: 'Stockholm Express', description: 'Expressleverans inom Stockholm samma dag', price: '180 kr', provider: 'Lokal', estimatedDelivery: '2-4 timmar' },
-        { id: 'stockholm-sameday', name: 'Stockholm Same Day', description: 'Samma dags leverans inom Stockholm', price: '250 kr', provider: 'Lokal', estimatedDelivery: 'Inom 2 timmar' }
+        { id: 'postnord-rek', name: 'PostNord REK', description: 'Rekommenderat brev - spårbart och försäkrat', price: '0 kr', provider: 'PostNord', estimatedDelivery: '2-5 arbetsdagar' },
+        { id: 'postnord-express', name: 'PostNord Express', description: 'Expressleverans inom Sverige', price: '0 kr', provider: 'PostNord', estimatedDelivery: '1-2 arbetsdagar' },
+        { id: 'dhl-europe', name: 'DHL Europe', description: 'DHL leverans inom Europa', price: '0 kr', provider: 'DHL', estimatedDelivery: '2-4 arbetsdagar' },
+        { id: 'dhl-worldwide', name: 'DHL Worldwide', description: 'DHL internationell leverans', price: '0 kr', provider: 'DHL', estimatedDelivery: '3-7 arbetsdagar' },
+        { id: 'dhl-pre-12', name: 'DHL Pre 12', description: 'Leverans före klockan 12:00 nästa arbetsdag', price: '0 kr', provider: 'DHL', estimatedDelivery: 'Nästa arbetsdag före 12:00' },
+        { id: 'dhl-pre-9', name: 'DHL Pre 9', description: 'Leverans före klockan 09:00 nästa arbetsdag', price: '0 kr', provider: 'DHL', estimatedDelivery: 'Nästa arbetsdag före 09:00' },
+        { id: 'stockholm-city', name: 'Stockholm City Courier', description: 'Lokal budservice inom Stockholm', price: '0 kr', provider: 'Lokal', estimatedDelivery: 'Samma dag (före 16:00)' },
+        { id: 'stockholm-express', name: 'Stockholm Express', description: 'Expressleverans inom Stockholm samma dag', price: '0 kr', provider: 'Lokal', estimatedDelivery: '2-4 timmar' },
+        { id: 'stockholm-sameday', name: 'Stockholm Same Day', description: 'Samma dags leverans inom Stockholm', price: '0 kr', provider: 'Lokal', estimatedDelivery: 'Inom 2 timmar' }
       ];
       setShippingOptions(defaultShippingOptions);
       toast.error('Kunde inte ladda fraktalternativ från Firebase - använder standardalternativ');

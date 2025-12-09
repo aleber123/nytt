@@ -47,6 +47,7 @@ export interface Order {
     address?: string;
     postalCode?: string;
     city?: string;
+    country?: string;
   };
   deliveryMethod: string;
   paymentMethod: string;

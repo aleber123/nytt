@@ -156,7 +156,16 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                           <div className="text-sm font-medium text-gray-900">{premium.name}</div>
                           <div className="text-xs text-gray-600">{premium.description}</div>
                         </div>
-                        <div className="text-sm font-semibold text-custom-button">{premium.price}</div>
+                        <div className="text-sm font-semibold text-custom-button">
+                          {(() => {
+                            const rawPrice = premium.price;
+                            if (rawPrice.startsWith('Från +')) return rawPrice;
+                            if (rawPrice.startsWith('Från ')) {
+                              return `Från +${rawPrice.slice('Från '.length)}`;
+                            }
+                            return rawPrice.startsWith('+') ? rawPrice : `+${rawPrice}`;
+                          })()}
+                        </div>
                       </label>
                     ))}
                   </div>

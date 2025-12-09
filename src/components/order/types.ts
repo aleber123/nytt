@@ -38,6 +38,8 @@ export interface OrderAnswers {
     address: string;
     postalCode: string;
     city: string;
+    country: string;
+    countryCode: string;
   };
   invoiceReference: string;
   additionalNotes: string;

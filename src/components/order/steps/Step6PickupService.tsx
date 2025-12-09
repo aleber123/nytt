@@ -203,7 +203,14 @@ export const Step6PickupService: React.FC<Step6Props> = ({
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-custom-button">
-                          {t(`orderFlow.step6.services.${premium.id}.price`, premium.price)}
+                          {(() => {
+                            const rawPrice = t(`orderFlow.step6.services.${premium.id}.price`, premium.price);
+                            if (rawPrice.startsWith('Från +')) return rawPrice;
+                            if (rawPrice.startsWith('Från ')) {
+                              return `Från +${rawPrice.slice('Från '.length)}`;
+                            }
+                            return rawPrice.startsWith('+') ? rawPrice : `+${rawPrice}`;
+                          })()}
                         </div>
                       </label>
                     ))}
@@ -245,7 +252,14 @@ export const Step6PickupService: React.FC<Step6Props> = ({
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-custom-button">
-                          {t(`orderFlow.step6.services.${premium.id}.price`, premium.price)}
+                          {(() => {
+                            const rawPrice = t(`orderFlow.step6.services.${premium.id}.price`, premium.price);
+                            if (rawPrice.startsWith('Från +')) return rawPrice;
+                            if (rawPrice.startsWith('Från ')) {
+                              return `Från +${rawPrice.slice('Från '.length)}`;
+                            }
+                            return rawPrice.startsWith('+') ? rawPrice : `+${rawPrice}`;
+                          })()}
                         </div>
                       </label>
                     ))}

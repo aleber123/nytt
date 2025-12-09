@@ -71,7 +71,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       phone: '',
       address: '',
       postalCode: '',
-      city: ''
+      city: '',
+      country: '',
+      countryCode: ''
     },
     invoiceReference: '',
     additionalNotes: '',
@@ -156,7 +158,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
     'AT', 'BE', 'CH', 'CZ', 'EE', 'GR', 'HU', 'IE', 'IS', 'LI', 'LT', 'LU',
     'LV', 'MT', 'PT', 'SK', 'SI', 'BG', 'HR', 'CY', 'RO', 'TR', 'AU', 'CA',
-    'JP', 'KR', 'MX', 'NZ', 'ZA'
+    'JP', 'KR', 'MX', 'NZ', 'ZA', 'PH'
   ];
 
   // Popular countries sorted by selection frequency (most popular first)
@@ -678,21 +680,21 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             id: 'translation',
             name: 'Auktoriserad översättning',
             description: 'Översättning av dokument',
-            price: 'På förfrågan',
+            price: '0 kr',
             available: true
           },
           {
             id: 'notarization',
             name: 'Notarisering',
             description: 'Officiell notarisering av dokument',
-            price: '1300 kr',
+            price: '0 kr',
             available: true
           },
           {
             id: 'apostille',
             name: 'Apostille',
             description: 'För länder som är anslutna till Haagkonventionen',
-            price: '950 kr',
+            price: '0 kr',
             available: true
           }
         ];
@@ -703,35 +705,35 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             id: 'translation',
             name: 'Auktoriserad översättning',
             description: 'Översättning av dokument',
-            price: 'På förfrågan',
+            price: '0 kr',
             available: true
           },
           {
             id: 'chamber',
             name: 'Handelskammarens legalisering',
             description: 'Legaliserng av handelsdokument genom Handelskammaren',
-            price: '2400 kr',
+            price: '0 kr',
             available: true
           },
           {
             id: 'notarization',
             name: 'Notarisering',
             description: 'Officiell notarisering av dokument',
-            price: '1300 kr',
+            price: '0 kr',
             available: true
           },
           {
             id: 'ud',
             name: 'Utrikesdepartementet',
             description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer',
-            price: '1750 kr',
+            price: '0 kr',
             available: true
           },
           {
             id: 'embassy',
             name: 'Ambassadlegalisering',
             description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige',
-            price: 'Från 1295 kr',
+            price: '0 kr',
             available: true
           }
         ];
@@ -771,18 +773,18 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       if (isHagueCountry) {
         // Hague Convention countries - only these 3 services
         fallbackServices = [
-          { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: 'På förfrågan', available: true },
-          { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '1300 kr', available: true },
-          { id: 'apostille', name: 'Apostille', description: 'För länder som är anslutna till Haagkonventionen', price: '950 kr', available: true }
+          { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: '0 kr', available: true },
+          { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '0 kr', available: true },
+          { id: 'apostille', name: 'Apostille', description: 'För länder som är anslutna till Haagkonventionen', price: '0 kr', available: true }
         ];
       } else {
         // Non-Hague countries - embassy legalization process
         fallbackServices = [
-          { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: 'På förfrågan', available: true },
-          { id: 'chamber', name: 'Handelskammarens legalisering', description: 'Legaliserng av handelsdokument genom Handelskammaren', price: '2400 kr', available: true },
-          { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '1300 kr', available: true },
-          { id: 'ud', name: 'Utrikesdepartementet', description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer', price: '1750 kr', available: true },
-          { id: 'embassy', name: 'Ambassadlegalisering', description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige', price: 'Från 1295 kr', available: true }
+          { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: '0 kr', available: true },
+          { id: 'chamber', name: 'Handelskammarens legalisering', description: 'Legaliserng av handelsdokument genom Handelskammaren', price: '0 kr', available: true },
+          { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '0 kr', available: true },
+          { id: 'ud', name: 'Utrikesdepartementet', description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer', price: '0 kr', available: true },
+          { id: 'embassy', name: 'Ambassadlegalisering', description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige', price: '0 kr', available: true }
         ];
       }
 
@@ -939,7 +941,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'postnord-rek',
           name: 'PostNord REK',
           description: 'Rekommenderat brev - spårbart och försäkrat',
-          price: 'Från 85 kr',
+          price: '0 kr',
           provider: 'PostNord',
           estimatedDelivery: '2-5 arbetsdagar',
           available: true
@@ -948,7 +950,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-sweden',
           name: 'DHL Sweden',
           description: 'DHL leverans inom Sverige',
-          price: 'Från 180 kr',
+          price: '0 kr',
           provider: 'DHL',
           estimatedDelivery: '1-2 arbetsdagar',
           available: true
@@ -970,7 +972,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-sweden',
           name: 'DHL Sweden',
           description: 'DHL upphämtning inom Sverige',
-          price: 'Från 180 kr',
+          price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -979,7 +981,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-pre-12',
           name: 'DHL Pre 12',
           description: 'Upphämtning före klockan 12:00 nästa arbetsdag',
-          price: 'Från 350 kr',
+          price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -988,7 +990,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-pre-9',
           name: 'DHL Pre 9',
           description: 'Upphämtning före klockan 09:00 nästa arbetsdag',
-          price: 'Från 450 kr',
+          price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -997,7 +999,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-europe',
           name: 'DHL Europe',
           description: 'DHL upphämtning inom Europa',
-          price: 'Från 250 kr',
+          price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -1006,7 +1008,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-worldwide',
           name: 'DHL Worldwide',
           description: 'DHL internationell upphämtning',
-          price: 'Från 450 kr',
+          price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
           available: true
@@ -1015,7 +1017,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'stockholm-city',
           name: 'Stockholm City Courier',
           description: 'Lokal budservice inom Stockholm',
-          price: 'Från 320 kr',
+          price: '0 kr',
           provider: 'Lokal',
           estimatedPickup: '',
           available: true
@@ -1024,7 +1026,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'stockholm-express',
           name: 'Stockholm Express',
           description: 'Expressupphämtning inom Stockholm samma dag',
-          price: 'Från 180 kr',
+          price: '0 kr',
           provider: 'Lokal',
           estimatedPickup: '',
           available: true
@@ -1033,7 +1035,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'stockholm-sameday',
           name: 'Stockholm Same Day',
           description: 'Samma dags upphämtning inom Stockholm',
-          price: 'Från 250 kr',
+          price: '0 kr',
           provider: 'Lokal',
           estimatedPickup: '',
           available: true

@@ -5,7 +5,8 @@ function formatAddressLine(order: Order): string {
   const name = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
   const addr = order.customerInfo?.address || '';
   const zipCity = [order.customerInfo?.postalCode, order.customerInfo?.city].filter(Boolean).join(' ');
-  return [name, addr, zipCity].filter(Boolean).join('\n');
+  const country = order.customerInfo?.country || '';
+  return [name, addr, zipCity, country].filter(Boolean).join('\n');
 }
 
 export async function generateDhlReturnLabelPDF(order: Order): Promise<jsPDF> {

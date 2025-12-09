@@ -4,7 +4,7 @@
  * This is a complex component that handles the entire order submission process
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -57,6 +57,35 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   const submissionInProgressRef = useRef(false);
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [returnCountrySearch, setReturnCountrySearch] = useState('');
+  const [showReturnCountryDropdown, setShowReturnCountryDropdown] = useState(false);
+  const returnCountryDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (returnCountryDropdownRef.current && !returnCountryDropdownRef.current.contains(event.target as Node)) {
+        setShowReturnCountryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleReturnCountrySelect = (countryCode: string) => {
+    const country = allCountries.find((c: any) => c.code === countryCode);
+    setAnswers(prev => ({
+      ...prev,
+      customerInfo: {
+        ...prev.customerInfo,
+        countryCode: countryCode,
+        country: country ? getLocalizedCountryName(country.code) : ''
+      }
+    }));
+    setReturnCountrySearch(country ? getLocalizedCountryName(country.code) : '');
+    setShowReturnCountryDropdown(false);
+  };
+
   const addressInputRef = useRef<HTMLInputElement | null>(null);
 
   // Helper function to get service name
@@ -106,6 +135,27 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
     return description;
   };
 
+  const getLocalizedCountryName = (countryCode: string) => {
+    try {
+      if (typeof Intl !== 'undefined' && (Intl as any).DisplayNames && countryCode && countryCode.length === 2) {
+        const displayNames = new Intl.DisplayNames([locale], { type: 'region' });
+        const localized = displayNames.of(countryCode);
+        if (localized && typeof localized === 'string') return localized;
+      }
+    } catch {}
+    return t(`countries.names.${countryCode}`, { defaultValue: countryCode });
+  };
+
+  const uniqueCountries = React.useMemo(() => {
+    const seen = new Set<string>();
+    return allCountries.filter((c: any) => {
+      if (!c || !c.code) return false;
+      if (seen.has(c.code)) return false;
+      seen.add(c.code);
+      return true;
+    });
+  }, [allCountries]);
+
   // Dummy clearProgress function (should be passed as prop ideally)
   const clearProgress = () => {
     // This would normally clear saved progress
@@ -135,11 +185,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             <span className="text-gray-700">{t('orderFlow.step10.country')}:</span>
             <span className="font-medium text-gray-900">
               {(() => {
-                const country = allCountries.find(c => c.code === answers.country);
-                const name = country?.name || answers.country;
+                const code = answers.country;
+                const name = getLocalizedCountryName(code);
                 return (
                   <span className="inline-flex items-center space-x-1">
-                    <CountryFlag code={answers.country} size={20} />
+                    <CountryFlag code={code} size={20} />
                     <span>{name}</span>
                   </span>
                 );
@@ -530,6 +580,62 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <div className="relative" ref={returnCountryDropdownRef}>
+                <input
+                  type="text"
+                  value={returnCountrySearch}
+                  onChange={(e) => {
+                    setReturnCountrySearch(e.target.value);
+                    setShowReturnCountryDropdown(true);
+                  }}
+                  onFocus={() => setShowReturnCountryDropdown(true)}
+                  placeholder={t('orderFlow.step10.returnCountrySearchPlaceholder', locale === 'en' ? 'Search return country (e.g. "no" for Norway)...' : 'Sök returland (t.ex. "no" för Norge)...')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                {showReturnCountryDropdown && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {(() => {
+                      const filtered = uniqueCountries.filter((country: any) => {
+                        if (!returnCountrySearch.trim()) return false;
+                        const searchLower = returnCountrySearch.toLowerCase();
+                        const localized = getLocalizedCountryName(country.code).toLowerCase();
+                        const swedish = (country.name || '').toLowerCase();
+                        return (
+                          localized.includes(searchLower) ||
+                          swedish.includes(searchLower) ||
+                          country.code.toLowerCase().includes(searchLower)
+                        );
+                      });
+
+                      if (filtered.length > 0) {
+                        return filtered.map((country: any) => (
+                          <button
+                            key={country.code}
+                            type="button"
+                            onClick={() => handleReturnCountrySelect(country.code)}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                          >
+                            <CountryFlag code={country.code} size={20} />
+                            <span>{getLocalizedCountryName(country.code)}</span>
+                          </button>
+                        ));
+                      }
+
+                      return (
+                        <div className="px-4 py-2 text-gray-500">
+                          {t('orderFlow.step1.noResults', 'Inga resultat')}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('orderFlow.step10.invoiceReference')}
               </label>
               <input
@@ -803,11 +909,28 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   }, 10000); // 10 seconds cooldown
                 }
               }}
-              disabled={isSubmitting || submissionInProgressRef.current || isInCooldown || answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file) || !answers.customerInfo.firstName || !answers.customerInfo.lastName || !answers.customerInfo.email || !answers.customerInfo.phone}
+              disabled={
+                isSubmitting ||
+                submissionInProgressRef.current ||
+                isInCooldown ||
+                answers.uploadedFiles.length !== answers.quantity ||
+                answers.uploadedFiles.some(file => !file) ||
+                !answers.customerInfo.firstName ||
+                !answers.customerInfo.lastName ||
+                !answers.customerInfo.email ||
+                !answers.customerInfo.phone ||
+                !answers.customerInfo.countryCode
+              }
               className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
-                  : answers.uploadedFiles.length === answers.quantity && answers.uploadedFiles.every(file => file) && answers.customerInfo.firstName && answers.customerInfo.lastName && answers.customerInfo.email && answers.customerInfo.phone
+                  : answers.uploadedFiles.length === answers.quantity &&
+                    answers.uploadedFiles.every(file => file) &&
+                    answers.customerInfo.firstName &&
+                    answers.customerInfo.lastName &&
+                    answers.customerInfo.email &&
+                    answers.customerInfo.phone &&
+                    answers.customerInfo.countryCode
                   ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
@@ -991,6 +1114,62 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder={t('order.form.city')}
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <div className="relative" ref={returnCountryDropdownRef}>
+                <input
+                  type="text"
+                  value={returnCountrySearch}
+                  onChange={(e) => {
+                    setReturnCountrySearch(e.target.value);
+                    setShowReturnCountryDropdown(true);
+                  }}
+                  onFocus={() => setShowReturnCountryDropdown(true)}
+                  placeholder={t('orderFlow.step10.returnCountrySearchPlaceholder', locale === 'en' ? 'Search return country (e.g. "no" for Norway)...' : 'Sök returland (t.ex. "no" för Norge)...')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                {showReturnCountryDropdown && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {(() => {
+                      const filtered = uniqueCountries.filter((country: any) => {
+                        if (!returnCountrySearch.trim()) return false;
+                        const searchLower = returnCountrySearch.toLowerCase();
+                        const localized = getLocalizedCountryName(country.code).toLowerCase();
+                        const swedish = (country.name || '').toLowerCase();
+                        return (
+                          localized.includes(searchLower) ||
+                          swedish.includes(searchLower) ||
+                          country.code.toLowerCase().includes(searchLower)
+                        );
+                      });
+
+                      if (filtered.length > 0) {
+                        return filtered.map((country: any) => (
+                          <button
+                            key={country.code}
+                            type="button"
+                            onClick={() => handleReturnCountrySelect(country.code)}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                          >
+                            <CountryFlag code={country.code} size={20} />
+                            <span>{getLocalizedCountryName(country.code)}</span>
+                          </button>
+                        ));
+                      }
+
+                      return (
+                        <div className="px-4 py-2 text-gray-500">
+                          {t('orderFlow.step1.noResults', 'Inga resultat')}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1670,11 +1849,24 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   }, 10000); // 10 seconds cooldown
                 }
               }}
-              disabled={isSubmitting || submissionInProgressRef.current || isInCooldown || !answers.customerInfo.firstName || !answers.customerInfo.lastName || !answers.customerInfo.email || !answers.customerInfo.phone}
+              disabled={
+                isSubmitting ||
+                submissionInProgressRef.current ||
+                isInCooldown ||
+                !answers.customerInfo.firstName ||
+                !answers.customerInfo.lastName ||
+                !answers.customerInfo.email ||
+                !answers.customerInfo.phone ||
+                !answers.customerInfo.countryCode
+              }
               className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
-                  : answers.customerInfo.firstName && answers.customerInfo.lastName && answers.customerInfo.email && answers.customerInfo.phone
+                  : answers.customerInfo.firstName &&
+                    answers.customerInfo.lastName &&
+                    answers.customerInfo.email &&
+                    answers.customerInfo.phone &&
+                    answers.customerInfo.countryCode
                   ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
