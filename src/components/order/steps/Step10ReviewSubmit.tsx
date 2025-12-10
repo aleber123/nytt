@@ -18,6 +18,8 @@ import { printShippingLabel } from '@/services/shippingLabelService';
 import { StepProps } from '../types';
 import CountryFlag from '../../ui/CountryFlag';
 import { ALL_COUNTRIES } from '../data/countries';
+import { CustomerInfoForm } from '../CustomerInfoForm';
+import { TermsAcceptance } from '../TermsAcceptance';
 
 interface Step10Props extends Omit<StepProps, 'currentLocale'> {
   allCountries: any[];
@@ -56,10 +58,116 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [isInCooldown, setIsInCooldown] = useState(false);
   const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const submissionInProgressRef = useRef(false);
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const addressInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Email validation helper
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
+  // Validation helper - get list of missing or invalid required fields
+  const getMissingFields = () => {
+    const missing: { field: string; label: string; id: string }[] = [];
+    
+    if (!answers.customerInfo.firstName) {
+      missing.push({ field: 'firstName', label: locale === 'en' ? 'First name' : 'Förnamn', id: 'customer-firstName' });
+    }
+    if (!answers.customerInfo.lastName) {
+      missing.push({ field: 'lastName', label: locale === 'en' ? 'Last name' : 'Efternamn', id: 'customer-lastName' });
+    }
+    if (!answers.customerInfo.countryCode) {
+      missing.push({ field: 'countryCode', label: locale === 'en' ? 'Country' : 'Land', id: 'customer-country' });
+    }
+    if (!answers.customerInfo.email) {
+      missing.push({ field: 'email', label: locale === 'en' ? 'Email' : 'E-post', id: 'customer-email' });
+    } else if (!isValidEmail(answers.customerInfo.email)) {
+      missing.push({ field: 'email', label: locale === 'en' ? 'Email (invalid format)' : 'E-post (ogiltigt format)', id: 'customer-email' });
+    }
+    if (!answers.customerInfo.phone) {
+      missing.push({ field: 'phone', label: locale === 'en' ? 'Phone' : 'Telefon', id: 'customer-phone' });
+    }
+    if (!answers.customerInfo.address) {
+      missing.push({ field: 'address', label: locale === 'en' ? 'Address' : 'Adress', id: 'customer-address' });
+    }
+    if (!answers.customerInfo.postalCode) {
+      missing.push({ field: 'postalCode', label: locale === 'en' ? 'Postal code' : 'Postnummer', id: 'customer-postalCode' });
+    }
+    if (!answers.customerInfo.city) {
+      missing.push({ field: 'city', label: locale === 'en' ? 'City' : 'Stad', id: 'customer-city' });
+    }
+    
+    // For upload flow, check if files are uploaded
+    if (answers.documentSource === 'upload') {
+      if (answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file)) {
+        missing.push({ field: 'files', label: locale === 'en' ? 'Document files' : 'Dokumentfiler', id: 'file-upload-0' });
+      }
+    }
+    
+    return missing;
+  };
+
+  // Scroll to first error field
+  const scrollToFirstError = () => {
+    const missing = getMissingFields();
+    if (missing.length > 0) {
+      const firstErrorElement = document.getElementById(missing[0].id);
+      if (firstErrorElement) {
+        firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorElement.focus();
+      }
+    }
+  };
+
+  // Render validation summary
+  const renderValidationSummary = () => {
+    if (!showValidation) return null;
+    
+    const missing = getMissingFields();
+    if (missing.length === 0) return null;
+    
+    return (
+      <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-4">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">
+              {locale === 'en' 
+                ? `Please fill in the following ${missing.length} field${missing.length > 1 ? 's' : ''}:` 
+                : `Vänligen fyll i följande ${missing.length} fält:`}
+            </h3>
+            <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+              {missing.map((item) => (
+                <li key={item.field}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(item.id);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.focus();
+                      }
+                    }}
+                    className="underline hover:text-red-900"
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Helper function to get service name
   const getServiceName = (serviceType: string) => {
@@ -535,254 +643,16 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
 
           {/* Terms and Conditions Acceptance */}
-          <div className="pt-4">
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="terms-acceptance-original"
-                  name="terms-acceptance-original"
-                  type="checkbox"
-                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
-                  required
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="terms-acceptance-original" className="text-gray-700">
-                  {locale === 'en' ? (
-                    <>
-                      I have read and accept the{' '}
-                      <Link
-                        href="/villkor"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        terms and conditions
-                      </Link>{' '}
-                      and{' '}
-                      <Link
-                        href="/integritetspolicy"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        privacy policy
-                      </Link>
-                      .
-                    </>
-                  ) : (
-                    <>
-                      Jag har läst och accepterar{' '}
-                      <Link
-                        href="/villkor"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        allmänna villkor
-                      </Link>{' '}
-                      och{' '}
-                      <Link
-                        href="/integritetspolicy"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        integritetspolicy
-                      </Link>
-                      .
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
+          <TermsAcceptance locale={locale} id="terms-acceptance-upload" />
 
           {/* Customer Information Form */}
-          <div className="mt-8 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {locale === 'en' ? 'Contact details' : 'Kontaktuppgifter'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('orderFlow.step10.firstName')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.firstName}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, firstName: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('orderFlow.step10.firstNamePlaceholder')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('orderFlow.step10.lastName')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.lastName}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, lastName: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('orderFlow.step10.lastNamePlaceholder')}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <select
-                value={answers.customerInfo.countryCode || ''}
-                onChange={(e) => {
-                  const code = e.target.value;
-                  const countryObj = ALL_COUNTRIES.find(c => c.code === code);
-                  setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: {
-                      ...prev.customerInfo,
-                      countryCode: code,
-                      country: countryObj?.name || code
-                    }
-                  }));
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-              >
-                <option value="">
-                  {locale === 'en' ? 'Select country' : 'Välj land'}
-                </option>
-                {ALL_COUNTRIES.map(country => (
-                  <option key={country.code} value={country.code}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.email')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <input
-                type="email"
-                value={answers.customerInfo.email}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  customerInfo: { ...prev.customerInfo, email: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.emailPlaceholder')}
-                pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-                title="Ange en giltig e-postadress"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.phone')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <input
-                type="tel"
-                value={answers.customerInfo.phone}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  customerInfo: { ...prev.customerInfo, phone: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.phonePlaceholder')}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('order.form.address')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <input
-                type="text"
-                ref={addressInputRef}
-                value={answers.customerInfo.address || ''}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  customerInfo: { ...prev.customerInfo, address: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('order.form.address')}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('order.form.postalCode')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.postalCode || ''}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, postalCode: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('order.form.postalCode')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('order.form.city')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.city || ''}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, city: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('order.form.city')}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.invoiceReference')}
-              </label>
-              <input
-                type="text"
-                value={answers.invoiceReference}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  invoiceReference: e.target.value
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.invoiceReferencePlaceholder')}
-              />
-              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.invoiceReferenceNote')}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.additionalNotes')}
-              </label>
-              <textarea
-                value={answers.additionalNotes}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  additionalNotes: e.target.value
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.additionalNotesPlaceholder')}
-                rows={3}
-              />
-              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.additionalNotesNote')}</p>
-            </div>
-          </div>
-
+          <CustomerInfoForm
+            answers={answers}
+            setAnswers={setAnswers}
+            locale={locale}
+            addressInputRef={addressInputRef}
+            showValidation={showValidation}
+          />
 
           {/* reCAPTCHA */}
           <div className="pt-4">
@@ -791,6 +661,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
               sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
             />
           </div>
+
+          {/* Validation Summary */}
+          {renderValidationSummary()}
 
           <div className="mt-8 flex justify-between">
             <button
@@ -802,6 +675,14 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             <button
               ref={submitButtonRef}
               onClick={async (event) => {
+                // Validate required fields first
+                const missing = getMissingFields();
+                if (missing.length > 0) {
+                  setShowValidation(true);
+                  scrollToFirstError();
+                  return;
+                }
+
                 // Check reCAPTCHA
                 const recaptchaToken = recaptchaRef.current?.getValue();
                 if (!recaptchaToken) {
@@ -811,7 +692,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                 // Prevent multiple submissions - check ref immediately (more reliable than state)
                 if (submissionInProgressRef.current || isSubmitting || isInCooldown) {
-                  console.log('🚫 Submission already in progress or in cooldown, ignoring click');
                   event.preventDefault();
                   return;
                 }
@@ -823,16 +703,12 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   submitButtonRef.current.style.cursor = 'not-allowed';
                 }
 
-                console.log('🚀 Starting order submission...');
                 submissionInProgressRef.current = true;
-                // isSubmitting is managed by parent
 
                 try {
-                  console.log('📤 Submitting final order...');
                   setShowFullScreenLoader(true);
 
                   // Calculate pricing using Firebase pricing service
-                  console.log('💰 Calculating order price from Firebase...');
                   const pricingResult = await calculateOrderPrice({
                     country: answers.country,
                     services: answers.services,
@@ -844,11 +720,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pickupService: answers.pickupService,
                     premiumDelivery: answers.premiumDelivery
                   });
-                  
-                  console.log('✅ Pricing calculated from Firebase:', pricingResult);
 
                   // Prepare order data
-                  console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
                   const orderData = {
                     country: answers.country,
                     documentType: answers.documentType,
@@ -860,26 +733,22 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pickupService: answers.pickupService,
                     pickupAddress: answers.pickupAddress,
                     returnService: answers.returnService,
-                    // If customer has chosen own delivery, persist their tracking number on the order
                     returnTrackingNumber:
                       answers.returnService === 'own-delivery'
                         ? (answers.ownReturnTrackingNumber || '')
                         : '',
                     premiumDelivery: answers.premiumDelivery,
                     customerInfo: answers.customerInfo,
-                    paymentMethod: 'invoice', // Default to invoice payment
+                    paymentMethod: 'invoice',
                     totalPrice: pricingResult.totalPrice,
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
                     locale: locale
                   };
-                  console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 
                   // Submit order (include main documents + any notarization support files)
                   const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
-
-                  console.log('✅ Order submitted successfully:', orderId);
 
                   // Send email notification (save to Firestore for external processing, same as contact form)
                   try {
@@ -940,9 +809,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     };
 
                     await addDoc(collection(db, 'contactMessages'), emailData);
-                    console.log('📧 Email notification queued for order:', orderId);
                   } catch (emailError) {
-                    console.error('❌ Failed to queue email notification:', emailError);
                     // Don't block the order flow if email notification fails
                   }
 
@@ -999,29 +866,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
               disabled={
                 isSubmitting ||
                 submissionInProgressRef.current ||
-                isInCooldown ||
-                answers.uploadedFiles.length !== answers.quantity ||
-                answers.uploadedFiles.some(file => !file) ||
-                !answers.customerInfo.firstName ||
-                !answers.customerInfo.lastName ||
-                !answers.customerInfo.email ||
-                !answers.customerInfo.phone ||
-                !answers.customerInfo.countryCode ||
-                !notarizationDocsOk
+                isInCooldown
               }
               className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
-                  : answers.uploadedFiles.length === answers.quantity &&
-                    answers.uploadedFiles.every(file => file) &&
-                    answers.customerInfo.firstName &&
-                    answers.customerInfo.lastName &&
-                    answers.customerInfo.email &&
-                    answers.customerInfo.phone &&
-                    answers.customerInfo.countryCode &&
-                    notarizationDocsOk
-                  ? 'bg-custom-button text-white hover:bg-custom-button-hover'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-custom-button text-white hover:bg-custom-button-hover'
               }`}
             >
               {isSubmitting || submissionInProgressRef.current ? (
@@ -1085,253 +935,16 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           </div>
 
           {/* Customer Information Form */}
-          <div className="mt-8 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {locale === 'en' ? 'Contact details' : 'Kontaktuppgifter'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('orderFlow.step10.firstName')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.firstName}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, firstName: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('orderFlow.step10.firstNamePlaceholder')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('orderFlow.step10.lastName')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.lastName}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, lastName: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('orderFlow.step10.lastNamePlaceholder')}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <select
-                value={answers.customerInfo.countryCode || ''}
-                onChange={(e) => {
-                  const code = e.target.value;
-                  const countryObj = ALL_COUNTRIES.find(c => c.code === code);
-                  setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: {
-                      ...prev.customerInfo,
-                      countryCode: code,
-                      country: countryObj?.name || code
-                    }
-                  }));
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-              >
-                <option value="">
-                  {locale === 'en' ? 'Select country' : 'Välj land'}
-                </option>
-                {ALL_COUNTRIES.map(country => (
-                  <option key={country.code} value={country.code}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.email')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <input
-                type="email"
-                value={answers.customerInfo.email}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  customerInfo: { ...prev.customerInfo, email: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.emailPlaceholder')}
-                pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-                title="Ange en giltig e-postadress"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.phone')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <input
-                type="tel"
-                value={answers.customerInfo.phone}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  customerInfo: { ...prev.customerInfo, phone: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.phonePlaceholder')}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('order.form.address')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <input
-                type="text"
-                ref={addressInputRef}
-                value={answers.customerInfo.address || ''}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  customerInfo: { ...prev.customerInfo, address: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('order.form.address')}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('order.form.postalCode')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.postalCode || ''}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, postalCode: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('order.form.postalCode')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('order.form.city')} {t('orderFlow.step10.requiredField')}
-                </label>
-                <input
-                  type="text"
-                  value={answers.customerInfo.city || ''}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    customerInfo: { ...prev.customerInfo, city: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder={t('order.form.city')}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.invoiceReference')}
-              </label>
-              <input
-                type="text"
-                value={answers.invoiceReference}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  invoiceReference: e.target.value
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.invoiceReferencePlaceholder')}
-              />
-              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.invoiceReferenceNote')}</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('orderFlow.step10.additionalNotes')}
-              </label>
-              <textarea
-                value={answers.additionalNotes}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  additionalNotes: e.target.value
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder={t('orderFlow.step10.additionalNotesPlaceholder')}
-                rows={3}
-              />
-              <p className="text-xs text-gray-500 mt-1">{t('orderFlow.step10.additionalNotesNote')}</p>
-            </div>
-          </div>
+          <CustomerInfoForm
+            answers={answers}
+            setAnswers={setAnswers}
+            locale={locale}
+            addressInputRef={addressInputRef}
+            showValidation={showValidation}
+          />
 
           {/* Terms and Conditions Acceptance */}
-          <div className="pt-4">
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="terms-acceptance-original"
-                  name="terms-acceptance-original"
-                  type="checkbox"
-                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
-                  required
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="terms-acceptance-original" className="text-gray-700">
-                  {locale === 'en' ? (
-                    <>
-                      I have read and accept the{' '}
-                      <Link
-                        href="/villkor"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        terms and conditions
-                      </Link>{' '}
-                      and{' '}
-                      <Link
-                        href="/integritetspolicy"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        privacy policy
-                      </Link>
-                      .
-                    </>
-                  ) : (
-                    <>
-                      Jag har läst och accepterar{' '}
-                      <Link
-                        href="/villkor"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        allmänna villkor
-                      </Link>{' '}
-                      och{' '}
-                      <Link
-                        href="/integritetspolicy"
-                        target="_blank"
-                        className="text-custom-button hover:text-custom-button-hover underline"
-                      >
-                        integritetspolicy
-                      </Link>
-                      .
-                    </>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
+          <TermsAcceptance locale={locale} id="terms-acceptance-original" />
 
           {/* reCAPTCHA */}
           <div className="pt-4">
@@ -1340,6 +953,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
               sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
             />
           </div>
+
+          {/* Validation Summary */}
+          {renderValidationSummary()}
 
           <div className="mt-8 flex justify-between">
             <button
@@ -1351,6 +967,14 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
             <button
               ref={submitButtonRef}
               onClick={async (event) => {
+                // Validate required fields first
+                const missing = getMissingFields();
+                if (missing.length > 0) {
+                  setShowValidation(true);
+                  scrollToFirstError();
+                  return;
+                }
+
                 // Check reCAPTCHA
                 const recaptchaToken = recaptchaRef.current?.getValue();
                 if (!recaptchaToken) {
@@ -1358,9 +982,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   return;
                 }
 
-                // Prevent multiple submissions - check ref immediately (more reliable than state)
+                // Prevent multiple submissions
                 if (submissionInProgressRef.current || isSubmitting || isInCooldown) {
-                  console.log('🚫 Submission already in progress or in cooldown, ignoring click');
                   event.preventDefault();
                   return;
                 }
@@ -1372,15 +995,10 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   submitButtonRef.current.style.cursor = 'not-allowed';
                 }
 
-                console.log('🚀 Starting order submission...');
                 submissionInProgressRef.current = true;
-                // isSubmitting is managed by parent
 
                 try {
-                  console.log('📤 Submitting final order...');
-
                   // Calculate pricing using Firebase pricing service
-                  console.log('💰 Calculating order price from Firebase...');
                   const pricingResult = await calculateOrderPrice({
                     country: answers.country,
                     services: answers.services,
@@ -1392,11 +1010,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     pickupService: answers.pickupService,
                     premiumDelivery: answers.premiumDelivery
                   });
-                  
-                  console.log('✅ Pricing calculated from Firebase:', pricingResult);
 
                   // Prepare order data
-                  console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
                   const orderData = {
                     country: answers.country,
                     documentType: answers.documentType,
@@ -1410,19 +1025,16 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     returnService: answers.returnService,
                     premiumDelivery: answers.premiumDelivery,
                     customerInfo: answers.customerInfo,
-                    paymentMethod: 'invoice', // Default to invoice payment
+                    paymentMethod: 'invoice',
                     totalPrice: pricingResult.totalPrice,
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
                     locale: locale
                   };
-                  console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 
                   // Submit order (include any notarization support files)
                   const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
-
-                  console.log('✅ Order submitted successfully:', orderId);
 
                   // Clear saved progress since order is complete
                   clearProgress();
@@ -1518,9 +1130,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                       createdAt: Timestamp.now(),
                       status: 'queued'
                     });
-                    console.log('📧 Business email queued via customerEmails for styled HTML delivery:', orderId);
                   } catch (emailError) {
-                    console.error('❌ Failed to queue business email notification:', emailError);
                     // Don't block the order flow if email notification fails
                   }
 
@@ -1833,9 +1443,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     };
 
                     await addDoc(collection(db, 'customerEmails'), customerEmailData);
-                    console.log('📧 Customer confirmation email queued for order:', orderId);
                   } catch (customerEmailError) {
-                    console.error('❌ Failed to queue customer email notification:', customerEmailError);
                     // Don't block the order flow if customer email fails
                   }
 
@@ -1845,7 +1453,6 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   }, 2000);
 
                 } catch (error) {
-                  console.error('❌ Error submitting order:', error);
 
                   // Show beautiful error toast
                   toast.error(
@@ -1888,25 +1495,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
               disabled={
                 isSubmitting ||
                 submissionInProgressRef.current ||
-                isInCooldown ||
-                !answers.customerInfo.firstName ||
-                !answers.customerInfo.lastName ||
-                !answers.customerInfo.email ||
-                !answers.customerInfo.phone ||
-                !answers.customerInfo.countryCode ||
-                !notarizationDocsOk
+                isInCooldown
               }
               className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
-                  : answers.customerInfo.firstName &&
-                    answers.customerInfo.lastName &&
-                    answers.customerInfo.email &&
-                    answers.customerInfo.phone &&
-                    answers.customerInfo.countryCode &&
-                    notarizationDocsOk
-                  ? 'bg-custom-button text-white hover:bg-custom-button-hover'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-custom-button text-white hover:bg-custom-button-hover'
               }`}
             >
               {isSubmitting || submissionInProgressRef.current ? (

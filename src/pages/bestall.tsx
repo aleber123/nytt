@@ -475,6 +475,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [pricingBreakdown, setPricingBreakdown] = useState<any[]>([]);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+  const [hasUnconfirmedPrices, setHasUnconfirmedPrices] = useState(false);
 
   // Calculate total price from pricing breakdown
   const totalPrice = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -565,15 +566,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       // Try to load standard services from Sweden (SE) first
       try {
         const standardPricingRules = await getCountryPricingRules('SE');
-        console.log('✅ Loaded standard services from Sweden:', standardPricingRules.length, 'rules');
 
         // Also try to load country-specific embassy services
         let countrySpecificRules: any[] = [];
         try {
           countrySpecificRules = await getCountryPricingRules(countryCode);
-          console.log('✅ Loaded country-specific services:', countrySpecificRules.length, 'rules');
         } catch (countryError) {
-          console.log('⚠️ No country-specific services found for', countryCode);
+          // No country-specific services found
         }
 
         // Combine standard services with country-specific services, but deduplicate by serviceType
@@ -593,8 +592,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         const allPricingRules = Array.from(pricingRulesMap.values());
 
         if (allPricingRules && allPricingRules.length > 0) {
-           console.log('🔍 All pricing rules (deduplicated):', allPricingRules.map(r => ({ id: r.id, serviceType: r.serviceType, basePrice: r.basePrice })));
-
            // Filter services based on country type to ensure logical consistency
            let filteredPricingRules = allPricingRules;
 
@@ -603,19 +600,18 @@ export default function TestOrderPage({}: TestOrderPageProps) {
              filteredPricingRules = allPricingRules.filter(rule =>
                !['ud', 'embassy'].includes(rule.serviceType)
              );
-             console.log('🌍 Filtered for Hague country (excluded ud, embassy):', filteredPricingRules.length, 'services');
            } else {
              // For non-Hague countries: exclude apostille
              filteredPricingRules = allPricingRules.filter(rule =>
                rule.serviceType !== 'apostille'
              );
-             console.log('🏛️ Filtered for non-Hague country (excluded apostille):', filteredPricingRules.length, 'services');
            }
 
            // Convert pricing rules to service objects
           const servicesFromFirebase = filteredPricingRules.map(rule => {
             const translationOnRequest = t('orderFlow.step3.translationOnRequest', currentLocale === 'en' ? 'On request' : 'På förfrågan');
-            const price = rule.serviceType === 'translation' ? translationOnRequest : `${rule.basePrice} kr`;
+            const fromPrefix = currentLocale === 'en' ? 'from' : 'från';
+            const price = rule.serviceType === 'translation' ? translationOnRequest : `${fromPrefix} ${rule.basePrice} kr`;
 
             return {
               id: rule.serviceType,
@@ -645,12 +641,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           if (!isHagueCountry) {
             const hasUd = servicesFromFirebase.some(s => s.id === 'ud');
             const hasEmbassy = servicesFromFirebase.some(s => s.id === 'embassy');
+            const fallbackFromPrefix = currentLocale === 'en' ? 'from' : 'från';
             if (!hasUd) {
               servicesFromFirebase.push({
                 id: 'ud',
                 name: getServiceName('ud'),
                 description: getServiceDescription('ud', isHagueCountry),
-                price: 'Från 795 kr',
+                price: `${fallbackFromPrefix} 795 kr`,
                 available: true,
                 processingTime: 7
               });
@@ -660,7 +657,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 id: 'embassy',
                 name: getServiceName('embassy'),
                 description: getServiceDescription('embassy', isHagueCountry),
-                price: 'Från 1295 kr',
+                price: `${fallbackFromPrefix} 1295 kr`,
                 available: true,
                 processingTime: 14
               });
@@ -690,17 +687,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
              return 0;
            });
 
-           console.log('🔄 Services from Firebase (filtered & sorted):', sortedServices.map(s => ({ id: s.id, price: s.price })));
-
            setAvailableServices(sortedServices);
            return;
          }
       } catch (firebaseError) {
-        console.log('⚠️ Firebase pricing failed, using mock data:', firebaseError instanceof Error ? firebaseError.message : String(firebaseError));
+        // Firebase pricing failed, using fallback
       }
 
       // Fallback to mock pricing service
-      console.log('📊 Using mock pricing service');
 
       // Services based on country type
       let availableServicesList = [];
@@ -1161,8 +1155,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       });
 
       setPricingBreakdown(pricingResult.breakdown);
+      setHasUnconfirmedPrices(pricingResult.hasUnconfirmedPrices || false);
     } catch (error) {
-      console.error('Error calculating pricing breakdown:', error);
       toast.error('Kunde inte beräkna pris');
     } finally {
       setLoadingPricing(false);
@@ -1584,6 +1578,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   allCountries={allCountries}
                   returnServices={returnServices}
                   pickupServices={pickupServices}
+                  hasUnconfirmedPrices={hasUnconfirmedPrices}
                 />
               </div>
             )}

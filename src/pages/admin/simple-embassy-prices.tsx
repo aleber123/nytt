@@ -22,6 +22,7 @@ interface EmbassyCountry {
   serviceFee: number;
   totalPrice: number;
   lastUpdated?: Date;
+  priceUnconfirmed?: boolean; // When true, show "Price on request" to customer
 }
 
 function SimpleEmbassyPricesPage() {
@@ -138,7 +139,8 @@ function SimpleEmbassyPricesPage() {
             officialFee: existingRule.officialFee,
             serviceFee: existingRule.serviceFee,
             totalPrice: existingRule.basePrice,
-            lastUpdated: existingRule.lastUpdated?.toDate()
+            lastUpdated: existingRule.lastUpdated?.toDate(),
+            priceUnconfirmed: existingRule.priceUnconfirmed || false
           };
         }
         return defaultCountry;
@@ -218,8 +220,59 @@ function SimpleEmbassyPricesPage() {
 
       toast.success(`${country.name} priser uppdaterade!`);
     } catch (error) {
-      console.error('Error updating embassy fee:', error);
       toast.error('Kunde inte uppdatera priset');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePriceUnconfirmed = async (countryCode: string, unconfirmed: boolean) => {
+    try {
+      setSaving(true);
+
+      const country = countries.find(c => c.code === countryCode);
+      if (!country) return;
+
+      const ruleId = `${countryCode}_embassy`;
+
+      // Use the new updateOrCreatePricingRule function
+      await updateOrCreatePricingRule(
+        ruleId,
+        {
+          priceUnconfirmed: unconfirmed,
+          updatedBy: currentUser?.email || 'admin'
+        },
+        {
+          countryCode,
+          countryName: country.name,
+          serviceType: 'embassy',
+          officialFee: country.officialFee,
+          serviceFee: country.serviceFee,
+          basePrice: country.totalPrice,
+          processingTime: { standard: 15 },
+          currency: 'SEK',
+          updatedBy: currentUser?.email || 'admin',
+          isActive: true,
+          priceUnconfirmed: unconfirmed
+        }
+      );
+
+      // Update local state
+      setCountries(prev =>
+        prev.map(c =>
+          c.code === countryCode
+            ? {
+                ...c,
+                priceUnconfirmed: unconfirmed,
+                lastUpdated: new Date()
+              }
+            : c
+        )
+      );
+
+      toast.success(`${country.name}: Pris ${unconfirmed ? 'markerat som obekräftat' : 'bekräftat'}!`);
+    } catch (error) {
+      toast.error('Kunde inte uppdatera status');
     } finally {
       setSaving(false);
     }
@@ -486,16 +539,41 @@ function SimpleEmbassyPricesPage() {
                   {/* Total Price */}
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-semibold text-gray-900">Totalpris:</span>
-                    <span className="text-xl font-bold text-green-600">{country.totalPrice} kr</span>
+                    {country.priceUnconfirmed ? (
+                      <span className="text-lg font-bold text-orange-500">Pris på förfrågan</span>
+                    ) : (
+                      <span className="text-xl font-bold text-green-600">{country.totalPrice} kr</span>
+                    )}
+                  </div>
+
+                  {/* Price Unconfirmed Checkbox */}
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={country.priceUnconfirmed || false}
+                        onChange={(e) => togglePriceUnconfirmed(country.code, e.target.checked)}
+                        className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
+                        disabled={saving}
+                      />
+                      <span className={`ml-2 text-sm ${country.priceUnconfirmed ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
+                        ⚠️ Pris ej bekräftat
+                      </span>
+                    </label>
+                    {country.priceUnconfirmed && (
+                      <p className="mt-1 text-xs text-orange-600">
+                        Kunden ser "Pris på förfrågan" istället för priset
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Status Indicator */}
                 <div className="mt-4 pt-3 border-t border-gray-100">
                   <div className="flex items-center">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                    <div className={`w-2 h-2 rounded-full mr-2 ${country.priceUnconfirmed ? 'bg-orange-500' : 'bg-green-500'}`}></div>
                     <span className="text-xs text-gray-500">
-                      {saving ? 'Sparar...' : 'Redo att uppdatera'}
+                      {saving ? 'Sparar...' : country.priceUnconfirmed ? 'Pris obekräftat' : 'Redo att uppdatera'}
                     </span>
                   </div>
                 </div>

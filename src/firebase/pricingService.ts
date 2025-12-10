@@ -38,6 +38,7 @@ export interface PricingRule {
   updatedBy: string;
   isActive: boolean;
   notes?: string;
+  priceUnconfirmed?: boolean; // When true, show "Price on request" to customer instead of actual price
 }
 
 export interface BulkPricingUpdate {
@@ -350,11 +351,15 @@ export const calculateOrderPrice = async (orderData: {
   additionalFees: number;
   totalPrice: number;
   breakdown: any[];
+  hasUnconfirmedPrices?: boolean;
+  unconfirmedServices?: string[];
 }> => {
   try {
     let totalBasePrice = 0;
     let totalAdditionalFees = 0;
     const breakdown: any[] = [];
+    let hasUnconfirmedPrices = false;
+    const unconfirmedServices: string[] = [];
 
     for (const serviceType of orderData.services) {
       let rule = await getPricingRule(orderData.country, serviceType);
@@ -395,6 +400,12 @@ export const calculateOrderPrice = async (orderData: {
       }
 
       if (rule) {
+        // Check if this service has unconfirmed pricing
+        if (rule.priceUnconfirmed) {
+          hasUnconfirmedPrices = true;
+          unconfirmedServices.push(serviceType);
+        }
+
         // Get service name for description
         const serviceNames: { [key: string]: string } = {
           'apostille': 'Apostille',
@@ -550,10 +561,11 @@ export const calculateOrderPrice = async (orderData: {
       basePrice: totalBasePrice,
       additionalFees: totalAdditionalFees,
       totalPrice: totalBasePrice + totalAdditionalFees,
-      breakdown
+      breakdown,
+      hasUnconfirmedPrices,
+      unconfirmedServices
     };
   } catch (error) {
-    console.error('Error calculating order price:', error);
     throw error;
   }
 };

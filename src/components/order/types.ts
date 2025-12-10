@@ -72,6 +72,7 @@ export interface StepProps {
 export interface Country {
   code: string;
   name: string;
+  nameEn?: string; // English name for the country
   flag: string;
   popularity?: number;
 }
