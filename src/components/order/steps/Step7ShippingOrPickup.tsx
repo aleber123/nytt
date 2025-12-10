@@ -139,7 +139,7 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
                       printWindow.document.write(`
                         <html>
                           <head>
-                            <title>LegaliseringsTjänst AB - Leveransadress</title>
+                            <title>DOX Visumpartner AB - Leveransadress</title>
                             <style>
                               body {
                                 font-family: Arial, sans-serif;

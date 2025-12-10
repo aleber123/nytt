@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { getAllOrders, updateOrder } from '@/firebase/orderService';
 import type { Order } from '@/firebase/orderService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import { saveDriverDailyReport, getDriverMonthlySummary, type DriverMonthlySummary } from '@/firebase/driverReportService';
 
 interface ProcessingStep {
   id: string;
@@ -47,6 +48,12 @@ function DriverDashboardPage() {
   const [embassyCost, setEmbassyCost] = useState('');
   const [otherCost, setOtherCost] = useState('');
   const [driverNotes, setDriverNotes] = useState('');
+  const [isSavingDailyReport, setIsSavingDailyReport] = useState(false);
+  const [saveDailyMessage, setSaveDailyMessage] = useState<string | null>(null);
+  const [isOpeningMonthlyEmail, setIsOpeningMonthlyEmail] = useState(false);
+  const [monthlyMessage, setMonthlyMessage] = useState<string | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<DriverMonthlySummary | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
   console.log('🚗 DriverDashboardPage component mounted');
 
@@ -63,6 +70,65 @@ function DriverDashboardPage() {
     if (match) return { code: match.code, name: match.name, flag: match.flag };
 
     return { code: value, name: value, flag: '🌍' };
+  };
+
+  const handleSaveDailyReport = async () => {
+    try {
+      console.log('📝 handleSaveDailyReport called', {
+        selectedDate,
+        hoursWorked,
+        parkingCost,
+        embassyCost,
+        otherCost,
+        driverNotes,
+      });
+
+      setIsSavingDailyReport(true);
+      setSaveDailyMessage(null);
+
+      await saveDriverDailyReport({
+        driverId: 'default-driver',
+        date: selectedDate,
+        hoursWorked,
+        parkingCost,
+        embassyCost,
+        otherCost,
+        notes: driverNotes,
+      });
+
+      console.log('✅ Daily driver report saved');
+      setSaveDailyMessage('Dagsrapport sparad.');
+      await loadMonthlySummaryForSelectedDate();
+    } catch (error) {
+      console.error('❌ Failed to save driver daily report', error);
+      setSaveDailyMessage('Kunde inte spara dagsrapporten. Försök igen eller kontakta kontoret.');
+    } finally {
+      setIsSavingDailyReport(false);
+    }
+  };
+
+  const loadMonthlySummaryForSelectedDate = async () => {
+    try {
+      setIsLoadingSummary(true);
+
+      const dateObj = new Date(selectedDate + 'T00:00:00');
+      if (Number.isNaN(dateObj.getTime())) {
+        console.error('❌ Invalid date for monthly summary', { selectedDate });
+        setMonthlySummary(null);
+        return;
+      }
+
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth() + 1;
+
+      const summary = await getDriverMonthlySummary('default-driver', year, month);
+      setMonthlySummary(summary);
+    } catch (error) {
+      console.error('❌ Failed to load monthly driver summary', error);
+      setMonthlySummary(null);
+    } finally {
+      setIsLoadingSummary(false);
+    }
   };
 
   const handleOpenReportEmail = () => {
@@ -87,6 +153,76 @@ function DriverDashboardPage() {
 
     if (typeof window !== 'undefined') {
       window.location.href = mailto;
+    }
+  };
+
+  const handleOpenMonthlyReportEmail = async () => {
+    try {
+      console.log('📅 handleOpenMonthlyReportEmail called', { selectedDate });
+      setIsOpeningMonthlyEmail(true);
+      setMonthlyMessage(null);
+
+      const dateObj = new Date(selectedDate + 'T00:00:00');
+      if (Number.isNaN(dateObj.getTime())) {
+        setMonthlyMessage('Datumet är ogiltigt.');
+        return;
+      }
+
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth() + 1;
+
+      console.log('📆 Monthly report parameters', { year, month });
+
+      const summary = await getDriverMonthlySummary('default-driver', year, month);
+
+      console.log('📊 Monthly driver summary loaded', summary);
+
+      const monthFormatter = new Intl.DateTimeFormat('sv-SE', {
+        year: 'numeric',
+        month: 'long',
+      });
+      const someDateInMonth = new Date(year, month - 1, 1);
+      const monthLabel = monthFormatter.format(someDateInMonth);
+
+      const to = 'info@doxvl.se,info@visumpartner.se';
+      const subject = `Månadsrapport chaufför – ${monthLabel}`;
+
+      const headerLines = [
+        `Månad: ${monthLabel} (${year}-${String(month).padStart(2, '0')})`,
+        '',
+        `Totalt antal timmar: ${summary.totalHours.toLocaleString('sv-SE')}`,
+        `Parkering: ${summary.totalParking} kr`,
+        `Ambassadutlägg: ${summary.totalEmbassy} kr`,
+        `Övriga utlägg: ${summary.totalOther} kr`,
+        '',
+        'Detaljer per dag:',
+      ];
+
+      const detailLines = summary.reports.length
+        ? summary.reports.map((report) => {
+            const notePart = report.notes ? ` – ${report.notes}` : '';
+            return `- ${report.date}: ${report.hoursWorked} h, parkering ${report.parkingCost} kr, ambassad ${report.embassyCost} kr, övrigt ${report.otherCost} kr${notePart}`;
+          })
+        : ['(Inga sparade dagsrapporter för denna månad.)'];
+
+      const bodyLines = [
+        ...headerLines,
+        ...detailLines,
+        '',
+        '---',
+        'Skickad från DOX chaufförssidan',
+      ];
+
+      if (typeof window !== 'undefined') {
+        const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+        console.log('📧 Opening monthly report email', { to, subject, bodyLines });
+        window.location.href = mailto;
+      }
+    } catch (error) {
+      console.error('❌ Failed to open monthly driver report email', error);
+      setMonthlyMessage('Kunde inte hämta månadsrapporten. Försök igen eller kontakta kontoret.');
+    } finally {
+      setIsOpeningMonthlyEmail(false);
     }
   };
 
@@ -582,6 +718,10 @@ function DriverDashboardPage() {
     fetchDriverTasks();
   }, []);
 
+  useEffect(() => {
+    loadMonthlySummaryForSelectedDate();
+  }, [selectedDate]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -947,7 +1087,8 @@ function DriverDashboardPage() {
               Dagsrapport – timmar & utlägg
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Fyll i dina timmar och utlägg för <span className="font-medium">{formatDate(selectedDate)}</span> och tryck på knappen för att öppna ett färdigt mail till kontoret.
+              Fyll i dina timmar och utlägg för <span className="font-medium">{formatDate(selectedDate)}</span>. 
+              Spara dagsrapporten varje arbetsdag, och i slutet av månaden kan du öppna en månadssammanställning som färdigt mail till kontoret.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -1026,16 +1167,82 @@ function DriverDashboardPage() {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={handleOpenReportEmail}
-              className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
-            >
-              <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Öppna mail med rapport
-            </button>
+            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+              <button
+                type="button"
+                onClick={handleSaveDailyReport}
+                disabled={isSavingDailyReport}
+                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingDailyReport ? 'Sparar dagsrapport…' : 'Spara dagsrapport'}
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenMonthlyReportEmail}
+                disabled={isOpeningMonthlyEmail}
+                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isOpeningMonthlyEmail ? 'Öppnar månadssammanställning…' : 'Öppna månadssammanställning'}
+              </button>
+            </div>
+            {saveDailyMessage && (
+              <p className="mt-3 text-sm text-gray-600">{saveDailyMessage}</p>
+            )}
+            {monthlyMessage && (
+              <p className="mt-1 text-sm text-gray-600">{monthlyMessage}</p>
+            )}
+
+            {monthlySummary && (
+              <div className="mt-6 border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  {`Sparade dagsrapporter – ${new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}`}
+                </h3>
+
+                {isLoadingSummary ? (
+                  <p className="text-sm text-gray-500">Laddar sparade rapporter…</p>
+                ) : monthlySummary.reports.length === 0 ? (
+                  <p className="text-sm text-gray-500">Inga sparade dagsrapporter för denna månad.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          <th className="px-2 py-1 text-left font-medium text-gray-700">Datum</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Timmar</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Parkering</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Ambassad</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Övrigt</th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-700">Kommentar</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {monthlySummary.reports.map((report) => (
+                          <tr
+                            key={report.id || report.date}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => {
+                              setSelectedDate(report.date);
+                              setHoursWorked(report.hoursWorked.toString());
+                              setParkingCost(report.parkingCost.toString());
+                              setEmbassyCost(report.embassyCost.toString());
+                              setOtherCost(report.otherCost.toString());
+                              setDriverNotes(report.notes || '');
+                            }}
+                          >
+                            <td className="px-2 py-1 whitespace-nowrap">{report.date}</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.hoursWorked.toLocaleString('sv-SE')}</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.parkingCost} kr</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.embassyCost} kr</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.otherCost} kr</td>
+                            <td className="px-2 py-1 text-left max-w-xs truncate" title={report.notes || ''}>{report.notes || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {loading ? (

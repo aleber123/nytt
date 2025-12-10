@@ -101,9 +101,9 @@ const TermsAndConditionsPage: React.FC = () => {
               </p>
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
                 <p className="text-gray-700">
-                  <strong>LegaliseringsTjänst AB</strong><br />
-                  Kungsgatan 12<br />
-                  111 43 Stockholm<br />
+                  <strong>DOX Visumpartner AB</strong><br />
+                  Box 38<br />
+                  121 25 Stockholm-Globen<br />
                   Sweden<br />
                   <br />
                   Email: info@doxvl.se<br />

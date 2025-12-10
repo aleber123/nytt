@@ -2,12 +2,27 @@
  * Shared types for order flow components
  */
 
+import type { Dispatch, SetStateAction } from 'react';
 export interface OrderAnswers {
   country: string;
   documentType: string;
   documentTypes: string[];
   documentTypeQuantities: { [key: string]: number };
   services: string[];
+  helpMeChooseServices: boolean;
+  notarizationDetails?: {
+    signature: boolean;
+    signingAuthority: boolean;
+    copy: boolean;
+    unknown: boolean;
+    other: boolean;
+    otherText: string;
+  };
+  // Optional supporting documents for notarization (collected in Step 10)
+  idDocumentFile?: File | null; // ID or passport copy for signature verification
+  signingAuthorityFile?: File | null; // Registration certificate or other proof of signing authority
+  willSendIdDocumentLater?: boolean; // Customer will send ID/pass copy later
+  willSendSigningAuthorityLater?: boolean; // Customer will send signing authority proof later
   quantity: number;
   expedited: boolean;
   documentSource: string;
@@ -48,7 +63,7 @@ export interface OrderAnswers {
 
 export interface StepProps {
   answers: OrderAnswers;
-  setAnswers: (answers: OrderAnswers | ((prev: OrderAnswers) => OrderAnswers)) => void;
+  setAnswers: Dispatch<SetStateAction<OrderAnswers>>;
   onNext: () => void;
   onBack: () => void;
   currentLocale: string;

@@ -4,7 +4,7 @@
  * This is a complex component that handles the entire order submission process
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ import { calculateOrderPrice } from '@/firebase/pricingService';
 import { printShippingLabel } from '@/services/shippingLabelService';
 import { StepProps } from '../types';
 import CountryFlag from '../../ui/CountryFlag';
+import { ALL_COUNTRIES } from '../data/countries';
 
 interface Step10Props extends Omit<StepProps, 'currentLocale'> {
   allCountries: any[];
@@ -54,37 +55,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   // Local state for Step 10
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [isInCooldown, setIsInCooldown] = useState(false);
+  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
   const submissionInProgressRef = useRef(false);
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [returnCountrySearch, setReturnCountrySearch] = useState('');
-  const [showReturnCountryDropdown, setShowReturnCountryDropdown] = useState(false);
-  const returnCountryDropdownRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (returnCountryDropdownRef.current && !returnCountryDropdownRef.current.contains(event.target as Node)) {
-        setShowReturnCountryDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleReturnCountrySelect = (countryCode: string) => {
-    const country = allCountries.find((c: any) => c.code === countryCode);
-    setAnswers(prev => ({
-      ...prev,
-      customerInfo: {
-        ...prev.customerInfo,
-        countryCode: countryCode,
-        country: country ? getLocalizedCountryName(country.code) : ''
-      }
-    }));
-    setReturnCountrySearch(country ? getLocalizedCountryName(country.code) : '');
-    setShowReturnCountryDropdown(false);
-  };
 
   const addressInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -135,31 +108,195 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
     return description;
   };
 
-  const getLocalizedCountryName = (countryCode: string) => {
-    try {
-      if (typeof Intl !== 'undefined' && (Intl as any).DisplayNames && countryCode && countryCode.length === 2) {
-        const displayNames = new Intl.DisplayNames([locale], { type: 'region' });
-        const localized = displayNames.of(countryCode);
-        if (localized && typeof localized === 'string') return localized;
-      }
-    } catch {}
-    return t(`countries.names.${countryCode}`, { defaultValue: countryCode });
-  };
-
-  const uniqueCountries = React.useMemo(() => {
-    const seen = new Set<string>();
-    return allCountries.filter((c: any) => {
-      if (!c || !c.code) return false;
-      if (seen.has(c.code)) return false;
-      seen.add(c.code);
-      return true;
-    });
-  }, [allCountries]);
-
   // Dummy clearProgress function (should be passed as prop ideally)
   const clearProgress = () => {
     // This would normally clear saved progress
     sessionStorage.removeItem('orderDraft');
+  };
+
+  const hasNotarization = answers.services.includes('notarization');
+  const notarizationDetails: any = (answers as any).notarizationDetails || {};
+
+  const requiresIdDocument =
+    hasNotarization && (notarizationDetails.signature || notarizationDetails.signingAuthority);
+  const requiresSigningAuthorityDocument =
+    hasNotarization && notarizationDetails.signingAuthority;
+
+  const hasIdDocumentNow = !!(answers as any).idDocumentFile;
+  const willSendIdDocumentLater = !!(answers as any).willSendIdDocumentLater;
+  const hasSigningAuthorityNow = !!(answers as any).signingAuthorityFile;
+  const willSendSigningAuthorityLater = !!(answers as any).willSendSigningAuthorityLater;
+
+  const notarizationDocsOk =
+    (!requiresIdDocument || hasIdDocumentNow || willSendIdDocumentLater) &&
+    (!requiresSigningAuthorityDocument || hasSigningAuthorityNow || willSendSigningAuthorityLater);
+
+  const getFilesForUpload = () => {
+    const baseFiles =
+      answers.documentSource === 'upload' ? (answers.uploadedFiles || []) : [];
+
+    const extraFiles: any[] = [];
+
+    const idDoc = (answers as any).idDocumentFile;
+    const signingAuth = (answers as any).signingAuthorityFile;
+
+    if (idDoc) extraFiles.push(idDoc);
+    if (signingAuth) extraFiles.push(signingAuth);
+
+    return [...baseFiles, ...extraFiles];
+  };
+
+  const renderNotarizationSupportSection = () => {
+    if (!hasNotarization || !notarizationDetails) return null;
+    if (!notarizationDetails.signature && !notarizationDetails.signingAuthority) return null;
+
+    const isEn = locale === 'en';
+
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 space-y-4">
+        <h3 className="text-md font-semibold text-blue-900">
+          {isEn ? 'Documents for notarization' : 'Dokument för notarisering'}
+        </h3>
+
+        {requiresIdDocument && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-900">
+              {isEn
+                ? 'ID or passport copy for signature verification'
+                : 'ID- eller passkopia för signaturbestyrkande'}
+            </h4>
+            <p className="text-sm text-gray-700">
+              {isEn
+                ? 'To certify your signature we need a clear copy of your valid ID or the signature page (page 2) of your Swedish passport. You can upload it here or send it later.'
+                : 'För att bestyrka din signatur behöver vi en tydlig kopia av din giltiga legitimation eller signatursidan (sida 2) i ditt svenska pass. Du kan ladda upp kopian här eller skicka in den senare.'}
+            </p>
+            <div className="mt-2 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+              <div>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  id="id-document-upload"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setAnswers(prev => ({
+                      ...prev,
+                      idDocumentFile: file
+                    }));
+                  }}
+                />
+                <label
+                  htmlFor="id-document-upload"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                >
+                  <span className="mr-2">📄</span>
+                  <span>
+                    {(answers as any).idDocumentFile
+                      ? (isEn ? 'Change file' : 'Byt fil')
+                      : (isEn ? 'Upload ID/passport copy' : 'Ladda upp ID/passkopia')}
+                  </span>
+                </label>
+                {(answers as any).idDocumentFile && (
+                  <div className="mt-1 text-xs text-green-700">
+                    {isEn ? 'Selected:' : 'Vald fil:'} {(answers as any).idDocumentFile.name}
+                  </div>
+                )}
+              </div>
+
+              <label className="inline-flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
+                  checked={!!(answers as any).willSendIdDocumentLater}
+                  onChange={(e) =>
+                    setAnswers(prev => ({
+                      ...prev,
+                      willSendIdDocumentLater: e.target.checked
+                    }))
+                  }
+                />
+                <span className="text-sm text-gray-800">
+                  {isEn ? 'I will send this later' : 'Jag skickar detta senare'}
+                </span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {notarizationDetails.signingAuthority && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-900">
+              {isEn
+                ? 'Proof of signing authority (e.g. registration certificate)'
+                : 'Bevis på firmateckningsrätt (t.ex. registreringsbevis)'}
+            </h4>
+            <p className="text-sm text-gray-700">
+              {isEn
+                ? 'To verify the right to sign for the company we need, for example, a registration certificate from the Swedish Companies Registration Office (Bolagsverket) or another document showing who has signing authority. You can upload it here or send it later.'
+                : 'För att verifiera rätt att signera för företaget behöver vi till exempel ett registreringsbevis från Bolagsverket eller annat dokument som visar vem som har firmateckningsrätt. Du kan ladda upp det här eller skicka in det senare.'}
+            </p>
+            <div className="mt-2 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
+              <div>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  id="signing-authority-upload"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setAnswers(prev => ({
+                      ...prev,
+                      signingAuthorityFile: file
+                    }));
+                  }}
+                />
+                <label
+                  htmlFor="signing-authority-upload"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                >
+                  <span className="mr-2">📄</span>
+                  <span>
+                    {(answers as any).signingAuthorityFile
+                      ? (isEn ? 'Change file' : 'Byt fil')
+                      : (isEn ? 'Upload registration proof' : 'Ladda upp registreringsbevis')}
+                  </span>
+                </label>
+                {(answers as any).signingAuthorityFile && (
+                  <div className="mt-1 text-xs text-green-700">
+                    {isEn ? 'Selected:' : 'Vald fil:'} {(answers as any).signingAuthorityFile.name}
+                  </div>
+                )}
+              </div>
+
+              <label className="inline-flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
+                  checked={!!(answers as any).willSendSigningAuthorityLater}
+                  onChange={(e) =>
+                    setAnswers(prev => ({
+                      ...prev,
+                      willSendSigningAuthorityLater: e.target.checked
+                    }))
+                  }
+                />
+                <span className="text-sm text-gray-800">
+                  {isEn ? 'I will send this later' : 'Jag skickar detta senare'}
+                </span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {requiresSigningAuthorityDocument && (
+          <p className="text-xs text-blue-900">
+            {isEn
+              ? 'For verifying signing authority we must receive both an ID/passport copy and proof of signing authority, either uploaded here or sent later.'
+              : 'För verifiering av rätt att signera måste vi få både ID-/passkopia och bevis på firmateckningsrätt, antingen uppladdat här eller inskickat senare.'}
+          </p>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -185,11 +322,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             <span className="text-gray-700">{t('orderFlow.step10.country')}:</span>
             <span className="font-medium text-gray-900">
               {(() => {
-                const code = answers.country;
-                const name = getLocalizedCountryName(code);
+                const country = allCountries.find(c => c.code === answers.country);
+                const name = country?.name || answers.country;
                 return (
                   <span className="inline-flex items-center space-x-1">
-                    <CountryFlag code={code} size={20} />
+                    <CountryFlag code={answers.country} size={20} />
                     <span>{name}</span>
                   </span>
                 );
@@ -334,6 +471,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         </div>
       </div>
 
+      {renderNotarizationSupportSection()}
+
       {answers.documentSource === 'upload' ? (
         <div className="space-y-4">
           {/* File Upload Section - Moved to top */}
@@ -458,7 +597,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           {/* Customer Information Form */}
           <div className="mt-8 space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {locale === 'en' ? 'Customer details' : 'Kunduppgifter'}
+              {locale === 'en' ? 'Contact details' : 'Kontaktuppgifter'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -491,6 +630,37 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   placeholder={t('orderFlow.step10.lastNamePlaceholder')}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <select
+                value={answers.customerInfo.countryCode || ''}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  const countryObj = ALL_COUNTRIES.find(c => c.code === code);
+                  setAnswers(prev => ({
+                    ...prev,
+                    customerInfo: {
+                      ...prev.customerInfo,
+                      countryCode: code,
+                      country: countryObj?.name || code
+                    }
+                  }));
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="">
+                  {locale === 'en' ? 'Select country' : 'Välj land'}
+                </option>
+                {ALL_COUNTRIES.map(country => (
+                  <option key={country.code} value={country.code}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -575,62 +745,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder={t('order.form.city')}
                 />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <div className="relative" ref={returnCountryDropdownRef}>
-                <input
-                  type="text"
-                  value={returnCountrySearch}
-                  onChange={(e) => {
-                    setReturnCountrySearch(e.target.value);
-                    setShowReturnCountryDropdown(true);
-                  }}
-                  onFocus={() => setShowReturnCountryDropdown(true)}
-                  placeholder={t('orderFlow.step10.returnCountrySearchPlaceholder', locale === 'en' ? 'Search return country (e.g. "no" for Norway)...' : 'Sök returland (t.ex. "no" för Norge)...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                {showReturnCountryDropdown && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {(() => {
-                      const filtered = uniqueCountries.filter((country: any) => {
-                        if (!returnCountrySearch.trim()) return false;
-                        const searchLower = returnCountrySearch.toLowerCase();
-                        const localized = getLocalizedCountryName(country.code).toLowerCase();
-                        const swedish = (country.name || '').toLowerCase();
-                        return (
-                          localized.includes(searchLower) ||
-                          swedish.includes(searchLower) ||
-                          country.code.toLowerCase().includes(searchLower)
-                        );
-                      });
-
-                      if (filtered.length > 0) {
-                        return filtered.map((country: any) => (
-                          <button
-                            key={country.code}
-                            type="button"
-                            onClick={() => handleReturnCountrySelect(country.code)}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
-                          >
-                            <CountryFlag code={country.code} size={20} />
-                            <span>{getLocalizedCountryName(country.code)}</span>
-                          </button>
-                        ));
-                      }
-
-                      return (
-                        <div className="px-4 py-2 text-gray-500">
-                          {t('orderFlow.step1.noResults', 'Inga resultat')}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -715,6 +829,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                 try {
                   console.log('📤 Submitting final order...');
+                  setShowFullScreenLoader(true);
 
                   // Calculate pricing using Firebase pricing service
                   console.log('💰 Calculating order price from Firebase...');
@@ -734,12 +849,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
-                  const publicAccessToken =
-                    typeof window !== 'undefined' &&
-                    window.crypto &&
-                    'randomUUID' in window.crypto
-                      ? (window.crypto as any).randomUUID()
-                      : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
                   const orderData = {
                     country: answers.country,
                     documentType: answers.documentType,
@@ -763,13 +872,12 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
-                    locale: locale,
-                    publicAccessToken
+                    locale: locale
                   };
                   console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 
-                  // Submit order
-                  const orderId = await createOrderWithFiles(orderData, answers.uploadedFiles || []);
+                  // Submit order (include main documents + any notarization support files)
+                  const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
 
                   console.log('✅ Order submitted successfully:', orderId);
 
@@ -841,31 +949,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   // Reset reCAPTCHA
                   recaptchaRef.current?.reset();
 
-                  // Show beautiful success toast
-                  toast.success(
-                    <div className="text-center">
-                      <div className="font-bold text-lg mb-2">{t('orderFlow.orderSubmitted')}</div>
-                      <div className="text-sm">
-                        <strong>{t('orderFlow.orderNumber', { orderId })}</strong><br/>
-                        <span className="text-green-600">{t('orderFlow.documentsReturn')}</span>
-                      </div>
-                    </div>,
-                    {
-                      duration: 6000,
-                      style: {
-                        background: '#10B981',
-                        color: 'white',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        fontSize: '16px',
-                        maxWidth: '400px'
-                      }
-                    }
-                  );
-
                   // Redirect to confirmation page after a short delay
                   setTimeout(() => {
-                    router.push(`/bekraftelse?orderId=${orderId}&token=${publicAccessToken}`);
+                    router.push(`/bekraftelse?orderId=${orderId}`);
                   }, 2000);
 
                 } catch (error) {
@@ -895,6 +981,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 } finally {
                   // isSubmitting is managed by parent
                   submissionInProgressRef.current = false;
+                  setShowFullScreenLoader(false);
 
                   // Start cooldown period (10 seconds)
                   setIsInCooldown(true);
@@ -919,7 +1006,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 !answers.customerInfo.lastName ||
                 !answers.customerInfo.email ||
                 !answers.customerInfo.phone ||
-                !answers.customerInfo.countryCode
+                !answers.customerInfo.countryCode ||
+                !notarizationDocsOk
               }
               className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
@@ -930,7 +1018,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     answers.customerInfo.lastName &&
                     answers.customerInfo.email &&
                     answers.customerInfo.phone &&
-                    answers.customerInfo.countryCode
+                    answers.customerInfo.countryCode &&
+                    notarizationDocsOk
                   ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
@@ -956,6 +1045,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
               )}
             </button>
           </div>
+
         </div>
       ) : (
         <div className="space-y-4">
@@ -997,7 +1087,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           {/* Customer Information Form */}
           <div className="mt-8 space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {locale === 'en' ? 'Customer details' : 'Kunduppgifter'}
+              {locale === 'en' ? 'Contact details' : 'Kontaktuppgifter'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -1030,6 +1120,37 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   placeholder={t('orderFlow.step10.lastNamePlaceholder')}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
+              </label>
+              <select
+                value={answers.customerInfo.countryCode || ''}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  const countryObj = ALL_COUNTRIES.find(c => c.code === code);
+                  setAnswers(prev => ({
+                    ...prev,
+                    customerInfo: {
+                      ...prev.customerInfo,
+                      countryCode: code,
+                      country: countryObj?.name || code
+                    }
+                  }));
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="">
+                  {locale === 'en' ? 'Select country' : 'Välj land'}
+                </option>
+                {ALL_COUNTRIES.map(country => (
+                  <option key={country.code} value={country.code}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -1114,62 +1235,6 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder={t('order.form.city')}
                 />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('order.form.country', 'Land')} {t('orderFlow.step10.requiredField')}
-              </label>
-              <div className="relative" ref={returnCountryDropdownRef}>
-                <input
-                  type="text"
-                  value={returnCountrySearch}
-                  onChange={(e) => {
-                    setReturnCountrySearch(e.target.value);
-                    setShowReturnCountryDropdown(true);
-                  }}
-                  onFocus={() => setShowReturnCountryDropdown(true)}
-                  placeholder={t('orderFlow.step10.returnCountrySearchPlaceholder', locale === 'en' ? 'Search return country (e.g. "no" for Norway)...' : 'Sök returland (t.ex. "no" för Norge)...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                {showReturnCountryDropdown && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {(() => {
-                      const filtered = uniqueCountries.filter((country: any) => {
-                        if (!returnCountrySearch.trim()) return false;
-                        const searchLower = returnCountrySearch.toLowerCase();
-                        const localized = getLocalizedCountryName(country.code).toLowerCase();
-                        const swedish = (country.name || '').toLowerCase();
-                        return (
-                          localized.includes(searchLower) ||
-                          swedish.includes(searchLower) ||
-                          country.code.toLowerCase().includes(searchLower)
-                        );
-                      });
-
-                      if (filtered.length > 0) {
-                        return filtered.map((country: any) => (
-                          <button
-                            key={country.code}
-                            type="button"
-                            onClick={() => handleReturnCountrySelect(country.code)}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
-                          >
-                            <CountryFlag code={country.code} size={20} />
-                            <span>{getLocalizedCountryName(country.code)}</span>
-                          </button>
-                        ));
-                      }
-
-                      return (
-                        <div className="px-4 py-2 text-gray-500">
-                          {t('orderFlow.step1.noResults', 'Inga resultat')}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1332,12 +1397,6 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
                   // Prepare order data
                   console.log('📋 Preparing order data with totalPrice:', pricingResult.totalPrice);
-                  const publicAccessToken =
-                    typeof window !== 'undefined' &&
-                    window.crypto &&
-                    'randomUUID' in window.crypto
-                      ? (window.crypto as any).randomUUID()
-                      : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
                   const orderData = {
                     country: answers.country,
                     documentType: answers.documentType,
@@ -1356,13 +1415,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
-                    locale: locale,
-                    publicAccessToken
+                    locale: locale
                   };
                   console.log('📋 Order data prepared:', { ...orderData, uploadedFiles: 'excluded from log' });
 
-                  // Submit order
-                  const orderId = await createOrderWithFiles(orderData, answers.uploadedFiles || []);
+                  // Submit order (include any notarization support files)
+                  const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
 
                   console.log('✅ Order submitted successfully:', orderId);
 
@@ -1781,31 +1839,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     // Don't block the order flow if customer email fails
                   }
 
-                  // Show beautiful success toast
-                  toast.success(
-                    <div className="text-center">
-                      <div className="font-bold text-lg mb-2">{t('orderFlow.orderSubmitted')}</div>
-                      <div className="text-sm">
-                        <strong>{t('orderFlow.orderNumber', { orderId })}</strong><br/>
-                        <span className="text-green-600">{t('orderFlow.documentsReturn')}</span>
-                      </div>
-                    </div>,
-                    {
-                      duration: 6000,
-                      style: {
-                        background: '#10B981',
-                        color: 'white',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        fontSize: '16px',
-                        maxWidth: '400px'
-                      }
-                    }
-                  );
-
                   // Redirect to confirmation page after a short delay
                   setTimeout(() => {
-                    router.push(`/bekraftelse?orderId=${orderId}&token=${publicAccessToken}`);
+                    router.push(`/bekraftelse?orderId=${orderId}`);
                   }, 2000);
 
                 } catch (error) {
@@ -1857,7 +1893,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 !answers.customerInfo.lastName ||
                 !answers.customerInfo.email ||
                 !answers.customerInfo.phone ||
-                !answers.customerInfo.countryCode
+                !answers.customerInfo.countryCode ||
+                !notarizationDocsOk
               }
               className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
@@ -1866,7 +1903,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     answers.customerInfo.lastName &&
                     answers.customerInfo.email &&
                     answers.customerInfo.phone &&
-                    answers.customerInfo.countryCode
+                    answers.customerInfo.countryCode &&
+                    notarizationDocsOk
                   ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
@@ -1894,6 +1932,44 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           </div>
         </div>
       )}
+
+      {(showFullScreenLoader) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-xl px-8 py-6 max-w-sm mx-auto text-center space-y-4">
+            <div className="flex justify-center">
+              <svg
+                className="animate-spin h-8 w-8 text-custom-button"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {locale === 'en' ? 'We are processing your order' : 'Vi behandlar din beställning'}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {locale === 'en'
+                ? 'This may take up to 30 seconds. Please wait and do not close this window.'
+                : 'Detta kan ta upp till 30 sekunder. Vänligen vänta och stäng inte detta fönster.'}
+            </p>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

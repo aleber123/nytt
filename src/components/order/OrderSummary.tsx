@@ -194,8 +194,9 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
     <div className="bg-white rounded-lg shadow-lg p-6 lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
       {/* Header */}
       <div className="border-b border-gray-200 pb-4 mb-4">
-        <h3 className="text-lg font-bold text-gray-900">{currentLocale === 'en' ? 'Your Order' : 'Din beställning'}</h3>
-        <p className="text-sm text-gray-600 mt-1">{currentLocale === 'en' ? 'Summary' : 'Sammanfattning'}</p>
+        <h3 className="text-lg font-bold text-gray-900">
+          {currentLocale === 'en' ? 'Summary' : 'Sammanfattning'}
+        </h3>
       </div>
 
       {/* Country */}

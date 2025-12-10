@@ -308,7 +308,7 @@ export function ConfirmationPage() {
                   {/* Additional Order Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">Orderdetaljer:</h3>
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.orderDetails')}:</h3>
                       <div className="space-y-3">
                         <p className="text-gray-700">
                           <span className="font-medium">Dokumenttyp:</span> {
@@ -336,7 +336,7 @@ export function ConfirmationPage() {
                     </div>
 
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">Ytterligare tjänster:</h3>
+                      <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.additionalServices')}:</h3>
                       <div className="space-y-3">
                         {order.scannedCopies && (
                           <p className="text-gray-700">
@@ -360,7 +360,7 @@ export function ConfirmationPage() {
                   {/* Pickup Address */}
                   {order.pickupService && order.pickupAddress && (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8">
-                      <h3 className="text-lg font-heading font-semibold text-orange-800 mb-3">📍 Hämtadress:</h3>
+                      <h3 className="text-lg font-heading font-semibold text-orange-800 mb-3">📍 {t('confirmation.pickupAddress')}:</h3>
                       <div className="space-y-2">
                         <p className="text-orange-700 font-medium">{order.pickupAddress.street}</p>
                         <p className="text-orange-700 font-medium">{order.pickupAddress.postalCode} {order.pickupAddress.city}</p>
@@ -372,7 +372,7 @@ export function ConfirmationPage() {
                   {/* Additional Notes */}
                   {order.additionalNotes && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-                      <h3 className="text-lg font-heading font-semibold text-blue-800 mb-3">📝 Ytterligare information:</h3>
+                      <h3 className="text-lg font-heading font-semibold text-blue-800 mb-3">📝 {t('confirmation.additionalInfo')}:</h3>
                       <p className="text-blue-700 whitespace-pre-wrap">{order.additionalNotes}</p>
                     </div>
                   )}
@@ -380,7 +380,7 @@ export function ConfirmationPage() {
                   {/* Uploaded Files */}
                   {order.documentSource === 'upload' && order.uploadedFiles && order.uploadedFiles.length > 0 && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
-                      <h3 className="text-lg font-heading font-semibold text-green-800 mb-3">📎 Uppladdade filer:</h3>
+                      <h3 className="text-lg font-heading font-semibold text-green-800 mb-3">📎 {t('confirmation.uploadedFiles')}:</h3>
                       <div className="space-y-2">
                         {order.uploadedFiles.map((file: any, index: number) => (
                           <p key={index} className="text-green-700">
@@ -416,7 +416,7 @@ export function ConfirmationPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <h3 className="text-lg font-heading font-semibold text-blue-800">Fakturainformation</h3>
+                        <h3 className="text-lg font-heading font-semibold text-blue-800">{t('confirmation.invoiceInfo')}</h3>
                       </div>
                       <div className="space-y-3">
                         <p className="text-gray-700">En faktura kommer skickats till din e-postadress: <span className="font-medium">{order.customerInfo.email}</span></p>

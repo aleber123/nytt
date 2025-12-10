@@ -59,7 +59,6 @@ const getServices = (t: any, pricingRules: PricingRule[] = []): ServiceDetail[] 
       // First, try to find Swedish pricing
       const swedishRule = serviceRules.find(rule => rule.countryCode === 'SE');
       if (swedishRule) {
-        console.log('🇸🇪 Using Swedish pricing for', serviceType + ':', swedishRule.basePrice, 'kr');
         return `${swedishRule.basePrice} kr`;
       }
 
@@ -69,7 +68,6 @@ const getServices = (t: any, pricingRules: PricingRule[] = []): ServiceDetail[] 
         prices.filter(v => v === a).length - prices.filter(v => v === b).length
       ).pop();
 
-      console.log('🌍 Using most common pricing for', serviceType + ':', mostCommonPrice, 'kr');
       return `${mostCommonPrice} kr`;
     }
 
@@ -381,13 +379,10 @@ const ServiceDetailPage: React.FC = () => {
       try {
         setLoading(true);
         const rules = await getAllActivePricingRules();
-        console.log('🔍 Loaded pricing rules:', rules.length, 'rules');
         const apostilleRules = rules.filter(r => r.serviceType === 'apostille');
-        console.log('📋 Apostille rules found:', apostilleRules);
 
         // Log specific pricing for debugging
         if (apostilleRules.length > 0) {
-          console.log('💰 Apostille prices:', apostilleRules.map(r => `${r.countryName}: ${r.basePrice} kr`));
         }
 
         setPricingRules(rules);
@@ -454,7 +449,7 @@ const ServiceDetailPage: React.FC = () => {
 
   return (
     <>
-      <Seo title={`${service.title} - Legaliseringstjänst`} description={service.description} />
+      <Seo title={`${service.title} | DOX Visumpartner AB`} description={service.description} />
 
       <div className="container mx-auto px-4 pt-12">
         <h1 className="text-3xl font-heading font-bold text-gray-900 text-center mb-6">{service.title}</h1>

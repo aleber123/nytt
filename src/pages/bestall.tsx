@@ -17,6 +17,7 @@ import { db } from '../firebase/config';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { printShippingLabel } from '@/services/shippingLabelService';
 import { useOrderPersistence } from '@/hooks/useOrderPersistence';
+import type { OrderAnswers } from '@/components/order/types';
 
 // Import extracted step components
 import Step1CountrySelection from '@/components/order/steps/Step1CountrySelection';
@@ -38,18 +39,33 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const router = useRouter();
   const currentLocale = router.locale || 'sv';
   const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [answers, setAnswers] = useState({
+  const [answers, setAnswers] = useState<OrderAnswers>({
     country: '',
     documentType: '',
-    documentTypes: [] as string[],
-    documentTypeQuantities: {} as { [key: string]: number },
-    services: [] as string[],
+    documentTypes: [],
+    documentTypeQuantities: {},
+    services: [],
+    helpMeChooseServices: false,
+    notarizationDetails: {
+      signature: false,
+      signingAuthority: false,
+      copy: false,
+      unknown: false,
+      other: false,
+      otherText: ''
+    },
+    idDocumentFile: null,
+    signingAuthorityFile: null,
+    willSendIdDocumentLater: false,
+    willSendSigningAuthorityLater: false,
     quantity: 1,
     expedited: false,
     documentSource: '', // 'original' or 'upload'
     pickupService: false, // New: pickup service option
-    shippingMethod: null as 'rek' | 'courier' | null,
-    pickupAddress: { // New: pickup address
+    shippingMethod: null,
+    pickupMethod: undefined,
+    premiumPickup: undefined,
+    pickupAddress: {
       name: '',
       company: '',
       street: '',
@@ -57,13 +73,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       city: '',
       country: 'SE'
     },
-    pickupDate: '',
-    pickupTimeWindow: '',
-    scannedCopies: false, // New: scanned copies option
-    returnService: '', // New: return service selection
+    pickupDate: undefined,
+    pickupTimeWindow: undefined,
+    scannedCopies: false,
+    returnService: '',
     ownReturnTrackingNumber: '',
-    premiumDelivery: '', // New: premium delivery option (pre-12, pre-9)
-    uploadedFiles: [] as File[],
+    premiumDelivery: '',
+    uploadedFiles: [],
     customerInfo: {
       firstName: '',
       lastName: '',
@@ -458,6 +474,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [loadingPickupServices, setLoadingPickupServices] = useState(false);
   const [pricingBreakdown, setPricingBreakdown] = useState<any[]>([]);
   const [loadingPricing, setLoadingPricing] = useState(false);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
 
   // Calculate total price from pricing breakdown
   const totalPrice = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -477,10 +494,25 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
   // Calculate pricing breakdown when services change
   useEffect(() => {
+    if (answers.helpMeChooseServices) {
+      setPricingBreakdown([]);
+      return;
+    }
+
     if (answers.services.length > 0 && answers.country) {
       calculatePricingBreakdown();
+    } else {
+      setPricingBreakdown([]);
     }
-  }, [answers.services, answers.country, answers.quantity, answers.returnService, answers.scannedCopies, answers.premiumDelivery]);
+  }, [
+    answers.services,
+    answers.country,
+    answers.quantity,
+    answers.returnService,
+    answers.scannedCopies,
+    answers.premiumDelivery,
+    answers.helpMeChooseServices
+  ]);
 
   // Scroll to top when moving between steps
   useEffect(() => {
@@ -710,7 +742,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           },
           {
             id: 'chamber',
-            name: 'Handelskammarens legalisering',
+            name: 'Handelskammare',
             description: 'Legaliserng av handelsdokument genom Handelskammaren',
             price: '0 kr',
             available: true
@@ -781,7 +813,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         // Non-Hague countries - embassy legalization process
         fallbackServices = [
           { id: 'translation', name: 'Auktoriserad översättning', description: 'Översättning av dokument', price: '0 kr', available: true },
-          { id: 'chamber', name: 'Handelskammarens legalisering', description: 'Legaliserng av handelsdokument genom Handelskammaren', price: '0 kr', available: true },
+          { id: 'chamber', name: 'Handelskammare', description: 'Legaliserng av handelsdokument genom Handelskammaren', price: '0 kr', available: true },
           { id: 'notarization', name: 'Notarisering', description: 'Officiell notarisering av dokument', price: '0 kr', available: true },
           { id: 'ud', name: 'Utrikesdepartementet', description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer', price: '0 kr', available: true },
           { id: 'embassy', name: 'Ambassadlegalisering', description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige', price: '0 kr', available: true }
@@ -1368,10 +1400,43 @@ export default function TestOrderPage({}: TestOrderPageProps) {
             </div>
           </div>
 
-          {/* Layout: two column grid with OrderSummary visible in all steps */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
+          {/* Toggle for summary sidebar */}
+          <div className="flex justify-center lg:justify-end mb-6">
+            <button
+              type="button"
+              onClick={() => setIsSummaryExpanded((prev) => !prev)}
+              className="inline-flex items-center px-4 py-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+           >
+              <span className="mr-2">
+                {currentLocale === 'en'
+                  ? isSummaryExpanded
+                    ? 'Hide summary'
+                    : 'Show summary'
+                  : isSummaryExpanded
+                  ? 'Dölj sammanfattning'
+                  : 'Visa sammanfattning'}
+              </span>
+              <svg
+                className={`w-4 h-4 text-gray-500 transform transition-transform ${isSummaryExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Layout: grid that adapts when summary is expanded/collapsed */}
+          <div className={`grid grid-cols-1 ${isSummaryExpanded ? 'lg:grid-cols-3' : ''} gap-8 relative`}>
             {/* Main content - Steps */}
-            <div className="lg:col-span-2 min-h-screen">
+            <div
+              className={
+                isSummaryExpanded
+                  ? 'lg:col-span-2 min-h-screen'
+                  : 'min-h-screen max-w-2xl mx-auto'
+              }
+            >
               {/* Render current question */}
               {currentQuestion === 1 && (
                 <Step1CountrySelection
@@ -1404,7 +1469,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 <Step3ServicesSelection
                   answers={answers}
                   setAnswers={setAnswers}
-                  onNext={() => navigateToStep(5)}
+                  onNext={() => {
+                    if (answers.helpMeChooseServices) {
+                      navigateToStep(10);
+                    } else {
+                      navigateToStep(5);
+                    }
+                  }}
                   onBack={() => navigateToStep(3)}
                   availableServices={availableServices}
                   loadingServices={loadingServices}
@@ -1503,17 +1574,19 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               )}
             </div>
 
-            {/* Sidebar - Order Summary (visible in all steps) */}
-            <div className="lg:col-span-1 self-start">
-              <OrderSummary
-                answers={answers}
-                pricingBreakdown={pricingBreakdown}
-                totalPrice={totalPrice}
-                allCountries={allCountries}
-                returnServices={returnServices}
-                pickupServices={pickupServices}
-              />
-            </div>
+            {/* Sidebar - Order Summary */}
+            {isSummaryExpanded && (
+              <div className="lg:col-span-1 self-start">
+                <OrderSummary
+                  answers={answers}
+                  pricingBreakdown={pricingBreakdown}
+                  totalPrice={totalPrice}
+                  allCountries={allCountries}
+                  returnServices={returnServices}
+                  pickupServices={pickupServices}
+                />
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -20,14 +20,14 @@
     "refreshPageButton": "Refresh page"
   },
   "termsPage": {
-    "metaTitle": "Terms and Conditions | Legalization Service",
+    "metaTitle": "Terms and Conditions | DOX Visumpartner AB",
     "metaDescription": "Read the terms and conditions governing the use of our legalization services.",
     "lastUpdated": "Last updated: {{date}}",
     "legalNotice": "Important: Our services are provided on an \"as is\" and \"as available\" basis without any guarantees regarding processing times, outcomes or acceptance. Processing is controlled by third parties (embassies/consulates, notaries public, chambers of commerce, the Ministry for Foreign Affairs, translators). Delays, rejections or additional requirements from these parties are outside our control and do not entitle you to compensation.",
     "sections": {
       "general": {
         "title": "General Information",
-        "text": "These Terms and Conditions (\"Terms\") govern the use of Legalization Service AB (\"we\", \"us\" or \"our\") services. By using our services, you agree to these Terms. Our services are provided \"as is\" and \"as available\" without warranties of any kind, whether express or implied. The Terms apply from the moment you accept them prior to placing an order."
+        "text": "These Terms and Conditions (\"Terms\") govern the use of DOX Visumpartner AB (\"we\", \"us\" or \"our\") services. By using our services, you agree to these Terms. Our services are provided \"as is\" and \"as available\" without warranties of any kind, whether express or implied. The Terms apply from the moment you accept them prior to placing an order."
       },
       "services": {
         "title": "Service Description",
@@ -78,9 +78,9 @@
       }
     },
     "company": {
-      "name": "Legalization Service AB",
-      "addressLine1": "Kungsgatan 12",
-      "addressLine2": "111 43 Stockholm",
+      "name": "DOX Visumpartner AB",
+      "addressLine1": "Box 38",
+      "addressLine2": "121 25 Stockholm-Globen",
       "country": "Sweden",
       "email": "info@doxvl.se",
       "phone": "+46 8 123 456 78"
@@ -88,7 +88,7 @@
     "backToContact": "Back to contact"
   },
   "cookiesPage": {
-    "metaTitle": "Cookies | Legalization Service",
+    "metaTitle": "Cookies | DOX Visumpartner AB",
     "metaDescription": "Information about our use of cookies in accordance with EU ePrivacy Directive and GDPR.",
     "title": "Cookies",
     "intro": "We use cookies to ensure the website functions correctly, to improve your experience and to analyze how our site is used. This page explains what cookies are, which types we use and how you can manage your choices.",
@@ -185,8 +185,14 @@
     "admin": "Admin",
     "orders": "Orders"
   },
+  "seo": {
+    "order": {
+      "title": "Order document legalization",
+      "description": "Order professional legalization of your documents. Apostille, notarization and embassy legalization for all countries. Fast, secure and reliable service."
+    }
+  },
   "home": {
-    "title": "Legalization Service - Fast and easy document legalization",
+    "title": "DOX Visumpartner AB - Fast and easy document legalization",
     "description": "We help you with document legalization for use abroad. Fast, easy, and secure.",
     "servicesHeading": "Choose the right service for your needs",
     "servicesSubheading": "We simplify the legalization process with clear services tailored for different situations",
@@ -292,7 +298,7 @@
       "timeframe": "5-7 business days"
     },
     "chamber": {
-      "title": "Chamber of Commerce Legalization",
+      "title": "Chamber of Commerce",
       "description": "Legalization of commercial documents through the Chamber of Commerce"
     },
     "details": {
@@ -411,7 +417,7 @@
     }
   },
   "delivery": {
-    "metaTitle": "Delivery times | Legalization Service",
+    "metaTitle": "Delivery times | DOX Visumpartner AB",
     "metaDescription": "Information about processing and delivery methods – PostNord, DHL and local courier.",
     "title": "Delivery times",
     "subtitle": "Overview of processing and delivery options for your documents",
@@ -480,7 +486,7 @@
   },
   "confirmation": {
     "title": "Order Confirmation",
-    "description": "Thank you for your order with Legalization Service",
+    "description": "Thank you for your order with DOX Visumpartner AB",
     "thankYou": "Thank you for your order!",
     "orderReceived": "We have received your order and will process it as soon as possible.",
     "orderDetails": "Order Details",
@@ -489,6 +495,11 @@
     "services": "Services",
     "customerInfo": "Customer Information",
     "deliveryAddress": "Delivery Address",
+    "additionalServices": "Additional services",
+    "additionalInfo": "Additional information",
+    "invoiceInfo": "Invoice information",
+    "pickupAddress": "Pickup address",
+    "uploadedFiles": "Uploaded files",
     "totalAmount": "Total Amount",
     "paymentMethod": "Payment Method",
     "emailSent": "A confirmation has been sent to your email.",
@@ -587,7 +598,7 @@
   },
   "admin": {
     "index": {
-      "metaTitle": "Admin Panel - Legalization Service",
+      "metaTitle": "Admin Panel - DOX Visumpartner AB",
       "heading": "Admin Panel",
       "subheading": "Manage prices, orders and everything else for your legalization service",
       "openButton": "Open →",
@@ -674,7 +685,7 @@
       }
     },
     "orders": {
-      "metaTitle": "Admin - Orders | Legalization Service",
+      "metaTitle": "Admin - Orders | DOX Visumpartner AB",
       "metaDescription": "Admin panel for managing orders",
       "heading": "Admin - Orders",
       "headerSignOut": "Sign Out",
@@ -763,9 +774,9 @@
   },
   "about": {
     "title": "About Us",
-    "description": "Learn more about Legalization Service and our work with document legalization for international use.",
+    "description": "Learn more about DOX Visumpartner AB and our work with document legalization for international use.",
     "missionTitle": "Our Mission",
-    "missionText": "Legalization Service is your reliable partner for document legalization. We simplify the process of making your documents valid for international use by offering professional services in apostille, notarization and embassy legalization.",
+    "missionText": "DOX Visumpartner AB is your reliable partner for document legalization. We simplify the process of making your documents valid for international use by offering professional services in apostille, notarization and embassy legalization.",
     "missionText2": "Our goal is to make the often complicated legalization process as simple and stress-free as possible for our customers, whether you are an individual, company or organization.",
     "experienceTitle": "Our Experience",
     "experienceText": "With many years of experience in document management and international legalization, we have helped thousands of customers get their documents correctly legalized for use in over 100 countries worldwide.",
@@ -952,6 +963,18 @@
     "step3": {
       "title": "Which services do you need?",
       "subtitle": "Based on your selected country, we recommend the following services.",
+      "helpMeChooseTitle": "Unsure about services",
+      "helpMeChooseDescription": "Choose this if you are unsure. A case handler will review your request and contact you with suggested services and a price.",
+      "translationOnRequest": "On request",
+      "notarizationDetailsTitle": "What type of notarization is needed?",
+      "notarizationOptionSignature": "Certify signature",
+      "notarizationOptionSigningAuthority": "Verify signing authority",
+      "notarizationOptionCopy": "Certify copy",
+      "notarizationOptionUnknown": "Not sure",
+      "notarizationOptionOther": "Other",
+      "notarizationOptionOtherPlaceholder": "Describe the type of notarization...",
+      "notarizationDetailsInfo": "You can select multiple options or choose \"Not sure\" if you are unsure.",
+      "notarizationModalClose": "Done",
       "selectedCountry": "Selected country: {{country}}",
       "selectedDocument": "Document type: {{document}}",
       "nonHagueProcess": {
@@ -962,7 +985,6 @@
         "tip": "Tip: Chamber of Commerce legalization is recommended for business documents, while notarization is better suited for personal documents.",
         "note": "All three steps are required for the document to be valid in the selected country."
       },
-      "translationOnRequest": "On request",
       "apostilleRecommended": "Recommended for Hague Convention countries",
       "chamberStep": "Step 1: Chamber of Commerce",
       "chamberDescription": "For commercial documents and business certificates",
@@ -1141,7 +1163,6 @@
         "subtitle": "Enter the address where we should pick up your documents",
         "pickupOrdered": "Pickup ordered",
         "pickupContact": "We will contact you if needed to confirm time and place.",
-        "requiredField": "*",
         "country": "Country",
         "countrySearchPlaceholder": "Search country (e.g. 'no' for Norway)...",
         "date": "Preferred pickup date",

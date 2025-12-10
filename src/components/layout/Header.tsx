@@ -26,7 +26,12 @@ const Header: React.FC = () => {
   };
 
   const changeLanguage = (locale: string) => {
-    router.push(router.pathname, router.asPath, { locale });
+    if (router.locale === locale) return;
+
+    // Navigate to the same route but with a different locale.
+    // Use pathname + query so Next.js correctly prefixes the URL
+    // and reloads page props/translations for the new locale.
+    router.push({ pathname: router.pathname, query: router.query }, undefined, { locale });
   };
 
   return (

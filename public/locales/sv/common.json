@@ -135,6 +135,12 @@
     "admin": "Admin",
     "orders": "Ordrar"
   },
+  "seo": {
+    "order": {
+      "title": "Beställ legalisering av dokument",
+      "description": "Beställ professionell legalisering av dina dokument. Apostille, notarisering och ambassadlegalisering för alla länder. Snabb, säker och pålitlig service."
+    }
+  },
   "home": {
     "title": "Legaliseringstjänst - Snabb och enkel legalisering av dokument",
     "description": "Vi hjälper dig med legalisering av dokument för användning utomlands. Snabbt, enkelt och säkert.",
@@ -289,7 +295,7 @@
       "timeframe": "5-7 arbetsdagar"
     },
     "chamber": {
-      "title": "Handelskammarens legalisering",
+      "title": "Handelskammare",
       "description": "Legaliserng av handelsdokument genom Handelskammaren",
       "longDescription": "Handelskammarens legalisering är en viktig tjänst för företag och organisationer som behöver få sina handelsdokument giltiga för internationell användning. Denna process verifierar äktheten av företagsdokument och kommersiella papper.",
       "price": "Från 2400 kr",
@@ -489,6 +495,11 @@
     "services": "Tjänster",
     "customerInfo": "Kunduppgifter",
     "deliveryAddress": "Leveransadress",
+    "additionalServices": "Ytterligare tjänster",
+    "additionalInfo": "Ytterligare information",
+    "invoiceInfo": "Fakturainformation",
+    "pickupAddress": "Hämtadress",
+    "uploadedFiles": "Uppladdade filer",
     "totalAmount": "Totalt belopp",
     "paymentMethod": "Betalningsmetod",
     "emailSent": "En bekräftelse har skickats till din e-post.",
@@ -946,14 +957,26 @@
     "step3": {
       "title": "Vilka tjänster behöver du?",
       "subtitle": "Baserat på ditt valda land rekommenderar vi följande tjänster.",
+      "helpMeChooseTitle": "Osäker på tjänster",
+      "helpMeChooseDescription": "Välj detta om du är osäker. En handläggare går igenom ditt ärende och kontaktar dig med förslag och pris.",
+      "translationOnRequest": "På förfrågan",
+      "notarizationDetailsTitle": "Vilken typ av notarisering behövs?",
+      "notarizationOptionSignature": "Bestyrka signatur",
+      "notarizationOptionSigningAuthority": "Verifiera rätt att signera",
+      "notarizationOptionCopy": "Bestyrka kopia",
+      "notarizationOptionUnknown": "Vet ej",
+      "notarizationOptionOther": "Annat",
+      "notarizationOptionOtherPlaceholder": "Beskriv annan typ av notarisering...",
+      "notarizationDetailsInfo": "Du kan välja flera alternativ eller markera \"Vet ej\" om du är osäker.",
+      "notarizationModalClose": "Klar",
       "selectedCountry": "Valt land: {{country}}",
       "selectedDocument": "Dokumenttyp: {{document}}",
       "nonHagueProcess": {
-        "title": "Process för icke-Haagkonventionsländer",
-        "step1": "Steg 1: Välj mellan Handelskammarens legalisering eller Notarisering",
+        "title": "Process för länder utanför Haagkonventionen",
+        "step1": "Steg 1: Välj mellan Handelskammare eller Notarisering",
         "step2": "Steg 2: Legaliserng på svenska UD",
         "step3": "Steg 3: Slutlig legalisering på ambassaden",
-        "tip": "Tips: Handelskammarens legalisering rekommenderas för företagsdokument, medan notarisering passar bättre för personliga dokument.",
+        "tip": "Tips: Handelskammare rekommenderas för handelsdokument, medan notarisering passar bättre för personliga dokument.",
         "note": "Alla tre steg krävs för att dokumentet ska vara giltigt i det valda landet."
       },
       "apostilleRecommended": "Rekommenderas för Haagkonventionsländer",

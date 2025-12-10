@@ -1,9 +1,17 @@
 module.exports = {
-  siteUrl: process.env.SITE_URL || 'https://doxvl-51a30.web.app',
-  generateRobotsTxt: false,
+  siteUrl: process.env.SITE_URL || 'https://www.doxvl.se',
+  generateRobotsTxt: true,
   changefreq: 'weekly',
   priority: 0.7,
   sitemapSize: 5000,
+  robotsTxtOptions: {
+    policies: [
+      {
+        userAgent: '*',
+        disallow: ['/admin', '/admin/*'],
+      },
+    ],
+  },
   transform: async (config, path) => {
     return {
       loc: path,

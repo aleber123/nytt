@@ -11,6 +11,11 @@ service cloud.firestore {
              ];
     }
 
+    function isDoxStaff() {
+      return request.auth != null &&
+             request.auth.token.email.matches('.*@doxvl\\.se');
+    }
+
     // PRICING – public read, only admin may change
     match /pricing/{doc} {
       allow read: if true;
@@ -131,6 +136,11 @@ service cloud.firestore {
     // ADMIN PROFILES – each admin can read/write their own profile
     match /adminProfiles/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // DRIVER REPORTS – saved från admin/driver-sidan
+    match /driverReports/{reportId} {
+      allow read, write: if isAdmin() || isDoxStaff();
     }
   }
 }

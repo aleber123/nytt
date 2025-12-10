@@ -36,12 +36,10 @@ const ServicesPage: React.FC = () => {
       try {
         setLoading(true);
         const rules = await getAllActivePricingRules();
-        console.log('📊 Services page - fetched rules:', rules.length);
         setPricingRules(rules);
 
         // Create services from pricing data
         const pricingData = getPricingData(rules);
-        console.log('📊 Services page - pricing data:', pricingData.map(p => ({ service: p.service, timeframe: p.timeframe })));
         setServices(pricingData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
           title: service.service,
@@ -57,7 +55,6 @@ const ServicesPage: React.FC = () => {
         console.error('Error fetching pricing data:', err);
         // Fallback to hardcoded data
         const fallbackData = getFallbackPricingData();
-        console.log('📊 Services page - using fallback data');
         setServices(fallbackData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
           title: service.service,
@@ -85,9 +82,6 @@ const ServicesPage: React.FC = () => {
     if (rules.length > 0) {
       // Group by service type and get average prices - filter for Sweden (SE) since admin manages Swedish services
       const swedishRules = rules.filter(rule => rule.countryCode === 'SE');
-      console.log('📊 Swedish rules found:', swedishRules.length);
-      console.log('📊 Swedish apostille rules:', swedishRules.filter(r => r.serviceType === 'apostille').map(r => ({ id: r.id, processingTime: r.processingTime })));
-      console.log('📊 All Swedish rules:', swedishRules.map(r => ({ serviceType: r.serviceType, processingTime: r.processingTime })));
 
       const serviceGroups: { [key: string]: PricingRule[] } = {};
       swedishRules.forEach(rule => {
@@ -286,7 +280,7 @@ const ServicesPage: React.FC = () => {
   return (
     <>
       <Seo
-        title={`${t('services.pageTitle', { defaultValue: 'Tjänster & Priser' })} | Legaliseringstjänst`}
+        title={`${t('services.pageTitle', { defaultValue: 'Tjänster & Priser' })} | DOX Visumpartner AB`}
         description={t('services.pageDescription', { defaultValue: 'Se våra tjänster och priser för dokumentlegalisering. Apostille, notarisering, ambassadlegalisering och auktoriserad översättning med transparent prissättning.' })}
       />
 

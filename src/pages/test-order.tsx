@@ -1589,7 +1589,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 📍 Skicka dina originaldokument till denna adress:
               </h3>
               <div className="bg-white border border-red-200 rounded-lg p-4 mb-3">
-                <div className="font-medium text-gray-900 mb-1">LegaliseringsTjänst AB</div>
+                <div className="font-medium text-gray-900 mb-1">DOX Visumpartner AB</div>
                 <div className="text-gray-700">Att: Dokumenthantering</div>
                 <div className="text-gray-700">Kungsgatan 12</div>
                 <div className="text-gray-700">111 43 Stockholm</div>

@@ -4,6 +4,8 @@
  */
 
 import Head from 'next/head';
+import { siteConfig } from '@/config/env';
+import { useTranslation } from 'next-i18next';
 
 interface OrderSEOProps {
   step?: number;
@@ -11,13 +13,38 @@ interface OrderSEOProps {
 }
 
 export const OrderSEO: React.FC<OrderSEOProps> = ({ step, totalSteps = 10 }) => {
-  const title = step 
-    ? `Beställ Legalisering - Steg ${step}/${totalSteps} | LegaliseringsTjänst AB`
-    : 'Beställ Dokumentlegalisering | LegaliseringsTjänst AB';
-  
-  const description = 'Beställ professionell legalisering av dina dokument. Apostille och ambassadlegalisering för alla länder. Snabb, säker och pålitlig service med över 1,200 nöjda kunder.';
+  const { t, i18n } = useTranslation('common');
+  const locale = i18n.language || 'sv';
 
-  const keywords = 'legalisering, apostille, ambassadlegalisering, dokumentlegalisering, UD legalisering, notarius publicus, handelskammaren, utrikesdepartementet';
+  const baseTitleText = t(
+    'seo.order.title',
+    locale.startsWith('en') ? 'Order document legalization' : 'Beställ legalisering av dokument'
+  );
+  const brandName = 'DOX Visumpartner AB';
+
+  const title = step
+    ? locale.startsWith('en')
+      ? `${baseTitleText} – Step ${step}/${totalSteps} | ${brandName}`
+      : `${baseTitleText} – Steg ${step}/${totalSteps} | ${brandName}`
+    : `${baseTitleText} | ${brandName}`;
+
+  const description = t(
+    'seo.order.description',
+    locale.startsWith('en')
+      ? 'Order professional legalization of your documents. Apostille, notarization and embassy legalization for all countries. Fast, secure and reliable service.'
+      : 'Beställ professionell legalisering av dina dokument. Apostille, notarisering och ambassadlegalisering för alla länder. Snabb, säker och pålitlig service.'
+  );
+
+  const keywords = locale.startsWith('en')
+    ? 'legalization, apostille, embassy legalization, document legalization, MFA legalization, notary public, chamber of commerce, ministry for foreign affairs'
+    : 'legalisering, apostille, ambassadlegalisering, dokumentlegalisering, UD legalisering, notarius publicus, handelskammaren, utrikesdepartementet';
+
+  const baseUrl = siteConfig.url;
+  const orderPath = '/bestall';
+  const orderUrl = `${baseUrl}${orderPath}`;
+  const ogImage = `${baseUrl}/images/og-image.jpg`;
+  const twitterImage = `${baseUrl}/images/twitter-image.jpg`;
+  const ogLocale = locale.startsWith('en') ? 'en_US' : 'sv_SE';
 
   return (
     <Head>
@@ -30,22 +57,22 @@ export const OrderSEO: React.FC<OrderSEOProps> = ({ step, totalSteps = 10 }) => 
       
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
-      <meta property="og:url" content="https://legaliseringstjanst.se/bestall" />
+      <meta property="og:url" content={orderUrl} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content="https://legaliseringstjanst.se/images/og-image.jpg" />
-      <meta property="og:locale" content="sv_SE" />
-      <meta property="og:site_name" content="LegaliseringsTjänst AB" />
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:locale" content={ogLocale} />
+      <meta property="og:site_name" content="DOX Visumpartner AB" />
       
       {/* Twitter */}
       <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:url" content="https://legaliseringstjanst.se/bestall" />
+      <meta property="twitter:url" content={orderUrl} />
       <meta property="twitter:title" content={title} />
       <meta property="twitter:description" content={description} />
-      <meta property="twitter:image" content="https://legaliseringstjanst.se/images/twitter-image.jpg" />
+      <meta property="twitter:image" content={twitterImage} />
       
       {/* Canonical URL */}
-      <link rel="canonical" href="https://legaliseringstjanst.se/bestall" />
+      <link rel="canonical" href={orderUrl} />
       
       {/* Structured Data - Service */}
       <script
@@ -58,37 +85,20 @@ export const OrderSEO: React.FC<OrderSEOProps> = ({ step, totalSteps = 10 }) => 
             "description": description,
             "provider": {
               "@type": "Organization",
-              "name": "LegaliseringsTjänst AB",
-              "url": "https://legaliseringstjanst.se",
-              "logo": "https://legaliseringstjanst.se/logo.png",
+              "name": "DOX Visumpartner AB",
+              "url": baseUrl,
+              "logo": `${baseUrl}/logo.png`,
               "contactPoint": {
                 "@type": "ContactPoint",
                 "telephone": "+46-XX-XXX-XX-XX",
                 "contactType": "Customer Service",
                 "areaServed": "SE",
                 "availableLanguage": ["Swedish", "English"]
-              },
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.8",
-                "reviewCount": "1200"
               }
             },
             "areaServed": {
               "@type": "Country",
               "name": "Sweden"
-            },
-            "offers": {
-              "@type": "Offer",
-              "price": "500",
-              "priceCurrency": "SEK",
-              "priceSpecification": {
-                "@type": "PriceSpecification",
-                "price": "500",
-                "priceCurrency": "SEK",
-                "valueAddedTaxIncluded": "false"
-              },
-              "availability": "https://schema.org/InStock"
             },
             "serviceType": "Document Legalization"
           })
@@ -107,13 +117,13 @@ export const OrderSEO: React.FC<OrderSEOProps> = ({ step, totalSteps = 10 }) => 
                 "@type": "ListItem",
                 "position": 1,
                 "name": "Hem",
-                "item": "https://legaliseringstjanst.se"
+                "item": baseUrl
               },
               {
                 "@type": "ListItem",
                 "position": 2,
                 "name": "Beställ",
-                "item": "https://legaliseringstjanst.se/bestall"
+                "item": orderUrl
               }
             ]
           })

@@ -1,5 +1,5 @@
 # 🚀 Implementationsplan - Sammanfattning
-## LegaliseringsTjänst AB
+## DOX Visumpartner AB
 
 **Skapad:** 18 November 2025  
 **Total tid:** 8-12 veckor  

@@ -89,7 +89,7 @@ export const Step2DocumentType: React.FC<StepProps> = ({
       onNext={handleNext}
       nextDisabled={!answers.documentTypes || answers.documentTypes.length === 0}
     >
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {DOCUMENT_TYPES.map((docType) => {
           const isSelected = Array.isArray(answers.documentTypes)
             ? answers.documentTypes.includes(docType.id)

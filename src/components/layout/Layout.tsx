@@ -5,6 +5,7 @@ import Header from './Header';
 import Footer from './Footer';
 import Breadcrumbs from '../ui/Breadcrumbs';
 import { useTranslation } from 'next-i18next';
+import { siteConfig } from '@/config/env';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,7 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return value === key ? fallback : value;
   };
   const router = useRouter();
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
+  const baseUrl = siteConfig.url;
   const asPath = router.asPath || '/';
   const canonicalUrl = `${baseUrl}${asPath}`;
   const pathNoLocale = asPath.replace(/^\/(sv|en)/, '');

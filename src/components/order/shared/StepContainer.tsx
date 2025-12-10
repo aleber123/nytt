@@ -17,6 +17,7 @@ interface StepContainerProps {
   backLabel?: string;
   showBack?: boolean;
   showNext?: boolean;
+  centerTitle?: boolean;
 }
 
 export const StepContainer: React.FC<StepContainerProps> = ({
@@ -29,7 +30,8 @@ export const StepContainer: React.FC<StepContainerProps> = ({
   nextLabel,
   backLabel,
   showBack = true,
-  showNext = true
+  showNext = true,
+  centerTitle = false
 }) => {
   const { t } = useTranslation('common');
 
@@ -38,7 +40,9 @@ export const StepContainer: React.FC<StepContainerProps> = ({
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
+          <h2 className={`text-2xl font-bold text-gray-900 mb-2 ${centerTitle ? 'text-center' : ''}`}>
+            {title}
+          </h2>
           {subtitle && (
             <p className="text-gray-600">{subtitle}</p>
           )}
