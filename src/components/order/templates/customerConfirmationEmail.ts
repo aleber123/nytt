@@ -160,6 +160,13 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
 
       <p>You will receive your legalized documents via <strong>${returnService}</strong>.</p>
 
+      <div class="order-tracking" style="background:#f0fdf4; border:2px solid #22c55e; border-radius:8px; padding:20px; margin:22px 0; text-align:center;">
+        <h3 style="color:#166534; margin:0 0 10px; font-size:17px;">📍 Track Your Order</h3>
+        <p style="color:#15803d; margin:0 0 14px; font-size:14px;">Follow the progress of your order in real-time:</p>
+        <a href="https://www.doxvl.se/orderstatus?order=${orderId}" style="display:inline-block; background:#22c55e; color:#fff; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:700; font-size:15px;">Track Order Status</a>
+        <p style="color:#6b7280; margin:14px 0 0; font-size:12px;">Use your email address to verify and view status</p>
+      </div>
+
       <div class="contact-info">
         <h3>Questions?</h3>
         <p>Feel free to contact us:</p>
@@ -258,6 +265,13 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
         </div>`}
 
       <p>Du kommer att få dina legaliserade dokument returnerade via <strong>${returnService}</strong>.</p>
+
+      <div class="order-tracking" style="background:#f0fdf4; border:2px solid #22c55e; border-radius:8px; padding:20px; margin:22px 0; text-align:center;">
+        <h3 style="color:#166534; margin:0 0 10px; font-size:17px;">📍 Följ din order</h3>
+        <p style="color:#15803d; margin:0 0 14px; font-size:14px;">Följ ditt ärende i realtid:</p>
+        <a href="https://www.doxvl.se/orderstatus?order=${orderId}" style="display:inline-block; background:#22c55e; color:#fff; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:700; font-size:15px;">Se orderstatus</a>
+        <p style="color:#6b7280; margin:14px 0 0; font-size:12px;">Använd din e-postadress för att verifiera och se status</p>
+      </div>
 
       <div class="contact-info">
         <h3>Har du frågor?</h3>

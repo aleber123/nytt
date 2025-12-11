@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Order } from '@/firebase/orderService';
@@ -11,8 +12,16 @@ interface OrderStatusProps {}
 
 const OrderStatusPage: React.FC<OrderStatusProps> = () => {
   const { t } = useTranslation('common');
+  const router = useRouter();
   const [orderNumber, setOrderNumber] = useState('');
   const [email, setEmail] = useState('');
+
+  // Pre-fill order number from URL query parameter
+  useEffect(() => {
+    if (router.isReady && router.query.order) {
+      setOrderNumber(router.query.order as string);
+    }
+  }, [router.isReady, router.query.order]);
   const [orderStatus, setOrderStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');

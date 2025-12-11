@@ -55,8 +55,6 @@ function DriverDashboardPage() {
   const [monthlySummary, setMonthlySummary] = useState<DriverMonthlySummary | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
-  console.log('🚗 DriverDashboardPage component mounted');
-
   const getCountryInfo = (codeOrName: string | undefined | null) => {
     const value = (codeOrName || '').trim();
     if (!value) return { code: '', name: '', flag: '🌍' };
@@ -923,16 +921,16 @@ function DriverDashboardPage() {
                               text-align: right;
                             }
                             .authority {
-                              margin-bottom: 25px;
+                              margin-bottom: 30px;
                               page-break-inside: avoid;
                             }
                             .authority-title {
-                              font-size: 16pt;
+                              font-size: 18pt;
                               font-weight: bold;
                               margin-bottom: 15px;
                               color: #0ea5e9;
-                              border-bottom: 2px solid #0ea5e9;
-                              padding-bottom: 5px;
+                              border-bottom: 3px solid #0ea5e9;
+                              padding-bottom: 8px;
                             }
                             .summary {
                               background: #f8f9fa;
@@ -941,17 +939,84 @@ function DriverDashboardPage() {
                               border-radius: 6px;
                               border-left: 4px solid #0ea5e9;
                             }
+                            .task-section {
+                              margin-bottom: 20px;
+                            }
+                            .section-header {
+                              font-size: 13pt;
+                              font-weight: bold;
+                              padding: 8px 12px;
+                              border-radius: 6px;
+                              margin-bottom: 10px;
+                            }
+                            .section-header.delivery {
+                              background: #fff7ed;
+                              color: #c2410c;
+                              border-left: 4px solid #ea580c;
+                            }
+                            .section-header.pickup {
+                              background: #f0fdf4;
+                              color: #166534;
+                              border-left: 4px solid #22c55e;
+                            }
+                            .task-card {
+                              display: flex;
+                              align-items: flex-start;
+                              padding: 12px;
+                              margin-bottom: 8px;
+                              background: #fff;
+                              border: 1px solid #e5e7eb;
+                              border-radius: 6px;
+                            }
+                            .checkbox-area {
+                              font-size: 24px;
+                              margin-right: 15px;
+                              color: #9ca3af;
+                              min-width: 30px;
+                            }
+                            .task-content {
+                              flex: 1;
+                            }
+                            .task-header {
+                              display: flex;
+                              gap: 15px;
+                              margin-bottom: 4px;
+                            }
+                            .order-num {
+                              font-weight: bold;
+                              color: #0ea5e9;
+                              font-size: 12pt;
+                            }
+                            .customer {
+                              font-weight: 600;
+                              color: #1f2937;
+                              font-size: 12pt;
+                            }
+                            .task-detail {
+                              color: #6b7280;
+                              font-size: 11pt;
+                            }
+                            .task-notes {
+                              margin-top: 6px;
+                              padding: 6px 10px;
+                              background: #fef3c7;
+                              border-radius: 4px;
+                              font-size: 10pt;
+                              color: #92400e;
+                            }
                             .footer {
                               margin-top: 40px;
                               background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
                               color: white;
-                              padding: 25px;
+                              padding: 20px;
                               text-align: center;
                               border-radius: 0 0 8px 8px;
+                              font-size: 11pt;
                             }
                             @media print {
                               body { margin: 0; padding: 10px; }
                               .authority { break-inside: avoid; }
+                              .task-card { break-inside: avoid; }
                             }
                           </style>
                         </head>
@@ -981,34 +1046,52 @@ function DriverDashboardPage() {
                               <strong>Dagens uppgifter</strong>
                             </div>
 
-                          ${Object.entries(groupedTasks).map(([authority, authorityTasks]) => `
+                          ${Object.entries(groupedTasks).map(([authority, authorityTasks]) => {
+                            const deliveryTasks = authorityTasks.filter(t => t.type === 'delivery');
+                            const pickupTasks = authorityTasks.filter(t => t.type === 'pickup');
+                            return `
                             <div class="authority">
                               <div class="authority-title">📍 ${authority}</div>
-                              <table>
-                                <thead>
-                                  <tr>
-                                    <th>Order</th>
-                                    <th>Kund</th>
-                                    <th>Typ</th>
-                                    <th>Adress/Uppgift</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  ${authorityTasks.map(task => `
-                                    <tr>
-                                      <td>${task.orderNumber}</td>
-                                      <td>${task.customerName}</td>
-                                      <td>${task.type === 'pickup' ? '📦 Hämta' : '📤 Lämna'}</td>
-                                      <td>
-                                        ${task.address || 'Ej specificerad'}<br>
-                                        <small style="color: #6c757d;">${task.stepName}</small>
-                                      </td>
-                                    </tr>
-                                  `).join('')}
-                                </tbody>
-                              </table>
+                              
+                              ${deliveryTasks.length > 0 ? `
+                              <div class="task-section">
+                                <div class="section-header delivery">📤 LÄMNA IN (${deliveryTasks.length})</div>
+                                ${deliveryTasks.map(task => `
+                                <div class="task-card">
+                                  <div class="checkbox-area">☐</div>
+                                  <div class="task-content">
+                                    <div class="task-header">
+                                      <span class="order-num">#${task.orderNumber}</span>
+                                      <span class="customer">${task.customerName}</span>
+                                    </div>
+                                    <div class="task-detail">${task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim()}</div>
+                                    ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
+                                  </div>
+                                </div>
+                                `).join('')}
+                              </div>
+                              ` : ''}
+                              
+                              ${pickupTasks.length > 0 ? `
+                              <div class="task-section">
+                                <div class="section-header pickup">📦 HÄMTA (${pickupTasks.length})</div>
+                                ${pickupTasks.map(task => `
+                                <div class="task-card">
+                                  <div class="checkbox-area">☐</div>
+                                  <div class="task-content">
+                                    <div class="task-header">
+                                      <span class="order-num">#${task.orderNumber}</span>
+                                      <span class="customer">${task.customerName}</span>
+                                    </div>
+                                    <div class="task-detail">${task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim()}</div>
+                                    ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
+                                  </div>
+                                </div>
+                                `).join('')}
+                              </div>
+                              ` : ''}
                             </div>
-                          `).join('')}
+                          `}).join('')}
 
                           <div class="footer">
                             <p>DOX Visumpartner AB | Org.nr: 559015-4521</p>
@@ -1079,170 +1162,6 @@ function DriverDashboardPage() {
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Daily report: hours & expenses (mobile-friendly) */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">
-              Dagsrapport – timmar & utlägg
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Fyll i dina timmar och utlägg för <span className="font-medium">{formatDate(selectedDate)}</span>. 
-              Spara dagsrapporten varje arbetsdag, och i slutet av månaden kan du öppna en månadssammanställning som färdigt mail till kontoret.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Antal timmar
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.25"
-                  value={hoursWorked}
-                  onChange={(e) => setHoursWorked(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 7.5"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Parkering (kr)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  value={parkingCost}
-                  onChange={(e) => setParkingCost(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 120"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ambassadutlägg (kr)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  value={embassyCost}
-                  onChange={(e) => setEmbassyCost(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 300"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Övriga utlägg (kr)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  value={otherCost}
-                  onChange={(e) => setOtherCost(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 0"
-                />
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kommentar (valfritt)
-              </label>
-              <textarea
-                rows={3}
-                value={driverNotes}
-                onChange={(e) => setDriverNotes(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="T.ex. vilken ambassad, extra info om parkering eller körningar..."
-              />
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
-              <button
-                type="button"
-                onClick={handleSaveDailyReport}
-                disabled={isSavingDailyReport}
-                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSavingDailyReport ? 'Sparar dagsrapport…' : 'Spara dagsrapport'}
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenMonthlyReportEmail}
-                disabled={isOpeningMonthlyEmail}
-                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isOpeningMonthlyEmail ? 'Öppnar månadssammanställning…' : 'Öppna månadssammanställning'}
-              </button>
-            </div>
-            {saveDailyMessage && (
-              <p className="mt-3 text-sm text-gray-600">{saveDailyMessage}</p>
-            )}
-            {monthlyMessage && (
-              <p className="mt-1 text-sm text-gray-600">{monthlyMessage}</p>
-            )}
-
-            {monthlySummary && (
-              <div className="mt-6 border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                  {`Sparade dagsrapporter – ${new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}`}
-                </h3>
-
-                {isLoadingSummary ? (
-                  <p className="text-sm text-gray-500">Laddar sparade rapporter…</p>
-                ) : monthlySummary.reports.length === 0 ? (
-                  <p className="text-sm text-gray-500">Inga sparade dagsrapporter för denna månad.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200 bg-gray-50">
-                          <th className="px-2 py-1 text-left font-medium text-gray-700">Datum</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Timmar</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Parkering</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Ambassad</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Övrigt</th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-700">Kommentar</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {monthlySummary.reports.map((report) => (
-                          <tr
-                            key={report.id || report.date}
-                            className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => {
-                              setSelectedDate(report.date);
-                              setHoursWorked(report.hoursWorked.toString());
-                              setParkingCost(report.parkingCost.toString());
-                              setEmbassyCost(report.embassyCost.toString());
-                              setOtherCost(report.otherCost.toString());
-                              setDriverNotes(report.notes || '');
-                            }}
-                          >
-                            <td className="px-2 py-1 whitespace-nowrap">{report.date}</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.hoursWorked.toLocaleString('sv-SE')}</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.parkingCost} kr</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.embassyCost} kr</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.otherCost} kr</td>
-                            <td className="px-2 py-1 text-left max-w-xs truncate" title={report.notes || ''}>{report.notes || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {loading ? (
@@ -1608,6 +1527,170 @@ function DriverDashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Daily report: hours & expenses (mobile-friendly) - moved below tasks */}
+          <div className="bg-white rounded-lg shadow p-6 mt-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              Dagsrapport – timmar & utlägg
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Fyll i dina timmar och utlägg för <span className="font-medium">{formatDate(selectedDate)}</span>. 
+              Spara dagsrapporten varje arbetsdag, och i slutet av månaden kan du öppna en månadssammanställning som färdigt mail till kontoret.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Antal timmar
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.25"
+                  value={hoursWorked}
+                  onChange={(e) => setHoursWorked(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 7.5"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Parkering (kr)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  value={parkingCost}
+                  onChange={(e) => setParkingCost(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 120"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ambassadutlägg (kr)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  value={embassyCost}
+                  onChange={(e) => setEmbassyCost(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 300"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Övriga utlägg (kr)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  value={otherCost}
+                  onChange={(e) => setOtherCost(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="t.ex. 0"
+                />
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kommentar (valfritt)
+              </label>
+              <textarea
+                rows={3}
+                value={driverNotes}
+                onChange={(e) => setDriverNotes(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="T.ex. vilken ambassad, extra info om parkering eller körningar..."
+              />
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+              <button
+                type="button"
+                onClick={handleSaveDailyReport}
+                disabled={isSavingDailyReport}
+                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingDailyReport ? 'Sparar dagsrapport…' : 'Spara dagsrapport'}
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenMonthlyReportEmail}
+                disabled={isOpeningMonthlyEmail}
+                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isOpeningMonthlyEmail ? 'Öppnar månadssammanställning…' : 'Öppna månadssammanställning'}
+              </button>
+            </div>
+            {saveDailyMessage && (
+              <p className="mt-3 text-sm text-gray-600">{saveDailyMessage}</p>
+            )}
+            {monthlyMessage && (
+              <p className="mt-1 text-sm text-gray-600">{monthlyMessage}</p>
+            )}
+
+            {monthlySummary && (
+              <div className="mt-6 border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  {`Sparade dagsrapporter – ${new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}`}
+                </h3>
+
+                {isLoadingSummary ? (
+                  <p className="text-sm text-gray-500">Laddar sparade rapporter…</p>
+                ) : monthlySummary.reports.length === 0 ? (
+                  <p className="text-sm text-gray-500">Inga sparade dagsrapporter för denna månad.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          <th className="px-2 py-1 text-left font-medium text-gray-700">Datum</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Timmar</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Parkering</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Ambassad</th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">Övrigt</th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-700">Kommentar</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {monthlySummary.reports.map((report) => (
+                          <tr
+                            key={report.id || report.date}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => {
+                              setSelectedDate(report.date);
+                              setHoursWorked(report.hoursWorked.toString());
+                              setParkingCost(report.parkingCost.toString());
+                              setEmbassyCost(report.embassyCost.toString());
+                              setOtherCost(report.otherCost.toString());
+                              setDriverNotes(report.notes || '');
+                            }}
+                          >
+                            <td className="px-2 py-1 whitespace-nowrap">{report.date}</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.hoursWorked.toLocaleString('sv-SE')}</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.parkingCost} kr</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.embassyCost} kr</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.otherCost} kr</td>
+                            <td className="px-2 py-1 text-left max-w-xs truncate" title={report.notes || ''}>{report.notes || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Footer sections like order management */}
           <div className="mt-8 space-y-6">
