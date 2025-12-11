@@ -6,9 +6,12 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getFirebaseDb } from '@/firebase/config';
+import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, addDoc } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
+
+// Generate UUID using Node.js crypto
+const generateToken = () => crypto.randomUUID();
 
 interface SendConfirmationRequest {
   orderId: string;
@@ -19,37 +22,70 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  console.log('📧 Address confirmation API called');
+  console.log('📧 Method:', req.method);
+  console.log('📧 Body:', JSON.stringify(req.body));
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { orderId, type } = req.body as SendConfirmationRequest;
+  console.log('📧 orderId:', orderId, 'type:', type);
 
   if (!orderId || !type) {
+    console.log('📧 ERROR: Missing orderId or type');
     return res.status(400).json({ error: 'orderId och type krävs' });
   }
 
   if (type !== 'pickup' && type !== 'return') {
+    console.log('📧 ERROR: Invalid type');
     return res.status(400).json({ error: 'type måste vara "pickup" eller "return"' });
   }
 
-  const db = getFirebaseDb();
+  console.log('📧 Checking db:', !!db);
   if (!db) {
+    console.log('📧 ERROR: Database not available');
     return res.status(500).json({ error: 'Database not available' });
   }
 
   try {
-    // Get order details
-    const orderRef = doc(db, 'orders', orderId);
-    const orderSnap = await getDoc(orderRef);
+    console.log('📧 Getting order:', orderId);
+    
+    // Try to get order by document ID first
+    let orderRef = doc(db, 'orders', orderId);
+    let orderSnap = await getDoc(orderRef);
+    let actualOrderId = orderId;
+    
+    // If not found, try to find by orderNumber
+    if (!orderSnap.exists()) {
+      console.log('📧 Order not found by ID, searching by orderNumber...');
+      const { query, where, getDocs } = await import('firebase/firestore');
+      const ordersRef = collection(db, 'orders');
+      const q = query(ordersRef, where('orderNumber', '==', orderId));
+      const querySnap = await getDocs(q);
+      
+      if (!querySnap.empty) {
+        const foundDoc = querySnap.docs[0];
+        orderSnap = foundDoc;
+        actualOrderId = foundDoc.id;
+        orderRef = doc(db, 'orders', actualOrderId);
+        console.log('📧 Found order by orderNumber, actual ID:', actualOrderId);
+      }
+    }
+    
+    console.log('📧 Order exists:', orderSnap.exists());
 
     if (!orderSnap.exists()) {
+      console.log('📧 ERROR: Order not found');
       return res.status(404).json({ error: 'Order hittades inte' });
     }
 
     const order = orderSnap.data();
-    const customerEmail = order.customerInfo?.email;
-    const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
+    console.log('📧 Order data keys:', Object.keys(order || {}));
+    const customerEmail = order?.customerInfo?.email;
+    console.log('📧 Customer email:', customerEmail);
+    const customerName = `${order?.customerInfo?.firstName || ''} ${order?.customerInfo?.lastName || ''}`.trim();
 
     if (!customerEmail) {
       return res.status(400).json({ error: 'Kunden har ingen e-postadress' });
@@ -58,38 +94,41 @@ export default async function handler(
     // Get the address to confirm
     let address;
     if (type === 'pickup') {
-      const pa = order.pickupAddress || {};
+      const pa = order?.pickupAddress || {};
       address = {
-        street: pa.street || order.customerInfo?.address || '',
-        postalCode: pa.postalCode || order.customerInfo?.postalCode || '',
-        city: pa.city || order.customerInfo?.city || '',
+        street: pa.street || order?.customerInfo?.address || '',
+        postalCode: pa.postalCode || order?.customerInfo?.postalCode || '',
+        city: pa.city || order?.customerInfo?.city || '',
         country: pa.country || 'Sverige',
-        companyName: pa.company || order.customerInfo?.companyName || '',
+        companyName: pa.company || order?.customerInfo?.companyName || '',
         contactName: pa.name || customerName,
-        phone: order.customerInfo?.phone || ''
+        phone: order?.customerInfo?.phone || ''
       };
     } else {
       address = {
-        street: order.customerInfo?.address || '',
-        postalCode: order.customerInfo?.postalCode || '',
-        city: order.customerInfo?.city || '',
-        country: order.customerInfo?.country || 'Sverige',
-        companyName: order.customerInfo?.companyName || '',
+        street: order?.customerInfo?.address || '',
+        postalCode: order?.customerInfo?.postalCode || '',
+        city: order?.customerInfo?.city || '',
+        country: order?.customerInfo?.country || 'Sverige',
+        companyName: order?.customerInfo?.companyName || '',
         contactName: customerName,
-        phone: order.customerInfo?.phone || ''
+        phone: order?.customerInfo?.phone || ''
       };
     }
 
     // Generate unique token
-    const token = uuidv4();
+    console.log('📧 Generating token...');
+    const token = generateToken();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+    console.log('📧 Token generated:', token);
 
     // Store confirmation record
+    console.log('📧 Storing confirmation record...');
     const confirmationRef = collection(db, 'addressConfirmations');
     await addDoc(confirmationRef, {
-      orderId,
-      orderNumber: order.orderNumber,
+      orderId: actualOrderId,
+      orderNumber: order?.orderNumber || orderId,
       type,
       address,
       confirmed: false,
@@ -99,55 +138,50 @@ export default async function handler(
       customerEmail,
       customerName
     });
+    console.log('📧 Confirmation record stored');
 
     // Create confirmation URL
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://doxvl.se';
     const confirmationUrl = `${baseUrl}/confirm-address/${token}`;
+    console.log('📧 Confirmation URL:', confirmationUrl);
 
-    // Queue email
-    const emailsRef = collection(db, 'emailQueue');
+    // Queue email using customerEmails collection (same as other emails)
+    console.log('📧 Queueing email...');
+    const emailsRef = collection(db, 'customerEmails');
+    const orderNum = order?.orderNumber || orderId;
+    // Get order locale for email language
+    const orderLocale = order?.locale || 'sv';
+    const isEnglish = orderLocale === 'en';
+    
     const emailSubject = type === 'pickup' 
-      ? `Bekräfta upphämtningsadress - Order ${order.orderNumber}`
-      : `Bekräfta returadress - Order ${order.orderNumber}`;
+      ? (isEnglish ? `Confirm pickup address - Order ${orderNum}` : `Bekräfta upphämtningsadress - Order ${orderNum}`)
+      : (isEnglish ? `Confirm return address - Order ${orderNum}` : `Bekräfta returadress - Order ${orderNum}`);
 
-    const addressTypeText = type === 'pickup' ? 'upphämtningsadress' : 'returadress';
-    const addressTypeTextEn = type === 'pickup' ? 'pickup address' : 'return address';
+    const addressTypeText = type === 'pickup' 
+      ? (isEnglish ? 'pickup address' : 'upphämtningsadress')
+      : (isEnglish ? 'return address' : 'returadress');
 
     await addDoc(emailsRef, {
-      to: customerEmail,
+      name: customerName,
+      email: customerEmail,
+      phone: order?.customerInfo?.phone || '',
       subject: emailSubject,
-      template: 'address-confirmation',
-      templateData: {
+      message: generateEmailHtml({
         customerName,
-        orderNumber: order.orderNumber,
-        addressType: addressTypeText,
-        addressTypeEn: addressTypeTextEn,
-        address: {
-          companyName: address.companyName,
-          contactName: address.contactName,
-          street: address.street,
-          postalCode: address.postalCode,
-          city: address.city,
-          country: address.country,
-          phone: address.phone
-        },
-        confirmationUrl,
-        expiresAt: expiresAt.toISOString()
-      },
-      html: generateEmailHtml({
-        customerName,
-        orderNumber: order.orderNumber,
+        orderNumber: orderNum,
         addressType: addressTypeText,
         address,
-        confirmationUrl
+        confirmationUrl,
+        locale: orderLocale
       }),
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      orderId,
-      type: 'address_confirmation'
+      orderId: actualOrderId,
+      createdAt: new Date(),
+      status: 'unread'
     });
+    console.log('📧 Email queued successfully');
 
     // Update order to track that confirmation was sent
+    console.log('📧 Updating order...');
     const updateField = type === 'pickup' 
       ? 'pickupAddressConfirmationSent' 
       : 'returnAddressConfirmationSent';
@@ -156,15 +190,23 @@ export default async function handler(
       [updateField]: true,
       [`${updateField}At`]: new Date().toISOString()
     }, { merge: true });
+    console.log('📧 Order updated');
 
+    console.log('📧 SUCCESS - returning response');
+    const successMsg = isEnglish 
+      ? `Confirmation email for ${addressTypeText} has been sent to ${customerEmail}`
+      : `Bekräftelsemail för ${addressTypeText} har skickats till ${customerEmail}`;
     return res.status(200).json({
       success: true,
-      message: `Bekräftelsemail för ${addressTypeText} har skickats till ${customerEmail}`,
+      message: successMsg,
       confirmationUrl // For testing purposes
     });
 
   } catch (error: any) {
-    console.error('Send confirmation error:', error);
+    console.error('📧 ERROR in catch block:', error);
+    console.error('📧 Error name:', error.name);
+    console.error('📧 Error message:', error.message);
+    console.error('📧 Error stack:', error.stack);
     return res.status(500).json({ error: 'Ett fel uppstod', details: error.message });
   }
 }
@@ -176,11 +218,12 @@ function generateEmailHtml(data: {
   addressType: string;
   address: any;
   confirmationUrl: string;
+  locale: string;
 }): string {
-  const { customerName, orderNumber, addressType, address, confirmationUrl } = data;
+  const { customerName, orderNumber, addressType, address, confirmationUrl, locale } = data;
   
-  // Determine language based on addressType (Swedish text = Swedish email)
-  const isSwedish = addressType.includes('adress');
+  // Determine language based on order locale
+  const isSwedish = locale !== 'en';
   
   const title = isSwedish ? 'Bekräfta din adress' : 'Confirm your address';
   const greeting = isSwedish ? `Hej ${customerName}!` : `Dear ${customerName},`;

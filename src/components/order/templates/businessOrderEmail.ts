@@ -1,6 +1,7 @@
 /**
  * Business Order Email Template
  * HTML email sent to business inbox when a new order is placed
+ * Language: English (internal company language)
  */
 
 interface BusinessEmailParams {
@@ -55,37 +56,37 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
     premiumPickup
   } = params;
 
-  const date = new Date().toLocaleDateString('sv-SE');
+  const date = new Date().toLocaleDateString('en-GB');
   
   // Get pickup method display name
   const getPickupMethodName = (method?: string): string => {
     const methods: { [key: string]: string } = {
-      'dhl-sweden': 'DHL Sverige',
-      'dhl-europe': 'DHL Europa',
-      'dhl-worldwide': 'DHL Världen',
-      'stockholm-city': 'Stockholm City Bud'
+      'dhl-sweden': 'DHL Sweden',
+      'dhl-europe': 'DHL Europe',
+      'dhl-worldwide': 'DHL Worldwide',
+      'stockholm-city': 'Stockholm City Courier'
     };
-    return method ? methods[method] || method : 'Ej angiven';
+    return method ? methods[method] || method : 'Not specified';
   };
 
   // Get premium pickup display name
   const getPremiumPickupName = (premium?: string): string => {
     const premiums: { [key: string]: string } = {
-      'dhl-pre-12': 'DHL Express före 12:00',
-      'dhl-pre-9': 'DHL Express före 09:00',
+      'dhl-pre-12': 'DHL Express before 12:00',
+      'dhl-pre-9': 'DHL Express before 09:00',
       'stockholm-express': 'Stockholm Express',
-      'stockholm-sameday': 'Stockholm Samma dag'
+      'stockholm-sameday': 'Stockholm Same Day'
     };
     return premium ? premiums[premium] || premium : '';
   };
 
   return `
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ny beställning order #${orderId} | DOX Visumpartner AB</title>
+  <title>New Order #${orderId} | DOX Visumpartner AB</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px; }
     .wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
@@ -111,7 +112,7 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
 <body>
   <div class="wrap">
     <div class="header">
-      <h1>Ny beställning${pickupService ? ' 📦 UPPHÄMTNING BESTÄLLD' : ''}</h1>
+      <h1>New Order${pickupService ? ' 📦 PICKUP REQUESTED' : ''}</h1>
     </div>
     <div class="content">
       <div class="badge">Order #${orderId}</div>
@@ -121,17 +122,17 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
       <div class="pickup-alert">
         <div class="pickup-alert-header">
           <span class="pickup-alert-icon">🚚</span>
-          <h2 class="pickup-alert-title">UPPHÄMTNING BESTÄLLD!</h2>
+          <h2 class="pickup-alert-title">PICKUP REQUESTED!</h2>
         </div>
         <p style="margin:0 0 8px 0; color:#92400E; font-weight:600;">
-          Kunden har beställt att vi hämtar dokumenten. Boka DHL-upphämtning!
+          Customer has requested document pickup. Book DHL pickup!
         </p>
-        <div class="row" style="border:none; padding:4px 0;"><span class="label">Upphämtningstjänst</span><span class="value">${getPickupMethodName(pickupMethod)}</span></div>
+        <div class="row" style="border:none; padding:4px 0;"><span class="label">Pickup Service</span><span class="value">${getPickupMethodName(pickupMethod)}</span></div>
         ${premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(premiumPickup)}</span></div>` : ''}
         
         ${pickupAddress ? `
         <div class="pickup-address">
-          <div style="font-weight:700; margin-bottom:8px; color:#92400E;">📍 Hämtningsadress:</div>
+          <div style="font-weight:700; margin-bottom:8px; color:#92400E;">📍 Pickup Address:</div>
           ${pickupAddress.company ? `<div style="font-weight:700;">${pickupAddress.company}</div>` : ''}
           <div>${pickupAddress.name}</div>
           <div>${pickupAddress.street}</div>
@@ -142,43 +143,43 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
       ` : ''}
 
       <div class="section">
-        <div class="row"><span class="label">Datum</span><span class="value">${date}</span></div>
-        <div class="row"><span class="label">Land</span><span class="value">${countryName}</span></div>
-        <div class="row"><span class="label">Dokumenttyp</span><span class="value">${documentType}</span></div>
-        <div class="row"><span class="label">Antal dokument</span><span class="value">${quantity} st</span></div>
-        <div class="row"><span class="label">Valda tjänster</span><span class="value">${services}</span></div>
-        <div class="row"><span class="label">Totalbelopp</span><span class="value">${totalPrice} kr</span></div>
-        <div class="row"><span class="label">Dokumentkälla</span><span class="value">${documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}</span></div>
-        <div class="row"><span class="label">Upphämtning</span><span class="value" style="${pickupService ? 'color:#D97706; font-weight:800;' : ''}">${pickupService ? '✅ JA - BOKA UPPHÄMTNING' : '❌ Nej'}</span></div>
-        <div class="row"><span class="label">Returfrakt</span><span class="value">${returnService}</span></div>
+        <div class="row"><span class="label">Date</span><span class="value">${date}</span></div>
+        <div class="row"><span class="label">Country</span><span class="value">${countryName}</span></div>
+        <div class="row"><span class="label">Document Type</span><span class="value">${documentType}</span></div>
+        <div class="row"><span class="label">Quantity</span><span class="value">${quantity} pcs</span></div>
+        <div class="row"><span class="label">Selected Services</span><span class="value">${services}</span></div>
+        <div class="row"><span class="label">Total Amount</span><span class="value">${totalPrice} SEK</span></div>
+        <div class="row"><span class="label">Document Source</span><span class="value">${documentSource === 'original' ? 'Original Documents' : 'Uploaded Files'}</span></div>
+        <div class="row"><span class="label">Pickup</span><span class="value" style="${pickupService ? 'color:#D97706; font-weight:800;' : ''}">${pickupService ? '✅ YES - BOOK PICKUP' : '❌ No'}</span></div>
+        <div class="row"><span class="label">Return Shipping</span><span class="value">${returnService}</span></div>
       </div>
 
       <div class="section">
-        <div class="row"><span class="label">Kund</span><span class="value">${customerName}</span></div>
-        <div class="row"><span class="label">E-post</span><span class="value">${customerEmail}</span></div>
-        <div class="row"><span class="label">Telefon</span><span class="value">${customerPhone || '-'}</span></div>
-        <div class="row"><span class="label">Adress</span><span class="value">${customerAddress}</span></div>
-        ${invoiceReference ? `<div class="row"><span class="label">Fakturareferens</span><span class="value">${invoiceReference}</span></div>` : ''}
+        <div class="row"><span class="label">Customer</span><span class="value">${customerName}</span></div>
+        <div class="row"><span class="label">Email</span><span class="value">${customerEmail}</span></div>
+        <div class="row"><span class="label">Phone</span><span class="value">${customerPhone || '-'}</span></div>
+        <div class="row"><span class="label">Address</span><span class="value">${customerAddress}</span></div>
+        ${invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${invoiceReference}</span></div>` : ''}
       </div>
 
       ${documentSource === 'original' && !pickupService ? `
       <div class="section">
-        <div class="label" style="margin-bottom:6px;">Inkommande postadress (kund skickar själv)</div>
+        <div class="label" style="margin-bottom:6px;">Incoming Mail Address (customer sends themselves)</div>
         <div class="address">
           DOX Visumpartner AB<br/>
-          Att: Dokumenthantering<br/>
+          Attn: Document Processing<br/>
           Box 38<br/>
           121 25 Stockholm-Globen<br/>
-          Sverige
+          Sweden
         </div>
-        <a class="button" href="${siteUrl}/shipping-label?orderId=${orderId}" target="_blank" rel="noopener">Skriv ut fraktsedel</a>
-        <div class="muted">Be kunden alltid märka med Order #${orderId} och skicka med REK.</div>
+        <a class="button" href="${siteUrl}/shipping-label?orderId=${orderId}" target="_blank" rel="noopener">Print Shipping Label</a>
+        <div class="muted">Always ask customer to mark with Order #${orderId} and send via registered mail.</div>
       </div>
       ` : ''}
 
-      ${additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Övriga kommentarer</div><div class="value" style="font-weight:500;">${additionalNotes}</div></div>` : ''}
+      ${additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Additional Notes</div><div class="value" style="font-weight:500;">${additionalNotes}</div></div>` : ''}
 
-      <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
+      <div class="muted">DOX Visumpartner AB • info@doxvl.se • +46 8 409 419 00</div>
     </div>
   </div>
 </body>

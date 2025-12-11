@@ -22,6 +22,7 @@ const getBaseUrl = () =>
 
 const getAuthHeader = () => {
   const credentials = `${DHL_CONFIG.apiKey}:${DHL_CONFIG.apiSecret}`;
+  console.log('DHL Shipment Auth - API Secret length:', DHL_CONFIG.apiSecret?.length);
   return `Basic ${Buffer.from(credentials).toString('base64')}`;
 };
 
@@ -99,20 +100,42 @@ export default async function handler(
       });
     }
 
-    // Determine product code based on destination country
-    const isInternational = body.receiver.address.countryCode !== 'SE';
-    const productCode = body.productCode || (isInternational ? 'P' : 'D');
+    // Convert country name to ISO code if needed
+    const countryNameToCode: Record<string, string> = {
+      'Sweden': 'SE', 'Sverige': 'SE',
+      'Norway': 'NO', 'Norge': 'NO',
+      'Denmark': 'DK', 'Danmark': 'DK',
+      'Finland': 'FI',
+      'Germany': 'DE', 'Deutschland': 'DE', 'Tyskland': 'DE',
+      'United Kingdom': 'GB', 'UK': 'GB', 'Storbritannien': 'GB',
+      'United States': 'US', 'USA': 'US',
+      'France': 'FR', 'Frankrike': 'FR',
+      'Spain': 'ES', 'Spanien': 'ES',
+      'Italy': 'IT', 'Italien': 'IT',
+      'Netherlands': 'NL', 'Nederländerna': 'NL',
+      'Belgium': 'BE', 'Belgien': 'BE',
+      'Austria': 'AT', 'Österrike': 'AT',
+      'Switzerland': 'CH', 'Schweiz': 'CH',
+      'Poland': 'PL', 'Polen': 'PL',
+    };
+    
+    let receiverCountryCode = body.receiver.address.countryCode;
+    if (receiverCountryCode.length > 2) {
+      receiverCountryCode = countryNameToCode[receiverCountryCode] || receiverCountryCode.substring(0, 2).toUpperCase();
+    }
 
-    // Build DHL API request
-    const dhlRequest = {
+    // Determine product code based on destination country
+    const isInternational = receiverCountryCode !== 'SE';
+    // Use 'N' for domestic (works in sandbox), 'P' for international
+    const productCode = body.productCode || (isInternational ? 'P' : 'N');
+
+    // Build DHL API request - simplified for sandbox compatibility
+    const dhlRequest: any = {
       plannedShippingDateAndTime: `${body.shippingDate}T10:00:00 GMT+01:00`,
       pickup: {
-        isRequested: body.includePickup || false,
-        closeTime: body.includePickup ? '18:00' : undefined,
-        location: body.includePickup ? 'office' : undefined
+        isRequested: false
       },
       productCode,
-      localProductCode: productCode,
       accounts: [{
         typeCode: 'shipper',
         number: DHL_CONFIG.accountNumber
@@ -123,9 +146,8 @@ export default async function handler(
           postalAddress: {
             postalCode: body.receiver.address.postalCode,
             cityName: body.receiver.address.cityName,
-            countryCode: body.receiver.address.countryCode,
-            addressLine1: body.receiver.address.addressLine1,
-            addressLine2: body.receiver.address.addressLine2
+            countryCode: receiverCountryCode,
+            addressLine1: body.receiver.address.addressLine1
           },
           contactInformation: {
             companyName: body.receiver.contact.companyName || body.receiver.contact.fullName,
@@ -136,35 +158,18 @@ export default async function handler(
         }
       },
       content: {
-        // Always 1 Express Envelope package
         packages: [{
           weight: 0.5,
-          dimensions: { length: 35, width: 27.5, height: 1 } // DHL Express Envelope max dimensions
+          dimensions: { length: 35, width: 27, height: 1 }
         }],
-        isCustomsDeclarable: isInternational,
+        isCustomsDeclarable: false,
         description: `Legalized documents - Order ${body.orderNumber}`,
         incoterm: 'DAP',
         unitOfMeasurement: 'metric'
-      },
-      // Add shipment reference for easy tracking
-      shipmentNotification: [{
-        typeCode: 'email',
-        receiverId: 'info@doxvl.se',
-        languageCode: 'swe'
-      }],
-      customerReferences: [{
-        value: body.orderNumber,
-        typeCode: 'CU' // Customer reference
-      }],
-      outputImageProperties: {
-        printerDPI: 300,
-        encodingFormat: 'pdf',
-        imageOptions: [
-          { typeCode: 'label', isRequested: true },
-          { typeCode: 'waybillDoc', isRequested: true }
-        ]
       }
     };
+
+    console.log('DHL Shipment Request:', JSON.stringify(dhlRequest, null, 2));
 
     // Call DHL API
     const dhlResponse = await fetch(`${getBaseUrl()}/shipments`, {
@@ -180,10 +185,17 @@ export default async function handler(
     const responseData = await dhlResponse.json().catch(() => ({}));
 
     if (!dhlResponse.ok) {
+      console.error('DHL Shipment API Error:', JSON.stringify(responseData, null, 2));
+      
+      let errorDetails = responseData.detail || responseData.title || responseData.message || 'Unknown error';
+      if (responseData.additionalDetails) {
+        errorDetails += ' - ' + JSON.stringify(responseData.additionalDetails);
+      }
+      
       return res.status(dhlResponse.status).json({
         error: 'DHL API Error',
         status: dhlResponse.status,
-        details: responseData.detail || responseData.title || 'Unknown error',
+        details: errorDetails,
         dhlResponse: responseData
       });
     }

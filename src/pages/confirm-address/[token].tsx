@@ -2,13 +2,15 @@
  * Address Confirmation Page
  * 
  * Allows customers to confirm or update their pickup/return address.
+ * Design matches the main DOX website styling.
  */
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Image from 'next/image';
 
-// Simple icon components
+// Icon components matching site design
 const CheckCircle = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -163,74 +165,116 @@ export default function ConfirmAddressPage() {
 
   const addressTypeText = confirmation?.type === 'pickup' ? 'Upphämtningsadress' : 'Returadress';
 
+  // Common page wrapper with header
+  const PageWrapper = ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div className="min-h-screen bg-gray-50 font-sans">
+      <Head>
+        <title>{title}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </Head>
+      
+      {/* Header matching main site */}
+      <header className="bg-custom-page-header">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-center">
+            <Image 
+              src="/images/DOX_Visumpartner_logo_vit.png" 
+              alt="DOX Visumpartner" 
+              width={180} 
+              height={50}
+              className="h-10 w-auto"
+              priority
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="py-12 px-4">
+        <div className="max-w-lg mx-auto">
+          {children}
+        </div>
+      </main>
+
+      {/* Footer matching main site */}
+      <footer className="bg-custom-page-header text-white py-8 mt-auto">
+        <div className="container mx-auto px-4 text-center">
+          <p className="font-heading font-semibold mb-2">DOX Visumpartner AB</p>
+          <p className="text-gray-400 text-sm mb-2">Livdjursgatan 4, våning 6 • 121 62 Johanneshov</p>
+          <p className="text-sm">
+            <a href="mailto:info@doxvl.se" className="text-custom-button hover:underline">info@doxvl.se</a>
+            <span className="text-gray-500 mx-2">•</span>
+            <a href="tel:+46840941900" className="text-custom-button hover:underline">08-409 419 00</a>
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto" />
+      <PageWrapper title="Laddar... - DOX Visumpartner">
+        <div className="text-center py-16">
+          <Loader2 className="w-12 h-12 text-custom-button animate-spin mx-auto" />
           <p className="mt-4 text-gray-600">Laddar...</p>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   if (error && !confirmation) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Head>
-          <title>Fel - DOX Visumpartner</title>
-        </Head>
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+      <PageWrapper title="Fel - DOX Visumpartner">
+        <div className="bg-white rounded-xl shadow-card p-8 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Något gick fel</h1>
+          <h1 className="text-xl font-heading font-bold text-gray-900 mb-2">Något gick fel</h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <a 
             href="mailto:info@doxvl.se"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
+            className="inline-block bg-custom-button text-white px-6 py-3 rounded-md font-medium hover:bg-custom-button/90 transition"
           >
             Kontakta oss
           </a>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Head>
-          <title>Adress bekräftad - DOX Visumpartner</title>
-        </Head>
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Tack!</h1>
+      <PageWrapper title="Adress bekräftad - DOX Visumpartner">
+        <div className="bg-white rounded-xl shadow-card p-8 text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <h1 className="text-2xl font-heading font-bold text-gray-900 mb-2">Tack!</h1>
           <p className="text-gray-600 mb-2">
             {isEditing ? 'Din adress har uppdaterats och bekräftats.' : 'Din adress har bekräftats.'}
           </p>
           {order && (
-            <p className="text-sm text-gray-500">
-              Order: {order.orderNumber}
+            <p className="text-sm text-gray-500 mb-4">
+              Order: <span className="font-semibold">{order.orderNumber}</span>
             </p>
           )}
-          <div className="mt-6 p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-green-800">
+          <div className="mt-6 p-4 bg-custom-button/10 rounded-lg border border-custom-button/20">
+            <p className="text-sm text-gray-700">
               Vi kommer att använda denna adress för {confirmation?.type === 'pickup' ? 'upphämtning av dina dokument' : 'retur av dina legaliserade dokument'}.
             </p>
           </div>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   if (confirmation?.confirmed) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Head>
-          <title>Redan bekräftad - DOX Visumpartner</title>
-        </Head>
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Redan bekräftad</h1>
+      <PageWrapper title="Redan bekräftad - DOX Visumpartner">
+        <div className="bg-white rounded-xl shadow-card p-8 text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <h1 className="text-2xl font-heading font-bold text-gray-900 mb-2">Redan bekräftad</h1>
           <p className="text-gray-600 mb-4">
             Denna adress har redan bekräftats.
           </p>
@@ -240,224 +284,211 @@ export default function ConfirmAddressPage() {
             </p>
           )}
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <Head>
-        <title>Bekräfta {addressTypeText.toLowerCase()} - DOX Visumpartner</title>
-      </Head>
+    <PageWrapper title={`Bekräfta ${addressTypeText.toLowerCase()} - DOX Visumpartner`}>
+      {/* Order number badge */}
+      {order && (
+        <div className="text-center mb-6">
+          <span className="inline-block bg-custom-button text-white px-4 py-2 rounded-md font-semibold text-sm">
+            Order: {order.orderNumber}
+          </span>
+        </div>
+      )}
 
-      <div className="max-w-lg mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-blue-900">DOX Visumpartner</h1>
-          {order && (
-            <p className="text-gray-600 mt-2">Order: {order.orderNumber}</p>
-          )}
+      {/* Main Card */}
+      <div className="bg-white rounded-xl shadow-card overflow-hidden">
+        <div className="bg-custom-page-header px-6 py-4">
+          <h2 className="text-lg font-heading font-semibold text-white flex items-center gap-2">
+            <MapPin className="w-5 h-5" />
+            {isEditing ? `Ändra ${addressTypeText.toLowerCase()}` : `Bekräfta ${addressTypeText.toLowerCase()}`}
+          </h2>
         </div>
 
-        {/* Main Card */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-blue-600 px-6 py-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              {isEditing ? `Ändra ${addressTypeText.toLowerCase()}` : `Bekräfta ${addressTypeText.toLowerCase()}`}
-            </h2>
-          </div>
+        <div className="p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
-          <div className="p-6">
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                {error}
+          {!isEditing ? (
+            /* View Mode */
+            <>
+              <div className="bg-gray-50 rounded-lg p-5 mb-6 border border-gray-200">
+                <h3 className="font-heading font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-custom-button" />
+                  {addressTypeText}
+                </h3>
+                <div className="space-y-1 text-gray-700">
+                  {confirmation?.address.companyName && (
+                    <p className="font-semibold">{confirmation.address.companyName}</p>
+                  )}
+                  {confirmation?.address.contactName && (
+                    <p>{confirmation.address.contactName}</p>
+                  )}
+                  <p>{confirmation?.address.street}</p>
+                  <p>{confirmation?.address.postalCode} {confirmation?.address.city}</p>
+                  <p>{confirmation?.address.country}</p>
+                  {confirmation?.address.phone && (
+                    <p className="text-gray-500 mt-2">📞 {confirmation.address.phone}</p>
+                  )}
+                </div>
               </div>
-            )}
 
-            {!isEditing ? (
-              /* View Mode */
-              <>
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-medium text-gray-900 mb-3">{addressTypeText}</h3>
-                  <div className="space-y-1 text-gray-700">
-                    {confirmation?.address.companyName && (
-                      <p className="font-semibold">{confirmation.address.companyName}</p>
-                    )}
-                    {confirmation?.address.contactName && (
-                      <p>{confirmation.address.contactName}</p>
-                    )}
-                    <p>{confirmation?.address.street}</p>
-                    <p>{confirmation?.address.postalCode} {confirmation?.address.city}</p>
-                    <p>{confirmation?.address.country}</p>
-                    {confirmation?.address.phone && (
-                      <p className="text-gray-500">Tel: {confirmation.address.phone}</p>
-                    )}
-                  </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-amber-800">
+                  <strong>⚠️ Viktigt:</strong> Kontrollera att adressen är korrekt. 
+                  Felaktig adress kan leda till förseningar eller missade leveranser.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleConfirm}
+                  disabled={submitting}
+                  className="w-full bg-custom-button text-white py-3 px-4 rounded-md font-medium hover:bg-custom-button/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                  Bekräfta adress
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setEditedAddress({ ...confirmation!.address });
+                  }}
+                  disabled={submitting}
+                  className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-md font-medium hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-gray-300"
+                >
+                  <Edit2 className="w-5 h-5" />
+                  Ändra adress
+                </button>
+              </div>
+            </>
+          ) : (
+            /* Edit Mode */
+            <>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Företagsnamn (valfritt)
+                  </label>
+                  <input
+                    type="text"
+                    value={editedAddress?.companyName || ''}
+                    onChange={(e) => setEditedAddress(prev => ({ ...prev!, companyName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                    placeholder="Företagsnamn"
+                  />
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-yellow-800">
-                    <strong>⚠️ Viktigt:</strong> Kontrollera att adressen är korrekt. 
-                    Felaktig adress kan leda till förseningar eller missade leveranser.
-                  </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kontaktperson
+                  </label>
+                  <input
+                    type="text"
+                    value={editedAddress?.contactName || ''}
+                    onChange={(e) => setEditedAddress(prev => ({ ...prev!, contactName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                    placeholder="Namn"
+                  />
                 </div>
 
-                <div className="space-y-3">
-                  <button
-                    onClick={handleConfirm}
-                    disabled={submitting}
-                    className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {submitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5" />
-                    )}
-                    Bekräfta adress
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsEditing(true);
-                      setEditedAddress({ ...confirmation!.address });
-                    }}
-                    disabled={submitting}
-                    className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <Edit2 className="w-5 h-5" />
-                    Ändra adress
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Gatuadress *
+                  </label>
+                  <input
+                    type="text"
+                    value={editedAddress?.street || ''}
+                    onChange={(e) => setEditedAddress(prev => ({ ...prev!, street: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                    placeholder="Gatuadress"
+                    required
+                  />
                 </div>
-              </>
-            ) : (
-              /* Edit Mode */
-              <>
-                <div className="space-y-4 mb-6">
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Företagsnamn (valfritt)
+                      Postnummer *
                     </label>
                     <input
                       type="text"
-                      value={editedAddress?.companyName || ''}
-                      onChange={(e) => setEditedAddress(prev => ({ ...prev!, companyName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Företagsnamn"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Kontaktperson
-                    </label>
-                    <input
-                      type="text"
-                      value={editedAddress?.contactName || ''}
-                      onChange={(e) => setEditedAddress(prev => ({ ...prev!, contactName: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Namn"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Gatuadress *
-                    </label>
-                    <input
-                      type="text"
-                      value={editedAddress?.street || ''}
-                      onChange={(e) => setEditedAddress(prev => ({ ...prev!, street: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Gatuadress"
+                      value={editedAddress?.postalCode || ''}
+                      onChange={(e) => setEditedAddress(prev => ({ ...prev!, postalCode: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                      placeholder="12345"
                       required
                     />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Postnummer *
-                      </label>
-                      <input
-                        type="text"
-                        value={editedAddress?.postalCode || ''}
-                        onChange={(e) => setEditedAddress(prev => ({ ...prev!, postalCode: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="12345"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Stad *
-                      </label>
-                      <input
-                        type="text"
-                        value={editedAddress?.city || ''}
-                        onChange={(e) => setEditedAddress(prev => ({ ...prev!, city: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Stockholm"
-                        required
-                      />
-                    </div>
-                  </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telefon
+                      Stad *
                     </label>
                     <input
-                      type="tel"
-                      value={editedAddress?.phone || ''}
-                      onChange={(e) => setEditedAddress(prev => ({ ...prev!, phone: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="070-123 45 67"
+                      type="text"
+                      value={editedAddress?.city || ''}
+                      onChange={(e) => setEditedAddress(prev => ({ ...prev!, city: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                      placeholder="Stockholm"
+                      required
                     />
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <button
-                    onClick={handleUpdate}
-                    disabled={submitting || !editedAddress?.street || !editedAddress?.postalCode || !editedAddress?.city}
-                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {submitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5" />
-                    )}
-                    Spara och bekräfta
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditedAddress(confirmation!.address);
-                    }}
-                    disabled={submitting}
-                    className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition"
-                  >
-                    Avbryt
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefon
+                  </label>
+                  <input
+                    type="tel"
+                    value={editedAddress?.phone || ''}
+                    onChange={(e) => setEditedAddress(prev => ({ ...prev!, phone: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                    placeholder="070-123 45 67"
+                  />
                 </div>
-              </>
-            )}
-          </div>
-        </div>
+              </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>DOX Visumpartner AB</p>
-          <p>Livdjursgatan 4, våning 6 • 121 62 Johanneshov</p>
-          <p>
-            <a href="mailto:info@doxvl.se" className="text-blue-600 hover:underline">info@doxvl.se</a>
-            {' • '}
-            <a href="tel:+46840941900" className="text-blue-600 hover:underline">08-409 419 00</a>
-          </p>
+              <div className="space-y-3">
+                <button
+                  onClick={handleUpdate}
+                  disabled={submitting || !editedAddress?.street || !editedAddress?.postalCode || !editedAddress?.city}
+                  className="w-full bg-custom-button text-white py-3 px-4 rounded-md font-medium hover:bg-custom-button/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                  Spara och bekräfta
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedAddress(confirmation!.address);
+                  }}
+                  disabled={submitting}
+                  className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-md font-medium hover:bg-gray-200 transition border border-gray-300"
+                >
+                  Avbryt
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </PageWrapper>
   );
 }

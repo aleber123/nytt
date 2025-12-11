@@ -2029,13 +2029,15 @@ function AdminOrderDetailPage() {
     }
   };
 
-  // Send address confirmation email to customer
+  // Send address confirmation email to customer via API (with clickable confirmation links)
   const sendAddressConfirmation = async (type: 'pickup' | 'return') => {
     if (!order) return;
-    const orderId = (order.orderNumber as string) || (router.query.id as string);
     
     setSendingAddressConfirmation(true);
     try {
+      const orderId = order.orderNumber || (router.query.id as string);
+      const addressTypeText = type === 'pickup' ? 'upphämtningsadress' : 'returadress';
+      
       const response = await fetch('/api/address-confirmation/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2044,14 +2046,14 @@ function AdminOrderDetailPage() {
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Could not send confirmation email');
+      if (!response.ok) {
+        throw new Error(data.error || 'Kunde inte skicka bekräftelsemail');
       }
 
-      toast.success(data.message);
+      toast.success(`Bekräftelsemail för ${addressTypeText} har skickats till ${order.customerInfo?.email}`);
       
-      // Refresh order to get updated confirmation status
-      await fetchOrder(orderId);
+      // Refresh order to update confirmation status
+      await fetchOrder(router.query.id as string);
     } catch (err: any) {
       toast.error(`Error: ${err.message}`);
     } finally {
@@ -3596,20 +3598,72 @@ function AdminOrderDetailPage() {
                             
                             {/* Address confirmation section */}
                             {needsAddressConfirmation(step.id) && (
-                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className={`mt-3 p-3 rounded-lg border ${
+                                isAddressConfirmed(needsAddressConfirmation(step.id)!) 
+                                  ? 'bg-green-50 border-green-200' 
+                                  : 'bg-blue-50 border-blue-200'
+                              }`}>
                                 <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-sm font-medium text-blue-900">
+                                  <div className="flex-1">
+                                    <p className={`text-sm font-medium ${
+                                      isAddressConfirmed(needsAddressConfirmation(step.id)!) 
+                                        ? 'text-green-900' 
+                                        : 'text-blue-900'
+                                    }`}>
                                       {needsAddressConfirmation(step.id) === 'pickup' ? '📍 Pickup address' : '📍 Return address'}
                                     </p>
                                     {isAddressConfirmed(needsAddressConfirmation(step.id)!) ? (
-                                      <p className="text-xs text-green-700 flex items-center gap-1 mt-1">
-                                        <span>✓</span> Confirmed by customer
-                                      </p>
+                                      <div className="mt-1">
+                                        <p className="text-xs text-green-700 flex items-center gap-1">
+                                          <span>✓</span> Confirmed by customer
+                                          {(() => {
+                                            const extOrder = order as any;
+                                            const confirmedAt = needsAddressConfirmation(step.id) === 'pickup'
+                                              ? extOrder.pickupAddressConfirmedAt
+                                              : extOrder.returnAddressConfirmedAt;
+                                            if (confirmedAt) {
+                                              const date = new Date(confirmedAt);
+                                              return <span className="text-green-600 ml-1">({date.toLocaleDateString('sv-SE')} {date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })})</span>;
+                                            }
+                                            return null;
+                                          })()}
+                                        </p>
+                                        {(() => {
+                                          const extOrder = order as any;
+                                          const wasUpdated = needsAddressConfirmation(step.id) === 'pickup'
+                                            ? extOrder.pickupAddressUpdatedByCustomer
+                                            : extOrder.returnAddressUpdatedByCustomer;
+                                          if (wasUpdated) {
+                                            return (
+                                              <p className="text-xs text-orange-600 flex items-center gap-1 mt-1">
+                                                <span>⚠️</span> Customer updated the address
+                                              </p>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
                                     ) : isConfirmationSent(needsAddressConfirmation(step.id)!) ? (
-                                      <p className="text-xs text-yellow-700 flex items-center gap-1 mt-1">
-                                        <span>⏳</span> Awaiting customer confirmation
-                                      </p>
+                                      <div className="mt-1">
+                                        <p className="text-xs text-yellow-700 flex items-center gap-1">
+                                          <span>⏳</span> Awaiting customer confirmation
+                                        </p>
+                                        {(() => {
+                                          const extOrder = order as any;
+                                          const sentAt = needsAddressConfirmation(step.id) === 'pickup'
+                                            ? extOrder.pickupAddressConfirmationSentAt
+                                            : extOrder.returnAddressConfirmationSentAt;
+                                          if (sentAt) {
+                                            const date = new Date(sentAt);
+                                            return (
+                                              <p className="text-xs text-gray-500 mt-0.5">
+                                                Email sent: {date.toLocaleDateString('sv-SE')} {date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                                              </p>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
                                     ) : (
                                       <p className="text-xs text-gray-600 mt-1">
                                         Send confirmation email to customer
@@ -3627,6 +3681,39 @@ function AdminOrderDetailPage() {
                                     </button>
                                   )}
                                 </div>
+                                
+                                {/* Show current address */}
+                                {isAddressConfirmed(needsAddressConfirmation(step.id)!) && (
+                                  <div className="mt-3 pt-3 border-t border-green-200">
+                                    <p className="text-xs font-medium text-green-800 mb-1">Confirmed address:</p>
+                                    <div className="text-xs text-green-700 space-y-0.5">
+                                      {(() => {
+                                        const extOrder = order as any;
+                                        if (needsAddressConfirmation(step.id) === 'pickup') {
+                                          const pa = extOrder.pickupAddress || {};
+                                          return (
+                                            <>
+                                              {pa.company && <p className="font-medium">{pa.company}</p>}
+                                              {pa.name && <p>{pa.name}</p>}
+                                              <p>{pa.street || order?.customerInfo?.address}</p>
+                                              <p>{pa.postalCode || order?.customerInfo?.postalCode} {pa.city || order?.customerInfo?.city}</p>
+                                            </>
+                                          );
+                                        } else {
+                                          const ci = order?.customerInfo || {};
+                                          return (
+                                            <>
+                                              {ci.companyName && <p className="font-medium">{ci.companyName}</p>}
+                                              <p>{ci.firstName} {ci.lastName}</p>
+                                              <p>{ci.address}</p>
+                                              <p>{ci.postalCode} {ci.city}</p>
+                                            </>
+                                          );
+                                        }
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                             

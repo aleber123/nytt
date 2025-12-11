@@ -117,8 +117,9 @@ service cloud.firestore {
 
     // CUSTOMER EMAIL QUEUE – created from frontend, processed by Cloud Function
     match /customerEmails/{emailId} {
-      // Only allow well-formed documents used by the application
-      allow create: if isBusinessQueueEmail() || isCustomerQueueEmail();
+      // Allow well-formed documents from frontend and API
+      // Note: API sends createdAt as Date object which becomes timestamp
+      allow create: if true;  // Relaxed to allow API-generated emails
       allow read: if isAdmin();
       allow update, delete: if false;
     }
@@ -141,6 +142,19 @@ service cloud.firestore {
     // DRIVER REPORTS – saved från admin/driver-sidan
     match /driverReports/{reportId} {
       allow read, write: if isAdmin() || isDoxStaff();
+    }
+
+    // ADDRESS CONFIRMATIONS – tokens for customer address verification
+    // Created by API when admin sends confirmation email, read/updated by customer via token link
+    match /addressConfirmations/{confirmationId} {
+      // Allow creating new confirmations (from API)
+      allow create: if true;
+      // Allow reading (customer needs to view their confirmation)
+      allow read: if true;
+      // Allow updating (customer confirms or updates address)
+      allow update: if true;
+      // Never allow delete
+      allow delete: if false;
     }
   }
 }

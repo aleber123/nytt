@@ -1076,6 +1076,19 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
         </div>
         ` : ''}
 
+        ${answers.documentSource === 'upload' && answers.uploadedFiles && answers.uploadedFiles.length > 0 ? `
+        <div class="section" style="background:#ECFDF5; border:2px solid #10B981;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <span style="font-size:24px;">📎</span>
+            <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPPLADDADE FILER (${answers.uploadedFiles.length} st)</h3>
+          </div>
+          <div style="background:#fff; border:1px solid #A7F3D0; border-radius:6px; padding:12px;">
+            ${answers.uploadedFiles.map((file, i) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'Fil ' + (i + 1)}</div>`).join('')}
+          </div>
+          <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 Visa filer i admin</a>
+        </div>
+        ` : ''}
+
         ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Övriga kommentarer</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
 
         <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
@@ -1224,7 +1237,17 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
         :
         `<div class="next-steps">
           <h3>✅ Your files have been received</h3>
-          <p>Your uploaded files have been received and will be processed shortly.</p>
+          <p>We have received the following ${answers.uploadedFiles?.length || answers.quantity} file(s):</p>
+          <div style="background:#fff; border:1px solid #a7f3d0; border-radius:6px; padding:12px; margin:12px 0;">
+            ${answers.uploadedFiles?.map((file, i) => `<div style="padding:4px 0; ${i < (answers.uploadedFiles?.length || 1) - 1 ? 'border-bottom:1px solid #d1fae5;' : ''}">📄 ${file?.name || 'Document ' + (i + 1)}</div>`).join('') || ''}
+          </div>
+          <p><strong>What happens next?</strong></p>
+          <ol style="margin:8px 0; padding-left:20px;">
+            <li>Our team will review your documents within 1-2 business days</li>
+            <li>If we need additional information, we will contact you via email</li>
+            <li>Once processing begins, you will receive status updates</li>
+          </ol>
+          <p style="font-size:13px; color:#5f6368;">Estimated processing time: 5-10 business days depending on services selected.</p>
         </div>`}
 
       <p>You will receive your legalized documents via <strong>${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'the selected shipping method'}</strong>.</p>
@@ -1369,7 +1392,17 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
         :
         `<div class="next-steps">
           <h3>✅ Dina filer har mottagits</h3>
-          <p>Dina uppladdade filer har mottagits och kommer att behandlas inom kort.</p>
+          <p>Vi har mottagit följande ${answers.uploadedFiles?.length || answers.quantity} fil(er):</p>
+          <div style="background:#fff; border:1px solid #a7f3d0; border-radius:6px; padding:12px; margin:12px 0;">
+            ${answers.uploadedFiles?.map((file, i) => `<div style="padding:4px 0; ${i < (answers.uploadedFiles?.length || 1) - 1 ? 'border-bottom:1px solid #d1fae5;' : ''}">📄 ${file?.name || 'Dokument ' + (i + 1)}</div>`).join('') || ''}
+          </div>
+          <p><strong>Vad händer nu?</strong></p>
+          <ol style="margin:8px 0; padding-left:20px;">
+            <li>Vårt team granskar dina dokument inom 1-2 arbetsdagar</li>
+            <li>Om vi behöver ytterligare information kontaktar vi dig via e-post</li>
+            <li>När behandlingen påbörjas får du statusuppdateringar</li>
+          </ol>
+          <p style="font-size:13px; color:#5f6368;">Uppskattad handläggningstid: 5-10 arbetsdagar beroende på valda tjänster.</p>
         </div>`}
 
       <p>Du kommer att få dina legaliserade dokument returnerade via <strong>${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'vald fraktmetod'}</strong>.</p>

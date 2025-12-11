@@ -6,7 +6,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getFirebaseDb } from '@/firebase/config';
+import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
 
 // DHL API Configuration
@@ -24,6 +24,9 @@ const getBaseUrl = () =>
 
 const getAuthHeader = () => {
   const credentials = `${DHL_CONFIG.apiKey}:${DHL_CONFIG.apiSecret}`;
+  console.log('DHL Auth - API Key:', DHL_CONFIG.apiKey);
+  console.log('DHL Auth - API Secret length:', DHL_CONFIG.apiSecret?.length);
+  console.log('DHL Auth - API Secret first 3 chars:', DHL_CONFIG.apiSecret?.substring(0, 3));
   return `Basic ${Buffer.from(credentials).toString('base64')}`;
 };
 
@@ -63,13 +66,19 @@ export default async function handler(
     });
   }
 
+  // Check if account number is configured
+  if (!DHL_CONFIG.accountNumber) {
+    return res.status(500).json({ 
+      error: 'DHL Account Number not configured. Please add DHL_ACCOUNT_NUMBER to .env and restart the server.'
+    });
+  }
+
   const { orderId, pickupDate } = req.body as SendPickupLabelRequest;
 
   if (!orderId) {
     return res.status(400).json({ error: 'orderId krävs' });
   }
 
-  const db = getFirebaseDb();
   if (!db) {
     return res.status(500).json({ error: 'Database not available' });
   }
@@ -131,12 +140,9 @@ export default async function handler(
     const dhlRequest = {
       plannedShippingDateAndTime: `${shippingDate}T10:00:00 GMT+01:00`,
       pickup: {
-        isRequested: true,
-        closeTime: '18:00',
-        location: 'reception'
+        isRequested: false  // Don't request pickup in initial shipment creation
       },
-      productCode: 'D', // Domestic Express
-      localProductCode: 'D',
+      productCode: 'N', // DHL Express Domestic (N works in sandbox)
       accounts: [{
         typeCode: 'shipper',
         number: DHL_CONFIG.accountNumber
@@ -151,30 +157,12 @@ export default async function handler(
       content: {
         packages: [{
           weight: 0.5,
-          dimensions: { length: 35, width: 27.5, height: 1 } // DHL Express Envelope max dimensions
+          dimensions: { length: 35, width: 27, height: 1 }
         }],
         isCustomsDeclarable: false,
         description: `Documents - Order ${order.orderNumber}`,
         incoterm: 'DAP',
         unitOfMeasurement: 'metric'
-      },
-      // Add shipment reference for easy tracking
-      shipmentNotification: [{
-        typeCode: 'email',
-        receiverId: 'info@doxvl.se',
-        languageCode: 'swe'
-      }],
-      customerReferences: [{
-        value: order.orderNumber,
-        typeCode: 'CU' // Customer reference
-      }],
-      outputImageProperties: {
-        printerDPI: 300,
-        encodingFormat: 'pdf',
-        imageOptions: [
-          { typeCode: 'label', isRequested: true },
-          { typeCode: 'waybillDoc', isRequested: true }
-        ]
       }
     };
 
@@ -192,10 +180,19 @@ export default async function handler(
     const dhlData = await dhlResponse.json();
 
     if (!dhlResponse.ok) {
-      console.error('DHL API Error:', dhlData);
+      console.error('DHL API Error Response:', JSON.stringify(dhlData, null, 2));
+      console.error('DHL Request was:', JSON.stringify(dhlRequest, null, 2));
+      
+      // Extract more detailed error info
+      let errorDetails = dhlData.detail || dhlData.title || dhlData.message || 'Unknown error';
+      if (dhlData.additionalDetails) {
+        errorDetails += ' - ' + JSON.stringify(dhlData.additionalDetails);
+      }
+      
       return res.status(dhlResponse.status).json({
         error: 'DHL API Error',
-        details: dhlData.detail || dhlData.title || 'Unknown error'
+        details: errorDetails,
+        fullResponse: dhlData
       });
     }
 
@@ -216,13 +213,20 @@ export default async function handler(
       dhlPickupShipmentCreated: true
     });
 
-    // Queue email with label attachment
-    const emailsRef = collection(db, 'emailQueue');
+    // Queue email with label attachment using customerEmails collection
+    const emailsRef = collection(db, 'customerEmails');
+    const orderLocale = order.locale || 'sv';
+    const isEnglish = orderLocale === 'en';
+    const emailSubject = isEnglish 
+      ? `Pickup Instructions - Order ${order.orderNumber}`
+      : `Upphämtningsinstruktioner - Order ${order.orderNumber}`;
+    
     await addDoc(emailsRef, {
-      to: customerEmail,
-      subject: `Upphämtningsinstruktioner - Order ${order.orderNumber}`,
-      template: 'pickup-label',
-      templateData: {
+      name: customerName,
+      email: customerEmail,
+      phone: order.customerInfo?.phone || '',
+      subject: emailSubject,
+      message: generatePickupEmailHtml({
         customerName,
         orderNumber: order.orderNumber,
         trackingNumber,
@@ -234,21 +238,8 @@ export default async function handler(
           street: shipperAddress.addressLine1,
           postalCode: shipperAddress.postalCode,
           city: shipperAddress.cityName
-        }
-      },
-      html: generatePickupEmailHtml({
-        customerName,
-        orderNumber: order.orderNumber,
-        trackingNumber,
-        trackingUrl,
-        pickupDate: shippingDate,
-        pickupAddress: {
-          companyName: shipperContact.companyName,
-          contactName: shipperContact.fullName,
-          street: shipperAddress.addressLine1,
-          postalCode: shipperAddress.postalCode,
-          city: shipperAddress.cityName
-        }
+        },
+        locale: orderLocale
       }),
       attachments: labelBase64 ? [{
         filename: `DHL-Label-${order.orderNumber}.pdf`,
@@ -256,16 +247,18 @@ export default async function handler(
         encoding: 'base64',
         contentType: 'application/pdf'
       }] : [],
-      status: 'pending',
-      createdAt: new Date().toISOString(),
       orderId,
-      type: 'pickup_label'
+      createdAt: new Date(),
+      status: 'unread'
     });
 
     const envLabel = DHL_CONFIG.useSandbox ? ' (SANDBOX)' : '';
+    const successMsg = isEnglish 
+      ? `Pickup label sent to ${customerEmail}${envLabel}`
+      : `Upphämtningsetikett skickad till ${customerEmail}${envLabel}`;
     return res.status(200).json({
       success: true,
-      message: `Upphämtningsetikett skickad till ${customerEmail}${envLabel}`,
+      message: successMsg,
       trackingNumber,
       trackingUrl,
       pickupDate: shippingDate,
@@ -292,23 +285,72 @@ function generatePickupEmailHtml(data: {
     postalCode: string;
     city: string;
   };
+  locale: string;
 }): string {
-  const { customerName, orderNumber, trackingNumber, trackingUrl, pickupDate, pickupAddress } = data;
+  const { customerName, orderNumber, trackingNumber, trackingUrl, pickupDate, pickupAddress, locale } = data;
   
-  const formattedDateSv = new Date(pickupDate).toLocaleDateString('sv-SE', {
+  const isSwedish = locale !== 'en';
+  
+  const formattedDate = new Date(pickupDate).toLocaleDateString(isSwedish ? 'sv-SE' : 'en-GB', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
 
+  // Translations
+  const t = {
+    title: isSwedish ? 'Upphämtningsinstruktioner' : 'Pickup Instructions',
+    subtitle: isSwedish ? 'Uppdatering för din order hos DOX Visumpartner AB' : 'Update for your order with DOX Visumpartner AB',
+    greeting: isSwedish ? `Hej ${customerName}!` : `Dear ${customerName},`,
+    intro: isSwedish 
+      ? 'Tack för din beställning! Här kommer instruktioner för upphämtning av dina dokument.'
+      : 'Thank you for your order! Here are the instructions for picking up your documents.',
+    orderNumber: isSwedish ? 'Ordernummer' : 'Order number',
+    attachmentNote: isSwedish 
+      ? 'DHL-etiketten finns bifogad i detta mail som PDF. Skriv ut den och fäst på försändelsen.'
+      : 'The DHL label is attached to this email as a PDF. Print it and attach it to the shipment.',
+    trackingLabel: isSwedish ? 'Spårningsnummer' : 'Tracking number',
+    trackBtn: isSwedish ? 'Spåra försändelse' : 'Track shipment',
+    pickupDateLabel: isSwedish ? 'Upphämtningsdatum' : 'Pickup date',
+    pickupTimeNote: isSwedish 
+      ? 'DHL hämtar normalt mellan kl. 09:00-18:00'
+      : 'DHL typically picks up between 09:00-18:00',
+    pickupAddressLabel: isSwedish ? 'Upphämtningsadress' : 'Pickup address',
+    instructionsLabel: isSwedish ? 'Instruktioner' : 'Instructions',
+    instruction1: isSwedish 
+      ? '<strong>Skriv ut etiketten</strong> som finns bifogad i detta mail (PDF-fil)'
+      : '<strong>Print the label</strong> attached to this email (PDF file)',
+    instruction2: isSwedish 
+      ? '<strong>Packa dokumenten</strong> i ett kuvert eller paket'
+      : '<strong>Pack the documents</strong> in an envelope or package',
+    instruction3: isSwedish 
+      ? '<strong>Fäst etiketten</strong> väl synlig på utsidan av försändelsen'
+      : '<strong>Attach the label</strong> visibly on the outside of the shipment',
+    instruction4: isSwedish 
+      ? '<strong>Var tillgänglig</strong> på upphämtningsdagen - DHL ringer inte innan'
+      : '<strong>Be available</strong> on the pickup day - DHL does not call ahead',
+    instruction5: isSwedish 
+      ? '<strong>Lämna försändelsen</strong> i receptionen eller vid dörren om du inte kan vara på plats'
+      : '<strong>Leave the shipment</strong> at reception or by the door if you cannot be present',
+    warning: isSwedish 
+      ? 'Se till att dokumenten är väl skyddade i försändelsen. Om du inte kan ta emot upphämtningen, kontakta oss så snart som möjligt.'
+      : 'Make sure the documents are well protected in the shipment. If you cannot receive the pickup, please contact us as soon as possible.',
+    recipientLabel: isSwedish ? 'Mottagare' : 'Recipient',
+    questionsLabel: isSwedish ? 'Frågor?' : 'Questions?',
+    contactText: isSwedish ? 'Kontakta oss gärna:' : 'Feel free to contact us:',
+    footerText: isSwedish ? 'Professionell dokumentlegalisering sedan många år' : 'Professional document legalisation for many years',
+    autoMsg: isSwedish ? 'Detta är ett automatiskt genererat meddelande.' : 'This is an automatically generated message.',
+    important: isSwedish ? 'Viktigt' : 'Important'
+  };
+
   return `
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="${isSwedish ? 'sv' : 'en'}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upphämtningsinstruktioner</title>
+  <title>${t.title}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -392,38 +434,38 @@ function generatePickupEmailHtml(data: {
 <body>
   <div class="email-container">
     <div class="header">
-      <h1>Upphämtningsinstruktioner</h1>
-      <p>Uppdatering för din order hos DOX Visumpartner AB</p>
+      <h1>${t.title}</h1>
+      <p>${t.subtitle}</p>
       <div class="dhl-badge">📦 DHL Express</div>
     </div>
 
     <div class="content">
-      <div class="greeting">Hej ${customerName}!</div>
+      <div class="greeting">${t.greeting}</div>
 
-      <p>Tack för din beställning! Här kommer instruktioner för upphämtning av dina dokument.</p>
+      <p>${t.intro}</p>
       
       <div class="order-number">
-        Ordernummer: #${orderNumber}
+        ${t.orderNumber}: #${orderNumber}
       </div>
 
       <div class="attachment-note">
-        <p>📎 <strong>Viktigt:</strong> DHL-etiketten finns bifogad i detta mail som PDF. Skriv ut den och fäst på försändelsen.</p>
+        <p>📎 <strong>${t.important}:</strong> ${t.attachmentNote}</p>
       </div>
 
       <div class="tracking-box">
-        <p style="margin: 0; color: #666; font-size: 13px;">Spårningsnummer</p>
+        <p style="margin: 0; color: #666; font-size: 13px;">${t.trackingLabel}</p>
         <div class="tracking-number">${trackingNumber}</div>
-        <a href="${trackingUrl}" class="button">🔍 Spåra försändelse</a>
+        <a href="${trackingUrl}" class="button">🔍 ${t.trackBtn}</a>
       </div>
 
       <div class="info-box">
-        <h3>📅 Upphämtningsdatum</h3>
-        <p style="font-size: 17px; font-weight: bold; margin: 0;">${formattedDateSv}</p>
-        <p style="margin: 8px 0 0 0; color: #5f6368; font-size: 13px;">DHL hämtar normalt mellan kl. 09:00-18:00</p>
+        <h3>📅 ${t.pickupDateLabel}</h3>
+        <p style="font-size: 17px; font-weight: bold; margin: 0;">${formattedDate}</p>
+        <p style="margin: 8px 0 0 0; color: #5f6368; font-size: 13px;">${t.pickupTimeNote}</p>
       </div>
 
       <div class="info-box">
-        <h3>📍 Upphämtningsadress</h3>
+        <h3>📍 ${t.pickupAddressLabel}</h3>
         ${pickupAddress.companyName ? `<p style="font-weight: bold; margin: 0;">${pickupAddress.companyName}</p>` : ''}
         <p>${pickupAddress.contactName}</p>
         <p>${pickupAddress.street}</p>
@@ -431,30 +473,30 @@ function generatePickupEmailHtml(data: {
       </div>
 
       <div class="instructions">
-        <h3>📋 Instruktioner</h3>
+        <h3>📋 ${t.instructionsLabel}</h3>
         <ol>
-          <li><strong>Skriv ut etiketten</strong> som finns bifogad i detta mail (PDF-fil)</li>
-          <li><strong>Packa dokumenten</strong> i ett kuvert eller paket</li>
-          <li><strong>Fäst etiketten</strong> väl synlig på utsidan av försändelsen</li>
-          <li><strong>Var tillgänglig</strong> på upphämtningsdagen - DHL ringer inte innan</li>
-          <li><strong>Lämna försändelsen</strong> i receptionen eller vid dörren om du inte kan vara på plats</li>
+          <li>${t.instruction1}</li>
+          <li>${t.instruction2}</li>
+          <li>${t.instruction3}</li>
+          <li>${t.instruction4}</li>
+          <li>${t.instruction5}</li>
         </ol>
       </div>
 
       <div class="warning-box">
-        <p>⚠️ <strong>Viktigt:</strong> Se till att dokumenten är väl skyddade i försändelsen. Om du inte kan ta emot upphämtningen, kontakta oss så snart som möjligt.</p>
+        <p>⚠️ <strong>${t.important}:</strong> ${t.warning}</p>
       </div>
 
       <div class="info-box">
-        <h3>📬 Mottagare</h3>
+        <h3>📬 ${t.recipientLabel}</h3>
         <p style="font-weight: bold; margin: 0;">DOX Visumpartner AB</p>
         <p>Livdjursgatan 4, våning 6</p>
         <p>121 62 Johanneshov</p>
       </div>
 
       <div class="contact-info">
-        <h3>Frågor?</h3>
-        <p>Kontakta oss gärna:</p>
+        <h3>${t.questionsLabel}</h3>
+        <p>${t.contactText}</p>
         <p>
           📧 <a href="mailto:info@doxvl.se">info@doxvl.se</a><br>
           📞 08-409 419 00
@@ -464,8 +506,8 @@ function generatePickupEmailHtml(data: {
 
     <div class="footer">
       <p><strong>DOX Visumpartner AB</strong></p>
-      <p>Professionell dokumentlegalisering sedan många år</p>
-      <p>Detta är ett automatiskt genererat meddelande.</p>
+      <p>${t.footerText}</p>
+      <p>${t.autoMsg}</p>
     </div>
   </div>
 </body>

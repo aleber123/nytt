@@ -7,7 +7,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getFirebaseDb } from '@/firebase/config';
+import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 interface AddressConfirmation {
@@ -39,7 +39,6 @@ export default async function handler(
     return res.status(400).json({ error: 'Token saknas' });
   }
 
-  const db = getFirebaseDb();
   if (!db) {
     return res.status(500).json({ error: 'Database not available' });
   }
