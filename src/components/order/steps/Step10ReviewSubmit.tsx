@@ -260,149 +260,94 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
     const isEn = locale === 'en';
 
+    // Helper to render a compact upload row
+    const renderUploadRow = (
+      id: string,
+      title: string,
+      fileKey: 'idDocumentFile' | 'signingAuthorityFile',
+      laterKey: 'willSendIdDocumentLater' | 'willSendSigningAuthorityLater'
+    ) => {
+      const file = (answers as any)[fileKey];
+      const willSendLater = (answers as any)[laterKey];
+      const isComplete = file || willSendLater;
+
+      return (
+        <div className={`flex items-center justify-between p-3 rounded-lg ${isComplete ? 'bg-green-50 border border-green-200' : 'bg-white border border-gray-200'}`}>
+          <div className="flex items-center space-x-3">
+            <span className={`text-lg ${isComplete ? 'text-green-600' : 'text-gray-400'}`}>
+              {isComplete ? '✓' : '○'}
+            </span>
+            <div>
+              <span className="text-sm font-medium text-gray-900">{title}</span>
+              {file && (
+                <p className="text-xs text-green-700">{file.name}</p>
+              )}
+              {willSendLater && !file && (
+                <p className="text-xs text-blue-600">{isEn ? 'Will send later' : 'Skickas senare'}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              id={id}
+              className="hidden"
+              onChange={(e) => {
+                const newFile = e.target.files?.[0] || null;
+                setAnswers(prev => ({ ...prev, [fileKey]: newFile }));
+              }}
+            />
+            <label
+              htmlFor={id}
+              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+            >
+              {file ? (isEn ? 'Change' : 'Byt') : (isEn ? 'Upload' : 'Ladda upp')}
+            </label>
+            <label className="flex items-center space-x-1 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                checked={!!willSendLater}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [laterKey]: e.target.checked }))}
+              />
+              <span className="text-xs text-gray-600">{isEn ? 'Later' : 'Senare'}</span>
+            </label>
+          </div>
+        </div>
+      );
+    };
+
     return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 space-y-4">
-        <h3 className="text-md font-semibold text-blue-900">
-          {isEn ? 'Documents for notarization' : 'Dokument för notarisering'}
-        </h3>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center space-x-2 mb-3">
+          <span className="text-blue-600">📋</span>
+          <h3 className="text-sm font-semibold text-blue-900">
+            {isEn ? 'Required documents for notarization' : 'Dokument som krävs för notarisering'}
+          </h3>
+        </div>
 
-        {requiresIdDocument && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-900">
-              {isEn
-                ? 'ID or passport copy for signature verification'
-                : 'ID- eller passkopia för signaturbestyrkande'}
-            </h4>
-            <p className="text-sm text-gray-700">
-              {isEn
-                ? 'To certify your signature we need a clear copy of your valid ID or the signature page (page 2) of your Swedish passport. You can upload it here or send it later.'
-                : 'För att bestyrka din signatur behöver vi en tydlig kopia av din giltiga legitimation eller signatursidan (sida 2) i ditt svenska pass. Du kan ladda upp kopian här eller skicka in den senare.'}
-            </p>
-            <div className="mt-2 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
-              <div>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  id="id-document-upload"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setAnswers(prev => ({
-                      ...prev,
-                      idDocumentFile: file
-                    }));
-                  }}
-                />
-                <label
-                  htmlFor="id-document-upload"
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                >
-                  <span className="mr-2">📄</span>
-                  <span>
-                    {(answers as any).idDocumentFile
-                      ? (isEn ? 'Change file' : 'Byt fil')
-                      : (isEn ? 'Upload ID/passport copy' : 'Ladda upp ID/passkopia')}
-                  </span>
-                </label>
-                {(answers as any).idDocumentFile && (
-                  <div className="mt-1 text-xs text-green-700">
-                    {isEn ? 'Selected:' : 'Vald fil:'} {(answers as any).idDocumentFile.name}
-                  </div>
-                )}
-              </div>
+        <div className="space-y-2">
+          {requiresIdDocument && renderUploadRow(
+            'id-document-upload',
+            isEn ? 'ID or passport copy' : 'ID- eller passkopia',
+            'idDocumentFile',
+            'willSendIdDocumentLater'
+          )}
 
-              <label className="inline-flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
-                  checked={!!(answers as any).willSendIdDocumentLater}
-                  onChange={(e) =>
-                    setAnswers(prev => ({
-                      ...prev,
-                      willSendIdDocumentLater: e.target.checked
-                    }))
-                  }
-                />
-                <span className="text-sm text-gray-800">
-                  {isEn ? 'I will send this later' : 'Jag skickar detta senare'}
-                </span>
-              </label>
-            </div>
-          </div>
-        )}
+          {notarizationDetails.signingAuthority && renderUploadRow(
+            'signing-authority-upload',
+            isEn ? 'Proof of signing authority' : 'Bevis på firmateckningsrätt',
+            'signingAuthorityFile',
+            'willSendSigningAuthorityLater'
+          )}
+        </div>
 
-        {notarizationDetails.signingAuthority && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-900">
-              {isEn
-                ? 'Proof of signing authority (e.g. registration certificate)'
-                : 'Bevis på firmateckningsrätt (t.ex. registreringsbevis)'}
-            </h4>
-            <p className="text-sm text-gray-700">
-              {isEn
-                ? 'To verify the right to sign for the company we need, for example, a registration certificate from the Swedish Companies Registration Office (Bolagsverket) or another document showing who has signing authority. You can upload it here or send it later.'
-                : 'För att verifiera rätt att signera för företaget behöver vi till exempel ett registreringsbevis från Bolagsverket eller annat dokument som visar vem som har firmateckningsrätt. Du kan ladda upp det här eller skicka in det senare.'}
-            </p>
-            <div className="mt-2 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0">
-              <div>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  id="signing-authority-upload"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setAnswers(prev => ({
-                      ...prev,
-                      signingAuthorityFile: file
-                    }));
-                  }}
-                />
-                <label
-                  htmlFor="signing-authority-upload"
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                >
-                  <span className="mr-2">📄</span>
-                  <span>
-                    {(answers as any).signingAuthorityFile
-                      ? (isEn ? 'Change file' : 'Byt fil')
-                      : (isEn ? 'Upload registration proof' : 'Ladda upp registreringsbevis')}
-                  </span>
-                </label>
-                {(answers as any).signingAuthorityFile && (
-                  <div className="mt-1 text-xs text-green-700">
-                    {isEn ? 'Selected:' : 'Vald fil:'} {(answers as any).signingAuthorityFile.name}
-                  </div>
-                )}
-              </div>
-
-              <label className="inline-flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
-                  checked={!!(answers as any).willSendSigningAuthorityLater}
-                  onChange={(e) =>
-                    setAnswers(prev => ({
-                      ...prev,
-                      willSendSigningAuthorityLater: e.target.checked
-                    }))
-                  }
-                />
-                <span className="text-sm text-gray-800">
-                  {isEn ? 'I will send this later' : 'Jag skickar detta senare'}
-                </span>
-              </label>
-            </div>
-          </div>
-        )}
-
-        {requiresSigningAuthorityDocument && (
-          <p className="text-xs text-blue-900">
-            {isEn
-              ? 'For verifying signing authority we must receive both an ID/passport copy and proof of signing authority, either uploaded here or sent later.'
-              : 'För verifiering av rätt att signera måste vi få både ID-/passkopia och bevis på firmateckningsrätt, antingen uppladdat här eller inskickat senare.'}
-          </p>
-        )}
+        <p className="text-xs text-blue-700 mt-3">
+          {isEn 
+            ? 'Upload now or check "Later" to send by email after ordering.'
+            : 'Ladda upp nu eller kryssa i "Senare" för att skicka via e-post efter beställning.'}
+        </p>
       </div>
     );
   };
@@ -465,101 +410,43 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
               {loadingPricing ? (
                 <div className="text-sm text-gray-500">Beräknar priser...</div>
               ) : (
-                pricingBreakdown.map((item, index) => (
-                  <div key={`${item.service}_${index}`} className="text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">
-                        • {translatePricingDescription(item.description)}{' '}
-                        {item.quantity && item.quantity > 1 && item.unitPrice ? `(${item.unitPrice} kr × ${item.quantity})` : ''}
-                      </span>
-                      <span className="font-medium text-gray-900">{item.total || 0} kr</span>
+                pricingBreakdown.map((item, index) => {
+                  // Determine if this is a per-document or per-order fee
+                  const isPerDocument = item.quantity && item.quantity > 1;
+                  const isServiceFee = item.service?.includes('_service');
+                  
+                  // Build the price detail string
+                  let priceDetail = '';
+                  if (isPerDocument && item.unitPrice) {
+                    priceDetail = `(${item.unitPrice} kr × ${item.quantity})`;
+                  }
+                  
+                  return (
+                    <div key={`${item.service}_${index}`} className="text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">
+                          • {translatePricingDescription(item.description)}{' '}
+                          {priceDetail}
+                        </span>
+                        <span className="font-medium text-gray-900">{item.total || 0} kr</span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
 
-          {/* Additional Services */}
-          {answers.expedited && (
+          {/* Own Return Tracking Number - only show if customer provides their own return */}
+          {answers.returnService === 'own-delivery' && answers.ownReturnTrackingNumber && (
             <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step10.expedited')}:</span>
-              <span className="font-medium text-gray-900">500 kr</span>
+              <span className="text-gray-700">
+                {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}:
+              </span>
+              <span className="font-medium text-gray-900">
+                {answers.ownReturnTrackingNumber}
+              </span>
             </div>
-          )}
-
-          {answers.pickupService && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
-              <span className="text-gray-700">{t('orderFlow.step10.pickup')}:</span>
-              <span className="font-medium text-gray-900">Från 450 kr</span>
-            </div>
-          )}
-
-
-          {answers.returnService && (
-            <>
-              <div className="py-2">
-                <span className="text-gray-700 font-medium">{t('orderFlow.step10.returnShipping')}:</span>
-                <div className="mt-2 space-y-2">
-                  <div className="text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">
-                        • {(() => {
-                          const returnService = returnServices.find(s => s.id === answers.returnService);
-                          const isOwnReturn = answers.returnService === 'own-delivery';
-                          const isOfficePickup = answers.returnService === 'office-pickup';
-
-                          const label = isOwnReturn
-                            ? t('orderFlow.step9.ownReturnTitle')
-                            : isOfficePickup
-                            ? t('orderFlow.step9.officePickupTitle')
-                            : returnService?.name || '';
-
-                          return label;
-                        })()}
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        {(() => {
-                          const returnService = returnServices.find(s => s.id === answers.returnService);
-                          let totalReturnCost = 0;
-
-                          if (returnService && returnService.price) {
-                            const priceMatch = returnService.price.match(/(\d+)/);
-                            if (priceMatch) {
-                              totalReturnCost += parseInt(priceMatch[1]);
-                            }
-                          }
-
-                          // Add premium delivery cost
-                          if (answers.premiumDelivery) {
-                            const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
-                            if (premiumService && premiumService.price) {
-                              const priceMatch = premiumService.price.match(/(\d+)/);
-                              if (priceMatch) {
-                                totalReturnCost += parseInt(priceMatch[1]);
-                              }
-                            }
-                          }
-
-                          return `${totalReturnCost} kr`;
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {answers.returnService === 'own-delivery' && answers.ownReturnTrackingNumber && (
-                <div className="flex justify-between items-center py-2 border-b border-green-200">
-                  <span className="text-gray-700">
-                    {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}:
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {answers.ownReturnTrackingNumber}
-                  </span>
-                </div>
-              )}
-            </>
           )}
 
           {/* Total Price */}
@@ -899,40 +786,61 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Address Display for Original Documents */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-red-900 mb-2">
-                  {t('orderFlow.step10.shippingAddressTitle')}
-                </h3>
-                <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
-                  <div className="font-medium text-gray-900 mb-1">{t('orderFlow.step7.companyName')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.attention')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.street')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.postalCode')} {t('orderFlow.step7.city')}</div>
-                  <div className="text-gray-700">{t('orderFlow.step7.country')}</div>
+          {/* Address Display for Original Documents - only show if services are selected */}
+          {!answers.helpMeChooseServices && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-red-900 mb-2">
+                    {t('orderFlow.step10.shippingAddressTitle')}
+                  </h3>
+                  <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
+                    <div className="font-medium text-gray-900 mb-1">{t('orderFlow.step7.companyName')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.attention')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.street')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.postalCode')} {t('orderFlow.step7.city')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.country')}</div>
+                  </div>
+                  <div className="text-sm text-red-700">
+                    <strong>Viktigt:</strong> Skriv tydligt ordernumret på kuvertet eller skriv ut en fraktsedel nedan.
+                  </div>
                 </div>
-                <div className="text-sm text-red-700">
-                  <strong>Viktigt:</strong> Skriv tydligt ordernumret på kuvertet eller skriv ut en fraktsedel nedan.
+                <div className="ml-4">
+                  <button
+                    onClick={() => {
+                      // Print shipping label with blank order number so customer can write it by hand
+                      printShippingLabel(undefined);
+                    }}
+                    className="flex items-center justify-center w-12 h-12 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors duration-200"
+                    title="Skriv ut fraktsedel"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v5a2 2 0 002 2h2m10-9V5a2 2 0 00-2-2H9a2 2 0 00-2 2v3m10 9H7m10 0v4H7v-4" />
+                    </svg>
+                  </button>
                 </div>
-              </div>
-              <div className="ml-4">
-                <button
-                  onClick={() => {
-                    // Print shipping label with blank order number so customer can write it by hand
-                    printShippingLabel(undefined);
-                  }}
-                  className="flex items-center justify-center w-12 h-12 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors duration-200"
-                  title="Skriv ut fraktsedel"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v5a2 2 0 002 2h2m10-9V5a2 2 0 00-2-2H9a2 2 0 00-2 2v3m10 9H7m10 0v4H7v-4" />
-                  </svg>
-                </button>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Info message when customer chose "help me choose" */}
+          {answers.helpMeChooseServices && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">📋</span>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    {locale === 'en' ? 'We will contact you' : 'Vi kontaktar dig'}
+                  </h3>
+                  <p className="text-sm text-blue-700">
+                    {locale === 'en' 
+                      ? 'Since you selected "Unsure about services", we will review your order and contact you with a recommendation and price before proceeding. You will receive shipping instructions after we confirm the services.'
+                      : 'Eftersom du valde "Osäker på tjänster" kommer vi att granska din beställning och kontakta dig med en rekommendation och pris innan vi fortsätter. Du får leveransinstruktioner efter att vi bekräftat tjänsterna.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Customer Information Form */}
           <CustomerInfoForm
@@ -1045,6 +953,32 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   // Send email notification to business (styled HTML via customerEmails)
                   try {
                     const siteUrlInternal = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
+                    
+                    // Get pickup method display name
+                    const getPickupMethodName = (method?: string): string => {
+                      const methods: { [key: string]: string } = {
+                        'dhl-sweden': 'DHL Sverige',
+                        'dhl-europe': 'DHL Europa',
+                        'dhl-worldwide': 'DHL Världen',
+                        'stockholm-city': 'Stockholm City Bud'
+                      };
+                      return method ? methods[method] || method : 'Ej angiven';
+                    };
+                    
+                    // Get premium pickup display name
+                    const getPremiumPickupName = (premium?: string): string => {
+                      const premiums: { [key: string]: string } = {
+                        'dhl-pre-12': 'DHL Express före 12:00',
+                        'dhl-pre-9': 'DHL Express före 09:00',
+                        'stockholm-express': 'Stockholm Express',
+                        'stockholm-sameday': 'Stockholm Samma dag'
+                      };
+                      return premium ? premiums[premium] || premium : '';
+                    };
+                    
+                    const hasPickup = answers.pickupService === true;
+                    const pickupAddr = answers.pickupAddress;
+                    
                     const internalHtml = `
 <!DOCTYPE html>
 <html lang="sv">
@@ -1067,15 +1001,45 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
     .address { background:#fff; border:2px solid #065f46; border-radius:6px; padding:14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:14px; }
     .button { display:inline-block; background:#0EB0A6; color:#fff !important; text-decoration:none; border-radius:6px; padding:10px 16px; font-weight:700; margin-top:12px; }
     .muted { color:#5f6368; font-size:13px; }
+    .pickup-alert { background:#FEF3C7; border:2px solid #F59E0B; border-radius:8px; padding:16px; margin:16px 0; }
+    .pickup-alert-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .pickup-alert-icon { font-size:28px; }
+    .pickup-alert-title { color:#92400E; font-size:18px; font-weight:700; margin:0; }
+    .pickup-address { background:#fff; border:2px solid #F59E0B; border-radius:6px; padding:14px; margin-top:12px; }
   </style>
   </head>
   <body>
     <div class="wrap">
       <div class="header">
-        <h1>Ny beställning</h1>
+        <h1>Ny beställning${hasPickup ? ' 📦 UPPHÄMTNING BESTÄLLD' : ''}</h1>
       </div>
       <div class="content">
         <div class="badge">Order #${orderId}</div>
+
+        ${hasPickup ? `
+        <!-- PICKUP ALERT - VERY VISIBLE -->
+        <div class="pickup-alert">
+          <div class="pickup-alert-header">
+            <span class="pickup-alert-icon">🚚</span>
+            <h2 class="pickup-alert-title">UPPHÄMTNING BESTÄLLD!</h2>
+          </div>
+          <p style="margin:0 0 8px 0; color:#92400E; font-weight:600;">
+            Kunden har beställt att vi hämtar dokumenten. Boka DHL-upphämtning!
+          </p>
+          <div class="row" style="border:none; padding:4px 0;"><span class="label">Upphämtningstjänst</span><span class="value">${getPickupMethodName(answers.pickupMethod)}</span></div>
+          ${answers.premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(answers.premiumPickup)}</span></div>` : ''}
+          
+          ${pickupAddr && pickupAddr.street ? `
+          <div class="pickup-address">
+            <div style="font-weight:700; margin-bottom:8px; color:#92400E;">📍 Hämtningsadress:</div>
+            ${pickupAddr.company ? `<div style="font-weight:700;">${pickupAddr.company}</div>` : ''}
+            <div>${pickupAddr.name || ''}</div>
+            <div>${pickupAddr.street}</div>
+            <div>${pickupAddr.postalCode} ${pickupAddr.city}</div>
+          </div>
+          ` : ''}
+        </div>
+        ` : ''}
 
         <div class="section">
           <div class="row"><span class="label">Datum</span><span class="value">${new Date().toLocaleDateString('sv-SE')}</span></div>
@@ -1085,6 +1049,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <div class="row"><span class="label">Valda tjänster</span><span class="value">${answers.services.map(s => getServiceName(s)).join(', ')}</span></div>
           <div class="row"><span class="label">Totalbelopp</span><span class="value">${pricingResult.totalPrice} kr</span></div>
           <div class="row"><span class="label">Dokumentkälla</span><span class="value">${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}</span></div>
+          <div class="row"><span class="label">Upphämtning</span><span class="value" style="${hasPickup ? 'color:#D97706; font-weight:800;' : ''}">${hasPickup ? '✅ JA - BOKA UPPHÄMTNING' : '❌ Nej'}</span></div>
           <div class="row"><span class="label">Returfrakt</span><span class="value">${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}</span></div>
         </div>
 
@@ -1096,9 +1061,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           ${answers.invoiceReference ? `<div class="row"><span class="label">Fakturareferens</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
         </div>
 
-        ${answers.documentSource === 'original' ? `
+        ${answers.documentSource === 'original' && !hasPickup ? `
         <div class="section">
-          <div class="label" style="margin-bottom:6px;">Inkommande postadress</div>
+          <div class="label" style="margin-bottom:6px;">Inkommande postadress (kund skickar själv)</div>
           <div class="address">
             DOX Visumpartner AB<br/>
             Att: Dokumenthantering<br/>

@@ -42,12 +42,14 @@ export interface Order {
   customerInfo?: {
     firstName?: string;
     lastName?: string;
+    companyName?: string;
     email?: string;
     phone?: string;
     address?: string;
     postalCode?: string;
     city?: string;
     country?: string;
+    countryCode?: string;
   };
   deliveryMethod: string;
   paymentMethod: string;

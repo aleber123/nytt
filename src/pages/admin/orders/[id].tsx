@@ -84,6 +84,7 @@ function AdminOrderDetailPage() {
   const [bookingDhlPickup, setBookingDhlPickup] = useState(false);
   const [isUploadingPickupLabel, setIsUploadingPickupLabel] = useState(false);
   const [sendingPickupLabel, setSendingPickupLabel] = useState(false);
+  const [creatingDhlPickupLabel, setCreatingDhlPickupLabel] = useState(false);
   const pickupLabelInputRef = useRef<HTMLInputElement | null>(null);
   const [editedCustomer, setEditedCustomer] = useState({
     firstName: '',
@@ -100,6 +101,16 @@ function AdminOrderDetailPage() {
     city: ''
   });
   const [savingCustomerInfo, setSavingCustomerInfo] = useState(false);
+  
+  // Address confirmation states
+  const [sendingAddressConfirmation, setSendingAddressConfirmation] = useState(false);
+  const [showAddressWarningModal, setShowAddressWarningModal] = useState(false);
+  const [pendingStepUpdate, setPendingStepUpdate] = useState<{
+    stepId: string;
+    status: ProcessingStep['status'];
+    notes?: string;
+    updatedStep?: Partial<ProcessingStep>;
+  } | null>(null);
 
   useEffect(() => {
     const orderId = router.query.id as string | undefined;
@@ -1742,20 +1753,48 @@ function AdminOrderDetailPage() {
       return;
     }
 
+    // Validate customer info
+    const ci = order.customerInfo;
+    if (!ci?.address || !ci?.postalCode || !ci?.city || !ci?.phone) {
+      toast.error('Kunduppgifter saknas (adress, postnummer, stad eller telefon)');
+      return;
+    }
+
     try {
       setBookingDhlShipment(true);
 
-      const app = getFirebaseApp();
-      if (!app) {
-        throw new Error('Firebase app not initialized');
+      // Call our DHL API endpoint
+      const response = await fetch('/api/dhl/shipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: lookupId,
+          shippingDate: new Date().toISOString().split('T')[0],
+          receiver: {
+            address: {
+              postalCode: ci.postalCode,
+              cityName: ci.city,
+              countryCode: ci.country || 'SE',
+              addressLine1: ci.address
+            },
+            contact: {
+              companyName: ci.companyName,
+              fullName: `${ci.firstName || ''} ${ci.lastName || ''}`.trim(),
+              phone: ci.phone,
+              email: ci.email
+            }
+          },
+          includePickup: false
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.details || data.error || 'DHL API error');
       }
 
-      const functions = getFunctions(app);
-      const createDhlShipment = httpsCallable(functions, 'createDhlShipment');
-      const result: any = await createDhlShipment({ orderId: lookupId });
-      const data = result?.data || {};
-
-      const newTrackingNumber: string = data.trackingNumber || '';
+      const newTrackingNumber: string = data.shipmentTrackingNumber || '';
       const newTrackingUrl: string = data.trackingUrl || '';
 
       if (newTrackingNumber) {
@@ -1765,18 +1804,35 @@ function AdminOrderDetailPage() {
         setTrackingUrl(newTrackingUrl);
       }
 
-      if (newTrackingNumber || newTrackingUrl) {
-        setOrder({
-          ...order,
-          returnTrackingNumber: newTrackingNumber || (order as any).returnTrackingNumber,
-          returnTrackingUrl: newTrackingUrl || (order as any).returnTrackingUrl
+      // Get label document (base64 PDF)
+      const labelDoc = data.documents?.find((d: any) => d.typeCode === 'label');
+      const labelBase64 = labelDoc?.content || '';
+
+      // Save to order
+      const mod = await import('@/services/hybridOrderService');
+      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+      if (typeof updateOrder === 'function') {
+        await updateOrder(lookupId, {
+          returnTrackingNumber: newTrackingNumber,
+          returnTrackingUrl: newTrackingUrl,
+          dhlShipmentBooked: true,
+          dhlShipmentBookedAt: new Date().toISOString(),
+          dhlReturnLabelBase64: labelBase64 // Store the label for later download
         });
       }
 
-      toast.success('DHL-returfrakt (mock) bokad och tracking uppdaterad');
-    } catch (err) {
+      setOrder({
+        ...order,
+        returnTrackingNumber: newTrackingNumber || (order as any).returnTrackingNumber,
+        returnTrackingUrl: newTrackingUrl || (order as any).returnTrackingUrl,
+        dhlReturnLabelBase64: labelBase64
+      } as any);
+
+      const envLabel = data.environment === 'sandbox' ? ' (SANDBOX)' : '';
+      toast.success(`DHL return shipment booked${envLabel}! Tracking: ${newTrackingNumber}`);
+    } catch (err: any) {
       console.error('Error booking DHL shipment:', err);
-      toast.error('Kunde inte boka DHL-returfrakt');
+      toast.error(`Could not book DHL return shipment: ${err.message}`);
     } finally {
       setBookingDhlShipment(false);
     }
@@ -1784,46 +1840,287 @@ function AdminOrderDetailPage() {
 
   const bookDhlPickup = async () => {
     if (!order) {
-      toast.error('Order saknas, kan inte boka DHL-upph e4mtning');
+      toast.error('Order missing, cannot book DHL pickup');
       return;
     }
 
     const lookupId = (order.orderNumber as string) || (router.query.id as string);
     if (!lookupId) {
-      toast.error('Ordernummer saknas, kan inte boka DHL-upph e4mtning');
+      toast.error('Order number missing, cannot book DHL pickup');
+      return;
+    }
+
+    // Get pickup address (either from pickupAddress or customerInfo)
+    const pa = (order as any).pickupAddress || {};
+    const ci = order.customerInfo || {};
+    
+    const pickupAddress = pa.street ? pa : {
+      street: ci.address,
+      postalCode: ci.postalCode,
+      city: ci.city
+    };
+
+    if (!pickupAddress.street || !pickupAddress.postalCode || !pickupAddress.city) {
+      toast.error('Pickup address missing');
+      return;
+    }
+
+    const contactPhone = ci.phone || '';
+    const contactName = `${ci.firstName || ''} ${ci.lastName || ''}`.trim();
+    
+    if (!contactPhone || !contactName) {
+      toast.error('Contact details missing (name or phone)');
       return;
     }
 
     try {
       setBookingDhlPickup(true);
 
-      const app = getFirebaseApp();
-      if (!app) {
-        throw new Error('Firebase app not initialized');
+      // Calculate pickup date (tomorrow if after 14:00, otherwise today)
+      const now = new Date();
+      const pickupDate = new Date();
+      if (now.getHours() >= 14) {
+        pickupDate.setDate(pickupDate.getDate() + 1);
+      }
+      // Skip weekends
+      if (pickupDate.getDay() === 0) pickupDate.setDate(pickupDate.getDate() + 1);
+      if (pickupDate.getDay() === 6) pickupDate.setDate(pickupDate.getDate() + 2);
+
+      // Call our DHL API endpoint
+      const response = await fetch('/api/dhl/pickup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pickupDate: pickupDate.toISOString().split('T')[0] + 'T10:00:00',
+          closeTime: '18:00',
+          location: 'reception',
+          orderNumber: lookupId, // For DHL tracking reference
+          address: {
+            postalCode: pickupAddress.postalCode,
+            cityName: pickupAddress.city,
+            countryCode: 'SE',
+            addressLine1: pickupAddress.street
+          },
+          contact: {
+            companyName: ci.companyName,
+            fullName: contactName,
+            phone: contactPhone,
+            email: ci.email
+          },
+          specialInstructions: `Order ${lookupId} - Documents for legalization`
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.details || data.error || 'DHL API error');
       }
 
-      const functions = getFunctions(app);
-      const createDhlPickup = httpsCallable(functions, 'createDhlPickup');
-      const result: any = await createDhlPickup({ orderId: lookupId });
-      const data = result?.data || {};
+      const confirmationNumber: string = data.dispatchConfirmationNumber || '';
 
-      const newTrackingNumber: string = data.trackingNumber || '';
+      if (confirmationNumber) {
+        setPickupTrackingNumber(confirmationNumber);
+        
+        // Save to order
+        const mod = await import('@/services/hybridOrderService');
+        const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
+        if (typeof updateOrder === 'function') {
+          await updateOrder(lookupId, {
+            pickupTrackingNumber: confirmationNumber,
+            dhlPickupBooked: true,
+            dhlPickupBookedAt: new Date().toISOString(),
+            dhlPickupDate: pickupDate.toISOString()
+          });
+        }
 
-      if (newTrackingNumber) {
-        setPickupTrackingNumber(newTrackingNumber);
         setOrder({
           ...order,
-          pickupTrackingNumber: newTrackingNumber || (order as any).pickupTrackingNumber
-        });
+          pickupTrackingNumber: confirmationNumber
+        } as any);
       }
 
-      toast.success('DHL-upph e4mtning (mock) bokad och tracking uppdaterad');
-    } catch (err) {
+      const envLabel = data.environment === 'sandbox' ? ' (SANDBOX)' : '';
+      toast.success(`DHL pickup booked${envLabel}! Confirmation: ${confirmationNumber}`);
+    } catch (err: any) {
       console.error('Error booking DHL pickup:', err);
-      toast.error('Kunde inte boka DHL-upph e4mtning');
+      toast.error(`Could not book DHL pickup: ${err.message}`);
     } finally {
       setBookingDhlPickup(false);
     }
+  };
+
+  // Download DHL return label PDF
+  const downloadDhlLabel = () => {
+    if (!order) {
+      toast.error('Order missing');
+      return;
+    }
+
+    const labelBase64 = (order as any).dhlReturnLabelBase64;
+    if (!labelBase64) {
+      // Fallback to generated label if no real label exists
+      downloadDhlReturnLabel(order as any);
+      return;
+    }
+
+    // Create blob from base64 and download
+    const byteCharacters = atob(labelBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `DHL-Returetikett-${order.orderNumber || 'order'}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('DHL label downloaded');
+  };
+
+  // Create DHL pickup label and send to customer
+  const createAndSendDhlPickupLabel = async () => {
+    if (!order) {
+      toast.error('Order missing');
+      return;
+    }
+
+    const orderId = (order.orderNumber as string) || (router.query.id as string);
+    if (!orderId) {
+      toast.error('Order number missing');
+      return;
+    }
+
+    setCreatingDhlPickupLabel(true);
+    try {
+      const response = await fetch('/api/dhl/send-pickup-label', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.details || data.error || 'Could not create DHL label');
+      }
+
+      // Update local state
+      if (data.trackingNumber) {
+        setPickupTrackingNumber(data.trackingNumber);
+      }
+
+      // Refresh order
+      await fetchOrder(orderId);
+
+      const envLabel = data.environment === 'sandbox' ? ' (SANDBOX)' : '';
+      toast.success(`${data.message}${envLabel}`);
+    } catch (err: any) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setCreatingDhlPickupLabel(false);
+    }
+  };
+
+  // Send address confirmation email to customer
+  const sendAddressConfirmation = async (type: 'pickup' | 'return') => {
+    if (!order) return;
+    const orderId = (order.orderNumber as string) || (router.query.id as string);
+    
+    setSendingAddressConfirmation(true);
+    try {
+      const response = await fetch('/api/address-confirmation/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, type })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Could not send confirmation email');
+      }
+
+      toast.success(data.message);
+      
+      // Refresh order to get updated confirmation status
+      await fetchOrder(orderId);
+    } catch (err: any) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setSendingAddressConfirmation(false);
+    }
+  };
+
+  // Check if address confirmation is needed for a step
+  const needsAddressConfirmation = (stepId: string): 'pickup' | 'return' | null => {
+    if (stepId === 'order_verification' && order?.pickupService) {
+      return 'pickup';
+    }
+    if (stepId === 'prepare_return') {
+      return 'return';
+    }
+    return null;
+  };
+
+  // Check if address has been confirmed
+  const isAddressConfirmed = (type: 'pickup' | 'return'): boolean => {
+    if (!order) return false;
+    const extOrder = order as any;
+    return type === 'pickup' 
+      ? !!extOrder.pickupAddressConfirmed 
+      : !!extOrder.returnAddressConfirmed;
+  };
+
+  // Check if confirmation email has been sent
+  const isConfirmationSent = (type: 'pickup' | 'return'): boolean => {
+    if (!order) return false;
+    const extOrder = order as any;
+    return type === 'pickup'
+      ? !!extOrder.pickupAddressConfirmationSent
+      : !!extOrder.returnAddressConfirmationSent;
+  };
+
+  // Handle step update with address confirmation check
+  const handleStepUpdateWithConfirmation = (
+    stepId: string,
+    status: ProcessingStep['status'],
+    notes?: string,
+    updatedStep?: Partial<ProcessingStep>
+  ) => {
+    const confirmationType = needsAddressConfirmation(stepId);
+    
+    // Check if completing a step that needs address confirmation
+    if (status === 'completed' && confirmationType && !isAddressConfirmed(confirmationType)) {
+      // Show warning modal
+      setPendingStepUpdate({ stepId, status, notes, updatedStep });
+      setShowAddressWarningModal(true);
+      return;
+    }
+    
+    // Proceed with update
+    updateProcessingStep(stepId, status, notes, updatedStep);
+  };
+
+  // Proceed with step update after warning confirmation
+  const proceedWithStepUpdate = () => {
+    if (pendingStepUpdate) {
+      updateProcessingStep(
+        pendingStepUpdate.stepId,
+        pendingStepUpdate.status,
+        pendingStepUpdate.notes,
+        pendingStepUpdate.updatedStep
+      );
+    }
+    setShowAddressWarningModal(false);
+    setPendingStepUpdate(null);
   };
 
   const applyCustomerHistoryEntry = (entry: any) => {
@@ -1851,13 +2148,13 @@ function AdminOrderDetailPage() {
     if (!order) return;
     const orderId = (order.orderNumber as string) || (router.query.id as string);
     if (!orderId) {
-      toast.error('Ordernummer saknas, kan inte ladda upp label');
+      toast.error('Order number missing, cannot upload label');
       return;
     }
 
     // Enforce filename rule: must contain order number
     if (!file.name.includes(orderId)) {
-      toast.error(`Filnamnet måste innehålla ordernumret ${orderId}`);
+      toast.error(`Filename must contain order number ${orderId}`);
       return;
     }
 
@@ -1868,22 +2165,22 @@ function AdminOrderDetailPage() {
       const uploadFiles = (mod as any).default?.uploadFiles || (mod as any).uploadFiles;
       const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
       if (typeof uploadFiles !== 'function' || typeof updateOrder !== 'function') {
-        toast.error('Kan inte ladda upp label just nu');
+        toast.error('Cannot upload label right now');
         return;
       }
 
       const uploaded = await uploadFiles([file], orderId);
       const labelMeta = uploaded && uploaded.length > 0 ? uploaded[0] : null;
       if (!labelMeta) {
-        toast.error('Kunde inte ladda upp label');
+        toast.error('Could not upload label');
         return;
       }
 
       await updateOrder(orderId, { pickupLabelFile: labelMeta });
       setOrder({ ...order, pickupLabelFile: labelMeta } as ExtendedOrder);
-      toast.success('Label uppladdad');
+      toast.success('Label uploaded');
     } catch (err) {
-      toast.error('Kunde inte ladda upp label');
+      toast.error('Could not upload label');
     } finally {
       setIsUploadingPickupLabel(false);
     }
@@ -1904,12 +2201,12 @@ function AdminOrderDetailPage() {
     const labelFile: any = (order as any).pickupLabelFile;
 
     if (!customerEmail) {
-      toast.error('Kundens e-post saknas');
+      toast.error('Customer email missing');
       return;
     }
 
     if (!labelFile || !labelFile.downloadURL) {
-      toast.error('Ingen label uppladdad ännu');
+      toast.error('No label uploaded yet');
       return;
     }
 
@@ -1918,7 +2215,7 @@ function AdminOrderDetailPage() {
     try {
       const db = getFirebaseDb();
       if (!db) {
-        toast.error('Kan inte ansluta till databasen för att skicka e-post');
+        toast.error('Cannot connect to database to send email');
         return;
       }
 
@@ -3287,7 +3584,7 @@ function AdminOrderDetailPage() {
                               </div>
                               <select
                                 value={step.status}
-                                onChange={(e) => updateProcessingStep(step.id, e.target.value as ProcessingStep['status'])}
+                                onChange={(e) => handleStepUpdateWithConfirmation(step.id, e.target.value as ProcessingStep['status'])}
                                 className="border border-gray-300 rounded px-2 py-1 text-sm"
                               >
                                 <option value="pending">Pending</option>
@@ -3296,6 +3593,43 @@ function AdminOrderDetailPage() {
                                 <option value="skipped">Skipped</option>
                               </select>
                             </div>
+                            
+                            {/* Address confirmation section */}
+                            {needsAddressConfirmation(step.id) && (
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-blue-900">
+                                      {needsAddressConfirmation(step.id) === 'pickup' ? '📍 Pickup address' : '📍 Return address'}
+                                    </p>
+                                    {isAddressConfirmed(needsAddressConfirmation(step.id)!) ? (
+                                      <p className="text-xs text-green-700 flex items-center gap-1 mt-1">
+                                        <span>✓</span> Confirmed by customer
+                                      </p>
+                                    ) : isConfirmationSent(needsAddressConfirmation(step.id)!) ? (
+                                      <p className="text-xs text-yellow-700 flex items-center gap-1 mt-1">
+                                        <span>⏳</span> Awaiting customer confirmation
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        Send confirmation email to customer
+                                      </p>
+                                    )}
+                                  </div>
+                                  {!isAddressConfirmed(needsAddressConfirmation(step.id)!) && (
+                                    <button
+                                      onClick={() => sendAddressConfirmation(needsAddressConfirmation(step.id)!)}
+                                      disabled={sendingAddressConfirmation}
+                                      className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {sendingAddressConfirmation ? 'Sending...' : 
+                                       isConfirmationSent(needsAddressConfirmation(step.id)!) ? 'Send reminder' : 'Send confirmation email'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
                             {isAuthorityService(step.id) && (
                               <div className="mt-4 space-y-4">
                                 {/* Embassy delivery: only date in */}
@@ -3412,27 +3746,39 @@ function AdminOrderDetailPage() {
                                   <div className="flex flex-wrap items-center gap-2 pt-1">
                                     <button
                                       type="button"
-                                      onClick={bookDhlPickup}
-                                      disabled={bookingDhlPickup || !order}
-                                      className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      onClick={createAndSendDhlPickupLabel}
+                                      disabled={creatingDhlPickupLabel || !order}
+                                      className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {bookingDhlPickup ? 'Bokar DHL-upphämtning...' : 'Boka DHL-upphämtning (mock)'}
+                                      {creatingDhlPickupLabel ? '📧 Creating & sending...' : '📧 Create & send DHL label to customer'}
                                     </button>
                                   </div>
+                                  
+                                  {/* Show if label has been sent */}
+                                  {(order as any)?.pickupLabelSent && (
+                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
+                                      <p className="text-green-800 font-medium">✓ DHL label sent to customer</p>
+                                      {(order as any)?.pickupLabelSentAt && (
+                                        <p className="text-green-600 text-xs">
+                                          {new Date((order as any).pickupLabelSentAt).toLocaleString('sv-SE')}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 border-t pt-3 mt-3">
                                   <div className="text-sm text-gray-700">
-                                    <p className="font-medium">DHL-label</p>
+                                    <p className="font-medium">Manual upload (alternative)</p>
                                     <p className="text-xs text-gray-500">
-                                      Filnamnet måste innehålla ordernumret {order?.orderNumber || (router.query.id as string)}.
+                                      Filename must contain order number {order?.orderNumber || (router.query.id as string)}.
                                     </p>
                                   </div>
 
                                   {order && (order as any).pickupLabelFile && (
                                     <div className="flex items-center justify-between text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2">
                                       <div>
-                                        <p className="font-medium">Uppladdad label</p>
+                                        <p className="font-medium">Uploaded label</p>
                                         <p className="text-gray-700 truncate max-w-xs">{(order as any).pickupLabelFile.originalName}</p>
                                       </div>
                                       {(order as any).pickupLabelFile.downloadURL && (
@@ -3442,7 +3788,7 @@ function AdminOrderDetailPage() {
                                           rel="noopener noreferrer"
                                           className="text-primary-600 text-sm underline ml-4"
                                         >
-                                          Öppna
+                                          Open
                                         </a>
                                       )}
                                     </div>
@@ -3462,24 +3808,24 @@ function AdminOrderDetailPage() {
                                       disabled={isUploadingPickupLabel}
                                       className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {isUploadingPickupLabel ? 'Laddar upp...' : 'Ladda upp label'}
+                                      {isUploadingPickupLabel ? 'Uploading...' : 'Upload label'}
                                     </button>
                                     <button
                                       onClick={handleSendPickupLabel}
                                       disabled={sendingPickupLabel || !(order as any).pickupLabelFile}
                                       className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {sendingPickupLabel ? 'Skickar...' : 'Skicka label'}
+                                      {sendingPickupLabel ? 'Sending...' : 'Send label'}
                                     </button>
                                   </div>
                                 </div>
                               </div>
                             )}
                             {step.id === 'return_shipping' && (
-                              <div className="mt-3 space-y-2">
+                              <div className="mt-3 space-y-3">
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Tracking-nummer för retur
+                                    Return tracking number
                                   </label>
                                   <input
                                     type="text"
@@ -3490,24 +3836,51 @@ function AdminOrderDetailPage() {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   />
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                
+                                {/* Show if shipment already booked */}
+                                {(order as any)?.dhlShipmentBooked && (
+                                  <div className="p-2 bg-green-50 border border-green-200 rounded text-sm">
+                                    <p className="text-green-800 font-medium">✓ DHL return shipment booked</p>
+                                    {(order as any)?.dhlShipmentBookedAt && (
+                                      <p className="text-green-600 text-xs">
+                                        {new Date((order as any).dhlShipmentBookedAt).toLocaleString('sv-SE')}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                <div className="flex flex-wrap items-center gap-2">
                                   <button
                                     type="button"
                                     onClick={bookDhlShipment}
                                     disabled={bookingDhlShipment || !order}
-                                    className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    {bookingDhlShipment ? 'Bokar DHL-returfrakt...' : 'Boka DHL-returfrakt (mock)'}
+                                    {bookingDhlShipment ? '📦 Booking DHL return...' : '📦 Book DHL return shipment'}
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => order && downloadDhlReturnLabel(order as any)}
+                                    onClick={downloadDhlLabel}
                                     disabled={!order || !trackingNumber}
                                     className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    Skriv ut DHL-returetikett
+                                    🖨️ Download DHL label
                                   </button>
                                 </div>
+                                
+                                {/* Tracking URL if available */}
+                                {trackingUrl && (
+                                  <div className="text-sm">
+                                    <a 
+                                      href={trackingUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      🔗 Spåra försändelse hos DHL →
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -3554,7 +3927,7 @@ function AdminOrderDetailPage() {
                 {activeTab === 'files' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Uppladdade filer</h3>
+                      <h3 className="text-lg font-medium mb-4">Uploaded files</h3>
                       {order.uploadedFiles && order.uploadedFiles.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {order.uploadedFiles.map((file: any, index: number) => (
@@ -3596,7 +3969,7 @@ function AdminOrderDetailPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          <p>Inga filer uppladdade än</p>
+                          <p>No files uploaded yet</p>
                         </div>
                       )}
                     </div>
@@ -3604,7 +3977,7 @@ function AdminOrderDetailPage() {
                     {/* Pickup Address */}
                     {order.pickupService && order.pickupAddress && (
                       <div>
-                        <h3 className="text-lg font-medium mb-4">Hämtningsadress</h3>
+                        <h3 className="text-lg font-medium mb-4">Pickup address</h3>
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                           <div className="flex items-center mb-2">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -3850,17 +4223,17 @@ function AdminOrderDetailPage() {
                     {/* Customer Information from Order */}
                     {(order.invoiceReference || order.additionalNotes) && (
                       <div>
-                        <h3 className="text-lg font-medium mb-4">Kundens information</h3>
+                        <h3 className="text-lg font-medium mb-4">Customer information</h3>
                         <div className="space-y-4">
                           {order.invoiceReference && (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <h4 className="font-medium text-green-800 mb-2">Fakturareferens</h4>
+                              <h4 className="font-medium text-green-800 mb-2">Invoice reference</h4>
                               <p className="text-green-700">{order.invoiceReference}</p>
                             </div>
                           )}
                           {order.additionalNotes && (
                             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                              <h4 className="font-medium text-purple-800 mb-2">Ytterligare information</h4>
+                              <h4 className="font-medium text-purple-800 mb-2">Additional information</h4>
                               <p className="text-purple-700 whitespace-pre-wrap">{order.additionalNotes}</p>
                             </div>
                           )}
@@ -3873,14 +4246,72 @@ function AdminOrderDetailPage() {
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-600">Ordern hittades inte</p>
+              <p className="text-gray-600">Order not found</p>
               <Link href="/admin/orders" className="mt-4 inline-block text-primary-600 hover:text-primary-800">
-                Tillbaka till alla ordrar
+                Back to all orders
               </Link>
             </div>
           )}
         </div>
       </div>
+      
+      {/* Address Warning Modal */}
+      {showAddressWarningModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Address not confirmed
+              </h3>
+              <p className="text-gray-600">
+                Customer has not confirmed their {pendingStepUpdate?.stepId === 'order_verification' ? 'pickup address' : 'return address'} yet.
+              </p>
+            </div>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-800">
+                ⚠️ Proceeding without confirmation may cause delivery issues if the address is incorrect.
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setShowAddressWarningModal(false);
+                  setPendingStepUpdate(null);
+                  const type = pendingStepUpdate?.stepId === 'order_verification' ? 'pickup' : 'return';
+                  sendAddressConfirmation(type);
+                }}
+                className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+              >
+                📧 Send confirmation email first
+              </button>
+              
+              <button
+                onClick={proceedWithStepUpdate}
+                className="w-full px-4 py-3 bg-yellow-500 text-white font-medium rounded-lg hover:bg-yellow-600 transition"
+              >
+                ⚠️ Proceed anyway
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowAddressWarningModal(false);
+                  setPendingStepUpdate(null);
+                }}
+                className="w-full px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

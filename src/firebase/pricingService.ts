@@ -13,6 +13,14 @@ import {
   Timestamp,
   increment
 } from 'firebase/firestore';
+import {
+  EXPRESS_FEE,
+  SCANNED_COPIES_FEE,
+  DEFAULT_PICKUP_FEE,
+  SERVICE_FALLBACK_PRICES,
+  SERVICE_NAMES_SV,
+  VAT_RATES
+} from '../config/pricing';
 
 export interface PricingRule {
   id: string;
@@ -332,6 +340,29 @@ export const bulkUpdatePricing = async (update: BulkPricingUpdate): Promise<void
   }
 };
 
+// Helper function to extract numeric price from service object
+// Supports both numeric priceValue field and string price field (e.g., "Från 85 kr")
+const extractPrice = (service: any): number => {
+  // Prefer numeric priceValue if available
+  if (typeof service.priceValue === 'number') {
+    return service.priceValue;
+  }
+  // Fall back to parsing string price
+  if (typeof service.price === 'string') {
+    // Remove spaces and extract all digits
+    const cleanedPrice = service.price.replace(/\s/g, '');
+    const priceMatch = cleanedPrice.match(/(\d+)/);
+    if (priceMatch) {
+      return parseInt(priceMatch[1]);
+    }
+  }
+  // If price is already a number
+  if (typeof service.price === 'number') {
+    return service.price;
+  }
+  return 0;
+};
+
 // Calculate price for an order
 export const calculateOrderPrice = async (orderData: {
   country: string;
@@ -369,18 +400,9 @@ export const calculateOrderPrice = async (orderData: {
         rule = await getPricingRule('SE', serviceType);
       }
 
-      // If still no rule, use fallback prices
+      // If still no rule, use fallback prices from centralized config
       if (!rule) {
-        const fallbackPrices: { [key: string]: { officialFee: number; serviceFee: number } } = {
-          'apostille': { officialFee: 440, serviceFee: 999 },
-          'notarization': { officialFee: 320, serviceFee: 999 },
-          'chamber': { officialFee: 799, serviceFee: 1199 },
-          'embassy': { officialFee: 1500, serviceFee: 1199 },
-          'ud': { officialFee: 750, serviceFee: 999 },
-          'translation': { officialFee: 0, serviceFee: 999 }
-        };
-
-        const fallback = fallbackPrices[serviceType];
+        const fallback = SERVICE_FALLBACK_PRICES[serviceType];
         if (fallback) {
           rule = {
             id: `${orderData.country}_${serviceType}_fallback`,
@@ -406,17 +428,8 @@ export const calculateOrderPrice = async (orderData: {
           unconfirmedServices.push(serviceType);
         }
 
-        // Get service name for description
-        const serviceNames: { [key: string]: string } = {
-          'apostille': 'Apostille',
-          'notarization': 'Notarisering',
-          'embassy': 'Ambassadlegalisering',
-          'ud': 'Utrikesdepartementets legalisering',
-          'translation': 'Auktoriserad översättning',
-          'chamber': 'Handelskammarens legalisering'
-        };
-
-        const serviceName = serviceNames[serviceType] || serviceType;
+        // Get service name from centralized config
+        const serviceName = SERVICE_NAMES_SV[serviceType] || serviceType;
         const officialTotal = rule.officialFee * orderData.quantity;
         const serviceFeeTotal = rule.serviceFee;
 
@@ -429,41 +442,42 @@ export const calculateOrderPrice = async (orderData: {
           quantity: orderData.quantity,
           unitPrice: rule.officialFee,
           total: officialTotal,
-          vatRate: 0
+          vatRate: VAT_RATES.EXEMPT
         });
 
-        // Add service fee line (per service, not per document, 25% VAT)
+        // Add service fee line (per order, not per document, 25% VAT)
         breakdown.push({
           service: `${serviceType}_service`,
-          description: `${serviceName} - Serviceavgift`,
+          description: `DOX Visumpartner serviceavgift (${serviceName})`,
           quantity: 1,
           unitPrice: serviceFeeTotal,
           total: serviceFeeTotal,
-          vatRate: 25
+          vatRate: VAT_RATES.STANDARD
         });
 
-        // Add express fee if applicable
-        if (orderData.expedited && rule.additionalFees?.express) {
-          totalAdditionalFees += rule.additionalFees.express;
-          breakdown.push({
-            service: `${serviceType}_express`,
-            description: 'Expresstjänst',
-            fee: rule.additionalFees.express,
-            total: rule.additionalFees.express,
-            quantity: 1,
-            unitPrice: rule.additionalFees.express
-          });
-        }
       }
+    }
+
+    // Add express fee if applicable (once per order, not per service)
+    if (orderData.expedited) {
+      totalAdditionalFees += EXPRESS_FEE;
+      breakdown.push({
+        service: 'express',
+        description: 'Expresstjänst',
+        fee: EXPRESS_FEE,
+        total: EXPRESS_FEE,
+        quantity: 1,
+        unitPrice: EXPRESS_FEE,
+        vatRate: VAT_RATES.STANDARD
+      });
     }
 
     // Add return service cost
     if (orderData.returnService && orderData.returnServices) {
       const returnService = orderData.returnServices.find(s => s.id === orderData.returnService);
-      if (returnService && returnService.price) {
-        const priceMatch = returnService.price.match(/(\d+)/);
-        if (priceMatch) {
-          const returnCost = parseInt(priceMatch[1]);
+      if (returnService) {
+        const returnCost = extractPrice(returnService);
+        if (returnCost > 0) {
           totalAdditionalFees += returnCost;
           breakdown.push({
             service: 'return_service',
@@ -471,15 +485,16 @@ export const calculateOrderPrice = async (orderData: {
             fee: returnCost,
             total: returnCost,
             quantity: 1,
-            unitPrice: returnCost
+            unitPrice: returnCost,
+            vatRate: VAT_RATES.STANDARD
           });
         }
       }
     }
 
-    // Add scanned copies cost (200 kr per document)
+    // Add scanned copies cost
     if (orderData.scannedCopies) {
-      const scannedCost = 200 * orderData.quantity;
+      const scannedCost = SCANNED_COPIES_FEE * orderData.quantity;
       totalAdditionalFees += scannedCost;
       breakdown.push({
         service: 'scanned_copies',
@@ -487,7 +502,8 @@ export const calculateOrderPrice = async (orderData: {
         fee: scannedCost,
         total: scannedCost,
         quantity: orderData.quantity,
-        unitPrice: 200
+        unitPrice: SCANNED_COPIES_FEE,
+        vatRate: VAT_RATES.STANDARD
       });
     }
 
@@ -503,19 +519,19 @@ export const calculateOrderPrice = async (orderData: {
           total: pickupPricing.price,
           quantity: 1,
           unitPrice: pickupPricing.price,
-          vatRate: 25
+          vatRate: VAT_RATES.STANDARD
         });
       } else {
-        // Fallback to default price if pricing not found
-        totalAdditionalFees += 450;
+        // Fallback to default price from centralized config
+        totalAdditionalFees += DEFAULT_PICKUP_FEE;
         breakdown.push({
           service: 'pickup_service',
           description: 'Hämtning av dokument',
-          fee: 450,
-          total: 450,
+          fee: DEFAULT_PICKUP_FEE,
+          total: DEFAULT_PICKUP_FEE,
           quantity: 1,
-          unitPrice: 450,
-          vatRate: 25
+          unitPrice: DEFAULT_PICKUP_FEE,
+          vatRate: VAT_RATES.STANDARD
         });
       }
     }
@@ -532,7 +548,7 @@ export const calculateOrderPrice = async (orderData: {
           total: premiumPickupPricing.price,
           quantity: 1,
           unitPrice: premiumPickupPricing.price,
-          vatRate: 25
+          vatRate: VAT_RATES.STANDARD
         });
       }
     }
@@ -540,10 +556,9 @@ export const calculateOrderPrice = async (orderData: {
     // Add premium delivery cost (if selected separately from return service)
     if (orderData.premiumDelivery && orderData.returnServices) {
       const premiumService = orderData.returnServices.find((s: any) => s.id === orderData.premiumDelivery);
-      if (premiumService && premiumService.price) {
-        const priceMatch = premiumService.price.match(/(\d+)/);
-        if (priceMatch) {
-          const premiumCost = parseInt(priceMatch[1]);
+      if (premiumService) {
+        const premiumCost = extractPrice(premiumService);
+        if (premiumCost > 0) {
           totalAdditionalFees += premiumCost;
           breakdown.push({
             service: 'premium_delivery',
@@ -551,7 +566,8 @@ export const calculateOrderPrice = async (orderData: {
             fee: premiumCost,
             total: premiumCost,
             quantity: 1,
-            unitPrice: premiumCost
+            unitPrice: premiumCost,
+            vatRate: VAT_RATES.STANDARD
           });
         }
       }

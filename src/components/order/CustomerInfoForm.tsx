@@ -3,7 +3,7 @@
  * Used in Step 10 for both upload and original document flows
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'next-i18next';
 import { ALL_COUNTRIES } from './data/countries';
 import { OrderAnswers } from './types';
@@ -24,6 +24,47 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
   showValidation = false
 }) => {
   const { t } = useTranslation('common');
+  const hasPrefilledRef = useRef(false);
+
+  // Pre-fill customer info from pickup address if available and customer info is empty
+  useEffect(() => {
+    // Only run once and only if pickup service was selected with a valid address
+    if (hasPrefilledRef.current) return;
+    if (!answers.pickupService) return;
+    
+    const pa = answers.pickupAddress;
+    const ci = answers.customerInfo;
+    
+    // Check if pickup address has data
+    const hasPickupData = pa.name || pa.street || pa.postalCode || pa.city;
+    
+    // Check if customer info is mostly empty (only check key fields)
+    const isCustomerInfoEmpty = !ci.firstName && !ci.lastName && !ci.address && !ci.postalCode && !ci.city;
+    
+    if (hasPickupData && isCustomerInfoEmpty) {
+      // Split pickup name into first and last name
+      const nameParts = (pa.name || '').trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      setAnswers(prev => ({
+        ...prev,
+        customerInfo: {
+          ...prev.customerInfo,
+          firstName: firstName,
+          lastName: lastName,
+          companyName: pa.company || prev.customerInfo.companyName,
+          address: pa.street || prev.customerInfo.address,
+          postalCode: pa.postalCode || prev.customerInfo.postalCode,
+          city: pa.city || prev.customerInfo.city,
+          country: pa.country || prev.customerInfo.country || 'Sverige',
+          countryCode: prev.customerInfo.countryCode || 'SE'
+        }
+      }));
+      
+      hasPrefilledRef.current = true;
+    }
+  }, [answers.pickupService, answers.pickupAddress, answers.customerInfo, setAnswers]);
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -58,6 +99,27 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
         {locale === 'en' ? 'Contact details' : 'Kontaktuppgifter'}
       </h3>
       
+      {/* Company Name (optional) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {locale === 'en' ? 'Company name' : 'Företagsnamn'}
+          <span className="text-gray-400 font-normal ml-1">
+            ({locale === 'en' ? 'optional' : 'valfritt'})
+          </span>
+        </label>
+        <input
+          type="text"
+          id="customer-companyName"
+          value={answers.customerInfo.companyName || ''}
+          onChange={(e) => setAnswers(prev => ({
+            ...prev,
+            customerInfo: { ...prev.customerInfo, companyName: e.target.value }
+          }))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+          placeholder={locale === 'en' ? 'Company name (if applicable)' : 'Företagsnamn (om tillämpligt)'}
+        />
+      </div>
+
       {/* First Name / Last Name */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

@@ -19,6 +19,17 @@ interface BusinessEmailParams {
   invoiceReference?: string;
   additionalNotes?: string;
   siteUrl?: string;
+  // Pickup service info
+  pickupService?: boolean;
+  pickupMethod?: string;
+  pickupAddress?: {
+    name: string;
+    company?: string;
+    street: string;
+    postalCode: string;
+    city: string;
+  };
+  premiumPickup?: string;
 }
 
 export const generateBusinessOrderEmail = (params: BusinessEmailParams): string => {
@@ -37,10 +48,36 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
     returnService,
     invoiceReference,
     additionalNotes,
-    siteUrl = 'https://doxvl-51a30.web.app'
+    siteUrl = 'https://doxvl-51a30.web.app',
+    pickupService = false,
+    pickupMethod,
+    pickupAddress,
+    premiumPickup
   } = params;
 
   const date = new Date().toLocaleDateString('sv-SE');
+  
+  // Get pickup method display name
+  const getPickupMethodName = (method?: string): string => {
+    const methods: { [key: string]: string } = {
+      'dhl-sweden': 'DHL Sverige',
+      'dhl-europe': 'DHL Europa',
+      'dhl-worldwide': 'DHL Världen',
+      'stockholm-city': 'Stockholm City Bud'
+    };
+    return method ? methods[method] || method : 'Ej angiven';
+  };
+
+  // Get premium pickup display name
+  const getPremiumPickupName = (premium?: string): string => {
+    const premiums: { [key: string]: string } = {
+      'dhl-pre-12': 'DHL Express före 12:00',
+      'dhl-pre-9': 'DHL Express före 09:00',
+      'stockholm-express': 'Stockholm Express',
+      'stockholm-sameday': 'Stockholm Samma dag'
+    };
+    return premium ? premiums[premium] || premium : '';
+  };
 
   return `
 <!DOCTYPE html>
@@ -64,15 +101,45 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
     .address { background:#fff; border:2px solid #065f46; border-radius:6px; padding:14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:14px; }
     .button { display:inline-block; background:#0EB0A6; color:#fff !important; text-decoration:none; border-radius:6px; padding:10px 16px; font-weight:700; margin-top:12px; }
     .muted { color:#5f6368; font-size:13px; }
+    .pickup-alert { background:#FEF3C7; border:2px solid #F59E0B; border-radius:8px; padding:16px; margin:16px 0; }
+    .pickup-alert-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .pickup-alert-icon { font-size:28px; }
+    .pickup-alert-title { color:#92400E; font-size:18px; font-weight:700; margin:0; }
+    .pickup-address { background:#fff; border:2px solid #F59E0B; border-radius:6px; padding:14px; margin-top:12px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="header">
-      <h1>Ny beställning</h1>
+      <h1>Ny beställning${pickupService ? ' 📦 UPPHÄMTNING BESTÄLLD' : ''}</h1>
     </div>
     <div class="content">
       <div class="badge">Order #${orderId}</div>
+
+      ${pickupService ? `
+      <!-- PICKUP ALERT - VERY VISIBLE -->
+      <div class="pickup-alert">
+        <div class="pickup-alert-header">
+          <span class="pickup-alert-icon">🚚</span>
+          <h2 class="pickup-alert-title">UPPHÄMTNING BESTÄLLD!</h2>
+        </div>
+        <p style="margin:0 0 8px 0; color:#92400E; font-weight:600;">
+          Kunden har beställt att vi hämtar dokumenten. Boka DHL-upphämtning!
+        </p>
+        <div class="row" style="border:none; padding:4px 0;"><span class="label">Upphämtningstjänst</span><span class="value">${getPickupMethodName(pickupMethod)}</span></div>
+        ${premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(premiumPickup)}</span></div>` : ''}
+        
+        ${pickupAddress ? `
+        <div class="pickup-address">
+          <div style="font-weight:700; margin-bottom:8px; color:#92400E;">📍 Hämtningsadress:</div>
+          ${pickupAddress.company ? `<div style="font-weight:700;">${pickupAddress.company}</div>` : ''}
+          <div>${pickupAddress.name}</div>
+          <div>${pickupAddress.street}</div>
+          <div>${pickupAddress.postalCode} ${pickupAddress.city}</div>
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
 
       <div class="section">
         <div class="row"><span class="label">Datum</span><span class="value">${date}</span></div>
@@ -82,6 +149,7 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
         <div class="row"><span class="label">Valda tjänster</span><span class="value">${services}</span></div>
         <div class="row"><span class="label">Totalbelopp</span><span class="value">${totalPrice} kr</span></div>
         <div class="row"><span class="label">Dokumentkälla</span><span class="value">${documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}</span></div>
+        <div class="row"><span class="label">Upphämtning</span><span class="value" style="${pickupService ? 'color:#D97706; font-weight:800;' : ''}">${pickupService ? '✅ JA - BOKA UPPHÄMTNING' : '❌ Nej'}</span></div>
         <div class="row"><span class="label">Returfrakt</span><span class="value">${returnService}</span></div>
       </div>
 
@@ -93,9 +161,9 @@ export const generateBusinessOrderEmail = (params: BusinessEmailParams): string 
         ${invoiceReference ? `<div class="row"><span class="label">Fakturareferens</span><span class="value">${invoiceReference}</span></div>` : ''}
       </div>
 
-      ${documentSource === 'original' ? `
+      ${documentSource === 'original' && !pickupService ? `
       <div class="section">
-        <div class="label" style="margin-bottom:6px;">Inkommande postadress</div>
+        <div class="label" style="margin-bottom:6px;">Inkommande postadress (kund skickar själv)</div>
         <div class="address">
           DOX Visumpartner AB<br/>
           Att: Dokumenthantering<br/>

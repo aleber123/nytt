@@ -48,6 +48,7 @@ export interface OrderAnswers {
   customerInfo: {
     firstName: string;
     lastName: string;
+    companyName?: string;
     email: string;
     phone: string;
     address: string;

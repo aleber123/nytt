@@ -865,12 +865,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       }));
 
       // Merge with default services (like admin page does)
+      // priceValue is the numeric value used for calculations
       const defaultReturnServices = [
         {
           id: 'postnord-rek',
           name: 'PostNord REK',
           description: 'Rekommenderat brev - spårbart och försäkrat',
           price: 'Från 85 kr',
+          priceValue: 85,
           provider: 'PostNord',
           estimatedDelivery: '2-5 arbetsdagar',
           available: true
@@ -880,6 +882,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'DHL Sweden',
           description: 'DHL leverans inom Sverige',
           price: 'Från 180 kr',
+          priceValue: 180,
           provider: 'DHL',
           estimatedDelivery: '1-2 arbetsdagar',
           available: true
@@ -889,6 +892,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'DHL Europe',
           description: 'DHL leverans inom Europa',
           price: 'Från 250 kr',
+          priceValue: 250,
           provider: 'DHL',
           estimatedDelivery: '2-4 arbetsdagar',
           available: true
@@ -898,6 +902,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'DHL Worldwide',
           description: 'DHL internationell leverans',
           price: 'Från 450 kr',
+          priceValue: 450,
           provider: 'DHL',
           estimatedDelivery: '3-7 arbetsdagar',
           available: true
@@ -907,6 +912,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'DHL Pre 12',
           description: 'Leverans före klockan 12:00 nästa arbetsdag',
           price: 'Från 350 kr',
+          priceValue: 350,
           provider: 'DHL',
           estimatedDelivery: 'Nästa arbetsdag före 12:00',
           available: true
@@ -916,6 +922,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'DHL Pre 9',
           description: 'Leverans före klockan 09:00 nästa arbetsdag',
           price: 'Från 450 kr',
+          priceValue: 450,
           provider: 'DHL',
           estimatedDelivery: 'Nästa arbetsdag före 09:00',
           available: true
@@ -925,6 +932,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'Stockholm City Courier',
           description: 'Lokal budservice inom Stockholm',
           price: 'Från 120 kr',
+          priceValue: 120,
           provider: 'Lokal',
           estimatedDelivery: 'Samma dag (före 16:00)',
           available: true
@@ -934,6 +942,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'Stockholm Express',
           description: 'Expressleverans inom Stockholm samma dag',
           price: 'Från 180 kr',
+          priceValue: 180,
           provider: 'Lokal',
           estimatedDelivery: '2-4 timmar',
           available: true
@@ -943,6 +952,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           name: 'Stockholm Same Day',
           description: 'Samma dags leverans inom Stockholm',
           price: 'Från 250 kr',
+          priceValue: 250,
           provider: 'Lokal',
           estimatedDelivery: 'Inom 2 timmar',
           available: true
@@ -960,14 +970,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
       setReturnServices(mergedServices);
     } catch (error) {
-      console.error('Error loading return services:', error);
       // Use default services if Firebase fails
       const defaultReturnServices = [
         {
           id: 'postnord-rek',
           name: 'PostNord REK',
           description: 'Rekommenderat brev - spårbart och försäkrat',
-          price: '0 kr',
+          price: 'Från 85 kr',
+          priceValue: 85,
           provider: 'PostNord',
           estimatedDelivery: '2-5 arbetsdagar',
           available: true
@@ -976,7 +986,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: 'dhl-sweden',
           name: 'DHL Sweden',
           description: 'DHL leverans inom Sverige',
-          price: '0 kr',
+          price: 'Från 180 kr',
+          priceValue: 180,
           provider: 'DHL',
           estimatedDelivery: '1-2 arbetsdagar',
           available: true
@@ -1151,6 +1162,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         returnServices: returnServices,
         scannedCopies: answers.scannedCopies,
         pickupService: answers.pickupService,
+        pickupMethod: answers.pickupMethod as 'dhl' | 'stockholm_courier' | undefined,
+        premiumPickup: answers.premiumPickup,
         premiumDelivery: answers.premiumDelivery
       });
 
