@@ -8,6 +8,7 @@ import { getAllOrders, updateOrder } from '@/firebase/orderService';
 import type { Order } from '@/firebase/orderService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import { saveDriverDailyReport, getDriverMonthlySummary, type DriverMonthlySummary } from '@/firebase/driverReportService';
+import { jsPDF } from 'jspdf';
 
 interface ProcessingStep {
   id: string;
@@ -703,7 +704,7 @@ function DriverDashboardPage() {
   }, {} as Record<string, DriverTask[]>);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    return new Date(dateString).toLocaleDateString('en-GB', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -712,7 +713,6 @@ function DriverDashboardPage() {
   };
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered, calling fetchDriverTasks');
     fetchDriverTasks();
   }, []);
 
@@ -736,20 +736,145 @@ function DriverDashboardPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'Klar';
+        return 'Completed';
       case 'in_progress':
-        return 'Pågår';
+        return 'In Progress';
       case 'pending':
-        return 'Väntar';
+        return 'Pending';
       default:
         return status;
     }
   };
 
+  // Generate PDF for driver task list - simple black & white design
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let y = 20;
+
+    // Header - simple black text
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Driver Task List', margin, y);
+    y += 8;
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(selectedDate + ' | Total: ' + tasks.length + ' tasks', margin, y);
+    y += 5;
+    
+    // Line separator
+    doc.setDrawColor(0, 0, 0);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    // Group tasks by authority
+    Object.entries(groupedTasks).forEach(([authority, authorityTasks]) => {
+      const deliveryTasks = (authorityTasks as DriverTask[]).filter(t => t.type === 'delivery');
+      const pickupTasks = (authorityTasks as DriverTask[]).filter(t => t.type === 'pickup');
+
+      // Check if we need a new page
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // Authority header
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(authority, margin, y);
+      y += 7;
+
+      // Delivery tasks
+      if (deliveryTasks.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('DROP OFF (' + deliveryTasks.length + ')', margin + 2, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+        deliveryTasks.forEach((task) => {
+          if (y > 275) {
+            doc.addPage();
+            y = 20;
+          }
+
+          // Checkbox
+          doc.setDrawColor(0, 0, 0);
+          doc.rect(margin, y - 3, 4, 4);
+          
+          // Task info
+          doc.setFontSize(9);
+          const stepText = task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim();
+          doc.text('#' + task.orderNumber + '  ' + task.customerName + '  -  ' + stepText.substring(0, 40), margin + 7, y);
+          
+          y += 6;
+        });
+        y += 3;
+      }
+
+      // Pickup tasks
+      if (pickupTasks.length > 0) {
+        if (y > 265) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PICK UP (' + pickupTasks.length + ')', margin + 2, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+        pickupTasks.forEach((task) => {
+          if (y > 275) {
+            doc.addPage();
+            y = 20;
+          }
+
+          // Checkbox
+          doc.setDrawColor(0, 0, 0);
+          doc.rect(margin, y - 3, 4, 4);
+          
+          // Task info
+          doc.setFontSize(9);
+          const stepText = task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim();
+          doc.text('#' + task.orderNumber + '  ' + task.customerName + '  -  ' + stepText.substring(0, 40), margin + 7, y);
+          
+          y += 6;
+        });
+        y += 3;
+      }
+
+      y += 5;
+    });
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        'DOX Visumpartner AB | Generated: ' + new Date().toLocaleString('en-GB') + ' | Page ' + i + '/' + pageCount,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+    }
+
+    // Save PDF
+    const fileName = 'driver-tasks-' + selectedDate + '.pdf';
+    doc.save(fileName);
+  };
+
   return (
     <ProtectedRoute>
       <Head>
-        <title>Chaufför Dashboard - Legaliseringstjänst</title>
+        <title>Driver Dashboard - DOX</title>
         <style jsx global>{`
           @media print {
             /* Hide everything by default */
@@ -821,305 +946,25 @@ function DriverDashboardPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">🚗 Chaufför Dashboard</h1>
-                <p className="text-gray-600 mt-2">Översikt över hämtningar och inlämningar - {formatDate(selectedDate)}</p>
+                <h1 className="text-3xl font-bold text-gray-900">🚗 Driver Dashboard</h1>
+                <p className="text-gray-600 mt-2">Overview of pickups and deliveries - {formatDate(selectedDate)}</p>
               </div>
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => {
-                    const printWindow = window.open('', '_blank', 'width=800,height=600');
-                    if (printWindow) {
-                      const selectedDate = new Date().toISOString().split('T')[0];
-                      const formatDate = (dateString: string) => {
-                        return new Date(dateString).toLocaleDateString('sv-SE', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        });
-                      };
-
-                      printWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                          <title>Chaufförs Uppgifter</title>
-                          <style>
-                            body {
-                              font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                              line-height: 1.5;
-                              color: #1f2937;
-                              margin: 0;
-                              padding: 20px;
-                              background-color: #f9fafb;
-                            }
-                            .driver-box {
-                              max-width: 800px;
-                              margin: auto;
-                              padding: 30px;
-                              background: white;
-                              border: 1px solid #e5e7eb;
-                              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                              border-radius: 8px;
-                            }
-                            .driver-header {
-                              background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-                              color: white;
-                              padding: 30px;
-                              margin: -30px -30px 30px -30px;
-                              border-radius: 8px 8px 0 0;
-                              display: flex;
-                              justify-content: space-between;
-                              align-items: center;
-                            }
-                            .driver-header h1 {
-                              color: white;
-                              margin: 0;
-                              font-size: 28px;
-                              font-weight: 700;
-                            }
-                            .company-info, .driver-info {
-                              flex: 1;
-                            }
-                            .company-info {
-                              padding-right: 20px;
-                            }
-                            .driver-info {
-                              text-align: right;
-                            }
-                            .driver-info h2 {
-                              color: #ffffff;
-                              margin: 0 0 10px 0;
-                            }
-                            table {
-                              width: 100%;
-                              border-collapse: collapse;
-                              margin: 25px 0;
-                              border-radius: 8px;
-                              overflow: hidden;
-                              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                            }
-                            th {
-                              padding: 14px 12px;
-                              text-align: left;
-                              background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-                              color: white;
-                              font-weight: 600;
-                              font-size: 11px;
-                              text-transform: uppercase;
-                              letter-spacing: 0.5px;
-                            }
-                            td {
-                              padding: 12px;
-                              border-bottom: 1px solid #e5e7eb;
-                              background-color: white;
-                            }
-                            tr:nth-child(even) td {
-                              background-color: #f9fafb;
-                            }
-                            .text-right {
-                              text-align: right;
-                            }
-                            .authority {
-                              margin-bottom: 30px;
-                              page-break-inside: avoid;
-                            }
-                            .authority-title {
-                              font-size: 18pt;
-                              font-weight: bold;
-                              margin-bottom: 15px;
-                              color: #0ea5e9;
-                              border-bottom: 3px solid #0ea5e9;
-                              padding-bottom: 8px;
-                            }
-                            .summary {
-                              background: #f8f9fa;
-                              padding: 15px;
-                              margin-bottom: 20px;
-                              border-radius: 6px;
-                              border-left: 4px solid #0ea5e9;
-                            }
-                            .task-section {
-                              margin-bottom: 20px;
-                            }
-                            .section-header {
-                              font-size: 13pt;
-                              font-weight: bold;
-                              padding: 8px 12px;
-                              border-radius: 6px;
-                              margin-bottom: 10px;
-                            }
-                            .section-header.delivery {
-                              background: #fff7ed;
-                              color: #c2410c;
-                              border-left: 4px solid #ea580c;
-                            }
-                            .section-header.pickup {
-                              background: #f0fdf4;
-                              color: #166534;
-                              border-left: 4px solid #22c55e;
-                            }
-                            .task-card {
-                              display: flex;
-                              align-items: flex-start;
-                              padding: 12px;
-                              margin-bottom: 8px;
-                              background: #fff;
-                              border: 1px solid #e5e7eb;
-                              border-radius: 6px;
-                            }
-                            .checkbox-area {
-                              font-size: 24px;
-                              margin-right: 15px;
-                              color: #9ca3af;
-                              min-width: 30px;
-                            }
-                            .task-content {
-                              flex: 1;
-                            }
-                            .task-header {
-                              display: flex;
-                              gap: 15px;
-                              margin-bottom: 4px;
-                            }
-                            .order-num {
-                              font-weight: bold;
-                              color: #0ea5e9;
-                              font-size: 12pt;
-                            }
-                            .customer {
-                              font-weight: 600;
-                              color: #1f2937;
-                              font-size: 12pt;
-                            }
-                            .task-detail {
-                              color: #6b7280;
-                              font-size: 11pt;
-                            }
-                            .task-notes {
-                              margin-top: 6px;
-                              padding: 6px 10px;
-                              background: #fef3c7;
-                              border-radius: 4px;
-                              font-size: 10pt;
-                              color: #92400e;
-                            }
-                            .footer {
-                              margin-top: 40px;
-                              background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-                              color: white;
-                              padding: 20px;
-                              text-align: center;
-                              border-radius: 0 0 8px 8px;
-                              font-size: 11pt;
-                            }
-                            @media print {
-                              body { margin: 0; padding: 10px; }
-                              .authority { break-inside: avoid; }
-                              .task-card { break-inside: avoid; }
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="driver-box">
-                            <div class="driver-header">
-                              <div class="company-info">
-                                <h1>DOX Visumpartner AB</h1>
-                                <p>
-                                  Box 38<br>
-                                  121 25 Stockholm-Globen<br>
-                                  info@doxvisum.se<br>
-                                  08-123 45 67<br>
-                                  Org.nr: 559015-4521
-                                </p>
-                              </div>
-                              <div class="driver-info">
-                                <h2>CHAUFFÖR UPPGIFTER</h2>
-                                <p>
-                                  Datum: ${formatDate(selectedDate)}<br>
-                                  Totalt: ${tasks.length} uppgifter
-                                </p>
-                              </div>
-                            </div>
-
-                            <div class="summary">
-                              <strong>Dagens uppgifter</strong>
-                            </div>
-
-                          ${Object.entries(groupedTasks).map(([authority, authorityTasks]) => {
-                            const deliveryTasks = authorityTasks.filter(t => t.type === 'delivery');
-                            const pickupTasks = authorityTasks.filter(t => t.type === 'pickup');
-                            return `
-                            <div class="authority">
-                              <div class="authority-title">📍 ${authority}</div>
-                              
-                              ${deliveryTasks.length > 0 ? `
-                              <div class="task-section">
-                                <div class="section-header delivery">📤 LÄMNA IN (${deliveryTasks.length})</div>
-                                ${deliveryTasks.map(task => `
-                                <div class="task-card">
-                                  <div class="checkbox-area">☐</div>
-                                  <div class="task-content">
-                                    <div class="task-header">
-                                      <span class="order-num">#${task.orderNumber}</span>
-                                      <span class="customer">${task.customerName}</span>
-                                    </div>
-                                    <div class="task-detail">${task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim()}</div>
-                                    ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
-                                  </div>
-                                </div>
-                                `).join('')}
-                              </div>
-                              ` : ''}
-                              
-                              ${pickupTasks.length > 0 ? `
-                              <div class="task-section">
-                                <div class="section-header pickup">📦 HÄMTA (${pickupTasks.length})</div>
-                                ${pickupTasks.map(task => `
-                                <div class="task-card">
-                                  <div class="checkbox-area">☐</div>
-                                  <div class="task-content">
-                                    <div class="task-header">
-                                      <span class="order-num">#${task.orderNumber}</span>
-                                      <span class="customer">${task.customerName}</span>
-                                    </div>
-                                    <div class="task-detail">${task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim()}</div>
-                                    ${task.notes ? `<div class="task-notes">📝 ${task.notes}</div>` : ''}
-                                  </div>
-                                </div>
-                                `).join('')}
-                              </div>
-                              ` : ''}
-                            </div>
-                          `}).join('')}
-
-                          <div class="footer">
-                            <p>DOX Visumpartner AB | Org.nr: 559015-4521</p>
-                            <p>Chaufförs lista - ${new Date().toLocaleString('sv-SE')}</p>
-                          </div>
-                        </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      setTimeout(() => {
-                        printWindow.print();
-                      }, 100);
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center"
-                  title="Skriv ut dagens lista"
+                  onClick={generatePDF}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center"
+                  title="Download PDF"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Skriv ut lista
+                  Download PDF
                 </button>
                 <Link
                   href="/admin"
                   className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
                 >
-                  Tillbaka till Admin
+                  Back to Admin
                 </Link>
               </div>
             </div>
@@ -1130,7 +975,7 @@ function DriverDashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Datum
+                  Date
                 </label>
                 <input
                   type="date"
@@ -1141,16 +986,16 @@ function DriverDashboardPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Typ av uppgift
+                  Task Type
                 </label>
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value as any)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  <option value="all">Alla uppgifter</option>
-                  <option value="pickup">Hämtningar</option>
-                  <option value="delivery">Inlämningar</option>
+                  <option value="all">All tasks</option>
+                  <option value="pickup">Pickups</option>
+                  <option value="delivery">Deliveries</option>
                 </select>
               </div>
               <div className="flex items-end">
@@ -1158,7 +1003,7 @@ function DriverDashboardPage() {
                   onClick={fetchDriverTasks}
                   className="w-full px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors"
                 >
-                  Uppdatera lista
+                  Refresh List
                 </button>
               </div>
             </div>
@@ -1167,13 +1012,13 @@ function DriverDashboardPage() {
           {loading ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
-              <p className="text-gray-600">Laddar uppgifter...</p>
+              <p className="text-gray-600">Loading tasks...</p>
             </div>
           ) : (
             <div className="space-y-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Uppgifter för {formatDate(selectedDate)}
+                  Tasks for {formatDate(selectedDate)}
                 </h2>
 
                 {Object.keys(groupedTasks).length === 0 ? (
@@ -1181,7 +1026,7 @@ function DriverDashboardPage() {
                     <svg className="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2m9 5v-2a2 2 0 00-2-2H9a2 2 0 00-2 2v4m0-4h2m-2 4h2m-4-4h2m-2 4h-2m2-4H9a2 2 0 00-2 2m2-4h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m2-4h2m-4 4h2m-2 4h-2m2-4H5a2 2 0 00-2 2m2-4h6a2 2 0 012 2" />
                     </svg>
-                    <p>Inga uppgifter planerade för detta datum</p>
+                    <p>No tasks scheduled for this date</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -1327,7 +1172,7 @@ function DriverDashboardPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                               </svg>
                               {authority}
-                              <span className="ml-2 text-sm font-normal text-gray-600">({authorityTasks.length} uppgifter)</span>
+                              <span className="ml-2 text-sm font-normal text-gray-600">({authorityTasks.length} tasks)</span>
                             </h3>
                           </div>
 
@@ -1336,17 +1181,17 @@ function DriverDashboardPage() {
                             {deliveryTasks.length > 0 && (
                               <div className="mb-6">
                                 <h4 className="text-md font-semibold text-orange-700 mb-3 flex items-center">
-                                  Lämnas in ({deliveryTasks.length} uppgifter)
+                                  Drop off ({deliveryTasks.length} tasks)
                                 </h4>
                                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                                   {/* Header row */}
                                   <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center font-medium text-sm text-gray-700">
                                     <div className="w-28">Order</div>
-                                    <div className="flex-1 ml-4">Kund</div>
-                                    <div className="w-40 hidden sm:block">Uppgift</div>
-                                    <div className="w-20">Typ</div>
+                                    <div className="flex-1 ml-4">Customer</div>
+                                    <div className="w-40 hidden sm:block">Task</div>
+                                    <div className="w-20">Type</div>
                                     <div className="w-24">Status</div>
-                                    <div className="w-32 text-right">Åtgärder</div>
+                                    <div className="w-32 text-right">Actions</div>
                                   </div>
 
                                   {/* Task rows */}
@@ -1393,7 +1238,7 @@ function DriverDashboardPage() {
                                               ? 'text-green-700'
                                               : task.type === 'pickup' ? 'text-green-700' : 'text-orange-700'
                                           }`}>
-                                            {task.type === 'pickup' ? 'Hämtning' : 'Inlämning'}
+                                            {task.type === 'pickup' ? 'Pickup' : 'Drop off'}
                                           </span>
                                         </div>
 
@@ -1404,8 +1249,7 @@ function DriverDashboardPage() {
                                             task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                                             'bg-gray-100 text-gray-800'
                                           }`}>
-                                            {task.status === 'completed' ? 'Klar' :
-                                             task.status === 'in_progress' ? 'Pågår' : 'Väntar'}
+                                            {getStatusText(task.status)}
                                           </span>
                                         </div>
 
@@ -1415,7 +1259,7 @@ function DriverDashboardPage() {
                                             href={`/admin/orders/${task.orderId}`}
                                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
                                           >
-                                            Visa
+                                            View
                                           </a>
                                         </div>
                                       </div>
@@ -1429,17 +1273,17 @@ function DriverDashboardPage() {
                             {pickupTasks.length > 0 && (
                               <div>
                                 <h4 className="text-md font-semibold text-green-700 mb-3 flex items-center">
-                                  Hämtas ({pickupTasks.length} uppgifter)
+                                  Pick up ({pickupTasks.length} tasks)
                                 </h4>
                                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                                   {/* Header row */}
                                   <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center font-medium text-sm text-gray-700">
                                     <div className="w-28">Order</div>
-                                    <div className="flex-1 ml-4">Kund</div>
-                                    <div className="w-40 hidden sm:block">Uppgift</div>
-                                    <div className="w-20">Typ</div>
+                                    <div className="flex-1 ml-4">Customer</div>
+                                    <div className="w-40 hidden sm:block">Task</div>
+                                    <div className="w-20">Type</div>
                                     <div className="w-24">Status</div>
-                                    <div className="w-32 text-right">Åtgärder</div>
+                                    <div className="w-32 text-right">Actions</div>
                                   </div>
 
                                   {/* Task rows */}
@@ -1486,7 +1330,7 @@ function DriverDashboardPage() {
                                               ? 'text-green-700'
                                               : task.type === 'pickup' ? 'text-green-700' : 'text-orange-700'
                                           }`}>
-                                            {task.type === 'pickup' ? 'Hämtning' : 'Inlämning'}
+                                            {task.type === 'pickup' ? 'Pickup' : 'Drop off'}
                                           </span>
                                         </div>
 
@@ -1497,8 +1341,7 @@ function DriverDashboardPage() {
                                             task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                                             'bg-gray-100 text-gray-800'
                                           }`}>
-                                            {task.status === 'completed' ? 'Klar' :
-                                             task.status === 'in_progress' ? 'Pågår' : 'Väntar'}
+                                            {getStatusText(task.status)}
                                           </span>
                                         </div>
 
@@ -1508,7 +1351,7 @@ function DriverDashboardPage() {
                                             href={`/admin/orders/${task.orderId}`}
                                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
                                           >
-                                            Visa
+                                            View
                                           </a>
                                         </div>
                                       </div>
@@ -1531,17 +1374,17 @@ function DriverDashboardPage() {
           {/* Daily report: hours & expenses (mobile-friendly) - moved below tasks */}
           <div className="bg-white rounded-lg shadow p-6 mt-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">
-              Dagsrapport – timmar & utlägg
+              Daily Report – Hours & Expenses
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Fyll i dina timmar och utlägg för <span className="font-medium">{formatDate(selectedDate)}</span>. 
-              Spara dagsrapporten varje arbetsdag, och i slutet av månaden kan du öppna en månadssammanställning som färdigt mail till kontoret.
+              Enter your hours and expenses for <span className="font-medium">{formatDate(selectedDate)}</span>. 
+              Save the daily report each workday, and at the end of the month you can open a monthly summary as a ready email to the office.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Antal timmar
+                  Hours Worked
                 </label>
                 <input
                   type="number"
@@ -1551,12 +1394,12 @@ function DriverDashboardPage() {
                   value={hoursWorked}
                   onChange={(e) => setHoursWorked(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 7.5"
+                  placeholder="e.g. 7.5"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Parkering (kr)
+                  Parking (SEK)
                 </label>
                 <input
                   type="number"
@@ -1566,12 +1409,12 @@ function DriverDashboardPage() {
                   value={parkingCost}
                   onChange={(e) => setParkingCost(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 120"
+                  placeholder="e.g. 120"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ambassadutlägg (kr)
+                  Embassy Expenses (SEK)
                 </label>
                 <input
                   type="number"
@@ -1581,12 +1424,12 @@ function DriverDashboardPage() {
                   value={embassyCost}
                   onChange={(e) => setEmbassyCost(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 300"
+                  placeholder="e.g. 300"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Övriga utlägg (kr)
+                  Other Expenses (SEK)
                 </label>
                 <input
                   type="number"
@@ -1596,21 +1439,21 @@ function DriverDashboardPage() {
                   value={otherCost}
                   onChange={(e) => setOtherCost(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="t.ex. 0"
+                  placeholder="e.g. 0"
                 />
               </div>
             </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kommentar (valfritt)
+                Notes (optional)
               </label>
               <textarea
                 rows={3}
                 value={driverNotes}
                 onChange={(e) => setDriverNotes(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="T.ex. vilken ambassad, extra info om parkering eller körningar..."
+                placeholder="E.g. which embassy, extra info about parking or trips..."
               />
             </div>
 
@@ -1621,7 +1464,7 @@ function DriverDashboardPage() {
                 disabled={isSavingDailyReport}
                 className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSavingDailyReport ? 'Sparar dagsrapport…' : 'Spara dagsrapport'}
+                {isSavingDailyReport ? 'Saving report...' : 'Save Daily Report'}
               </button>
               <button
                 type="button"
@@ -1629,7 +1472,7 @@ function DriverDashboardPage() {
                 disabled={isOpeningMonthlyEmail}
                 className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isOpeningMonthlyEmail ? 'Öppnar månadssammanställning…' : 'Öppna månadssammanställning'}
+                {isOpeningMonthlyEmail ? 'Opening monthly summary...' : 'Open Monthly Summary'}
               </button>
             </div>
             {saveDailyMessage && (
@@ -1642,51 +1485,71 @@ function DriverDashboardPage() {
             {monthlySummary && (
               <div className="mt-6 border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                  {`Sparade dagsrapporter – ${new Intl.DateTimeFormat('sv-SE', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}`}
+                  {`Saved daily reports – ${new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}`}
                 </h3>
 
                 {isLoadingSummary ? (
-                  <p className="text-sm text-gray-500">Laddar sparade rapporter…</p>
+                  <p className="text-sm text-gray-500">Loading saved reports...</p>
                 ) : monthlySummary.reports.length === 0 ? (
-                  <p className="text-sm text-gray-500">Inga sparade dagsrapporter för denna månad.</p>
+                  <p className="text-sm text-gray-500">No saved daily reports for this month.</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200 bg-gray-50">
-                          <th className="px-2 py-1 text-left font-medium text-gray-700">Datum</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Timmar</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Parkering</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Ambassad</th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-700">Övrigt</th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-700">Kommentar</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {monthlySummary.reports.map((report) => (
-                          <tr
-                            key={report.id || report.date}
-                            className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => {
-                              setSelectedDate(report.date);
-                              setHoursWorked(report.hoursWorked.toString());
-                              setParkingCost(report.parkingCost.toString());
-                              setEmbassyCost(report.embassyCost.toString());
-                              setOtherCost(report.otherCost.toString());
-                              setDriverNotes(report.notes || '');
-                            }}
-                          >
-                            <td className="px-2 py-1 whitespace-nowrap">{report.date}</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.hoursWorked.toLocaleString('sv-SE')}</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.parkingCost} kr</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.embassyCost} kr</td>
-                            <td className="px-2 py-1 text-right whitespace-nowrap">{report.otherCost} kr</td>
-                            <td className="px-2 py-1 text-left max-w-xs truncate" title={report.notes || ''}>{report.notes || '-'}</td>
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 bg-gray-50">
+                            <th className="px-2 py-1 text-left font-medium text-gray-700">Date</th>
+                            <th className="px-2 py-1 text-right font-medium text-gray-700">Hours</th>
+                            <th className="px-2 py-1 text-right font-medium text-gray-700">Parking</th>
+                            <th className="px-2 py-1 text-right font-medium text-gray-700">Embassy</th>
+                            <th className="px-2 py-1 text-right font-medium text-gray-700">Other</th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-700">Notes</th>
+                            <th className="px-2 py-1 text-center font-medium text-gray-700">Edit</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {monthlySummary.reports.map((report) => (
+                            <tr
+                              key={report.id || report.date}
+                              className="hover:bg-blue-50 cursor-pointer transition-colors"
+                              onClick={() => {
+                                setSelectedDate(report.date);
+                                setHoursWorked(report.hoursWorked.toString());
+                                setParkingCost(report.parkingCost.toString());
+                                setEmbassyCost(report.embassyCost.toString());
+                                setOtherCost(report.otherCost.toString());
+                                setDriverNotes(report.notes || '');
+                                // Scroll to form
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                            >
+                              <td className="px-2 py-1 whitespace-nowrap">{report.date}</td>
+                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.hoursWorked.toLocaleString('sv-SE')}</td>
+                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.parkingCost} kr</td>
+                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.embassyCost} kr</td>
+                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.otherCost} kr</td>
+                              <td className="px-2 py-1 text-left max-w-xs truncate" title={report.notes || ''}>{report.notes || '-'}</td>
+                              <td className="px-2 py-1 text-center">
+                                <span className="inline-flex items-center text-blue-600 hover:text-blue-800">
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center">
+                      <svg className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm text-blue-800">
+                        <strong>Click on any row to edit</strong> – the values will be loaded into the form above. Make your changes and click "Save Daily Report" to update.
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -1696,7 +1559,7 @@ function DriverDashboardPage() {
           <div className="mt-8 space-y-6">
             {/* Summary section */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium mb-4">Dagens sammanfattning</h3>
+              <h3 className="text-lg font-medium mb-4">Today's Summary</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center">
@@ -1704,7 +1567,7 @@ function DriverDashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                     <div>
-                      <p className="text-sm font-medium text-blue-800">Totalt uppgifter</p>
+                      <p className="text-sm font-medium text-blue-800">Total Tasks</p>
                       <p className="text-2xl font-bold text-blue-900">{tasks.length}</p>
                     </div>
                   </div>
@@ -1716,7 +1579,7 @@ function DriverDashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     <div>
-                      <p className="text-sm font-medium text-green-800">Klara</p>
+                      <p className="text-sm font-medium text-green-800">Completed</p>
                       <p className="text-2xl font-bold text-green-900">{tasks.filter(t => t.status === 'completed').length}</p>
                     </div>
                   </div>
@@ -1728,7 +1591,7 @@ function DriverDashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="text-sm font-medium text-orange-800">Pågår</p>
+                      <p className="text-sm font-medium text-orange-800">In Progress</p>
                       <p className="text-2xl font-bold text-orange-900">{tasks.filter(t => t.status === 'in_progress').length}</p>
                     </div>
                   </div>
@@ -1740,7 +1603,7 @@ function DriverDashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">Väntar</p>
+                      <p className="text-sm font-medium text-gray-800">Pending</p>
                       <p className="text-2xl font-bold text-gray-900">{tasks.filter(t => t.status === 'pending').length}</p>
                     </div>
                   </div>
@@ -1750,42 +1613,29 @@ function DriverDashboardPage() {
 
             {/* Driver notes section */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium mb-4">Chaufförens anteckningar</h3>
+              <h3 className="text-lg font-medium mb-4">Driver Notes</h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Lägg till anteckning för dagen
+                    Add note for the day
                   </label>
                   <textarea
-                    placeholder="Skriv dina anteckningar för dagen här..."
+                    placeholder="Write your notes for the day here..."
                     className="w-full border border-gray-300 rounded-lg p-3"
                     rows={3}
                   />
                 </div>
                 <div className="flex items-center space-x-3">
                   <button className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-                    Spara anteckning
+                    Save Note
                   </button>
                   <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                    Rapportera klar dag
+                    Report Day Complete
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Company info footer */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-              <div className="text-center">
-                <h4 className="font-semibold text-gray-900 mb-2">DOX Visumpartner AB</h4>
-                <p className="text-sm text-gray-600">
-                  Box 38, 121 25 Stockholm-Globen<br />
-                  info@doxvisum.se | 08-123 45 67 | Org.nr: 559015-4521
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Chaufförs rapport genererad {new Date().toLocaleString('sv-SE')}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
