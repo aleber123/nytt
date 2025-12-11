@@ -93,12 +93,16 @@ function AdminOrderDetailPage() {
     phone: '',
     address: '',
     postalCode: '',
-    city: ''
+    city: '',
+    country: ''
   });
   const [editedPickupAddress, setEditedPickupAddress] = useState({
     street: '',
     postalCode: '',
-    city: ''
+    city: '',
+    country: '',
+    company: '',
+    name: ''
   });
   const [savingCustomerInfo, setSavingCustomerInfo] = useState(false);
   
@@ -243,6 +247,8 @@ function AdminOrderDetailPage() {
       let updatedScannedCopies = order.scannedCopies;
       let updatedPickupService = order.pickupService;
       let updatedReturnService = order.returnService;
+      let updatedExpedited = order.expedited;
+      let updatedPremiumPickup = (order as any).premiumPickup;
 
       if (serviceToAdd === 'scanned_copies') {
         if (updatedScannedCopies) {
@@ -256,6 +262,16 @@ function AdminOrderDetailPage() {
           return;
         }
         updatedPickupService = true;
+      } else if (serviceToAdd === 'premium_pickup') {
+        // Premium pickup also enables regular pickup
+        updatedPickupService = true;
+        updatedPremiumPickup = 'dhl_express'; // Default premium option
+      } else if (serviceToAdd === 'express') {
+        if (updatedExpedited) {
+          setAddingService(false);
+          return;
+        }
+        updatedExpedited = true;
       } else if (serviceToAdd === 'return') {
         if (updatedReturnService) {
           setAddingService(false);
@@ -276,12 +292,13 @@ function AdminOrderDetailPage() {
         country: order.country,
         services: updatedServices,
         quantity: order.quantity,
-        expedited: order.expedited,
+        expedited: updatedExpedited,
         deliveryMethod: order.deliveryMethod,
         returnService: updatedReturnService,
         returnServices: [],
         scannedCopies: updatedScannedCopies,
-        pickupService: updatedPickupService
+        pickupService: updatedPickupService,
+        premiumPickup: updatedPremiumPickup
       });
 
       const baseSteps = (order.processingSteps && order.processingSteps.length > 0)
@@ -293,7 +310,9 @@ function AdminOrderDetailPage() {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
-        returnService: updatedReturnService
+        returnService: updatedReturnService,
+        expedited: updatedExpedited,
+        premiumPickup: updatedPremiumPickup
       } as ExtendedOrder;
 
       const templateSteps = initializeProcessingSteps(updatedOrderForSteps);
@@ -308,6 +327,8 @@ function AdminOrderDetailPage() {
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
         returnService: updatedReturnService,
+        expedited: updatedExpedited,
+        premiumPickup: updatedPremiumPickup,
         totalPrice: pricingResult.totalPrice,
         pricingBreakdown: pricingResult.breakdown,
         processingSteps: mergedSteps
@@ -319,6 +340,8 @@ function AdminOrderDetailPage() {
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
         returnService: updatedReturnService,
+        expedited: updatedExpedited,
+        premiumPickup: updatedPremiumPickup,
         totalPrice: pricingResult.totalPrice,
         pricingBreakdown: pricingResult.breakdown,
         processingSteps: mergedSteps
@@ -327,10 +350,10 @@ function AdminOrderDetailPage() {
       setOrder(updatedOrder);
       setProcessingSteps(mergedSteps);
       setNewServiceToAdd('');
-      toast.success(`Tjänst "${getServiceName(serviceToAdd)}" har lagts till i ordern`);
+      toast.success(`Service "${getServiceName(serviceToAdd)}" has been added to the order`);
     } catch (err) {
       console.error('Error adding service:', err);
-      toast.error('Kunde inte lägga till tjänsten i ordern');
+      toast.error('Could not add service to order');
     } finally {
       setAddingService(false);
     }
@@ -403,10 +426,10 @@ function AdminOrderDetailPage() {
         totalPrice: total
       });
       setOrder({ ...order, adminPrice, totalPrice: total } as any);
-      toast.success('Pris uppdaterat');
+      toast.success('Price updated');
     } catch (e) {
       console.error('Failed to save pricing:', e);
-      toast.error('Kunde inte spara pris');
+      toast.error('Could not save price');
     }
   };
 
@@ -665,14 +688,18 @@ function AdminOrderDetailPage() {
           phone: ci.phone || '',
           address: ci.address || '',
           postalCode: ci.postalCode || '',
-          city: ci.city || ''
+          city: ci.city || '',
+          country: ci.country || ''
         });
 
         const pa = extendedOrder.pickupAddress || ({} as any);
         setEditedPickupAddress({
           street: pa.street || '',
           postalCode: pa.postalCode || '',
-          city: pa.city || ''
+          city: pa.city || '',
+          country: pa.country || '',
+          company: pa.company || '',
+          name: pa.name || ''
         });
 
         // Fetch invoices for this order
@@ -2135,12 +2162,16 @@ function AdminOrderDetailPage() {
       phone: ci.phone || '',
       address: ci.address || '',
       postalCode: ci.postalCode || '',
-      city: ci.city || ''
+      city: ci.city || '',
+      country: ci.country || ''
     });
     setEditedPickupAddress({
       street: pa.street || '',
       postalCode: pa.postalCode || '',
-      city: pa.city || ''
+      city: pa.city || '',
+      country: pa.country || '',
+      company: pa.company || '',
+      name: pa.name || ''
     });
     toast.success('Tidigare kunduppgifter inlästa – glöm inte att spara');
   };
@@ -2299,7 +2330,8 @@ function AdminOrderDetailPage() {
       phone: editedCustomer.phone.trim(),
       address: editedCustomer.address.trim(),
       postalCode: editedCustomer.postalCode.trim(),
-      city: editedCustomer.city.trim()
+      city: editedCustomer.city.trim(),
+      country: editedCustomer.country.trim()
     };
 
     const currentPickup: any = order.pickupAddress || {};
@@ -2307,7 +2339,10 @@ function AdminOrderDetailPage() {
       ? {
           street: editedPickupAddress.street.trim(),
           postalCode: editedPickupAddress.postalCode.trim(),
-          city: editedPickupAddress.city.trim()
+          city: editedPickupAddress.city.trim(),
+          country: editedPickupAddress.country.trim(),
+          company: editedPickupAddress.company.trim(),
+          name: editedPickupAddress.name.trim()
         }
       : currentPickup;
 
@@ -2318,12 +2353,16 @@ function AdminOrderDetailPage() {
       (currentCustomer.phone || '') !== newCustomer.phone ||
       (currentCustomer.address || '') !== newCustomer.address ||
       (currentCustomer.postalCode || '') !== newCustomer.postalCode ||
-      (currentCustomer.city || '') !== newCustomer.city;
+      (currentCustomer.city || '') !== newCustomer.city ||
+      (currentCustomer.country || '') !== newCustomer.country;
 
     const hasPickupChanges = order.pickupService && (
       (currentPickup.street || '') !== newPickup.street ||
       (currentPickup.postalCode || '') !== newPickup.postalCode ||
-      (currentPickup.city || '') !== newPickup.city
+      (currentPickup.city || '') !== newPickup.city ||
+      (currentPickup.country || '') !== newPickup.country ||
+      (currentPickup.company || '') !== newPickup.company ||
+      (currentPickup.name || '') !== newPickup.name
     );
 
     if (!hasCustomerChanges && !hasPickupChanges) {
@@ -2504,36 +2543,44 @@ function AdminOrderDetailPage() {
 
       setOrder(updatedOrder);
       setProcessingSteps(updatedProcessingSteps);
-      toast.success(`Tjänst "${getServiceName(serviceToRemove)}" har tagits bort från ordern`);
+      toast.success(`Service "${getServiceName(serviceToRemove)}" has been removed from the order`);
     } catch (err) {
       console.error('Error removing service:', err);
-      toast.error('Kunde inte ta bort tjänsten från ordern');
+      toast.error('Could not remove service from order');
     } finally {
       setRemovingService(null);
     }
   };
 
-  // Function to get service name
+  // Function to get service name (English for admin panel)
   const getServiceName = (serviceId: string) => {
     switch (serviceId) {
       case 'apostille':
         return 'Apostille';
       case 'notarization':
       case 'notarisering':
-        return 'Notarisering';
+        return 'Notarization';
       case 'embassy':
       case 'ambassad':
-        return 'Ambassadlegalisering';
+        return 'Embassy Legalization';
       case 'translation':
       case 'oversattning':
-        return 'Översättning';
+        return 'Translation';
       case 'utrikesdepartementet':
       case 'ud':
-        return 'Utrikesdepartementet';
+        return 'Ministry of Foreign Affairs';
       case 'chamber':
-        return 'Handelskammarens legalisering';
+        return 'Chamber of Commerce';
       case 'return':
-        return 'Returfrakt';
+        return 'Return Shipping';
+      case 'pickup_service':
+        return 'Document Pickup';
+      case 'premium_pickup':
+        return 'Premium Pickup';
+      case 'scanned_copies':
+        return 'Scanned Copies';
+      case 'express':
+        return 'Express Processing';
       default:
         return serviceId;
     }
@@ -2569,28 +2616,28 @@ function AdminOrderDetailPage() {
     ].includes(stepId);
   };
 
-  // Function to get service status based on processing steps
+  // Function to get service status based on processing steps (English for admin panel)
   const getServiceStatus = (serviceId: string) => {
-    if (!processingSteps || processingSteps.length === 0) return 'väntar';
+    if (!processingSteps || processingSteps.length === 0) return 'pending';
 
     const aggregateStatuses = (steps: ProcessingStep[]) => {
-      if (!steps || steps.length === 0) return 'väntar';
+      if (!steps || steps.length === 0) return 'pending';
 
       const statuses = steps.map((s) => s.status);
 
       if (statuses.every((s) => s === 'skipped')) {
-        return 'hoppas över';
+        return 'skipped';
       }
 
       if (statuses.every((s) => s === 'completed' || s === 'skipped')) {
-        return 'klar';
+        return 'completed';
       }
 
       if (statuses.some((s) => s === 'in_progress' || s === 'completed')) {
-        return 'pågår';
+        return 'in progress';
       }
 
-      return 'väntar';
+      return 'pending';
     };
 
     // Special handling for embassy which now has separate delivery/pickup steps
@@ -2628,35 +2675,35 @@ function AdminOrderDetailPage() {
     };
 
     const stepId = serviceToStepMap[serviceId];
-    if (!stepId) return 'väntar';
+    if (!stepId) return 'pending';
 
     const step = processingSteps.find((s) => s.id === stepId) as ProcessingStep | undefined;
-    if (!step) return 'väntar';
+    if (!step) return 'pending';
 
     switch (step.status) {
       case 'completed':
-        return 'klar';
+        return 'completed';
       case 'in_progress':
-        return 'pågår';
+        return 'in progress';
       case 'pending':
-        return 'väntar';
+        return 'pending';
       case 'skipped':
-        return 'hoppas över';
+        return 'skipped';
       default:
-        return 'väntar';
+        return 'pending';
     }
   };
 
-  // Function to get status color class
+  // Function to get status color class (English status values)
   const getServiceStatusColor = (status: string) => {
     switch (status) {
-      case 'klar':
+      case 'completed':
         return 'text-green-600 bg-green-50';
-      case 'pågår':
+      case 'in progress':
         return 'text-blue-600 bg-blue-50';
-      case 'väntar':
+      case 'pending':
         return 'text-gray-600 bg-gray-50';
-      case 'hoppas över':
+      case 'skipped':
         return 'text-orange-600 bg-orange-50';
       default:
         return 'text-gray-600 bg-gray-50';
@@ -3125,6 +3172,13 @@ function AdminOrderDetailPage() {
                                       className="border border-gray-300 rounded px-2 py-1 text-sm"
                                     />
                                   </div>
+                                  <input
+                                    type="text"
+                                    placeholder="Country"
+                                    value={editedCustomer.country}
+                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, country: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm mt-1"
+                                  />
                                 </div>
 
                                 {order.pickupService && (
@@ -3132,10 +3186,24 @@ function AdminOrderDetailPage() {
                                     <p className="text-sm font-medium text-gray-700">Pickup address</p>
                                     <input
                                       type="text"
+                                      placeholder="Company name"
+                                      value={editedPickupAddress.company}
+                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, company: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Contact name"
+                                      value={editedPickupAddress.name}
+                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, name: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                    <input
+                                      type="text"
                                       placeholder="Street address"
                                       value={editedPickupAddress.street}
                                       onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, street: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-1"
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                                     />
                                     <div className="grid grid-cols-2 gap-2">
                                       <input
@@ -3153,6 +3221,13 @@ function AdminOrderDetailPage() {
                                         className="border border-gray-300 rounded px-2 py-1 text-sm"
                                       />
                                     </div>
+                                    <input
+                                      type="text"
+                                      placeholder="Country"
+                                      value={editedPickupAddress.country}
+                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, country: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
                                   </div>
                                 )}
 
@@ -3288,25 +3363,32 @@ function AdminOrderDetailPage() {
                 {activeTab === 'services' && (
                   <div className="space-y-6">
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-4">Tjänster på ordern</h3>
+                      <h3 className="text-lg font-medium mb-4">Order Services</h3>
                       {(() => {
                         const baseServices: string[] = Array.isArray(order.services) ? order.services : [];
                         const extraServices: string[] = [];
                         if (order.pickupService) extraServices.push('pickup_service');
+                        if ((order as any).premiumPickup) extraServices.push('premium_pickup');
                         if (order.scannedCopies) extraServices.push('scanned_copies');
+                        if (order.expedited) extraServices.push('express');
                         if (order.returnService) extraServices.push('return');
                         const allServices = [...baseServices, ...extraServices];
 
                         const currentSet = new Set(allServices);
                         const possibleServices: { id: string; label: string }[] = [
+                          // Main legalization services
                           { id: 'notarization', label: getServiceName('notarization') },
                           { id: 'translation', label: getServiceName('translation') },
                           { id: 'chamber', label: getServiceName('chamber') },
                           { id: 'ud', label: getServiceName('ud') },
                           { id: 'embassy', label: getServiceName('embassy') },
                           { id: 'apostille', label: getServiceName('apostille') },
-                          { id: 'pickup_service', label: 'Upphämtning av dokument' },
-                          { id: 'scanned_copies', label: 'Scannade kopior' },
+                          // Pickup options
+                          { id: 'pickup_service', label: 'Document Pickup (Standard)' },
+                          { id: 'premium_pickup', label: 'Document Pickup (Premium/Express)' },
+                          // Additional services
+                          { id: 'scanned_copies', label: 'Scanned Copies' },
+                          { id: 'express', label: 'Express Processing' },
                           { id: 'return', label: getServiceName('return') }
                         ];
 
@@ -3315,9 +3397,9 @@ function AdminOrderDetailPage() {
                         return (
                           <div className="space-y-6">
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Aktiva tjänster</h4>
+                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Active Services</h4>
                               {allServices.length === 0 ? (
-                                <p className="text-sm text-gray-500">Inga tjänster är registrerade på denna order.</p>
+                                <p className="text-sm text-gray-500">No services registered on this order.</p>
                               ) : (
                                 <div className="space-y-2">
                                   {allServices.map((serviceId) => {
@@ -3336,7 +3418,7 @@ function AdminOrderDetailPage() {
                                             </span>
                                           </div>
                                           <p className="text-xs text-gray-500 mt-0.5">
-                                            Status baseras på bearbetningssteg.
+                                            Status based on processing steps.
                                           </p>
                                         </div>
                                         <button
@@ -3345,7 +3427,7 @@ function AdminOrderDetailPage() {
                                           disabled={removingService === serviceId}
                                           className="px-2 py-1 text-xs border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-50"
                                         >
-                                          {removingService === serviceId ? 'Tar bort...' : 'Ta bort'}
+                                          {removingService === serviceId ? 'Removing...' : 'Remove'}
                                         </button>
                                       </div>
                                     );
@@ -3355,9 +3437,9 @@ function AdminOrderDetailPage() {
                             </div>
 
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Lägg till tjänst</h4>
+                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Add Service</h4>
                               {addableServices.length === 0 ? (
-                                <p className="text-sm text-gray-500">Alla tillgängliga tjänster är redan tillagda.</p>
+                                <p className="text-sm text-gray-500">All available services have been added.</p>
                               ) : (
                                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                   <select
@@ -3365,7 +3447,7 @@ function AdminOrderDetailPage() {
                                     onChange={(e) => setNewServiceToAdd(e.target.value)}
                                     className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
                                   >
-                                    <option value="">Välj tjänst att lägga till...</option>
+                                    <option value="">Select service to add...</option>
                                     {addableServices.map((s) => (
                                       <option key={s.id} value={s.id}>
                                         {s.label}
@@ -3378,12 +3460,12 @@ function AdminOrderDetailPage() {
                                     disabled={!newServiceToAdd || addingService}
                                     className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    {addingService ? 'Lägger till...' : 'Lägg till tjänst'}
+                                    {addingService ? 'Adding...' : 'Add Service'}
                                   </button>
                                 </div>
                               )}
                               <p className="mt-2 text-xs text-gray-500">
-                                När du lägger till eller tar bort en tjänst uppdateras priset och bearbetningsstegen automatiskt.
+                                When you add or remove a service, the price and processing steps are updated automatically.
                               </p>
                             </div>
                           </div>
@@ -3397,23 +3479,23 @@ function AdminOrderDetailPage() {
                 {activeTab === 'price' && (
                   <div className="space-y-6">
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-4">Prisjusteringar</h3>
+                      <h3 className="text-lg font-medium mb-4">Price Adjustments</h3>
                       {/* Per-service override table */}
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm border border-gray-200 rounded">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-3 py-2 text-left">Inkludera</th>
-                              <th className="px-3 py-2 text-left">Beskrivning</th>
-                              <th className="px-3 py-2 text-right">Grundbelopp</th>
-                              <th className="px-3 py-2 text-right">Nytt belopp</th>
-                              <th className="px-3 py-2 text-right">Moms %</th>
+                              <th className="px-3 py-2 text-left">Include</th>
+                              <th className="px-3 py-2 text-left">Description</th>
+                              <th className="px-3 py-2 text-right">Base Amount</th>
+                              <th className="px-3 py-2 text-right">New Amount</th>
+                              <th className="px-3 py-2 text-right">VAT %</th>
                             </tr>
                           </thead>
                           <tbody>
                             {Array.isArray(order?.pricingBreakdown) && order!.pricingBreakdown.length > 0 ? (
                               order!.pricingBreakdown.map((item: any, idx: number) => {
-                                const o = lineOverrides[idx] || { index: idx, label: item.description || getServiceName(item.service) || 'Rad', baseAmount: 0, include: true };
+                                const o = lineOverrides[idx] || { index: idx, label: item.description || getServiceName(item.service) || 'Line', baseAmount: 0, include: true };
                                 const base = o.baseAmount || (() => {
                                   if (typeof item.fee === 'number') return item.fee;
                                   if (typeof item.basePrice === 'number') return item.basePrice;
@@ -3469,7 +3551,7 @@ function AdminOrderDetailPage() {
                               })
                             ) : (
                               <tr>
-                                <td colSpan={5} className="px-3 py-4 text-center text-gray-500">Inga rader</td>
+                                <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
                               </tr>
                             )}
                           </tbody>
@@ -3477,37 +3559,37 @@ function AdminOrderDetailPage() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <p className="text-sm text-gray-500 mb-1">Grundbelopp (från prisuppdelning)</p>
-                          <div className="text-xl font-semibold">{getBreakdownTotal()} kr</div>
+                          <p className="text-sm text-gray-500 mb-1">Base Amount (from pricing breakdown)</p>
+                          <div className="text-xl font-semibold">{getBreakdownTotal()} SEK</div>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500 mb-1">Nytt totalbelopp</p>
-                          <div className="text-xl font-semibold">{getComputedTotal()} kr</div>
+                          <p className="text-sm text-gray-500 mb-1">New Total Amount</p>
+                          <div className="text-xl font-semibold">{getComputedTotal()} SEK</div>
                         </div>
                       </div>
 
                       <div className="mt-6">
-                        <h4 className="font-medium mb-2">Rabatt</h4>
+                        <h4 className="font-medium mb-2">Discount</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm text-gray-600 mb-1">Rabatt i kr</label>
+                            <label className="block text-sm text-gray-600 mb-1">Discount in SEK</label>
                             <input type="number" value={discountAmount} onChange={(e) => setDiscountAmount(Number(e.target.value))} className="w-full border rounded px-3 py-2" />
                           </div>
                           <div>
-                            <label className="block text-sm text-gray-600 mb-1">Rabatt i %</label>
+                            <label className="block text-sm text-gray-600 mb-1">Discount in %</label>
                             <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(Number(e.target.value))} className="w-full border rounded px-3 py-2" />
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-6">
-                        <h4 className="font-medium mb-2">Justeringar</h4>
+                        <h4 className="font-medium mb-2">Adjustments</h4>
                         <div className="space-y-3">
                           {adjustments.map((adj, idx) => (
                             <div key={idx} className="grid grid-cols-12 gap-2 items-center">
                               <input
                                 type="text"
-                                placeholder="Beskrivning"
+                                placeholder="Description"
                                 value={adj.description}
                                 onChange={(e) => {
                                   const next = [...adjustments];
@@ -3518,7 +3600,7 @@ function AdminOrderDetailPage() {
                               />
                               <input
                                 type="number"
-                                placeholder="Belopp (+/-)"
+                                placeholder="Amount (+/-)"
                                 value={adj.amount}
                                 onChange={(e) => {
                                   const next = [...adjustments];
@@ -3531,7 +3613,7 @@ function AdminOrderDetailPage() {
                                 onClick={() => setAdjustments(adjustments.filter((_, i) => i !== idx))}
                                 className="col-span-2 text-red-600 border border-red-300 rounded px-2 py-2 text-sm"
                               >
-                                Ta bort
+                                Remove
                               </button>
                             </div>
                           ))}
@@ -3539,20 +3621,20 @@ function AdminOrderDetailPage() {
                             onClick={() => setAdjustments([...adjustments, { description: '', amount: 0 }])}
                             className="px-3 py-2 border border-gray-300 rounded text-sm"
                           >
-                            Lägg till rad
+                            Add Line
                           </button>
                         </div>
                       </div>
 
                       <div className="mt-6 flex items-center justify-between">
                         <div className="text-sm text-gray-600">
-                          Summa justeringar: {getAdjustmentsTotal()} kr • Rabatt totalt: {getDiscountTotal(getBreakdownTotal())} kr
+                          Total adjustments: {getAdjustmentsTotal()} SEK • Total discount: {getDiscountTotal(getBreakdownTotal())} SEK
                         </div>
                         <button
                           onClick={savePricingAdjustments}
                           className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
                         >
-                          Spara pris
+                          Save Price
                         </button>
                       </div>
                     </div>
@@ -4039,13 +4121,13 @@ function AdminOrderDetailPage() {
                                   rel="noopener noreferrer"
                                   className="flex-1 text-center px-3 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 text-sm"
                                 >
-                                  Ladda ner
+                                  Download
                                 </a>
                                 <button
                                   onClick={() => window.open(file.downloadURL, '_blank')}
                                   className="px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm"
                                 >
-                                  Förhandsvisa
+                                  Preview
                                 </button>
                               </div>
                             </div>
@@ -4071,11 +4153,11 @@ function AdminOrderDetailPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            <span className="font-medium text-blue-800">Dokumenthämtning beställd</span>
+                            <span className="font-medium text-blue-800">Document pickup ordered</span>
                           </div>
                           <p className="text-blue-700">{order.pickupAddress.street}</p>
                           <p className="text-blue-700">{order.pickupAddress.postalCode} {order.pickupAddress.city}</p>
-                          <p className="text-blue-600 text-sm mt-2">Vi kommer att kontakta kunden inom 24 timmar för att boka tid för hämtning.</p>
+                          <p className="text-blue-600 text-sm mt-2">We will contact the customer within 24 hours to schedule the pickup.</p>
                         </div>
                       </div>
                     )}
@@ -4090,9 +4172,9 @@ function AdminOrderDetailPage() {
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="text-lg font-medium text-blue-800 mb-2">Ingen faktura skapad än</h3>
+                            <h3 className="text-lg font-medium text-blue-800 mb-2">No invoice created yet</h3>
                             <p className="text-blue-700 mb-4">
-                              Skapa en faktura för denna order för att kunna skicka den till kunden och hålla koll på betalningar.
+                              Create an invoice for this order to send it to the customer and track payments.
                             </p>
                             <button
                               onClick={handleCreateInvoice}
@@ -4102,14 +4184,14 @@ function AdminOrderDetailPage() {
                               {creatingInvoice ? (
                                 <>
                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                  Skapar faktura...
+                                  Creating invoice...
                                 </>
                               ) : (
                                 <>
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                   </svg>
-                                  Skapa faktura
+                                  Create Invoice
                                 </>
                               )}
                             </button>
@@ -4122,7 +4204,7 @@ function AdminOrderDetailPage() {
                     {invoices.length > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-medium">Fakturor ({invoices.length})</h3>
+                          <h3 className="text-lg font-medium">Invoices ({invoices.length})</h3>
                           <button
                             onClick={handleCreateInvoice}
                             disabled={creatingInvoice}
@@ -4131,14 +4213,14 @@ function AdminOrderDetailPage() {
                             {creatingInvoice ? (
                               <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Skapar...
+                                Creating...
                               </>
                             ) : (
                               <>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
-                                Ny faktura
+                                New Invoice
                               </>
                             )}
                           </button>
@@ -4151,7 +4233,7 @@ function AdminOrderDetailPage() {
                                 <div>
                                   <h4 className="text-xl font-bold text-gray-900">{invoice.invoiceNumber}</h4>
                                   <p className="text-sm text-gray-600">
-                                    Skapad {formatDate(invoice.issueDate)} • Förfaller {formatDate(invoice.dueDate)}
+                                    Created {formatDate(invoice.issueDate)} • Due {formatDate(invoice.dueDate)}
                                   </p>
                                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2 ${
                                     invoice.status === 'draft' ? 'bg-gray-100 text-gray-800' :
@@ -4160,16 +4242,16 @@ function AdminOrderDetailPage() {
                                     invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
                                     'bg-gray-100 text-gray-800'
                                   }`}>
-                                    {invoice.status === 'draft' ? 'Utkast' :
-                                     invoice.status === 'sent' ? 'Skickad' :
-                                     invoice.status === 'paid' ? 'Betald' :
-                                     invoice.status === 'overdue' ? 'Förfallen' :
+                                    {invoice.status === 'draft' ? 'Draft' :
+                                     invoice.status === 'sent' ? 'Sent' :
+                                     invoice.status === 'paid' ? 'Paid' :
+                                     invoice.status === 'overdue' ? 'Overdue' :
                                      invoice.status}
                                   </span>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-2xl font-bold text-gray-900">{invoice.totalAmount} kr</div>
-                                  <div className="text-sm text-gray-600">Inkl. moms</div>
+                                  <div className="text-2xl font-bold text-gray-900">{invoice.totalAmount} SEK</div>
+                                  <div className="text-sm text-gray-600">Incl. VAT</div>
                                 </div>
                               </div>
 
@@ -4182,7 +4264,7 @@ function AdminOrderDetailPage() {
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
-                                  Ladda ner PDF
+                                  Download PDF
                                 </button>
 
                                 <button
@@ -4193,14 +4275,14 @@ function AdminOrderDetailPage() {
                                   {sendingInvoice === invoice.id ? (
                                     <>
                                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-                                      Skickar...
+                                      Sending...
                                     </>
                                   ) : (
                                     <>
                                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                       </svg>
-                                      Skicka via e-post
+                                      Send via Email
                                     </>
                                   )}
                                 </button>
@@ -4213,7 +4295,7 @@ function AdminOrderDetailPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                   </svg>
-                                  Visa detaljer
+                                  View Details
                                 </Link>
                               </div>
                             </div>
@@ -4229,27 +4311,27 @@ function AdminOrderDetailPage() {
                   <div className="space-y-6">
                     {/* Add New Note */}
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Lägg till anteckning</h3>
+                      <h3 className="text-lg font-medium mb-4">Add Note</h3>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Typ av anteckning</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Note Type</label>
                           <select
                             value={noteType}
                             onChange={(e) => setNoteType(e.target.value as AdminNote['type'])}
                             className="border border-gray-300 rounded px-3 py-2"
                           >
-                            <option value="general">Allmänt</option>
-                            <option value="processing">Bearbetning</option>
-                            <option value="customer">Kundrelaterat</option>
-                            <option value="issue">Problem</option>
+                            <option value="general">General</option>
+                            <option value="processing">Processing</option>
+                            <option value="customer">Customer Related</option>
+                            <option value="issue">Issue</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Anteckning</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
                           <textarea
                             value={newNote}
                             onChange={(e) => setNewNote(e.target.value)}
-                            placeholder="Skriv din anteckning här..."
+                            placeholder="Write your note here..."
                             className="w-full border border-gray-300 rounded-lg p-3"
                             rows={3}
                           />
@@ -4259,7 +4341,7 @@ function AdminOrderDetailPage() {
                           disabled={!newNote.trim()}
                           className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
                         >
-                          Lägg till anteckning
+                          Add Note
                         </button>
                       </div>
                     </div>

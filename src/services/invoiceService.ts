@@ -297,13 +297,47 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
 
       lineItems.push({
         id: `pickup_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        description: 'Dokumenthämtning',
+        description: 'Document Pickup',
         quantity: 1,
         unitPrice: pickupPrice,
         totalPrice: pickupTotalWithVAT,
         vatRate: VAT_RATES.STANDARD,
         vatAmount: pickupVatAmount,
         serviceType: 'pickup_service'
+      });
+    }
+
+    // Add express processing fee if applicable
+    if (order.expedited) {
+      const expressPrice = 500; // Express processing fee
+      const { vatAmount: expressVatAmount, totalWithVAT: expressTotalWithVAT } = calculateVAT(expressPrice, VAT_RATES.STANDARD);
+
+      lineItems.push({
+        id: `express_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        description: 'Express Processing',
+        quantity: 1,
+        unitPrice: expressPrice,
+        totalPrice: expressTotalWithVAT,
+        vatRate: VAT_RATES.STANDARD,
+        vatAmount: expressVatAmount,
+        serviceType: 'express'
+      });
+    }
+
+    // Add premium pickup if applicable
+    if ((order as any).premiumPickup) {
+      const premiumPickupPrice = 750; // Premium pickup price
+      const { vatAmount: premiumVatAmount, totalWithVAT: premiumTotalWithVAT } = calculateVAT(premiumPickupPrice, VAT_RATES.STANDARD);
+
+      lineItems.push({
+        id: `premium_pickup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        description: 'Premium Pickup (Express)',
+        quantity: 1,
+        unitPrice: premiumPickupPrice,
+        totalPrice: premiumTotalWithVAT,
+        vatRate: VAT_RATES.STANDARD,
+        vatAmount: premiumVatAmount,
+        serviceType: 'premium_pickup'
       });
     }
 
