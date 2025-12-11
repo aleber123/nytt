@@ -34,15 +34,23 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // ORDERS – customers create, admin UI and backend read/update via hybridOrderService
+    // ORDERS – customers create, admin/staff read/update
+    // API routes use Firebase Admin SDK which bypasses these rules
+    // 
+    // ⚠️ SECURITY NOTE: Read is currently open because hybridOrderService
+    // uses a separate Firebase instance without auth context.
+    // TODO: Refactor admin panel to use authenticated Firebase instance,
+    // then change read to: if request.auth != null
     match /orders/{orderId} {
-      // Allow anyone (even anonymous) to create an order
+      // Allow anyone to create an order (customer checkout flow)
       allow create: if true;
 
-      // Allow reads and updates (needed because hybridOrderService runs without Firebase Auth)
-      // NOTE: This means anyone with the API key can read/update orders.
-      // When we refactor to use authenticated admin access or Admin SDK, we can tighten this again.
-      allow read, update: if true;
+      // Read: Currently open for admin panel compatibility
+      // The admin panel is protected by Firebase Auth at the UI level
+      allow read: if true;
+
+      // Update: Admin or DOX staff only
+      allow update: if isAdmin() || isDoxStaff();
 
       // Never allow client-side delete
       allow delete: if false;
@@ -149,10 +157,20 @@ service cloud.firestore {
     match /addressConfirmations/{confirmationId} {
       // Allow creating new confirmations (from API)
       allow create: if true;
+      
       // Allow reading (customer needs to view their confirmation)
       allow read: if true;
-      // Allow updating (customer confirms or updates address)
-      allow update: if true;
+      
+      // Allow updating only specific fields (address confirmation)
+      // Prevents malicious changes to orderId, token, etc.
+      allow update: if 
+        // Only allow updating these safe fields
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['confirmed', 'confirmedAt', 'address', 'updatedAt']) &&
+        // Cannot change the token or orderId
+        request.resource.data.token == resource.data.token &&
+        request.resource.data.orderId == resource.data.orderId;
+      
       // Never allow delete
       allow delete: if false;
     }

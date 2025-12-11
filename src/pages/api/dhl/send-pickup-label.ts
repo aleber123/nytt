@@ -3,11 +3,12 @@
  * 
  * Creates a DHL shipment for pickup, generates the label,
  * and sends it to the customer with instructions.
+ * 
+ * Uses Firebase Admin SDK to bypass Firestore security rules.
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 // DHL API Configuration
 const DHL_CONFIG = {
@@ -24,9 +25,6 @@ const getBaseUrl = () =>
 
 const getAuthHeader = () => {
   const credentials = `${DHL_CONFIG.apiKey}:${DHL_CONFIG.apiSecret}`;
-  console.log('DHL Auth - API Key:', DHL_CONFIG.apiKey);
-  console.log('DHL Auth - API Secret length:', DHL_CONFIG.apiSecret?.length);
-  console.log('DHL Auth - API Secret first 3 chars:', DHL_CONFIG.apiSecret?.substring(0, 3));
   return `Basic ${Buffer.from(credentials).toString('base64')}`;
 };
 
@@ -79,20 +77,16 @@ export default async function handler(
     return res.status(400).json({ error: 'orderId krävs' });
   }
 
-  if (!db) {
-    return res.status(500).json({ error: 'Database not available' });
-  }
-
   try {
-    // Get order details
-    const orderRef = doc(db, 'orders', orderId);
-    const orderSnap = await getDoc(orderRef);
+    // Get order details using Admin SDK
+    const orderRef = adminDb.collection('orders').doc(orderId);
+    const orderSnap = await orderRef.get();
 
-    if (!orderSnap.exists()) {
+    if (!orderSnap.exists) {
       return res.status(404).json({ error: 'Order hittades inte' });
     }
 
-    const order = orderSnap.data();
+    const order = orderSnap.data() as any;
     const customerEmail = order.customerInfo?.email;
     const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
 
@@ -203,8 +197,8 @@ export default async function handler(
     const labelDocument = dhlData.documents?.find((d: any) => d.typeCode === 'label');
     const labelBase64 = labelDocument?.content || '';
 
-    // Update order with pickup info
-    await updateDoc(orderRef, {
+    // Update order with pickup info using Admin SDK
+    await orderRef.update({
       pickupTrackingNumber: trackingNumber,
       pickupTrackingUrl: trackingUrl,
       pickupLabelSent: true,
@@ -214,14 +208,14 @@ export default async function handler(
     });
 
     // Queue email with label attachment using customerEmails collection
-    const emailsRef = collection(db, 'customerEmails');
+    const emailsRef = adminDb.collection('customerEmails');
     const orderLocale = order.locale || 'sv';
     const isEnglish = orderLocale === 'en';
     const emailSubject = isEnglish 
       ? `Pickup Instructions - Order ${order.orderNumber}`
       : `Upphämtningsinstruktioner - Order ${order.orderNumber}`;
     
-    await addDoc(emailsRef, {
+    await emailsRef.add({
       name: customerName,
       email: customerEmail,
       phone: order.customerInfo?.phone || '',

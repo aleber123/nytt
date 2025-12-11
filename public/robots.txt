@@ -1,4 +1,10 @@
+# *
 User-agent: *
-Allow: /
+Disallow: /admin
+Disallow: /admin/*
 
-Sitemap: https://doxvl-51a30.web.app/sitemap.xml
+# Host
+Host: https://www.doxvl.se
+
+# Sitemaps
+Sitemap: https://www.doxvl.se/sitemap.xml

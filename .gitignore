@@ -101,3 +101,5 @@ scripts/
 *.test.js
 *.test.ts
 .vercel
+service-account.json
+doxvl-*.json

@@ -3,11 +3,12 @@
  * 
  * Creates a confirmation token and queues an email to the customer
  * to confirm their pickup or return address.
+ * 
+ * Uses Firebase Admin SDK to bypass Firestore security rules.
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, addDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
 import crypto from 'crypto';
 
 // Generate UUID using Node.js crypto
@@ -43,45 +44,39 @@ export default async function handler(
     return res.status(400).json({ error: 'type måste vara "pickup" eller "return"' });
   }
 
-  console.log('📧 Checking db:', !!db);
-  if (!db) {
-    console.log('📧 ERROR: Database not available');
-    return res.status(500).json({ error: 'Database not available' });
-  }
-
   try {
     console.log('📧 Getting order:', orderId);
     
-    // Try to get order by document ID first
-    let orderRef = doc(db, 'orders', orderId);
-    let orderSnap = await getDoc(orderRef);
+    // Try to get order by document ID first using Admin SDK
+    let orderRef = adminDb.collection('orders').doc(orderId);
+    let orderSnap = await orderRef.get();
     let actualOrderId = orderId;
     
     // If not found, try to find by orderNumber
-    if (!orderSnap.exists()) {
+    if (!orderSnap.exists) {
       console.log('📧 Order not found by ID, searching by orderNumber...');
-      const { query, where, getDocs } = await import('firebase/firestore');
-      const ordersRef = collection(db, 'orders');
-      const q = query(ordersRef, where('orderNumber', '==', orderId));
-      const querySnap = await getDocs(q);
+      const querySnap = await adminDb.collection('orders')
+        .where('orderNumber', '==', orderId)
+        .limit(1)
+        .get();
       
       if (!querySnap.empty) {
         const foundDoc = querySnap.docs[0];
         orderSnap = foundDoc;
         actualOrderId = foundDoc.id;
-        orderRef = doc(db, 'orders', actualOrderId);
+        orderRef = adminDb.collection('orders').doc(actualOrderId);
         console.log('📧 Found order by orderNumber, actual ID:', actualOrderId);
       }
     }
     
-    console.log('📧 Order exists:', orderSnap.exists());
+    console.log('📧 Order exists:', orderSnap.exists);
 
-    if (!orderSnap.exists()) {
+    if (!orderSnap.exists) {
       console.log('📧 ERROR: Order not found');
       return res.status(404).json({ error: 'Order hittades inte' });
     }
 
-    const order = orderSnap.data();
+    const order = orderSnap.data() as any;
     console.log('📧 Order data keys:', Object.keys(order || {}));
     const customerEmail = order?.customerInfo?.email;
     console.log('📧 Customer email:', customerEmail);
@@ -123,10 +118,9 @@ export default async function handler(
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
     console.log('📧 Token generated:', token);
 
-    // Store confirmation record
+    // Store confirmation record using Admin SDK
     console.log('📧 Storing confirmation record...');
-    const confirmationRef = collection(db, 'addressConfirmations');
-    await addDoc(confirmationRef, {
+    await adminDb.collection('addressConfirmations').add({
       orderId: actualOrderId,
       orderNumber: order?.orderNumber || orderId,
       type,
@@ -145,9 +139,8 @@ export default async function handler(
     const confirmationUrl = `${baseUrl}/confirm-address/${token}`;
     console.log('📧 Confirmation URL:', confirmationUrl);
 
-    // Queue email using customerEmails collection (same as other emails)
+    // Queue email using customerEmails collection (Admin SDK)
     console.log('📧 Queueing email...');
-    const emailsRef = collection(db, 'customerEmails');
     const orderNum = order?.orderNumber || orderId;
     // Get order locale for email language
     const orderLocale = order?.locale || 'sv';
@@ -161,7 +154,7 @@ export default async function handler(
       ? (isEnglish ? 'pickup address' : 'upphämtningsadress')
       : (isEnglish ? 'return address' : 'returadress');
 
-    await addDoc(emailsRef, {
+    await adminDb.collection('customerEmails').add({
       name: customerName,
       email: customerEmail,
       phone: order?.customerInfo?.phone || '',
@@ -186,7 +179,7 @@ export default async function handler(
       ? 'pickupAddressConfirmationSent' 
       : 'returnAddressConfirmationSent';
     
-    await setDoc(orderRef, {
+    await orderRef.set({
       [updateField]: true,
       [`${updateField}At`]: new Date().toISOString()
     }, { merge: true });

@@ -22,7 +22,6 @@ const getBaseUrl = () =>
 
 const getAuthHeader = () => {
   const credentials = `${DHL_CONFIG.apiKey}:${DHL_CONFIG.apiSecret}`;
-  console.log('DHL Shipment Auth - API Secret length:', DHL_CONFIG.apiSecret?.length);
   return `Basic ${Buffer.from(credentials).toString('base64')}`;
 };
 
