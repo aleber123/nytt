@@ -9,6 +9,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { adminDb } from '@/lib/firebaseAdmin';
+import { rateLimiters, getClientIp } from '@/lib/rateLimit';
 import crypto from 'crypto';
 
 // Generate UUID using Node.js crypto
@@ -29,6 +30,17 @@ export default async function handler(
   
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Rate limiting
+  const clientIp = getClientIp(req);
+  const rateLimit = rateLimiters.addressConfirmation(clientIp);
+  
+  if (!rateLimit.success) {
+    return res.status(429).json({ 
+      error: 'Too many requests',
+      retryAfter: rateLimit.resetIn
+    });
   }
 
   const { orderId, type } = req.body as SendConfirmationRequest;

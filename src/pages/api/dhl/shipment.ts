@@ -6,6 +6,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { rateLimiters, getClientIp } from '@/lib/rateLimit';
 
 // DHL API Configuration
 const DHL_CONFIG = {
@@ -78,6 +79,17 @@ export default async function handler(
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Rate limiting
+  const clientIp = getClientIp(req);
+  const rateLimit = rateLimiters.dhl(clientIp);
+  
+  if (!rateLimit.success) {
+    return res.status(429).json({ 
+      error: 'Too many requests',
+      retryAfter: rateLimit.resetIn
+    });
   }
 
   // Check if API credentials are configured

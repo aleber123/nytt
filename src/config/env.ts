@@ -19,16 +19,16 @@ export const isAdminEmail = (email: string | null | undefined): boolean => {
 
 /**
  * Firebase configuration from environment variables
- * With fallback values for production builds
+ * All values MUST be set in environment variables - no hardcoded fallbacks
  */
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyBaXYbWRbryxW-YL4aWIFDzb5Po-r1sj3g',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'doxvl-51a30.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'doxvl-51a30',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'doxvl-51a30.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '195927020517',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:195927020517:web:5374b3346dbaec293ed50c',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-3DBGQCJPTF'
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ''
 };
 
 /**
@@ -42,9 +42,21 @@ export const siteConfig = {
 
 /**
  * Validate that required environment variables are set
- * Note: Validation is disabled since we have fallback values in firebaseConfig
+ * Call this at app startup to catch missing config early
  */
-export const validateEnv = () => {
-  // Validation disabled - we use fallback values in firebaseConfig
+export const validateEnv = (): boolean => {
+  const required = [
+    'NEXT_PUBLIC_FIREBASE_API_KEY',
+    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  ];
+  
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    console.error('Missing required environment variables:', missing.join(', '));
+    return false;
+  }
+  
   return true;
 };
