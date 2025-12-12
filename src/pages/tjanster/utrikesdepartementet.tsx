@@ -13,12 +13,12 @@ export default function UtrikesdepartementetPage() {
     <>
       <Head>
         <title>Legalisering hos Utrikesdepartementet (UD) | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med legalisering av dokument hos Utrikesdepartementet (UD). Snabb handläggning, fast pris från 955 kr. Krävs för dokument som ska användas utomlands." />
+        <meta name="description" content="Vi hjälper dig med legalisering av dokument hos Utrikesdepartementet (UD). Professionell hantering av apostille och legalisering för dokument som ska användas utomlands." />
         <meta name="keywords" content="utrikesdepartementet, UD, legalisering, dokument, Sverige, apostille, stämpel" />
         <link rel="canonical" href="https://www.doxvl.se/tjanster/utrikesdepartementet" />
         
         <meta property="og:title" content="Legalisering hos Utrikesdepartementet (UD) | DOX Visumpartner" />
-        <meta property="og:description" content="Professionell hjälp med legalisering av dokument hos Utrikesdepartementet. Fast pris, snabb service." />
+        <meta property="og:description" content="Professionell hjälp med legalisering av dokument hos Utrikesdepartementet. Apostille och legalisering för utlandsdokument." />
         <meta property="og:url" content="https://www.doxvl.se/tjanster/utrikesdepartementet" />
         <meta property="og:type" content="website" />
         
