@@ -33,19 +33,17 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     const loadGoogleMaps = () => {
       // Check if Google Maps is already loaded
       if (window.google && window.google.maps && window.google.maps.places) {
-        console.log('✅ Google Maps already loaded');
         setStatus('ready');
         return;
       }
 
       // Check if script is already loading
       if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-        console.log('🔄 Google Maps script already loading');
         return;
       }
 
-      // Hardcode the API key for testing (we know it works from our test)
-      const apiKey = 'AIzaSyA0uJLoyjTcAJGvuVvyiBP_u12RPQLv_aE';
+      // Use environment variable for API key
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
       if (!apiKey) {
         console.error('❌ No Google Maps API key found');
@@ -53,14 +51,9 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         return;
       }
 
-      console.log('🔄 Loading Google Maps API with key:', apiKey.substring(0, 10) + '...');
 
       // Create callback function
       window.initGoogleMapsCallback = () => {
-        console.log('✅ Google Maps API loaded via callback');
-        console.log('Google Maps object:', !!window.google);
-        console.log('Maps API:', !!(window.google && window.google.maps));
-        console.log('Places API:', !!(window.google && window.google.maps && window.google.maps.places));
         setStatus('ready');
       };
 
@@ -70,23 +63,17 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       script.async = true;
       script.defer = true;
 
-      script.onload = () => {
-        console.log('📜 Google Maps script loaded successfully');
-      };
+      script.onload = () => {};
 
-      script.onerror = (error) => {
-        console.error('❌ Failed to load Google Maps script:', error);
-        console.log('Script src:', script.src);
+      script.onerror = () => {
         setStatus('fallback');
       };
 
-      console.log('📜 Adding Google Maps script to document head');
       document.head.appendChild(script);
 
       // Increased timeout and better status checking
       const timeoutId = setTimeout(() => {
         if (status === 'loading') {
-          console.error('❌ Google Maps loading timeout after 15 seconds');
           setStatus('fallback');
         }
       }, 15000);
@@ -102,7 +89,6 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   useEffect(() => {
     if (status === 'ready' && inputRef.current && window.google && window.google.maps && window.google.maps.places) {
       try {
-        console.log('🔧 Creating Places Autocomplete...');
 
         const autocomplete = new window.google.maps.places.Autocomplete(
           inputRef.current,
@@ -115,26 +101,18 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
         autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace();
-          console.log('📍 Place selected:', place);
-
           if (place && place.formatted_address) {
             const address = place.formatted_address;
-            console.log('📍 Setting address to:', address);
             setInputValue(address);
             onChange(address);
           } else {
-            console.log('⚠️ Place selected but no formatted_address, using current input value');
-            // If no formatted address, use the current input value
             onChange(inputValue);
           }
         });
 
         autocompleteRef.current = autocomplete;
-        console.log('✅ Places Autocomplete initialized successfully');
 
       } catch (error) {
-        console.error('❌ Error creating Places Autocomplete:', error);
-        console.error('Error details:', error);
         setStatus('fallback');
       }
     }
@@ -149,12 +127,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    console.log('⌨️ Input changed to:', newValue);
     setInputValue(newValue);
-
-    // Always call onChange when user types, unless we're in the middle of a place selection
-    // This ensures the parent component gets the value even if user doesn't select from dropdown
-    console.log('📤 Calling onChange with:', newValue);
     onChange(newValue);
   };
 

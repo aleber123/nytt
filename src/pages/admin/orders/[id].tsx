@@ -167,7 +167,6 @@ function AdminOrderDetailPage() {
       const base = (() => {
         // Prefer total field if it exists (matches pricingService output)
         if (typeof item.total === 'number') {
-          console.log('✅ Using item.total:', item.total, 'for', item.description);
           return item.total;
         }
         // Fallback to other fields for backwards compatibility
@@ -181,17 +180,14 @@ function AdminOrderDetailPage() {
       return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
     });
     const totalFromInitial = initial.reduce((sum, o) => sum + o.baseAmount, 0);
-    console.log('🔍 Initializing lineOverrides, total:', totalFromInitial);
     setLineOverrides(initial);
   }, [order?.pricingBreakdown]);
 
   const getBreakdownTotal = () => {
     try {
       if (!order) {
-        console.log('⚠️ getBreakdownTotal: No order yet');
         return 0;
       }
-      console.log('🔍 getBreakdownTotal called, order.pricingBreakdown:', order.pricingBreakdown);
       if (order.pricingBreakdown && Array.isArray(order.pricingBreakdown)) {
         // If overrides exist, use them respecting include toggle
         if (lineOverrides.length === order.pricingBreakdown.length) {
@@ -200,7 +196,6 @@ function AdminOrderDetailPage() {
             const val = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
             return sum + (isNaN(val) ? 0 : val);
           }, 0);
-          console.log('🔍 Using lineOverrides, total:', overrideTotal);
           return overrideTotal;
         }
         // Fallback to raw breakdown - use total field first, then fallback to other fields
@@ -214,11 +209,9 @@ function AdminOrderDetailPage() {
           if (typeof item.officialFee === 'number' && typeof item.serviceFee === 'number') return sum + ((item.officialFee + item.serviceFee) * (item.quantity || 1));
           return sum;
         }, 0);
-        console.log('🔍 Breakdown Total Calculated:', calculatedTotal, 'vs DB totalPrice:', order.totalPrice);
         return calculatedTotal;
       }
       // Fallback to existing totalPrice if breakdown missing
-      console.log('⚠️ No breakdown, using order.totalPrice:', order.totalPrice);
       return Number(order.totalPrice || 0);
     } catch (e) {
       console.error('❌ Error calculating breakdown total:', e);
@@ -780,7 +773,6 @@ function AdminOrderDetailPage() {
 
   const handleDownloadInvoice = async (invoice: Invoice) => {
     try {
-      console.log('Starting PDF generation for invoice:', invoice.invoiceNumber);
       await generateInvoicePDF(invoice);
       toast.success('Faktura laddas ner');
     } catch (err) {

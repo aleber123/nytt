@@ -52,8 +52,6 @@ const ContactPage: React.FC = () => {
       };
 
       await addDoc(collection(db, 'contactMessages'), contactMessage);
-
-      console.log('Contact message saved:', contactMessage);
       setIsSubmitted(true);
 
       // Reset reCAPTCHA

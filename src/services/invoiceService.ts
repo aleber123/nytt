@@ -750,7 +750,6 @@ function getStatusText(status: Invoice['status']): string {
 // Generate PDF invoice using jsPDF - Professional Swedish layout with proper table handling
 export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
   try {
-    console.log('Generating PDF for invoice:', invoice.invoiceNumber);
     const doc = new jsPDF();
 
     const primaryColor: [number, number, number] = [46, 45, 44];
@@ -1196,7 +1195,6 @@ export const storeInvoice = async (invoice: Invoice): Promise<string> => {
       updatedAt: Timestamp.now()
     });
 
-    console.log('Invoice stored in Firebase with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
     console.error('Error storing invoice in Firebase:', error);
@@ -1210,7 +1208,6 @@ export const storeInvoice = async (invoice: Invoice): Promise<string> => {
       // Store in localStorage for persistence
       localStorage.setItem('mock_invoices', JSON.stringify(mockInvoices));
 
-      console.log('Invoice stored in mock storage with ID:', invoiceWithId.id);
       return invoiceWithId.id!;
     } catch (mockError) {
       console.error('Error storing invoice in mock storage:', mockError);
@@ -1237,7 +1234,6 @@ export const getAllInvoices = async (): Promise<Invoice[]> => {
     console.error('Error getting invoices from Firebase:', error);
 
     // Fallback to mock data
-    console.log('🔄 Using mock invoice data due to Firebase connection issues');
     return getMockInvoices();
   }
 };
@@ -1445,7 +1441,6 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
     // Store email request in Firestore for processing
     await addDoc(collection(db, 'emailQueue'), emailData);
 
-    console.log(`Invoice email queued for ${invoice.customerInfo.email} with invoice ${invoice.invoiceNumber}`);
     return true;
 
   } catch (error) {

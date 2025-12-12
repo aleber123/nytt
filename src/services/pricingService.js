@@ -25,9 +25,7 @@ let db;
 try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
-  console.log('🔥 Firebase initialized successfully');
 } catch (error) {
-  console.log('⚠️ Firebase initialization failed, using mock mode:', error.message);
   // In mock mode, we'll just log the operations
 }
 
@@ -35,7 +33,6 @@ try {
 const setPricingRule = async (rule) => {
   try {
     if (!db) {
-      console.log('📝 Mock: Would create pricing rule:', rule);
       return `${rule.countryCode}_${rule.serviceType}`;
     }
 
@@ -49,7 +46,6 @@ const setPricingRule = async (rule) => {
     };
 
     await setDoc(ruleRef, ruleData);
-    console.log('✅ Pricing rule created:', ruleId);
     return ruleId;
   } catch (error) {
     console.error('❌ Error setting pricing rule:', error);

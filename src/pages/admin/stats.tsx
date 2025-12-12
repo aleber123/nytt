@@ -50,7 +50,6 @@ function AdminStatsPage() {
     try {
       const invoices = await getAllInvoices();
       const orders = await getAllOrders();
-      console.log('📋 Retrieved', orders.length, 'orders from Firebase');
 
       // Calculate stats
       const totalOrders = orders.length;

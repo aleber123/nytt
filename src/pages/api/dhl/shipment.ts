@@ -197,7 +197,6 @@ export default async function handler(
       }
     };
 
-    console.log('DHL Shipment Request:', JSON.stringify(dhlRequest, null, 2));
 
     // Call DHL API
     const dhlResponse = await fetch(`${getBaseUrl()}/shipments`, {

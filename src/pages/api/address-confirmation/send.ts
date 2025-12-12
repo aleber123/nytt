@@ -24,9 +24,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log('📧 Address confirmation API called');
-  console.log('📧 Method:', req.method);
-  console.log('📧 Body:', JSON.stringify(req.body));
   
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -44,20 +41,16 @@ export default async function handler(
   }
 
   const { orderId, type } = req.body as SendConfirmationRequest;
-  console.log('📧 orderId:', orderId, 'type:', type);
 
   if (!orderId || !type) {
-    console.log('📧 ERROR: Missing orderId or type');
     return res.status(400).json({ error: 'orderId och type krävs' });
   }
 
   if (type !== 'pickup' && type !== 'return') {
-    console.log('📧 ERROR: Invalid type');
     return res.status(400).json({ error: 'type måste vara "pickup" eller "return"' });
   }
 
   try {
-    console.log('📧 Getting order:', orderId);
     
     // Try to get order by document ID first using Admin SDK
     let orderRef = adminDb.collection('orders').doc(orderId);
@@ -66,7 +59,6 @@ export default async function handler(
     
     // If not found, try to find by orderNumber
     if (!orderSnap.exists) {
-      console.log('📧 Order not found by ID, searching by orderNumber...');
       const querySnap = await adminDb.collection('orders')
         .where('orderNumber', '==', orderId)
         .limit(1)
@@ -77,21 +69,16 @@ export default async function handler(
         orderSnap = foundDoc;
         actualOrderId = foundDoc.id;
         orderRef = adminDb.collection('orders').doc(actualOrderId);
-        console.log('📧 Found order by orderNumber, actual ID:', actualOrderId);
       }
     }
     
-    console.log('📧 Order exists:', orderSnap.exists);
 
     if (!orderSnap.exists) {
-      console.log('📧 ERROR: Order not found');
       return res.status(404).json({ error: 'Order hittades inte' });
     }
 
     const order = orderSnap.data() as any;
-    console.log('📧 Order data keys:', Object.keys(order || {}));
     const customerEmail = order?.customerInfo?.email;
-    console.log('📧 Customer email:', customerEmail);
     const customerName = `${order?.customerInfo?.firstName || ''} ${order?.customerInfo?.lastName || ''}`.trim();
 
     if (!customerEmail) {
@@ -124,14 +111,11 @@ export default async function handler(
     }
 
     // Generate unique token
-    console.log('📧 Generating token...');
     const token = generateToken();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
-    console.log('📧 Token generated:', token);
 
     // Store confirmation record using Admin SDK
-    console.log('📧 Storing confirmation record...');
     await adminDb.collection('addressConfirmations').add({
       orderId: actualOrderId,
       orderNumber: order?.orderNumber || orderId,
@@ -144,15 +128,12 @@ export default async function handler(
       customerEmail,
       customerName
     });
-    console.log('📧 Confirmation record stored');
 
     // Create confirmation URL
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://doxvl.se';
     const confirmationUrl = `${baseUrl}/confirm-address/${token}`;
-    console.log('📧 Confirmation URL:', confirmationUrl);
 
     // Queue email using customerEmails collection (Admin SDK)
-    console.log('📧 Queueing email...');
     const orderNum = order?.orderNumber || orderId;
     // Get order locale for email language
     const orderLocale = order?.locale || 'sv';
@@ -183,10 +164,8 @@ export default async function handler(
       createdAt: new Date(),
       status: 'unread'
     });
-    console.log('📧 Email queued successfully');
 
     // Update order to track that confirmation was sent
-    console.log('📧 Updating order...');
     const updateField = type === 'pickup' 
       ? 'pickupAddressConfirmationSent' 
       : 'returnAddressConfirmationSent';
@@ -195,9 +174,7 @@ export default async function handler(
       [updateField]: true,
       [`${updateField}At`]: new Date().toISOString()
     }, { merge: true });
-    console.log('📧 Order updated');
 
-    console.log('📧 SUCCESS - returning response');
     const successMsg = isEnglish 
       ? `Confirmation email for ${addressTypeText} has been sent to ${customerEmail}`
       : `Bekräftelsemail för ${addressTypeText} har skickats till ${customerEmail}`;

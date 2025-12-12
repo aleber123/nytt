@@ -6,12 +6,8 @@ const { mockFirebase } = require('./mockFirebase');
 
 // Check if we should use mock only
 const useMockOnly = process.env.USE_MOCK_ONLY === 'true';
-console.log('🔍 USE_MOCK_ONLY environment variable:', process.env.USE_MOCK_ONLY);
-console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
-console.log('🔍 useMockOnly flag:', useMockOnly);
 
 if (useMockOnly) {
-  console.log('🔄 Using mock service only (USE_MOCK_ONLY=true)');
 }
 
 // Firebase configuration - using environment variables for security
@@ -46,9 +42,7 @@ if (!useMockOnly) {
 
     storage = getStorage(app);
     firebaseAvailable = true;
-    console.log('🔥 Firebase initialized successfully with long polling enabled');
   } catch (error) {
-    console.log('⚠️ Firebase initialization failed, using mock service:', error.message);
     firebaseAvailable = false;
   }
 } else {
@@ -82,11 +76,9 @@ async function getNextOrderNumber() {
         const realCount = snapshot.data().count || 0;
 
         if (realCount > currentCount) {
-          console.log('🔄 Self-healing order counter: realCount', realCount, 'is greater than currentCount', currentCount);
           currentCount = realCount;
         }
       } catch (innerError) {
-        console.log('⚠️ Unable to self-heal order counter via getCountFromServer:', innerError.message);
       }
 
       const nextNumber = currentCount + 1;
@@ -97,10 +89,8 @@ async function getNextOrderNumber() {
         lastUpdated: Timestamp.now()
       });
 
-      console.log('✅ Firebase counter updated (self-healing):', nextNumber);
       return nextNumber;
     } catch (error) {
-      console.log('⚠️ Firebase counter failed, using mock counter:', error.message);
     }
   }
 
@@ -114,7 +104,6 @@ async function getNextOrderNumber() {
 // Create order with hybrid approach
 const createOrder = async (orderData) => {
   try {
-    console.log('📦 Creating order with hybrid service...');
 
     if (firebaseAvailable && db) {
       try {
@@ -134,7 +123,6 @@ const createOrder = async (orderData) => {
           ...orderWithTimestamps,
           orderNumber: formattedOrderId // Store the formatted order number as a field
         });
-        console.log('✅ Order saved to Firebase with pricing breakdown:', orderWithTimestamps.pricingBreakdown);
 
         // Optionally create a public confirmation document keyed by a random token
         const publicAccessToken = orderData && orderData.publicAccessToken ? orderData.publicAccessToken : null;
@@ -165,17 +153,14 @@ const createOrder = async (orderData) => {
             };
 
             await setDoc(confirmationRef, confirmationData);
-            console.log('✅ Order confirmation document saved (minimized payload):', publicAccessToken);
           } catch (confirmationError) {
             console.error('⚠️ Failed to save order confirmation document, continuing without public copy:', confirmationError.message);
           }
         }
 
-        console.log('✅ Order created in Firebase:', formattedOrderId);
         return formattedOrderId;
 
       } catch (firebaseError) {
-        console.log('⚠️ Firebase creation failed, falling back to mock:', firebaseError.message);
       }
     }
 
@@ -188,7 +173,6 @@ const createOrder = async (orderData) => {
     };
 
     const orderId = await mockFirebase.createOrder(orderWithDefaults);
-    console.log('✅ Order created with mock service:', orderId);
     return orderId;
 
   } catch (error) {
@@ -199,7 +183,6 @@ const createOrder = async (orderData) => {
 
 // Get order by ID with hybrid approach
 const getOrderById = async (orderId) => {
-  console.log('🔍 getOrderById called with orderId:', orderId);
   
   if (!orderId) {
     console.error('❌ Error: No order ID provided to getOrderById');
@@ -209,17 +192,13 @@ const getOrderById = async (orderId) => {
   try {
     if (firebaseAvailable && db) {
       try {
-        console.log('🔍 Attempting to fetch order from Firebase...');
         
         // Try direct lookup by document ID first
         const docRef = doc(db, 'orders', orderId);
-        console.log('🔍 Document reference created for order:', orderId);
         
         const docSnap = await getDoc(docRef);
-        console.log('🔍 Document snapshot received, exists:', docSnap.exists());
 
         if (docSnap.exists()) {
-          console.log('✅ Order retrieved from Firebase by ID:', orderId);
           return {
             id: docSnap.id,
             ...docSnap.data()
@@ -227,7 +206,6 @@ const getOrderById = async (orderId) => {
         }
 
         // If not found by ID, try searching by orderNumber
-        console.log('🔍 Order not found by ID, trying orderNumber...');
         const { query, where, getDocs } = require('firebase/firestore');
         const ordersQuery = query(
           collection(db, 'orders'),
@@ -235,36 +213,29 @@ const getOrderById = async (orderId) => {
         );
 
         const querySnapshot = await getDocs(ordersQuery);
-        console.log(`🔍 Found ${querySnapshot.size} orders with orderNumber ${orderId}`);
         
         if (!querySnapshot.empty) {
           const doc = querySnapshot.docs[0];
-          console.log('✅ Order retrieved from Firebase by orderNumber:', orderId);
           return {
             id: doc.id,
             ...doc.data()
           };
         }
         
-        console.log('⚠️ Order not found in Firebase by ID or orderNumber:', orderId);
         
       } catch (firebaseError) {
         console.error('❌ Firebase retrieval failed:', firebaseError);
         console.error('Stack:', firebaseError.stack);
       }
     } else {
-      console.log('ℹ️ Firebase not available, falling back to mock service');
     }
 
     // Fallback to mock service
-    console.log('🔍 Attempting to fetch order from mock service...');
     const mockOrder = await mockFirebase.getOrderById(orderId);
     if (mockOrder) {
-      console.log('✅ Order retrieved from mock service:', orderId);
       return mockOrder;
     }
     
-    console.log('⚠️ Order not found in mock service:', orderId);
     return null;
 
   } catch (error) {
@@ -276,7 +247,6 @@ const getOrderById = async (orderId) => {
 
 // Get public order confirmation by token
 const getOrderConfirmationByToken = async (token) => {
-  console.log('🔍 getOrderConfirmationByToken called with token:', token);
 
   if (!token) {
     console.error('❌ Error: No token provided to getOrderConfirmationByToken');
@@ -290,20 +260,17 @@ const getOrderConfirmationByToken = async (token) => {
         const confirmationSnap = await getDoc(confirmationRef);
 
         if (confirmationSnap.exists()) {
-          console.log('✅ Order confirmation retrieved from Firebase by token:', token);
           return {
             id: confirmationSnap.id,
             ...confirmationSnap.data()
           };
         }
 
-        console.log('⚠️ Order confirmation not found for token:', token);
       } catch (firebaseError) {
         console.error('❌ Firebase retrieval failed in getOrderConfirmationByToken:', firebaseError);
         console.error('Stack:', firebaseError.stack);
       }
     } else {
-      console.log('ℹ️ Firebase not available in getOrderConfirmationByToken');
     }
 
     return null;
@@ -333,10 +300,8 @@ const getAllOrders = async () => {
           ...doc.data()
         }));
 
-        console.log('📋 Retrieved', firebaseOrders.length, 'orders from Firebase');
         return firebaseOrders;
       } catch (firebaseError) {
-        console.log('⚠️ Firebase getAllOrders failed, falling back to mock:', firebaseError.message);
       }
     }
 
@@ -350,8 +315,6 @@ const getAllOrders = async () => {
 
 // Update order
 const updateOrder = async (orderId, updates) => {
-  console.log('📝 updateOrder called with orderId:', orderId);
-  console.log('📝 Updates:', JSON.stringify(Object.keys(updates)));
   
   try {
     if (firebaseAvailable && db) {
@@ -362,7 +325,6 @@ const updateOrder = async (orderId, updates) => {
       
       // If not found by ID, try searching by orderNumber
       if (!docSnap.exists()) {
-        console.log('🔍 Order not found by ID, trying orderNumber for update...');
         const { query, where, getDocs } = require('firebase/firestore');
         const ordersQuery = query(
           collection(db, 'orders'),
@@ -374,28 +336,23 @@ const updateOrder = async (orderId, updates) => {
           const foundDoc = querySnapshot.docs[0];
           actualDocId = foundDoc.id;
           docRef = doc(db, 'orders', actualDocId);
-          console.log('✅ Found order by orderNumber, actual document ID:', actualDocId);
         } else {
           console.error('❌ Order not found by ID or orderNumber:', orderId);
           throw new Error('Order not found: ' + orderId);
         }
       } else {
-        console.log('✅ Order found by direct ID:', orderId);
       }
       
       await updateDoc(docRef, {
         ...updates,
         updatedAt: Timestamp.now()
       });
-      console.log('✅ Order updated successfully in Firebase:', actualDocId);
       return true;
     }
 
     // Only use mock service if Firebase is not available
-    console.log('⚠️ Firebase not available, using mock service');
     const updatedOrder = await mockFirebase.updateOrder(orderId, updates);
     if (updatedOrder) {
-      console.log('📝 Order updated in mock service:', orderId);
     }
     return updatedOrder;
 
@@ -409,13 +366,11 @@ const updateOrder = async (orderId, updates) => {
 // Upload files to Firebase Storage or mock service
 const uploadFiles = async (files, orderId) => {
   if (!firebaseAvailable || !storage) {
-    console.log('⚠️ Firebase Storage not available, using mock file upload');
     // Use mock service for file upload
     return await mockFirebase.uploadFiles(files, orderId);
   }
 
   try {
-    console.log('📤 Uploading files to Firebase Storage...');
     const uploadedFiles = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -430,7 +385,6 @@ const uploadFiles = async (files, orderId) => {
 
       // Upload the file
       const snapshot = await uploadBytes(storageRef, file);
-      console.log(`✅ File ${i + 1} uploaded:`, file.name);
 
       // Get the download URL
       const downloadURL = await getDownloadURL(snapshot.ref);
@@ -445,7 +399,6 @@ const uploadFiles = async (files, orderId) => {
       });
     }
 
-    console.log('🎉 All files uploaded successfully');
     return uploadedFiles;
 
   } catch (error) {
@@ -482,7 +435,6 @@ const checkForDuplicateOrder = async (orderData) => {
           };
         }
       } catch (firebaseError) {
-        console.log('⚠️ Firebase duplicate check failed:', firebaseError.message);
       }
     }
 
@@ -513,12 +465,10 @@ const checkForDuplicateOrder = async (orderData) => {
 // Create order with file uploads
 const createOrderWithFiles = async (orderData, files = []) => {
   try {
-    console.log('📦 Creating order with files...');
 
     // Check for duplicate orders (within last 30 seconds)
     const duplicateCheck = await checkForDuplicateOrder(orderData);
     if (duplicateCheck.isDuplicate) {
-      console.log('🚫 Duplicate order detected, returning existing order ID:', duplicateCheck.existingOrderId);
       return duplicateCheck.existingOrderId;
     }
 
@@ -539,7 +489,6 @@ const createOrderWithFiles = async (orderData, files = []) => {
         };
 
         await updateOrder(orderId, orderUpdates);
-        console.log('📝 Order updated with file information');
 
       } catch (uploadError) {
         console.error('⚠️ File upload failed, but order was created:', uploadError);
@@ -563,7 +512,6 @@ const createOrderWithFiles = async (orderData, files = []) => {
 // Clear all data (for testing)
 const clearAllOrders = () => {
   mockFirebase.clear();
-  console.log('🧹 All orders cleared');
 };
 
 module.exports = {

@@ -1176,7 +1176,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           setPickupServices(defaultPickupServices);
         }
       } catch (pricingError) {
-        console.log('⚠️ Firebase pricing for pickup failed, using defaults:', pricingError);
         setPickupServices(defaultPickupServices);
       }
     } catch (error) {
@@ -1319,9 +1318,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     setAnswers(prev => ({ ...prev, country: countryCode }));
     setCountrySearch(getCountryName(countryCode));
     setShowCountryDropdown(false);
-
-    // Track country selection for future popularity ranking
-    console.log(`Country selected: ${countryCode}`);
 
     navigateToStep(2);
   };

@@ -34,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
-      console.log('Firebase auth not available, staying in loading state');
       setLoading(false);
       return;
     }

@@ -38,7 +38,6 @@ export default async function handler(
 
     // If not found by ID, try searching by orderNumber
     if (!docSnap.exists) {
-      console.log('🔍 Order not found by ID, trying orderNumber for update...');
       const querySnapshot = await adminDb.collection('orders')
         .where('orderNumber', '==', orderId)
         .limit(1)
@@ -48,13 +47,11 @@ export default async function handler(
         const foundDoc = querySnapshot.docs[0];
         actualDocId = foundDoc.id;
         docRef = adminDb.collection('orders').doc(actualDocId);
-        console.log('✅ Found order by orderNumber, actual document ID:', actualDocId);
       } else {
         console.error('❌ Order not found by ID or orderNumber:', orderId);
         return res.status(404).json({ error: 'Order not found: ' + orderId });
       }
     } else {
-      console.log('✅ Order found by direct ID:', orderId);
     }
 
     // Update the order
@@ -63,7 +60,6 @@ export default async function handler(
       updatedAt: new Date().toISOString()
     });
 
-    console.log('✅ Order updated successfully via Admin API:', actualDocId);
 
     return res.status(200).json({
       success: true,
