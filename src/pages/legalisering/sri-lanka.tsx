@@ -138,18 +138,17 @@ export default function SriLankaLegaliseringPage() {
             </h2>
             <div className="grid md:grid-cols-4 gap-6">
               {[
-                { step: '1', title: 'Notarius Publicus', desc: 'Privata dokument notariseras först.', time: '1-2 dagar' },
-                { step: '2', title: 'Utrikesdepartementet', desc: 'UD verifierar dokumentets äkthet.', time: '2-3 dagar' },
-                { step: '3', title: 'Sri Lankas ambassad', desc: 'Slutlig legalisering.', time: '3-5 dagar' },
-                { step: '4', title: 'Leverans', desc: 'Dokumenten skickas till dig.', time: '1-2 dagar' },
+                { step: '1', title: 'Notarius Publicus', desc: 'Privata dokument notariseras först.' },
+                { step: '2', title: 'Utrikesdepartementet', desc: 'UD verifierar dokumentets äkthet.' },
+                { step: '3', title: 'Sri Lankas ambassad', desc: 'Slutlig legalisering.' },
+                { step: '4', title: 'Leverans', desc: 'Dokumenten skickas till dig.' },
               ].map((item) => (
                 <div key={item.step} className="bg-white p-6 rounded-lg shadow-sm text-center">
                   <div className="w-12 h-12 bg-[#8D153A] text-white font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">
                     {item.step}
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-gray-600 text-sm mb-2">{item.desc}</p>
-                  <span className="text-xs text-[#8D153A] font-medium">{item.time}</span>
+                  <p className="text-gray-600 text-sm">{item.desc}</p>
                 </div>
               ))}
             </div>

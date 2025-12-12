@@ -52,7 +52,7 @@ export default function NotariusPublicusPage() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/bestall" className="bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold px-8 py-4 rounded-lg transition-colors">
-                  Beställ nu – från 499 kr
+                  Beställ nu
                 </Link>
                 <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                   Kontakta oss
@@ -144,40 +144,6 @@ export default function NotariusPublicusPage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section className="py-16 bg-white">
-          <div className="max-w-6xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
-              Priser
-            </h2>
-            <div className="max-w-md mx-auto bg-gray-50 rounded-lg p-8 text-center">
-              <div className="text-4xl font-bold text-[#2E2D2C] mb-2">från 499 kr</div>
-              <div className="text-gray-600 mb-6">per dokument</div>
-              <ul className="text-left space-y-3 mb-8">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Notarius Publicus avgift inkluderad
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Granskning av dokument
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Snabb handläggning
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Spårbar leverans
-                </li>
-              </ul>
-              <Link href="/bestall" className="block w-full bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold py-4 rounded-lg transition-colors">
-                Beställ nu
-              </Link>
-            </div>
-          </div>
-        </section>
-
         {/* FAQ Section */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4">
@@ -187,7 +153,7 @@ export default function NotariusPublicusPage() {
             <div className="space-y-4">
               {[
                 { q: 'Måste jag vara närvarande vid notariseringen?', a: 'Det beror på dokumenttypen. För bestyrkande av din egen underskrift måste du vara närvarande. För kopior och andra dokument kan vi hantera det åt dig.' },
-                { q: 'Hur lång tid tar notarisering?', a: 'Själva notariseringen tar normalt 1-2 arbetsdagar. Om du behöver hela legaliseringskedjan (UD + ambassad) tar det längre.' },
+                { q: 'Hur lång tid tar notarisering?', a: 'Handläggningstiden varierar beroende på dokumenttyp. Kontakta oss för mer information om ditt specifika ärende.' },
                 { q: 'Vilka dokument behöver notariseras?', a: 'Privata dokument som fullmakter, avtal, och intyg behöver ofta notariseras. Offentliga dokument (från myndigheter) går direkt till UD.' },
                 { q: 'Kan ni hjälpa med dokument på andra språk?', a: 'Ja, vi kan hantera dokument på de flesta språk. Vid behov kan vi även ordna auktoriserad översättning.' },
               ].map((faq, index) => (

@@ -137,24 +137,20 @@ export default function QatarLegaliseringPage() {
             </h2>
             <div className="grid md:grid-cols-4 gap-6">
               {[
-                { step: '1', title: 'Notarius Publicus', desc: 'Privata dokument notariseras först.', time: '1-2 dagar' },
-                { step: '2', title: 'Utrikesdepartementet', desc: 'UD verifierar dokumentets äkthet.', time: '2-3 dagar' },
-                { step: '3', title: 'Qatars ambassad', desc: 'Slutlig legalisering för Qatar.', time: '3-5 dagar' },
-                { step: '4', title: 'Leverans', desc: 'Dokumenten skickas till dig.', time: '1-2 dagar' },
+                { step: '1', title: 'Notarius Publicus', desc: 'Privata dokument notariseras först.' },
+                { step: '2', title: 'Utrikesdepartementet', desc: 'UD verifierar dokumentets äkthet.' },
+                { step: '3', title: 'Qatars ambassad', desc: 'Slutlig legalisering för Qatar.' },
+                { step: '4', title: 'Leverans', desc: 'Dokumenten skickas till dig.' },
               ].map((item) => (
                 <div key={item.step} className="bg-white p-6 rounded-lg shadow-sm text-center">
                   <div className="w-12 h-12 bg-[#8A1538] text-white font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">
                     {item.step}
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-gray-600 text-sm mb-2">{item.desc}</p>
-                  <span className="text-xs text-[#8A1538] font-medium">{item.time}</span>
+                  <p className="text-gray-600 text-sm">{item.desc}</p>
                 </div>
               ))}
             </div>
-            <p className="text-center text-gray-600 mt-8">
-              Total handläggningstid: ca 7-12 arbetsdagar
-            </p>
           </div>
         </section>
 

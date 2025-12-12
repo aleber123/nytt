@@ -52,7 +52,7 @@ export default function HandelskammarenPage() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/bestall" className="bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold px-8 py-4 rounded-lg transition-colors">
-                  Beställ nu – från 2 250 kr
+                  Beställ nu
                 </Link>
                 <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                   Kontakta oss
@@ -139,40 +139,6 @@ export default function HandelskammarenPage() {
                   <span className="font-medium">{country.name}</span>
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing Section */}
-        <section className="py-16 bg-white">
-          <div className="max-w-6xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
-              Priser
-            </h2>
-            <div className="max-w-md mx-auto bg-gray-50 rounded-lg p-8 text-center">
-              <div className="text-4xl font-bold text-[#2E2D2C] mb-2">från 2 250 kr</div>
-              <div className="text-gray-600 mb-6">per dokument</div>
-              <ul className="text-left space-y-3 mb-8">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Handelskammarens avgift inkluderad
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Granskning av dokument
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Professionell hantering
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Spårbar leverans
-                </li>
-              </ul>
-              <Link href="/bestall" className="block w-full bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold py-4 rounded-lg transition-colors">
-                Beställ nu
-              </Link>
             </div>
           </div>
         </section>

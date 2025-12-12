@@ -52,7 +52,7 @@ export default function UtrikesdepartementetPage() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/bestall" className="bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold px-8 py-4 rounded-lg transition-colors">
-                  Beställ nu – från 955 kr
+                  Beställ nu
                 </Link>
                 <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                   Kontakta oss
@@ -127,7 +127,7 @@ export default function UtrikesdepartementetPage() {
                 { step: '1', title: 'Beställ online', desc: 'Fyll i vårt enkla beställningsformulär och ladda upp dina dokument.' },
                 { step: '2', title: 'Skicka dokument', desc: 'Skicka originaldokumenten till oss eller boka upphämtning.' },
                 { step: '3', title: 'Vi hanterar UD', desc: 'Vi lämnar in dina dokument till Utrikesdepartementet.' },
-                { step: '4', title: 'Leverans', desc: 'Du får tillbaka dina legaliserade dokument inom 3-5 arbetsdagar.' },
+                { step: '4', title: 'Leverans', desc: 'Du får tillbaka dina legaliserade dokument.' },
               ].map((item) => (
                 <div key={item.step} className="bg-white p-6 rounded-lg shadow-sm text-center">
                   <div className="w-12 h-12 bg-[#D4AF37] text-black font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">
@@ -141,40 +141,6 @@ export default function UtrikesdepartementetPage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section className="py-16 bg-white">
-          <div className="max-w-6xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
-              Priser
-            </h2>
-            <div className="max-w-md mx-auto bg-gray-50 rounded-lg p-8 text-center">
-              <div className="text-4xl font-bold text-[#2E2D2C] mb-2">från 955 kr</div>
-              <div className="text-gray-600 mb-6">per dokument</div>
-              <ul className="text-left space-y-3 mb-8">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  UD:s avgift inkluderad
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Professionell hantering
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Spårbar leverans
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Support under hela processen
-                </li>
-              </ul>
-              <Link href="/bestall" className="block w-full bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold py-4 rounded-lg transition-colors">
-                Beställ nu
-              </Link>
-            </div>
-          </div>
-        </section>
-
         {/* FAQ Section */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4">
@@ -183,7 +149,7 @@ export default function UtrikesdepartementetPage() {
             </h2>
             <div className="space-y-4">
               {[
-                { q: 'Hur lång tid tar legalisering hos UD?', a: 'Normalt tar det 3-5 arbetsdagar från att vi mottagit dina dokument. Vid brådskande ärenden kan vi erbjuda expresshantering.' },
+                { q: 'Hur lång tid tar legalisering hos UD?', a: 'Handläggningstiden varierar beroende på dokumenttyp och aktuell belastning hos UD. Kontakta oss för mer information.' },
                 { q: 'Vilka dokument kan legaliseras?', a: 'De flesta svenska offentliga dokument kan legaliseras, t.ex. personbevis, examensbevis, registerutdrag och juridiska dokument.' },
                 { q: 'Vad är skillnaden mellan legalisering och apostille?', a: 'Apostille används för länder som är anslutna till Haagkonventionen. För andra länder krävs traditionell legalisering via UD och sedan ambassaden.' },
                 { q: 'Behöver jag notarisering först?', a: 'Det beror på dokumenttypen. Privata dokument (t.ex. fullmakter) behöver ofta notariseras av Notarius Publicus innan UD kan legalisera dem.' },
