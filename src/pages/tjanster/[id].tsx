@@ -544,13 +544,12 @@ const ServiceDetailPage: React.FC = () => {
 
 export const getStaticPaths: GetStaticPaths = async () => {
   // Definiera de sökvägar som ska förrenderas vid byggtid
+  // OBS: handelskammaren, utrikesdepartementet och notarius-publicus har egna filer
   const paths = [
     { params: { id: 'apostille' } },
     { params: { id: 'notarisering' } },
     { params: { id: 'ambassadlegalisering' } },
-    { params: { id: 'oversattning' } },
-    { params: { id: 'handelskammaren' } },
-    { params: { id: 'utrikesdepartementet' } }
+    { params: { id: 'oversattning' } }
   ];
   
   return {
