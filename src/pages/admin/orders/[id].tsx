@@ -48,6 +48,20 @@ interface AdminNote {
   type: 'general' | 'processing' | 'customer' | 'issue';
 }
 
+// Helper function to update order via Admin API (bypasses Firestore security rules)
+const adminUpdateOrder = async (orderId: string, updates: Record<string, any>): Promise<void> => {
+  const response = await fetch('/api/admin/update-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId, updates })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to update order');
+  }
+};
+
 function AdminOrderDetailPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
@@ -334,8 +348,7 @@ function AdminOrderDetailPage() {
         processingSteps: mergedSteps
       } as ExtendedOrder;
 
-      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
-      await updateOrder(orderId, {
+      await adminUpdateOrder(orderId, {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
@@ -398,8 +411,6 @@ function AdminOrderDetailPage() {
     if (!order) return;
     const orderId = router.query.id as string;
     try {
-      const mod = await import('@/services/hybridOrderService');
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
       const base = getBreakdownTotal();
       const total = getComputedTotal();
       const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string;
@@ -420,8 +431,7 @@ function AdminOrderDetailPage() {
           include: o.include !== false
         }))
       };
-      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
-      await updateOrder(orderId, {
+      await adminUpdateOrder(orderId, {
         adminPrice,
         totalPrice: total
       });
@@ -818,8 +828,7 @@ function AdminOrderDetailPage() {
 
     setIsUpdating(true);
     try {
-      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
-      await updateOrder(orderId, { status: editedStatus });
+      await adminUpdateOrder(orderId, { status: editedStatus });
       setOrder({ ...order, status: editedStatus });
       toast.success('Order status updated successfully');
     } catch (err) {
@@ -1047,8 +1056,8 @@ function AdminOrderDetailPage() {
     };
 
     try {
-      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
-      await updateOrder(orderId, { processingSteps: updatedSteps });
+      // Use Admin API to bypass Firestore security rules
+      await adminUpdateOrder(orderId, { processingSteps: updatedSteps });
       setProcessingSteps(updatedSteps);
       setOrder(updatedOrder);
       toast.success('Bearbetningssteg uppdaterat');
@@ -1732,10 +1741,7 @@ function AdminOrderDetailPage() {
     const orderId = router.query.id as string;
 
     try {
-      const mod = await import('@/services/hybridOrderService');
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
-      await updateOrder(orderId, { internalNotes });
+      await adminUpdateOrder(orderId, { internalNotes });
       setOrder({ ...order, internalNotes });
       toast.success('Internal notes saved');
     } catch (err) {
@@ -1751,10 +1757,7 @@ function AdminOrderDetailPage() {
     setSavingTracking(true);
 
     try {
-      const mod = await import('@/services/hybridOrderService');
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
-      await updateOrder(orderId, {
+      await adminUpdateOrder(orderId, {
         returnTrackingNumber: trackingNumber,
         returnTrackingUrl: trackingUrl
       });
@@ -1791,6 +1794,9 @@ function AdminOrderDetailPage() {
       setBookingDhlShipment(true);
 
       // Call our DHL API endpoint
+      // Include premiumDelivery if customer selected DHL Pre 9 or Pre 12
+      const premiumDelivery = (order as any)?.premiumDelivery;
+      
       const response = await fetch('/api/dhl/shipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1811,7 +1817,8 @@ function AdminOrderDetailPage() {
               email: ci.email
             }
           },
-          includePickup: false
+          includePickup: false,
+          premiumDelivery: premiumDelivery // Pass 'dhl-pre-9' or 'dhl-pre-12' if selected
         })
       });
 
@@ -1836,17 +1843,13 @@ function AdminOrderDetailPage() {
       const labelBase64 = labelDoc?.content || '';
 
       // Save to order
-      const mod = await import('@/services/hybridOrderService');
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-      if (typeof updateOrder === 'function') {
-        await updateOrder(lookupId, {
-          returnTrackingNumber: newTrackingNumber,
-          returnTrackingUrl: newTrackingUrl,
-          dhlShipmentBooked: true,
-          dhlShipmentBookedAt: new Date().toISOString(),
-          dhlReturnLabelBase64: labelBase64 // Store the label for later download
-        });
-      }
+      await adminUpdateOrder(lookupId, {
+        returnTrackingNumber: newTrackingNumber,
+        returnTrackingUrl: newTrackingUrl,
+        dhlShipmentBooked: true,
+        dhlShipmentBookedAt: new Date().toISOString(),
+        dhlReturnLabelBase64: labelBase64 // Store the label for later download
+      });
 
       setOrder({
         ...order,
@@ -1950,16 +1953,12 @@ function AdminOrderDetailPage() {
         setPickupTrackingNumber(confirmationNumber);
         
         // Save to order
-        const mod = await import('@/services/hybridOrderService');
-        const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-        if (typeof updateOrder === 'function') {
-          await updateOrder(lookupId, {
-            pickupTrackingNumber: confirmationNumber,
-            dhlPickupBooked: true,
-            dhlPickupBookedAt: new Date().toISOString(),
-            dhlPickupDate: pickupDate.toISOString()
-          });
-        }
+        await adminUpdateOrder(lookupId, {
+          pickupTrackingNumber: confirmationNumber,
+          dhlPickupBooked: true,
+          dhlPickupBookedAt: new Date().toISOString(),
+          dhlPickupDate: pickupDate.toISOString()
+        });
 
         setOrder({
           ...order,
@@ -2196,8 +2195,7 @@ function AdminOrderDetailPage() {
     try {
       const mod = await import('@/services/hybridOrderService');
       const uploadFiles = (mod as any).default?.uploadFiles || (mod as any).uploadFiles;
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-      if (typeof uploadFiles !== 'function' || typeof updateOrder !== 'function') {
+      if (typeof uploadFiles !== 'function') {
         toast.error('Cannot upload label right now');
         return;
       }
@@ -2209,7 +2207,7 @@ function AdminOrderDetailPage() {
         return;
       }
 
-      await updateOrder(orderId, { pickupLabelFile: labelMeta });
+      await adminUpdateOrder(orderId, { pickupLabelFile: labelMeta });
       setOrder({ ...order, pickupLabelFile: labelMeta } as ExtendedOrder);
       toast.success('Label uploaded');
     } catch (err) {
@@ -2300,10 +2298,7 @@ function AdminOrderDetailPage() {
     setSavingTracking(true);
 
     try {
-      const mod = await import('@/services/hybridOrderService');
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
-      await updateOrder(orderId, {
+      await adminUpdateOrder(orderId, {
         pickupTrackingNumber
       });
       setOrder({ ...order, pickupTrackingNumber });
@@ -2383,10 +2378,6 @@ function AdminOrderDetailPage() {
     setSavingCustomerInfo(true);
 
     try {
-      const mod = await import('@/services/hybridOrderService');
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
-
       const updates: any = {
         customerInfo: newCustomer,
         customerHistory: updatedHistory
@@ -2396,7 +2387,7 @@ function AdminOrderDetailPage() {
         updates.pickupAddress = newPickup;
       }
 
-      await updateOrder(orderId, updates);
+      await adminUpdateOrder(orderId, updates);
 
       setOrder({
         ...order,
@@ -2455,8 +2446,7 @@ function AdminOrderDetailPage() {
 
     try {
       const orderId = router.query.id as string;
-      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
-      await updateOrder(orderId, { adminNotes: updatedOrder.adminNotes });
+      await adminUpdateOrder(orderId, { adminNotes: updatedOrder.adminNotes });
       setOrder(updatedOrder);
       setNewNote('');
       toast.success('Anteckning tillagd');
@@ -2530,8 +2520,7 @@ function AdminOrderDetailPage() {
         processingSteps: updatedProcessingSteps
       };
 
-      const { updateOrder } = (await import('@/services/hybridOrderService')).default;
-      await updateOrder(orderId, {
+      await adminUpdateOrder(orderId, {
         services: updatedServices,
         scannedCopies: updatedScannedCopies,
         pickupService: updatedPickupService,
@@ -3912,27 +3901,86 @@ function AdminOrderDetailPage() {
                                     placeholder="t.ex. 1234567890"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   />
-                                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                                    <button
-                                      type="button"
-                                      onClick={createAndSendDhlPickupLabel}
-                                      disabled={creatingDhlPickupLabel || !order}
-                                      className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {creatingDhlPickupLabel ? '📧 Creating & sending...' : '📧 Create & send DHL label to customer'}
-                                    </button>
-                                  </div>
-                                  
                                   {/* Show if label has been sent */}
-                                  {(order as any)?.pickupLabelSent && (
-                                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
-                                      <p className="text-green-800 font-medium">✓ DHL label sent to customer</p>
-                                      {(order as any)?.pickupLabelSentAt && (
-                                        <p className="text-green-600 text-xs">
-                                          {new Date((order as any).pickupLabelSentAt).toLocaleString('sv-SE')}
-                                        </p>
-                                      )}
+                                  {(order as any)?.pickupLabelSent ? (
+                                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-green-800 font-medium text-sm">✓ DHL label already sent to customer</p>
+                                          {(order as any)?.pickupLabelSentAt && (
+                                            <p className="text-green-600 text-xs mt-1">
+                                              Sent: {new Date((order as any).pickupLabelSentAt).toLocaleString('sv-SE')}
+                                            </p>
+                                          )}
+                                          {(order as any)?.pickupTrackingNumber && (
+                                            <p className="text-green-600 text-xs">
+                                              Tracking: {(order as any).pickupTrackingNumber}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                          {(order as any)?.pickupLabelPdf ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const pdf = (order as any).pickupLabelPdf;
+                                                const link = document.createElement('a');
+                                                link.href = `data:application/pdf;base64,${pdf}`;
+                                                link.download = `DHL-Label-${order?.orderNumber || 'label'}.pdf`;
+                                                link.click();
+                                              }}
+                                              className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 flex items-center gap-1"
+                                            >
+                                              📥 Download label
+                                            </button>
+                                          ) : (order as any)?.pickupTrackingNumber ? (
+                                            <span className="text-xs text-gray-500 italic">
+                                              Label not stored (created before update)
+                                            </span>
+                                          ) : null}
+                                          {(order as any)?.pickupTrackingNumber && (
+                                            <a
+                                              href={`https://www.dhl.com/se-sv/home/tracking/tracking-express.html?submit=1&tracking-id=${(order as any).pickupTrackingNumber}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 flex items-center gap-1"
+                                            >
+                                              🔍 Track shipment
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <p className="text-amber-700 text-xs mt-2 bg-amber-50 p-2 rounded border border-amber-200">
+                                        ⚠️ A DHL shipment has already been created. Creating another will result in duplicate shipments and charges.
+                                      </p>
                                     </div>
+                                  ) : (
+                                    <>
+                                      {/* Check if customer selected Stockholm Courier for pickup */}
+                                      {(order as any)?.premiumPickup && ['stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes((order as any).premiumPickup) ? (
+                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                                          <p className="text-blue-800 font-medium text-sm">
+                                            ℹ️ Customer selected: {(order as any).premiumPickup === 'stockholm-city' ? 'Stockholm City Courier' :
+                                              (order as any).premiumPickup === 'stockholm-express' ? 'Stockholm Express' :
+                                              'Stockholm Same Day'}
+                                          </p>
+                                          <p className="text-blue-600 text-xs mt-1">
+                                            DHL pickup is not needed. Use Stockholm Courier for pickup instead.
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                          <button
+                                            type="button"
+                                            onClick={createAndSendDhlPickupLabel}
+                                            disabled={creatingDhlPickupLabel || !order}
+                                            className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {creatingDhlPickupLabel ? '📧 Creating & sending...' : '📧 Create & send DHL label to customer'}
+                                          </button>
+                                        </div>
+                                      )}
+                                    </>
                                   )}
                                 </div>
 
@@ -4007,48 +4055,94 @@ function AdminOrderDetailPage() {
                                 </div>
                                 
                                 {/* Show if shipment already booked */}
-                                {(order as any)?.dhlShipmentBooked && (
-                                  <div className="p-2 bg-green-50 border border-green-200 rounded text-sm">
-                                    <p className="text-green-800 font-medium">✓ DHL return shipment booked</p>
-                                    {(order as any)?.dhlShipmentBookedAt && (
-                                      <p className="text-green-600 text-xs">
-                                        {new Date((order as any).dhlShipmentBookedAt).toLocaleString('sv-SE')}
-                                      </p>
+                                {/* Show if return shipment has been booked */}
+                                {(order as any)?.dhlShipmentBooked ? (
+                                  <div className="p-3 bg-green-50 border border-green-200 rounded">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <p className="text-green-800 font-medium text-sm">✓ DHL return shipment already booked</p>
+                                        {(order as any)?.dhlShipmentBookedAt && (
+                                          <p className="text-green-600 text-xs mt-1">
+                                            Booked: {new Date((order as any).dhlShipmentBookedAt).toLocaleString('sv-SE')}
+                                          </p>
+                                        )}
+                                        {trackingNumber && (
+                                          <p className="text-green-600 text-xs">
+                                            Tracking: {trackingNumber}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-col gap-2">
+                                        {(order as any)?.dhlReturnLabelBase64 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const pdf = (order as any).dhlReturnLabelBase64;
+                                              const link = document.createElement('a');
+                                              link.href = `data:application/pdf;base64,${pdf}`;
+                                              link.download = `DHL-Return-Label-${order?.orderNumber || 'label'}.pdf`;
+                                              link.click();
+                                            }}
+                                            className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 flex items-center gap-1"
+                                          >
+                                            📥 Download label
+                                          </button>
+                                        ) : trackingNumber ? (
+                                          <span className="text-xs text-gray-500 italic">
+                                            Label not stored (created before update)
+                                          </span>
+                                        ) : null}
+                                        {trackingUrl && (
+                                          <a
+                                            href={trackingUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 flex items-center gap-1"
+                                          >
+                                            🔍 Track shipment
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <p className="text-amber-700 text-xs mt-2 bg-amber-50 p-2 rounded border border-amber-200">
+                                      ⚠️ A DHL return shipment has already been booked. Booking another will result in duplicate shipments and charges.
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {/* Check if customer selected non-DHL return service */}
+                                    {order?.returnService && ['postnord-rek', 'postnord-express', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(order.returnService) ? (
+                                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                                        <p className="text-blue-800 font-medium text-sm">
+                                          ℹ️ Customer selected: {order.returnService === 'postnord-rek' ? 'PostNord REK' : 
+                                            order.returnService === 'postnord-express' ? 'PostNord Express' :
+                                            order.returnService === 'stockholm-city' ? 'Stockholm City Courier' :
+                                            order.returnService === 'stockholm-express' ? 'Stockholm Express' :
+                                            'Stockholm Same Day'}
+                                        </p>
+                                        <p className="text-blue-600 text-xs mt-1">
+                                          DHL booking is not needed for this shipping method. Use the selected carrier instead.
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={bookDhlShipment}
+                                          disabled={bookingDhlShipment || !order}
+                                          className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          {bookingDhlShipment ? '📦 Booking DHL return...' : '📦 Book DHL return shipment'}
+                                        </button>
+                                        {/* Show premium delivery info if selected */}
+                                        {(order as any)?.premiumDelivery && ['dhl-pre-9', 'dhl-pre-12'].includes((order as any).premiumDelivery) && (
+                                          <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
+                                            ⚡ {(order as any).premiumDelivery === 'dhl-pre-9' ? 'DHL Pre 9:00' : 'DHL Pre 12:00'}
+                                          </span>
+                                        )}
+                                      </div>
                                     )}
-                                  </div>
-                                )}
-                                
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={bookDhlShipment}
-                                    disabled={bookingDhlShipment || !order}
-                                    className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {bookingDhlShipment ? '📦 Booking DHL return...' : '📦 Book DHL return shipment'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={downloadDhlLabel}
-                                    disabled={!order || !trackingNumber}
-                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    🖨️ Download DHL label
-                                  </button>
-                                </div>
-                                
-                                {/* Tracking URL if available */}
-                                {trackingUrl && (
-                                  <div className="text-sm">
-                                    <a 
-                                      href={trackingUrl} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      🔗 Spåra försändelse hos DHL →
-                                    </a>
-                                  </div>
+                                  </>
                                 )}
                               </div>
                             )}

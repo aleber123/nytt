@@ -73,38 +73,52 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   // Validation helper - get list of missing or invalid required fields
   const getMissingFields = () => {
     const missing: { field: string; label: string; id: string }[] = [];
+    const isEn = locale === 'en';
     
-    if (!answers.customerInfo.firstName) {
-      missing.push({ field: 'firstName', label: locale === 'en' ? 'First name' : 'Förnamn', id: 'customer-firstName' });
-    }
-    if (!answers.customerInfo.lastName) {
-      missing.push({ field: 'lastName', label: locale === 'en' ? 'Last name' : 'Efternamn', id: 'customer-lastName' });
-    }
-    if (!answers.customerInfo.countryCode) {
-      missing.push({ field: 'countryCode', label: locale === 'en' ? 'Country' : 'Land', id: 'customer-country' });
-    }
-    if (!answers.customerInfo.email) {
-      missing.push({ field: 'email', label: locale === 'en' ? 'Email' : 'E-post', id: 'customer-email' });
-    } else if (!isValidEmail(answers.customerInfo.email)) {
-      missing.push({ field: 'email', label: locale === 'en' ? 'Email (invalid format)' : 'E-post (ogiltigt format)', id: 'customer-email' });
-    }
-    if (!answers.customerInfo.phone) {
-      missing.push({ field: 'phone', label: locale === 'en' ? 'Phone' : 'Telefon', id: 'customer-phone' });
-    }
-    if (!answers.customerInfo.address) {
-      missing.push({ field: 'address', label: locale === 'en' ? 'Address' : 'Adress', id: 'customer-address' });
-    }
-    if (!answers.customerInfo.postalCode) {
-      missing.push({ field: 'postalCode', label: locale === 'en' ? 'Postal code' : 'Postnummer', id: 'customer-postalCode' });
-    }
-    if (!answers.customerInfo.city) {
-      missing.push({ field: 'city', label: locale === 'en' ? 'City' : 'Stad', id: 'customer-city' });
+    // Return address is now validated in Step 9 for DHL/Stockholm deliveries
+    // No return address validation needed here
+    
+    // === Billing validation (only if not same as return) ===
+    if (!answers.billingInfo.sameAsReturn) {
+      if (answers.customerType === 'company') {
+        if (!answers.billingInfo.companyName) {
+          missing.push({ field: 'billingCompanyName', label: isEn ? 'Company name (billing)' : 'Företagsnamn (faktura)', id: 'return-firstName' });
+        }
+        if (!answers.billingInfo.organizationNumber) {
+          missing.push({ field: 'billingOrgNumber', label: isEn ? 'Organization number' : 'Organisationsnummer', id: 'return-firstName' });
+        }
+      } else {
+        if (!answers.billingInfo.firstName) {
+          missing.push({ field: 'billingFirstName', label: isEn ? 'First name (billing)' : 'Förnamn (faktura)', id: 'return-firstName' });
+        }
+        if (!answers.billingInfo.lastName) {
+          missing.push({ field: 'billingLastName', label: isEn ? 'Last name (billing)' : 'Efternamn (faktura)', id: 'return-firstName' });
+        }
+      }
+      if (!answers.billingInfo.street) {
+        missing.push({ field: 'billingStreet', label: isEn ? 'Street address (billing)' : 'Gatuadress (faktura)', id: 'return-firstName' });
+      }
+      if (!answers.billingInfo.postalCode) {
+        missing.push({ field: 'billingPostalCode', label: isEn ? 'Postal code (billing)' : 'Postnummer (faktura)', id: 'return-firstName' });
+      }
+      if (!answers.billingInfo.city) {
+        missing.push({ field: 'billingCity', label: isEn ? 'City (billing)' : 'Stad (faktura)', id: 'return-firstName' });
+      }
+      if (!answers.billingInfo.countryCode) {
+        missing.push({ field: 'billingCountry', label: isEn ? 'Country (billing)' : 'Land (faktura)', id: 'return-firstName' });
+      }
+      if (!answers.billingInfo.email) {
+        missing.push({ field: 'billingEmail', label: isEn ? 'Email (billing)' : 'E-post (faktura)', id: 'return-firstName' });
+      }
+      if (!answers.billingInfo.phone) {
+        missing.push({ field: 'billingPhone', label: isEn ? 'Phone (billing)' : 'Telefon (faktura)', id: 'return-firstName' });
+      }
     }
     
     // For upload flow, check if files are uploaded
     if (answers.documentSource === 'upload') {
       if (answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file)) {
-        missing.push({ field: 'files', label: locale === 'en' ? 'Document files' : 'Dokumentfiler', id: 'file-upload-0' });
+        missing.push({ field: 'files', label: isEn ? 'Document files' : 'Dokumentfiler', id: 'file-upload-0' });
       }
     }
     
@@ -413,13 +427,20 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 pricingBreakdown.map((item, index) => {
                   // Determine if this is a per-document or per-order fee
                   const isPerDocument = item.quantity && item.quantity > 1;
-                  const isServiceFee = item.service?.includes('_service');
+                  
+                  // Check if price is TBC (to be confirmed) - use the isTBC flag from pricing service
+                  const isTBC = item.isTBC === true;
                   
                   // Build the price detail string
                   let priceDetail = '';
-                  if (isPerDocument && item.unitPrice) {
+                  if (isPerDocument && item.unitPrice && !isTBC) {
                     priceDetail = `(${item.unitPrice} kr × ${item.quantity})`;
                   }
+                  
+                  // Format price display
+                  const priceDisplay = isTBC 
+                    ? (locale === 'en' ? 'TBC' : 'Bekräftas')
+                    : `${item.total?.toLocaleString() || 0} kr`;
                   
                   return (
                     <div key={`${item.service}_${index}`} className="text-sm">
@@ -428,7 +449,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                           • {translatePricingDescription(item.description)}{' '}
                           {priceDetail}
                         </span>
-                        <span className="font-medium text-gray-900">{item.total || 0} kr</span>
+                        <span className={`font-medium ${isTBC ? 'text-amber-600' : 'text-gray-900'}`}>
+                          {priceDisplay}
+                        </span>
                       </div>
                     </div>
                   );
@@ -466,66 +489,73 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         </div>
       </div>
 
-      {renderNotarizationSupportSection()}
-
       {answers.documentSource === 'upload' ? (
         <div className="space-y-4">
-          {/* File Upload Section - Moved to top */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <span className="text-2xl mr-3">📎</span>
-              <div>
-                <div className="font-medium text-green-900">
-                  Upload {answers.quantity} documents
+          {/* Uploaded Files Summary */}
+          <div className={`${answers.willSendMainDocsLater ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4 mb-6`}>
+            <div className="flex items-start">
+              <span className="text-2xl mr-3">{answers.willSendMainDocsLater ? '📧' : '✅'}</span>
+              <div className="flex-1">
+                <div className={`font-medium mb-2 ${answers.willSendMainDocsLater ? 'text-amber-900' : 'text-green-900'}`}>
+                  {answers.willSendMainDocsLater 
+                    ? (locale === 'en' ? 'Documents will be sent via email' : 'Dokument skickas via e-post')
+                    : (locale === 'en' ? 'Uploaded documents' : 'Uppladdade dokument')}
                 </div>
-                <div className="text-sm text-green-700">
-                  Upload documents in PDF, JPG, PNG format. Files must be clear and readable.
-                </div>
+                {answers.willSendMainDocsLater ? (
+                  <div className="text-sm text-amber-700">
+                    {locale === 'en' 
+                      ? `You will send ${answers.quantity} document${answers.quantity > 1 ? 's' : ''} to info@doxvl.se after placing your order.`
+                      : `Du skickar ${answers.quantity} dokument till info@doxvl.se efter att du lagt din beställning.`}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {answers.uploadedFiles.map((file, index) => (
+                      <div key={index} className="text-sm text-green-700 flex items-center">
+                        <span className="mr-2">📄</span>
+                        {file?.name || `Document ${index + 1}`}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Show support documents if uploaded */}
+                {(answers.idDocumentFile || answers.registrationCertFile || answers.signingAuthorityIdFile) && (
+                  <div className="mt-3 pt-3 border-t border-green-200">
+                    <div className="text-xs font-medium text-green-800 mb-1">
+                      {locale === 'en' ? 'Supporting documents:' : 'Stöddokument:'}
+                    </div>
+                    {answers.idDocumentFile && (
+                      <div className="text-sm text-green-700 flex items-center">
+                        <span className="mr-2">🪪</span>
+                        {answers.idDocumentFile.name}
+                      </div>
+                    )}
+                    {answers.registrationCertFile && (
+                      <div className="text-sm text-green-700 flex items-center">
+                        <span className="mr-2">🏢</span>
+                        {answers.registrationCertFile.name}
+                      </div>
+                    )}
+                    {answers.signingAuthorityIdFile && (
+                      <div className="text-sm text-green-700 flex items-center">
+                        <span className="mr-2">🪪</span>
+                        {answers.signingAuthorityIdFile.name}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Show "will send later" notice for support docs */}
+                {(answers.willSendIdDocumentLater || answers.willSendRegistrationCertLater || answers.willSendSigningAuthorityIdLater) && (
+                  <div className="mt-3 pt-3 border-t border-green-200">
+                    <div className="text-xs text-amber-700 flex items-center">
+                      <span className="mr-2">📧</span>
+                      {locale === 'en' 
+                        ? 'Some supporting documents will be sent later via email'
+                        : 'Vissa stöddokument skickas senare via e-post'}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            {Array.from({ length: answers.quantity }, (_, index) => (
-              <div key={index} className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-custom-button transition-colors">
-                <div className="text-center">
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setAnswers(prev => {
-                          const newFiles = [...prev.uploadedFiles];
-                          newFiles[index] = file;
-                          return { ...prev, uploadedFiles: newFiles };
-                        });
-                      }
-                    }}
-                    className="hidden"
-                    id={`file-upload-${index}`}
-                  />
-                  <label
-                    htmlFor={`file-upload-${index}`}
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    <span className="text-4xl mb-2">📄</span>
-                    <span className="text-lg font-medium text-gray-900 mb-1">
-                      Document {index + 1}
-                    </span>
-                    {answers.uploadedFiles[index] ? (
-                      <span className="text-sm text-green-600 font-medium">
-                        ✓ {answers.uploadedFiles[index].name}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-600">
-                        Choose file
-                      </span>
-                    )}
-                  </label>
-                </div>
-              </div>
-            ))}
           </div>
 
 
@@ -545,7 +575,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           <div className="pt-4">
             <ReCAPTCHA
               ref={recaptchaRef}
-              sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
             />
           </div>
 
@@ -858,7 +888,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <div className="pt-4">
             <ReCAPTCHA
               ref={recaptchaRef}
-              sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
             />
           </div>
 
@@ -1222,18 +1252,25 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
       </div>
 
       ${answers.documentSource === 'original' ?
-        `<div class="next-steps">
-          <h3>📦 Next steps</h3>
-          <p>Please send your original documents to the following address:</p>
-          <div class="address-box">
-            <strong>DOX Visumpartner AB</strong><br>
-            Att: Document handling<br>
-            Box 38<br>
-            121 25 Stockholm-Globen<br>
-            Sweden
-          </div>
-          <p><strong>Important:</strong> Mark the envelope with <span class="highlight">"Order #${orderId}"</span> and send it as <strong>registered mail</strong>.</p>
-        </div>`
+        (answers.pickupService ?
+          `<div class="next-steps">
+            <h3>📦 Next steps</h3>
+            <p>You have selected <strong>pickup service</strong>. We will send you a DHL shipping label via email with instructions for the pickup.</p>
+            <p style="font-size:13px; color:#5f6368; margin-top:12px;">You will receive the shipping label within 1 business day.</p>
+          </div>`
+          :
+          `<div class="next-steps">
+            <h3>📦 Next steps</h3>
+            <p>Please send your original documents to the following address:</p>
+            <div class="address-box">
+              <strong>DOX Visumpartner AB</strong><br>
+              Att: Document handling<br>
+              Box 38<br>
+              121 25 Stockholm-Globen<br>
+              Sweden
+            </div>
+            <p><strong>Important:</strong> Mark the envelope with <span class="highlight">"Order #${orderId}"</span> and send it as <strong>registered mail</strong>.</p>
+          </div>`)
         :
         `<div class="next-steps">
           <h3>✅ Your files have been received</h3>
@@ -1377,18 +1414,25 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
       </div>
 
       ${answers.documentSource === 'original' ?
-        `<div class="next-steps">
-          <h3>📦 Nästa steg</h3>
-          <p>Skicka dina originaldokument till följande adress:</p>
-          <div class="address-box">
-            <strong>DOX Visumpartner AB</strong><br>
-            Att: Dokumenthantering<br>
-            Box 38<br>
-            121 25 Stockholm-Globen<br>
-            Sverige
-          </div>
-          <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span> och skicka med <strong>REK (rekommenderat brev)</strong>.</p>
-        </div>`
+        (answers.pickupService ?
+          `<div class="next-steps">
+            <h3>📦 Nästa steg</h3>
+            <p>Du har valt <strong>upphämtningstjänst</strong>. Vi skickar en DHL-fraktsedel till dig via e-post med instruktioner för upphämtningen.</p>
+            <p style="font-size:13px; color:#5f6368; margin-top:12px;">Du får fraktsedeln inom 1 arbetsdag.</p>
+          </div>`
+          :
+          `<div class="next-steps">
+            <h3>📦 Nästa steg</h3>
+            <p>Skicka dina originaldokument till följande adress:</p>
+            <div class="address-box">
+              <strong>DOX Visumpartner AB</strong><br>
+              Att: Dokumenthantering<br>
+              Box 38<br>
+              121 25 Stockholm-Globen<br>
+              Sverige
+            </div>
+            <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span> och skicka med <strong>REK (rekommenderat brev)</strong>.</p>
+          </div>`)
         :
         `<div class="next-steps">
           <h3>✅ Dina filer har mottagits</h3>

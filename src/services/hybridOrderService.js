@@ -350,22 +350,49 @@ const getAllOrders = async () => {
 
 // Update order
 const updateOrder = async (orderId, updates) => {
+  console.log('📝 updateOrder called with orderId:', orderId);
+  console.log('📝 Updates:', JSON.stringify(Object.keys(updates)));
+  
   try {
     if (firebaseAvailable && db) {
-      try {
-        const docRef = doc(db, 'orders', orderId);
-        await updateDoc(docRef, {
-          ...updates,
-          updatedAt: Timestamp.now()
-        });
-        console.log('📝 Order updated in Firebase:', orderId);
-        return true;
-      } catch (firebaseError) {
-        console.log('⚠️ Firebase update failed:', firebaseError.message);
+      // First try direct document ID
+      let docRef = doc(db, 'orders', orderId);
+      let docSnap = await getDoc(docRef);
+      let actualDocId = orderId;
+      
+      // If not found by ID, try searching by orderNumber
+      if (!docSnap.exists()) {
+        console.log('🔍 Order not found by ID, trying orderNumber for update...');
+        const { query, where, getDocs } = require('firebase/firestore');
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          where('orderNumber', '==', orderId)
+        );
+        const querySnapshot = await getDocs(ordersQuery);
+        
+        if (!querySnapshot.empty) {
+          const foundDoc = querySnapshot.docs[0];
+          actualDocId = foundDoc.id;
+          docRef = doc(db, 'orders', actualDocId);
+          console.log('✅ Found order by orderNumber, actual document ID:', actualDocId);
+        } else {
+          console.error('❌ Order not found by ID or orderNumber:', orderId);
+          throw new Error('Order not found: ' + orderId);
+        }
+      } else {
+        console.log('✅ Order found by direct ID:', orderId);
       }
+      
+      await updateDoc(docRef, {
+        ...updates,
+        updatedAt: Timestamp.now()
+      });
+      console.log('✅ Order updated successfully in Firebase:', actualDocId);
+      return true;
     }
 
-    // Fallback to mock service
+    // Only use mock service if Firebase is not available
+    console.log('⚠️ Firebase not available, using mock service');
     const updatedOrder = await mockFirebase.updateOrder(orderId, updates);
     if (updatedOrder) {
       console.log('📝 Order updated in mock service:', orderId);
@@ -374,6 +401,7 @@ const updateOrder = async (orderId, updates) => {
 
   } catch (error) {
     console.error('❌ Error updating order:', error);
+    console.error('❌ Stack:', error.stack);
     throw error;
   }
 };

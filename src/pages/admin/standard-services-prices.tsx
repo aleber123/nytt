@@ -22,6 +22,7 @@ interface StandardService {
   totalPrice: number;
   processingTime: number;
   lastUpdated?: Date;
+  priceUnconfirmed?: boolean;
 }
 
 function StandardServicesPricesPage() {
@@ -120,7 +121,8 @@ function StandardServicesPricesPage() {
             serviceFee: existingRule.serviceFee,
             totalPrice: existingRule.basePrice,
             processingTime: validProcessingTime,
-            lastUpdated: existingRule.lastUpdated?.toDate()
+            lastUpdated: existingRule.lastUpdated?.toDate(),
+            priceUnconfirmed: existingRule.priceUnconfirmed || false
           };
         }
         console.log(`⚠️ Admin page - no Firebase record for ${defaultService.code}, using default processingTime=${defaultService.processingTime}`);
@@ -207,6 +209,52 @@ function StandardServicesPricesPage() {
     } catch (error) {
       console.error('❌ Admin: Error updating service fee:', error);
       toast.error(`Kunde inte uppdatera ${serviceCode}: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePriceUnconfirmed = async (serviceCode: string, unconfirmed: boolean) => {
+    try {
+      setSaving(true);
+      const service = services.find(s => s.code === serviceCode);
+      if (!service) return;
+
+      const ruleId = `SE_${serviceCode}`;
+
+      await updateOrCreatePricingRule(
+        ruleId,
+        {
+          priceUnconfirmed: unconfirmed,
+          updatedBy: currentUser?.email || 'admin'
+        },
+        {
+          countryCode: 'SE',
+          countryName: 'Sverige',
+          serviceType: serviceCode as any,
+          officialFee: service.officialFee,
+          serviceFee: service.serviceFee,
+          basePrice: service.totalPrice,
+          processingTime: { standard: service.processingTime },
+          currency: 'SEK',
+          updatedBy: currentUser?.email || 'admin',
+          isActive: true,
+          priceUnconfirmed: unconfirmed
+        }
+      );
+
+      setServices(prev =>
+        prev.map(s =>
+          s.code === serviceCode
+            ? { ...s, priceUnconfirmed: unconfirmed, lastUpdated: new Date() }
+            : s
+        )
+      );
+
+      toast.success(unconfirmed ? 'Pris markerat som obekräftat' : 'Pris markerat som bekräftat');
+    } catch (error) {
+      console.error('Error toggling price unconfirmed:', error);
+      toast.error('Kunde inte uppdatera prisstatus');
     } finally {
       setSaving(false);
     }
@@ -432,13 +480,34 @@ function StandardServicesPricesPage() {
                   </div>
                 </div>
 
+                {/* Price Unconfirmed Toggle */}
+                <div className="px-6 py-3 border-t border-gray-100">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={service.priceUnconfirmed || false}
+                      onChange={(e) => togglePriceUnconfirmed(service.code, e.target.checked)}
+                      className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
+                      disabled={saving}
+                    />
+                    <span className={`ml-2 text-sm ${service.priceUnconfirmed ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
+                      ⚠️ Pris ej bekräftat
+                    </span>
+                  </label>
+                  {service.priceUnconfirmed && (
+                    <p className="mt-1 text-xs text-orange-600 ml-6">
+                      Kunden ser "Bekräftas" istället för priset
+                    </p>
+                  )}
+                </div>
+
                 {/* Footer */}
                 <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 mt-auto">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className={`w-2 h-2 rounded-full mr-2 ${saving ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></div>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${service.priceUnconfirmed ? 'bg-orange-500' : saving ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></div>
                       <span className="text-xs font-medium text-gray-600">
-                        {saving ? 'Sparar ändringar...' : 'Redo att uppdatera'}
+                        {saving ? 'Sparar ändringar...' : service.priceUnconfirmed ? 'Pris obekräftat' : 'Redo att uppdatera'}
                       </span>
                     </div>
                     <div className="text-xs text-gray-500">

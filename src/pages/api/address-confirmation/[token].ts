@@ -4,11 +4,12 @@
  * Handles address confirmation tokens for pickup and return addresses.
  * GET: Returns address details for confirmation page
  * POST: Confirms or updates the address
+ * 
+ * Uses Firebase Admin SDK to bypass Firestore security rules.
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 interface AddressConfirmation {
   orderId: string;
@@ -39,15 +40,16 @@ export default async function handler(
     return res.status(400).json({ error: 'Token saknas' });
   }
 
-  if (!db) {
+  if (!adminDb) {
     return res.status(500).json({ error: 'Database not available' });
   }
 
   try {
-    // Find the confirmation by token
-    const confirmationsRef = collection(db, 'addressConfirmations');
-    const q = query(confirmationsRef, where('token', '==', token));
-    const snapshot = await getDocs(q);
+    // Find the confirmation by token using Admin SDK
+    const snapshot = await adminDb.collection('addressConfirmations')
+      .where('token', '==', token)
+      .limit(1)
+      .get();
 
     if (snapshot.empty) {
       return res.status(404).json({ error: 'Ogiltig eller utgången länk' });
@@ -64,9 +66,8 @@ export default async function handler(
     // GET: Return confirmation details
     if (req.method === 'GET') {
       // Get order details
-      const orderRef = doc(db, 'orders', confirmation.orderId);
-      const orderSnap = await getDoc(orderRef);
-      const orderData = orderSnap.exists() ? orderSnap.data() : null;
+      const orderSnap = await adminDb.collection('orders').doc(confirmation.orderId).get();
+      const orderData = orderSnap.exists ? orderSnap.data() : null;
 
       return res.status(200).json({
         success: true,
@@ -89,18 +90,17 @@ export default async function handler(
 
       if (action === 'confirm') {
         // Confirm current address
-        await updateDoc(confirmationDoc.ref, {
+        await confirmationDoc.ref.update({
           confirmed: true,
           confirmedAt: new Date().toISOString()
         });
 
         // Update order with confirmation status
-        const orderRef = doc(db, 'orders', confirmation.orderId);
         const updateField = confirmation.type === 'pickup' 
           ? 'pickupAddressConfirmed' 
           : 'returnAddressConfirmed';
         
-        await updateDoc(orderRef, {
+        await adminDb.collection('orders').doc(confirmation.orderId).update({
           [updateField]: true,
           [`${updateField}At`]: new Date().toISOString()
         });
@@ -113,7 +113,7 @@ export default async function handler(
 
       if (action === 'update' && updatedAddress) {
         // Update address
-        await updateDoc(confirmationDoc.ref, {
+        await confirmationDoc.ref.update({
           address: updatedAddress,
           confirmed: true,
           confirmedAt: new Date().toISOString(),
@@ -121,10 +121,10 @@ export default async function handler(
         });
 
         // Update order with new address
-        const orderRef = doc(db, 'orders', confirmation.orderId);
+        const orderRef = adminDb.collection('orders').doc(confirmation.orderId);
         
         if (confirmation.type === 'pickup') {
-          await updateDoc(orderRef, {
+          await orderRef.update({
             pickupAddress: {
               street: updatedAddress.street,
               postalCode: updatedAddress.postalCode,
@@ -138,13 +138,11 @@ export default async function handler(
             pickupAddressUpdatedByCustomer: true
           });
         } else {
-          await updateDoc(orderRef, {
-            customerInfo: {
-              address: updatedAddress.street,
-              postalCode: updatedAddress.postalCode,
-              city: updatedAddress.city,
-              country: updatedAddress.country || 'Sverige'
-            },
+          await orderRef.update({
+            'customerInfo.address': updatedAddress.street,
+            'customerInfo.postalCode': updatedAddress.postalCode,
+            'customerInfo.city': updatedAddress.city,
+            'customerInfo.country': updatedAddress.country || 'Sverige',
             returnAddressConfirmed: true,
             returnAddressConfirmedAt: new Date().toISOString(),
             returnAddressUpdatedByCustomer: true

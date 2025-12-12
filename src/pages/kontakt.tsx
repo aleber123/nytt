@@ -347,7 +347,7 @@ const ContactPage: React.FC = () => {
                     <div className="mb-4">
                       <ReCAPTCHA
                         ref={recaptchaRef}
-                        sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
                         onChange={onRecaptchaChange}
                       />
                     </div>

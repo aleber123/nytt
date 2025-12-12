@@ -442,7 +442,8 @@ export const calculateOrderPrice = async (orderData: {
           quantity: orderData.quantity,
           unitPrice: rule.officialFee,
           total: officialTotal,
-          vatRate: VAT_RATES.EXEMPT
+          vatRate: VAT_RATES.EXEMPT,
+          isTBC: rule.priceUnconfirmed || false
         });
 
         // Add service fee line (per order, not per document, 25% VAT)
@@ -452,7 +453,8 @@ export const calculateOrderPrice = async (orderData: {
           quantity: 1,
           unitPrice: serviceFeeTotal,
           total: serviceFeeTotal,
-          vatRate: VAT_RATES.STANDARD
+          vatRate: VAT_RATES.STANDARD,
+          isTBC: false // Service fee is always confirmed
         });
 
       }

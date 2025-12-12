@@ -62,6 +62,7 @@ interface ShipmentRequestBody {
   };
   includePickup?: boolean;
   productCode?: string; // 'D' for domestic, 'P' for international
+  premiumDelivery?: string; // 'dhl-pre-9' or 'dhl-pre-12' for time-definite delivery
   packages?: {
     weight: number;
     dimensions?: {
@@ -135,10 +136,26 @@ export default async function handler(
       receiverCountryCode = countryNameToCode[receiverCountryCode] || receiverCountryCode.substring(0, 2).toUpperCase();
     }
 
-    // Determine product code based on destination country
+    // Determine product code based on destination country and premium delivery option
     const isInternational = receiverCountryCode !== 'SE';
-    // Use 'N' for domestic (works in sandbox), 'P' for international
-    const productCode = body.productCode || (isInternational ? 'P' : 'N');
+    
+    // DHL Product codes:
+    // N = Domestic Express (standard)
+    // P = International Express (standard)
+    // K = Express 9:00 (Pre 9)
+    // E = Express 12:00 (Pre 12)
+    // T = Express 10:30
+    let productCode = body.productCode || (isInternational ? 'P' : 'N');
+    let deliveryTimeNote = '';
+    
+    // Handle premium delivery options (DHL Pre 9 / Pre 12)
+    if (body.premiumDelivery === 'dhl-pre-9') {
+      productCode = 'K'; // Express 9:00
+      deliveryTimeNote = ' - Delivery before 09:00';
+    } else if (body.premiumDelivery === 'dhl-pre-12') {
+      productCode = 'E'; // Express 12:00
+      deliveryTimeNote = ' - Delivery before 12:00';
+    }
 
     // Build DHL API request - simplified for sandbox compatibility
     const dhlRequest: any = {

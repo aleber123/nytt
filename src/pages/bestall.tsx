@@ -29,6 +29,7 @@ import { Step6PickupService } from '@/components/order/steps/Step6PickupService'
 import Step7ShippingOrPickup from '@/components/order/steps/Step7ShippingOrPickup';
 import Step8ScannedCopies from '@/components/order/steps/Step8ScannedCopies';
 import Step9ReturnService from '@/components/order/steps/Step9ReturnService';
+import Step9bReturnAddress from '@/components/order/steps/Step9bReturnAddress';
 import Step10ReviewSubmit from '@/components/order/steps/Step10ReviewSubmit';
 import OrderSummary from '@/components/order/OrderSummary';
 
@@ -55,9 +56,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       otherText: ''
     },
     idDocumentFile: null,
-    signingAuthorityFile: null,
+    registrationCertFile: null,
+    signingAuthorityIdFile: null,
     willSendIdDocumentLater: false,
-    willSendSigningAuthorityLater: false,
+    willSendRegistrationCertLater: false,
+    willSendSigningAuthorityIdLater: false,
+    willSendMainDocsLater: false,
     quantity: 1,
     expedited: false,
     documentSource: '', // 'original' or 'upload'
@@ -80,6 +84,41 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     ownReturnTrackingNumber: '',
     premiumDelivery: '',
     uploadedFiles: [],
+    // Customer type: private or company
+    customerType: 'private',
+    // Return address (where documents should be sent back)
+    returnAddress: {
+      sameAsPickup: true, // Default to same as pickup if pickup is selected
+      firstName: '',
+      lastName: '',
+      companyName: '',
+      street: '',
+      addressLine2: '', // c/o, apartment, floor, etc.
+      postalCode: '',
+      city: '',
+      country: 'Sverige',
+      countryCode: 'SE',
+      phone: '',
+      email: ''
+    },
+    // Billing information
+    billingInfo: {
+      sameAsReturn: true, // Default to same as return address
+      firstName: '',
+      lastName: '',
+      companyName: '',
+      organizationNumber: '',
+      vatNumber: '',
+      contactPerson: '',
+      street: '',
+      postalCode: '',
+      city: '',
+      country: 'Sverige',
+      countryCode: 'SE',
+      email: '',
+      phone: ''
+    },
+    // Legacy customerInfo - kept for backward compatibility
     customerInfo: {
       firstName: '',
       lastName: '',
@@ -1441,7 +1480,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               className={
                 isSummaryExpanded
                   ? 'lg:col-span-2 min-h-screen'
-                  : 'min-h-screen max-w-2xl mx-auto'
+                  : 'min-h-screen'
               }
             >
               {/* Render current question */}
@@ -1554,10 +1593,19 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 <Step9ReturnService
                   answers={answers}
                   setAnswers={setAnswers}
-                  onNext={() => navigateToStep(10)}
+                  onNext={() => navigateToStep(9.5)}
                   onBack={() => navigateToStep(8)}
                   returnServices={returnServices}
                   loadingReturnServices={loadingReturnServices}
+                />
+              )}
+              {currentQuestion === 9.5 && (
+                <Step9bReturnAddress
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(10)}
+                  onBack={() => navigateToStep(9)}
+                  onSkip={() => navigateToStep(10)}
                   currentLocale={currentLocale}
                 />
               )}
@@ -1566,7 +1614,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   answers={answers}
                   setAnswers={setAnswers}
                   onNext={() => {}}
-                  onBack={() => navigateToStep(9)}
+                  onBack={() => {
+                    // Go back to step 9.5 if return address was required, otherwise step 9
+                    const requiresReturnAddress = !!answers.returnService && 
+                      ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city'].includes(answers.returnService);
+                    navigateToStep(requiresReturnAddress ? 9.5 : 9);
+                  }}
                   allCountries={allCountries}
                   returnServices={returnServices}
                   loadingReturnServices={loadingReturnServices}

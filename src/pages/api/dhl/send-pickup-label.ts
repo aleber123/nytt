@@ -203,20 +203,23 @@ export default async function handler(
     }
 
     const trackingNumber = dhlData.shipmentTrackingNumber || '';
-    const trackingUrl = dhlData.trackingUrl || `https://www.dhl.com/se-sv/home/tracking.html?tracking-id=${trackingNumber}`;
+    // Use DHL Express tracking URL format - works for Swedish customers
+    const trackingUrl = dhlData.trackingUrl || `https://www.dhl.com/se-sv/home/tracking/tracking-express.html?submit=1&tracking-id=${trackingNumber}`;
     
     // Get the label PDF (base64 encoded)
     const labelDocument = dhlData.documents?.find((d: any) => d.typeCode === 'label');
     const labelBase64 = labelDocument?.content || '';
 
     // Update order with pickup info using Admin SDK
+    // Store the label PDF as base64 for later download
     await orderRef.update({
       pickupTrackingNumber: trackingNumber,
       pickupTrackingUrl: trackingUrl,
       pickupLabelSent: true,
       pickupLabelSentAt: new Date().toISOString(),
       pickupShippingDate: shippingDate,
-      dhlPickupShipmentCreated: true
+      dhlPickupShipmentCreated: true,
+      pickupLabelPdf: labelBase64 || null // Store PDF for admin download
     });
 
     // Queue email with label attachment using customerEmails collection
@@ -337,8 +340,8 @@ function generatePickupEmailHtml(data: {
       ? '<strong>Var tillgänglig</strong> på upphämtningsdagen - DHL ringer inte innan'
       : '<strong>Be available</strong> on the pickup day - DHL does not call ahead',
     instruction5: isSwedish 
-      ? '<strong>Lämna försändelsen</strong> i receptionen eller vid dörren om du inte kan vara på plats'
-      : '<strong>Leave the shipment</strong> at reception or by the door if you cannot be present',
+      ? '<strong>Lämna försändelsen</strong> i receptionen eller till en kollega om du inte kan vara på plats'
+      : '<strong>Leave the shipment</strong> at reception or with a colleague if you cannot be present',
     warning: isSwedish 
       ? 'Se till att dokumenten är väl skyddade i försändelsen. Om du inte kan ta emot upphämtningen, kontakta oss så snart som möjligt.'
       : 'Make sure the documents are well protected in the shipment. If you cannot receive the pickup, please contact us as soon as possible.',

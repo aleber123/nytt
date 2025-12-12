@@ -29,14 +29,27 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
     (answers.shippingMethod as 'rek' | 'courier' | null) ?? null
   );
 
-  const [pickupCountrySearch, setPickupCountrySearch] = React.useState<string>('');
-
   // Earliest allowed pickup date: next business day (skip weekends)
+  // If after 15:00 Stockholm time, add an extra day since office closes at 15:00
   const earliestPickupDate = React.useMemo(() => {
-    const today = new Date();
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    // Move to next calendar day
-    d.setDate(d.getDate() + 1);
+    const now = new Date();
+    // Get current hour in Stockholm timezone (CET/CEST)
+    const stockholmHour = parseInt(now.toLocaleString('en-US', { 
+      timeZone: 'Europe/Stockholm', 
+      hour: 'numeric', 
+      hour12: false 
+    }));
+    
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // If after 15:00 Stockholm time, earliest pickup is day after tomorrow
+    // Otherwise, earliest pickup is tomorrow
+    if (stockholmHour >= 15) {
+      d.setDate(d.getDate() + 2); // Day after tomorrow
+    } else {
+      d.setDate(d.getDate() + 1); // Tomorrow
+    }
+    
     // Skip Saturday (6) and Sunday (0)
     while (d.getDay() === 0 || d.getDay() === 6) {
       d.setDate(d.getDate() + 1);
@@ -383,39 +396,31 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t('orderFlow.pickupAddress.country', 'Land')} {t('orderFlow.pickupAddress.requiredField')}
             </label>
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={pickupCountrySearch}
-                onChange={(e) => setPickupCountrySearch(e.target.value)}
-                placeholder={t('orderFlow.pickupAddress.countrySearchPlaceholder', 'Sök land (t.ex. "no" för Norge)...')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
-              />
-              {(() => {
-                const search = pickupCountrySearch.trim().toLowerCase();
-                const filtered = search
-                  ? ALL_COUNTRIES.filter((c) => c.name.toLowerCase().includes(search))
-                  : ALL_COUNTRIES;
-                return (
-                  <select
-                    value={answers.pickupAddress.country || 'SE'}
-                    onChange={(e) =>
-                      setAnswers((prev) => ({
-                        ...prev,
-                        pickupAddress: { ...prev.pickupAddress, country: e.target.value },
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button bg-white"
-                  >
-                    {filtered.map((country) => (
-                      <option key={country.code} value={country.code}>
-                        {country.name}
-                      </option>
-                    ))}
-                  </select>
-                );
-              })()}
-            </div>
+            <select
+              value={answers.pickupAddress.country || 'SE'}
+              onChange={(e) =>
+                setAnswers((prev) => ({
+                  ...prev,
+                  pickupAddress: { ...prev.pickupAddress, country: e.target.value },
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button bg-white"
+            >
+              {/* Common Nordic countries first */}
+              <option value="SE">Sverige</option>
+              <option value="NO">Norge</option>
+              <option value="DK">Danmark</option>
+              <option value="FI">Finland</option>
+              <option disabled>──────────</option>
+              {/* Rest of countries alphabetically */}
+              {ALL_COUNTRIES
+                .filter(c => !['SE', 'NO', 'DK', 'FI'].includes(c.code))
+                .map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.name}
+                  </option>
+                ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

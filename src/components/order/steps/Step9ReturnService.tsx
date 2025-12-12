@@ -18,7 +18,7 @@ interface ReturnService {
   provider: string;
 }
 
-interface Step9Props extends StepProps {
+interface Step9Props extends Omit<StepProps, 'currentLocale'> {
   returnServices: ReturnService[];
   loadingReturnServices: boolean;
 }
@@ -69,7 +69,9 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
   const showStockholmPremium = answers.returnService === 'stockholm-city';
 
   const isOwnReturn = answers.returnService === 'own-delivery';
-  const isNextDisabled = !answers.returnService || (isOwnReturn && !answers.ownReturnTrackingNumber?.trim());
+  
+  const isNextDisabled = !answers.returnService || 
+    (isOwnReturn && !answers.ownReturnTrackingNumber?.trim());
 
   const handlePremiumOptionKeyDown = (
     event: React.KeyboardEvent<HTMLLabelElement>,

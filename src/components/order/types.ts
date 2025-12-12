@@ -18,11 +18,14 @@ export interface OrderAnswers {
     other: boolean;
     otherText: string;
   };
-  // Optional supporting documents for notarization (collected in Step 10)
+  // Optional supporting documents for notarization
   idDocumentFile?: File | null; // ID or passport copy for signature verification
-  signingAuthorityFile?: File | null; // Registration certificate or other proof of signing authority
+  registrationCertFile?: File | null; // Registration certificate (registreringsbevis) for signing authority
+  signingAuthorityIdFile?: File | null; // ID/passport of the person with signing authority
   willSendIdDocumentLater?: boolean; // Customer will send ID/pass copy later
-  willSendSigningAuthorityLater?: boolean; // Customer will send signing authority proof later
+  willSendRegistrationCertLater?: boolean; // Customer will send registration certificate later
+  willSendSigningAuthorityIdLater?: boolean; // Customer will send signing authority ID later
+  willSendMainDocsLater?: boolean; // Customer will send main documents later via email
   quantity: number;
   expedited: boolean;
   documentSource: string;
@@ -45,6 +48,50 @@ export interface OrderAnswers {
   ownReturnTrackingNumber: string;
   premiumDelivery: string;
   uploadedFiles: File[];
+  
+  // Customer type: private person or company
+  customerType: 'private' | 'company';
+  
+  // Return address (where documents should be sent back)
+  returnAddress: {
+    sameAsPickup: boolean; // If true, use pickup address for return
+    firstName: string;
+    lastName: string;
+    companyName?: string; // Company name (for deliveries to companies)
+    street: string; // addressLine1 for DHL API
+    addressLine2?: string; // c/o, apartment number, floor, etc.
+    postalCode: string;
+    city: string;
+    country: string;
+    countryCode: string;
+    phone: string;
+    email: string;
+  };
+  
+  // Billing information (for invoicing)
+  billingInfo: {
+    sameAsReturn: boolean; // If true, use return address for billing
+    // For private customers
+    firstName: string;
+    lastName: string;
+    // For company customers
+    companyName?: string;
+    organizationNumber?: string; // Swedish: Organisationsnummer
+    vatNumber?: string; // VAT/Moms-nummer (optional, for EU companies)
+    // Contact person at company
+    contactPerson?: string;
+    // Address
+    street: string;
+    postalCode: string;
+    city: string;
+    country: string;
+    countryCode: string;
+    // Contact
+    email: string;
+    phone: string;
+  };
+  
+  // Legacy customerInfo - kept for backward compatibility
   customerInfo: {
     firstName: string;
     lastName: string;
