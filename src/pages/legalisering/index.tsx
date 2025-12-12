@@ -7,16 +7,26 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
 const countries = [
+  // Populära destinationer
   { code: 'qatar', name: 'Qatar', flag: '🇶🇦', popular: true },
   { code: 'kuwait', name: 'Kuwait', flag: '🇰🇼', popular: true },
-  { code: 'uae', name: 'Förenade Arabemiraten', flag: '🇦🇪', popular: true },
-  { code: 'saudi-arabien', name: 'Saudiarabien', flag: '🇸🇦', popular: true },
-  { code: 'taiwan', name: 'Taiwan', flag: '🇹🇼', popular: false },
-  { code: 'sri-lanka', name: 'Sri Lanka', flag: '🇱🇰', popular: false },
-  { code: 'kina', name: 'Kina', flag: '🇨🇳', popular: false },
-  { code: 'indien', name: 'Indien', flag: '🇮🇳', popular: false },
-  { code: 'thailand', name: 'Thailand', flag: '🇹🇭', popular: false },
+  { code: 'spanien', name: 'Spanien (NIE)', flag: '🇪🇸', popular: true },
+  { code: 'thailand', name: 'Thailand', flag: '🇹🇭', popular: true },
+  // Mellanöstern
   { code: 'egypten', name: 'Egypten', flag: '🇪🇬', popular: false },
+  { code: 'irak', name: 'Irak', flag: '🇮🇶', popular: false },
+  { code: 'libanon', name: 'Libanon', flag: '🇱🇧', popular: false },
+  { code: 'libyen', name: 'Libyen', flag: '🇱🇾', popular: false },
+  { code: 'palestina', name: 'Palestina', flag: '🇵🇸', popular: false },
+  { code: 'syrien', name: 'Syrien', flag: '🇸🇾', popular: false },
+  // Afrika
+  { code: 'angola', name: 'Angola', flag: '🇦🇴', popular: false },
+  { code: 'etiopien', name: 'Etiopien', flag: '🇪🇹', popular: false },
+  { code: 'mocambique', name: 'Moçambique', flag: '🇲🇿', popular: false },
+  { code: 'nigeria', name: 'Nigeria', flag: '🇳🇬', popular: false },
+  // Asien
+  { code: 'sri-lanka', name: 'Sri Lanka', flag: '🇱🇰', popular: false },
+  { code: 'taiwan', name: 'Taiwan', flag: '🇹🇼', popular: false },
 ];
 
 export default function LegaliseringIndexPage() {
