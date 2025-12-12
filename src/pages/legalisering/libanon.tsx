@@ -2,8 +2,8 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+
+
 
 export default function LibanonLegaliseringPage() {
   const country = {
@@ -43,7 +43,7 @@ export default function LibanonLegaliseringPage() {
         <meta property="og:url" content={`https://www.doxvl.se/legalisering/${country.name.toLowerCase()}`} />
       </Head>
 
-      <Header />
+      
 
       <main className="min-h-screen bg-gray-50">
         <section className="bg-gradient-to-br text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>
@@ -138,7 +138,7 @@ export default function LibanonLegaliseringPage() {
         </section>
       </main>
 
-      <Footer />
+      
     </>
   );
 }

@@ -3,8 +3,8 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+
+
 
 export default function KuwaitLegaliseringPage() {
   const { t } = useTranslation('common');
@@ -46,7 +46,7 @@ export default function KuwaitLegaliseringPage() {
         })}} />
       </Head>
 
-      <Header />
+      
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}
@@ -251,7 +251,7 @@ export default function KuwaitLegaliseringPage() {
         </section>
       </main>
 
-      <Footer />
+      
     </>
   );
 }

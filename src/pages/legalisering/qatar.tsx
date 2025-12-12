@@ -3,8 +3,8 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+
+
 
 export default function QatarLegaliseringPage() {
   const { t } = useTranslation('common');
@@ -46,7 +46,7 @@ export default function QatarLegaliseringPage() {
         })}} />
       </Head>
 
-      <Header />
+      
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}
@@ -248,7 +248,7 @@ export default function QatarLegaliseringPage() {
         </section>
       </main>
 
-      <Footer />
+      
     </>
   );
 }

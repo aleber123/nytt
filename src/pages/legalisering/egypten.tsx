@@ -2,8 +2,8 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+
+
 
 export default function EgyptenLegaliseringPage() {
   const country = { name: 'Egypten', flag: '🇪🇬', color: '#C8102E', colorDark: '#9a0c23' };
@@ -26,7 +26,7 @@ export default function EgyptenLegaliseringPage() {
         <meta name="description" content={`Vi hjälper dig med legalisering av dokument för ${country.name}. Komplett service via Egyptens ambassad i Stockholm. Snabb hantering.`} />
         <link rel="canonical" href="https://www.doxvl.se/legalisering/egypten" />
       </Head>
-      <Header />
+      
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>
           <div className="max-w-6xl mx-auto px-4">
@@ -71,7 +71,7 @@ export default function EgyptenLegaliseringPage() {
           </div>
         </section>
       </main>
-      <Footer />
+      
     </>
   );
 }

@@ -2,8 +2,8 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+
+
 
 export default function AngolaLegaliseringPage() {
   const country = { name: 'Angola', flag: '🇦🇴', color: '#CC092F', colorDark: '#9a0724' };
@@ -25,7 +25,7 @@ export default function AngolaLegaliseringPage() {
         <meta name="description" content={`Vi hjälper dig med legalisering av dokument för ${country.name}. Komplett service via Angolas ambassad i Solna.`} />
         <link rel="canonical" href="https://www.doxvl.se/legalisering/angola" />
       </Head>
-      <Header />
+      
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>
           <div className="max-w-6xl mx-auto px-4">
@@ -70,7 +70,7 @@ export default function AngolaLegaliseringPage() {
           </div>
         </section>
       </main>
-      <Footer />
+      
     </>
   );
 }

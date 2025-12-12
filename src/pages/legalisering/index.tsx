@@ -3,8 +3,8 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+
+
 
 const countries = [
   // Populära destinationer
@@ -49,7 +49,7 @@ export default function LegaliseringIndexPage() {
         <meta property="og:type" content="website" />
       </Head>
 
-      <Header />
+      
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}
@@ -177,7 +177,7 @@ export default function LegaliseringIndexPage() {
         </section>
       </main>
 
-      <Footer />
+      
     </>
   );
 }
