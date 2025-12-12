@@ -1,27 +1,24 @@
 module.exports = {
   siteUrl: process.env.SITE_URL || 'https://www.doxvl.se',
-  generateRobotsTxt: true,
+  generateRobotsTxt: false, // We manage robots.txt manually
   changefreq: 'weekly',
   priority: 0.7,
   sitemapSize: 5000,
-  robotsTxtOptions: {
-    policies: [
-      {
-        userAgent: '*',
-        disallow: ['/admin', '/admin/*'],
-      },
-    ],
-  },
-  transform: async (config, path) => {
-    return {
-      loc: path,
-      changefreq: 'weekly',
-      priority: path === '/' ? 1.0 : 0.7,
-      lastmod: new Date().toISOString(),
-      alternateRefs: [
-        { href: `${config.siteUrl}${path.replace(/^\/sv/, '')}`, hreflang: 'sv' },
-        { href: `${config.siteUrl}/en${path.replace(/^\/(sv|en)/, '')}`, hreflang: 'en' },
-      ],
-    };
-  },
+  // Exclude admin, error pages, and internal pages from sitemap
+  exclude: [
+    '/admin',
+    '/admin/*',
+    '/api/*',
+    '/404',
+    '/500',
+    '/bekraftelse',
+    '/confirm-address/*',
+    '/orderstatus/*',
+    '/shipping-label',
+    '/en/admin',
+    '/en/admin/*',
+    '/en/404',
+    '/en/500',
+    '/en/bekraftelse',
+  ],
 };
