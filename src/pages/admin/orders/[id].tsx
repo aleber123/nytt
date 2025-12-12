@@ -4032,6 +4032,21 @@ function AdminOrderDetailPage() {
                             )}
                             {step.id === 'return_shipping' && (
                               <div className="mt-3 space-y-3">
+                                {/* Show selected return service */}
+                                <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+                                  <p className="text-sm font-medium text-gray-700 mb-1">Kundens valda returtjänst:</p>
+                                  <p className="text-base font-semibold">
+                                    {order?.returnService === 'dhl' || order?.returnService === 'retur' ? '📦 DHL Express' :
+                                     order?.returnService === 'postnord-rek' ? '📮 PostNord REK' :
+                                     order?.returnService === 'postnord-express' ? '📮 PostNord Express' :
+                                     order?.returnService === 'stockholm-city' ? '🚴 Stockholm City Courier' :
+                                     order?.returnService === 'stockholm-express' ? '🚴 Stockholm Express' :
+                                     order?.returnService === 'stockholm-sameday' ? '🚴 Stockholm Same Day' :
+                                     order?.returnService ? `📦 ${order.returnService}` :
+                                     '❌ Ingen returtjänst vald'}
+                                  </p>
+                                </div>
+
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Return tracking number
