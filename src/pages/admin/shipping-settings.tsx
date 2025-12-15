@@ -7,8 +7,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/firebase/config';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -36,15 +34,15 @@ function ShippingSettingsContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Fetch settings from Firebase
+  // Fetch settings via API (uses Admin SDK to bypass Firestore rules)
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const docRef = doc(db, 'settings', 'shipping');
-        const docSnap = await getDoc(docRef);
+        const response = await fetch('/api/admin/shipping-settings');
+        const data = await response.json();
         
-        if (docSnap.exists()) {
-          setSettings({ ...DEFAULT_SETTINGS, ...docSnap.data() as ShippingSettings });
+        if (data.success && data.settings) {
+          setSettings({ ...DEFAULT_SETTINGS, ...data.settings as ShippingSettings });
         }
       } catch (error) {
         console.error('Error fetching shipping settings:', error);
@@ -62,12 +60,21 @@ function ShippingSettingsContent() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const docRef = doc(db, 'settings', 'shipping');
-      await setDoc(docRef, {
-        ...settings,
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUser?.email || currentUser?.uid || 'unknown',
+      const response = await fetch('/api/admin/shipping-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...settings,
+          updatedBy: currentUser?.email || currentUser?.uid || 'unknown',
+        }),
       });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save');
+      }
+      
       toast.success('Inställningar sparade!');
     } catch (error) {
       console.error('Error saving shipping settings:', error);
