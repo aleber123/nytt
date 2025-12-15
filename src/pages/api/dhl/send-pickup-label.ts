@@ -148,7 +148,7 @@ export default async function handler(
       pickup: {
         isRequested: false  // Don't request pickup in initial shipment creation
       },
-      productCode: 'N', // DHL Express Domestic (N works in sandbox)
+      productCode: 'N', // DOMESTIC EXPRESS - always domestic since pickup is within Sweden
       accounts: [{
         typeCode: 'shipper',
         number: DHL_CONFIG.accountNumber

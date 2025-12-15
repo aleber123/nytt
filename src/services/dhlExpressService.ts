@@ -545,8 +545,8 @@ export function createReturnShipmentRequest(
       closeTime: includePickup ? '18:00' : undefined,
       location: includePickup ? 'office' : undefined
     },
-    productCode: 'D', // Domestic Express
-    localProductCode: 'D',
+    productCode: 'N', // DOMESTIC EXPRESS (N) - for Sweden domestic shipments
+    localProductCode: 'DOM',
     accounts: [{
       typeCode: 'shipper',
       number: DHL_CONFIG.accountNumber

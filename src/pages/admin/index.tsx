@@ -131,6 +131,15 @@ function AdminIndexPage() {
       badge: t('admin.index.pages.stats.badge', 'Analytics'),
       icon: 'calculator',
       category: 'analytics'
+    },
+    {
+      title: 'Fraktinställningar',
+      description: 'Konfigurera maxpriser för DHL-bokningar',
+      href: '/admin/shipping-settings',
+      color: 'bg-yellow-600 hover:bg-yellow-700',
+      badge: 'DHL',
+      icon: 'truck',
+      category: 'operations'
     }
   ];
 

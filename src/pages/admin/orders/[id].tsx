@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
 import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation } from '@/services/coverLetterService';
-import { collection, addDoc, doc as fsDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, doc as fsDoc, getDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { downloadDhlReturnLabel } from '@/services/shippingLabelService';
@@ -1785,7 +1785,62 @@ function AdminOrderDetailPage() {
     try {
       setBookingDhlShipment(true);
 
-      // Call our DHL API endpoint
+      // Step 1: Get shipping settings (max price limit)
+      const settingsDoc = await getDoc(fsDoc(getFirebaseDb(), 'settings', 'shipping'));
+      const shippingSettings = settingsDoc.exists() ? settingsDoc.data() as Record<string, any> : {};
+      const maxPriceEnabled = shippingSettings.dhlMaxPriceEnabled !== false;
+      const maxPrice = shippingSettings.dhlMaxPrice || 300;
+
+      // Step 2: Get DHL rate quote first
+      const ratesResponse = await fetch('/api/dhl/rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiver: {
+            postalCode: ci.postalCode,
+            cityName: ci.city,
+            countryCode: ci.country || 'SE',
+          },
+          isPickup: false, // Return shipment: DOX -> Customer
+        })
+      });
+
+      const ratesData = await ratesResponse.json();
+
+      if (!ratesResponse.ok || !ratesData.success) {
+        // If rates API fails, show warning but allow manual override
+        const proceed = window.confirm(
+          `⚠️ Kunde inte hämta DHL-pris: ${ratesData.details || ratesData.error || 'Okänt fel'}\n\nVill du fortsätta med bokningen ändå?`
+        );
+        if (!proceed) {
+          setBookingDhlShipment(false);
+          return;
+        }
+      } else {
+        // Check price against max limit
+        const dhlPrice = ratesData.rate?.price || 0;
+        const currency = ratesData.rate?.currency || 'SEK';
+        
+        if (maxPriceEnabled && dhlPrice > maxPrice) {
+          toast.error(
+            `❌ DHL-priset (${dhlPrice} ${currency}) överstiger maxgränsen (${maxPrice} kr).\n\nVar god gör en manuell bokning via DHL:s webbplats.`,
+            { duration: 8000 }
+          );
+          setBookingDhlShipment(false);
+          return;
+        }
+
+        // Show price confirmation
+        const confirmBooking = window.confirm(
+          `DHL-pris: ${dhlPrice} ${currency}\n\nVill du boka DHL-frakt för denna order?`
+        );
+        if (!confirmBooking) {
+          setBookingDhlShipment(false);
+          return;
+        }
+      }
+
+      // Step 3: Proceed with booking
       // Include premiumDelivery if customer selected DHL Pre 9 or Pre 12
       const premiumDelivery = (order as any)?.premiumDelivery;
       
@@ -2018,6 +2073,68 @@ function AdminOrderDetailPage() {
 
     setCreatingDhlPickupLabel(true);
     try {
+      // Step 1: Get shipping settings (max price limit)
+      const pickupSettingsDoc = await getDoc(fsDoc(getFirebaseDb(), 'settings', 'shipping'));
+      const pickupShippingSettings = pickupSettingsDoc.exists() ? pickupSettingsDoc.data() as Record<string, any> : {};
+      const maxPriceEnabled = pickupShippingSettings.dhlPickupMaxPriceEnabled !== false;
+      const maxPrice = pickupShippingSettings.dhlPickupMaxPrice || 300;
+
+      // Step 2: Get pickup address for rate check
+      const pa = (order as any).pickupAddress || {};
+      const ci = order.customerInfo || {};
+      const pickupAddress = {
+        postalCode: pa.postalCode || ci.postalCode || '',
+        cityName: pa.city || ci.city || '',
+        countryCode: 'SE',
+      };
+
+      // Step 3: Get DHL rate quote first
+      const ratesResponse = await fetch('/api/dhl/rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiver: pickupAddress,
+          shipper: pickupAddress,
+          isPickup: true, // Pickup shipment: Customer -> DOX
+        })
+      });
+
+      const ratesData = await ratesResponse.json();
+
+      if (!ratesResponse.ok || !ratesData.success) {
+        // If rates API fails, show warning but allow manual override
+        const proceed = window.confirm(
+          `⚠️ Kunde inte hämta DHL-pris: ${ratesData.details || ratesData.error || 'Okänt fel'}\n\nVill du fortsätta med bokningen ändå?`
+        );
+        if (!proceed) {
+          setCreatingDhlPickupLabel(false);
+          return;
+        }
+      } else {
+        // Check price against max limit
+        const dhlPrice = ratesData.rate?.price || 0;
+        const currency = ratesData.rate?.currency || 'SEK';
+        
+        if (maxPriceEnabled && dhlPrice > maxPrice) {
+          toast.error(
+            `❌ DHL-priset (${dhlPrice} ${currency}) överstiger maxgränsen (${maxPrice} kr).\n\nVar god gör en manuell bokning via DHL:s webbplats.`,
+            { duration: 8000 }
+          );
+          setCreatingDhlPickupLabel(false);
+          return;
+        }
+
+        // Show price confirmation
+        const confirmBooking = window.confirm(
+          `DHL-pris för upphämtning: ${dhlPrice} ${currency}\n\nVill du skapa och skicka DHL-etikett till kunden?`
+        );
+        if (!confirmBooking) {
+          setCreatingDhlPickupLabel(false);
+          return;
+        }
+      }
+
+      // Step 4: Proceed with creating and sending label
       const response = await fetch('/api/dhl/send-pickup-label', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

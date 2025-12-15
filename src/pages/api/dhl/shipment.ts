@@ -137,24 +137,74 @@ export default async function handler(
     }
 
     // Determine product code based on destination country and premium delivery option
-    const isInternational = receiverCountryCode !== 'SE';
+    const isDomestic = receiverCountryCode === 'SE';
     
-    // DHL Product codes:
-    // N = Domestic Express (standard)
-    // P = International Express (standard)
-    // K = Express 9:00 (Pre 9)
-    // E = Express 12:00 (Pre 12)
-    // T = Express 10:30
-    let productCode = body.productCode || (isInternational ? 'P' : 'N');
+    // EU country codes
+    const euCountries = [
+      'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 
+      'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 
+      'PL', 'PT', 'RO', 'SK', 'SI', 'ES'
+    ];
+    const isEU = euCountries.includes(receiverCountryCode);
+    
+    // DHL Product codes for DOCUMENTS:
+    // 
+    // DOMESTIC (Sweden):
+    //   N = DOMESTIC EXPRESS (standard)
+    //   1 = DOMESTIC EXPRESS 12:00 (Pre 12)
+    //   I = DOMESTIC EXPRESS 9:00 (Pre 9)
+    //
+    // EU:
+    //   U = EXPRESS WORLDWIDE (standard)
+    //   T = EXPRESS 12:00 (Pre 12)
+    //   K = EXPRESS 9:00 (Pre 9)
+    //
+    // Outside EU (documents):
+    //   D = EXPRESS WORLDWIDE DOX (standard)
+    //   T = EXPRESS 12:00 (Pre 12) - limited destinations
+    //   K = EXPRESS 9:00 (Pre 9) - limited destinations
+    
+    let productCode: string;
     let deliveryTimeNote = '';
     
-    // Handle premium delivery options (DHL Pre 9 / Pre 12)
-    if (body.premiumDelivery === 'dhl-pre-9') {
-      productCode = 'K'; // Express 9:00
-      deliveryTimeNote = ' - Delivery before 09:00';
-    } else if (body.premiumDelivery === 'dhl-pre-12') {
-      productCode = 'E'; // Express 12:00
-      deliveryTimeNote = ' - Delivery before 12:00';
+    if (isDomestic) {
+      // Sweden domestic
+      if (body.premiumDelivery === 'dhl-pre-9') {
+        productCode = 'I'; // DOMESTIC EXPRESS 9:00
+        deliveryTimeNote = ' - Leverans före 09:00';
+      } else if (body.premiumDelivery === 'dhl-pre-12') {
+        productCode = '1'; // DOMESTIC EXPRESS 12:00
+        deliveryTimeNote = ' - Leverans före 12:00';
+      } else {
+        productCode = 'N'; // DOMESTIC EXPRESS (standard)
+      }
+    } else if (isEU) {
+      // EU countries
+      if (body.premiumDelivery === 'dhl-pre-9') {
+        productCode = 'K'; // EXPRESS 9:00
+        deliveryTimeNote = ' - Leverans före 09:00';
+      } else if (body.premiumDelivery === 'dhl-pre-12') {
+        productCode = 'T'; // EXPRESS 12:00
+        deliveryTimeNote = ' - Leverans före 12:00';
+      } else {
+        productCode = 'U'; // EXPRESS WORLDWIDE
+      }
+    } else {
+      // Outside EU (documents)
+      if (body.premiumDelivery === 'dhl-pre-9') {
+        productCode = 'K'; // EXPRESS 9:00 (limited destinations)
+        deliveryTimeNote = ' - Leverans före 09:00';
+      } else if (body.premiumDelivery === 'dhl-pre-12') {
+        productCode = 'T'; // EXPRESS 12:00 (limited destinations)
+        deliveryTimeNote = ' - Leverans före 12:00';
+      } else {
+        productCode = 'D'; // EXPRESS WORLDWIDE DOX
+      }
+    }
+    
+    // Allow override from request body
+    if (body.productCode) {
+      productCode = body.productCode;
     }
 
     // Build DHL API request - simplified for sandbox compatibility
