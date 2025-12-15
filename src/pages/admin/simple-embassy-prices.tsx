@@ -218,9 +218,9 @@ function SimpleEmbassyPricesPage() {
         )
       );
 
-      toast.success(`${country.name} priser uppdaterade!`);
+      toast.success(`${country.name} prices updated!`);
     } catch (error) {
-      toast.error('Kunde inte uppdatera priset');
+      toast.error('Could not update price');
     } finally {
       setSaving(false);
     }
@@ -270,9 +270,9 @@ function SimpleEmbassyPricesPage() {
         )
       );
 
-      toast.success(`${country.name}: Pris ${unconfirmed ? 'markerat som obekräftat' : 'bekräftat'}!`);
+      toast.success(`${country.name}: Price ${unconfirmed ? 'marked as unconfirmed' : 'confirmed'}!`);
     } catch (error) {
-      toast.error('Kunde inte uppdatera status');
+      toast.error('Could not update status');
     } finally {
       setSaving(false);
     }
@@ -281,7 +281,7 @@ function SimpleEmbassyPricesPage() {
   const bulkUpdateServiceFee = async (newServiceFee: number) => {
     try {
       setBulkUpdating(true);
-      toast.loading('Uppdaterar serviceavgift för alla länder...', { id: 'bulk-update' });
+      toast.loading('Updating service fee for all countries...', { id: 'bulk-update' });
 
       // Update all countries in parallel
       const updatePromises = countries.map(async (country) => {
@@ -323,10 +323,64 @@ function SimpleEmbassyPricesPage() {
         }))
       );
 
-      toast.success(`Serviceavgift uppdaterad till ${newServiceFee} kr för alla ${countries.length} länder!`, { id: 'bulk-update' });
+      toast.success(`Service fee updated to ${newServiceFee} SEK for all ${countries.length} countries!`, { id: 'bulk-update' });
     } catch (error) {
       console.error('Error bulk updating service fee:', error);
-      toast.error('Kunde inte uppdatera serviceavgifter', { id: 'bulk-update' });
+      toast.error('Could not update service fees', { id: 'bulk-update' });
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  // Bulk confirm/unconfirm all prices
+  const bulkConfirmPrices = async (confirm: boolean) => {
+    try {
+      setBulkUpdating(true);
+      const action = confirm ? 'Confirming' : 'Unconfirming';
+      toast.loading(`${action} prices for all countries...`, { id: 'bulk-confirm' });
+
+      // Update all countries in parallel
+      const updatePromises = countries.map(async (country) => {
+        const ruleId = `${country.code}_embassy`;
+
+        await updateOrCreatePricingRule(
+          ruleId,
+          {
+            priceUnconfirmed: !confirm,
+            updatedBy: currentUser?.email || 'admin'
+          },
+          {
+            countryCode: country.code,
+            countryName: country.name,
+            serviceType: 'embassy',
+            officialFee: country.officialFee,
+            serviceFee: country.serviceFee,
+            basePrice: country.totalPrice,
+            processingTime: { standard: 15 },
+            currency: 'SEK',
+            updatedBy: currentUser?.email || 'admin',
+            isActive: true,
+            priceUnconfirmed: !confirm
+          }
+        );
+      });
+
+      await Promise.all(updatePromises);
+
+      // Update local state
+      setCountries(prev =>
+        prev.map(c => ({
+          ...c,
+          priceUnconfirmed: !confirm,
+          lastUpdated: new Date()
+        }))
+      );
+
+      const actionDone = confirm ? 'confirmed' : 'marked as unconfirmed';
+      toast.success(`All ${countries.length} countries ${actionDone}!`, { id: 'bulk-confirm' });
+    } catch (error) {
+      console.error('Error bulk confirming prices:', error);
+      toast.error('Could not update price status', { id: 'bulk-confirm' });
     } finally {
       setBulkUpdating(false);
     }
@@ -343,7 +397,7 @@ function SimpleEmbassyPricesPage() {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Ambassadpriser - Admin</title>
+        <title>Embassy Prices - Admin</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
@@ -351,23 +405,23 @@ function SimpleEmbassyPricesPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              🏛️ Ambassadpriser per land
+              🏛️ Embassy Prices by Country
             </h1>
             <p className="text-gray-600">
-              Uppdatera officiella ambassadavgifter. Alla ändringar sparas automatiskt.
+              Update official embassy fees. All changes are saved automatically.
             </p>
           </div>
 
           {/* Search Box */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">🔍 Sök efter land</h3>
+              <h3 className="text-lg font-semibold text-gray-900">🔍 Search for Country</h3>
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
                   className="text-sm text-gray-500 hover:text-gray-700 underline"
                 >
-                  Rensa sökning
+                  Clear search
                 </button>
               )}
             </div>
@@ -377,17 +431,17 @@ function SimpleEmbassyPricesPage() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Sök efter landnamn eller landskod (t.ex. 'Sverige' eller 'SE')..."
+                  placeholder="Search by country name or code (e.g. 'Sweden' or 'SE')..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
                 />
               </div>
               <div className="text-sm text-gray-500 whitespace-nowrap">
-                {filteredCountries.length} av {countries.length} länder
+                {filteredCountries.length} of {countries.length} countries
               </div>
             </div>
             {searchTerm && (
               <div className="mt-3 text-sm text-gray-600">
-                Söker efter: <strong>"{searchTerm}"</strong>
+                Searching for: <strong>"{searchTerm}"</strong>
               </div>
             )}
           </div>
@@ -399,10 +453,10 @@ function SimpleEmbassyPricesPage() {
                 <div className="text-2xl mr-3">🔄</div>
                 <div>
                   <h3 className="text-lg font-semibold text-green-800 mb-1">
-                    Massuppdatering av Serviceavgift
+                    Bulk Update Service Fee
                   </h3>
                   <p className="text-sm text-green-700">
-                    Uppdatera serviceavgiften för alla länder på en gång
+                    Update the service fee for all countries at once
                   </p>
                 </div>
               </div>
@@ -410,7 +464,7 @@ function SimpleEmbassyPricesPage() {
             <div className="mt-4 flex items-center space-x-4">
               <div className="flex items-center">
                 <label className="text-sm font-medium text-green-800 mr-3">
-                  Ny serviceavgift:
+                  New service fee:
                 </label>
                 <input
                   type="number"
@@ -423,7 +477,7 @@ function SimpleEmbassyPricesPage() {
               </div>
               <button
                 onClick={() => {
-                  if (window.confirm('Är du säker på att du vill uppdatera serviceavgiften för alla länder?')) {
+                  if (window.confirm('Are you sure you want to update the service fee for all countries?')) {
                     bulkUpdateServiceFee(bulkServiceFee);
                   }
                 }}
@@ -434,14 +488,67 @@ function SimpleEmbassyPricesPage() {
                     : 'bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500'
                 }`}
               >
-                {bulkUpdating ? 'Uppdaterar...' : 'Uppdatera alla länder'}
+                {bulkUpdating ? 'Updating...' : 'Update all countries'}
               </button>
             </div>
             <div className="mt-3 text-xs text-green-600">
-              ⚠️ Detta kommer att uppdatera serviceavgiften för alla {countries.length} länder
+              ⚠️ This will update the service fee for all {countries.length} countries
             </div>
           </div>
 
+          {/* Bulk Confirm Prices */}
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="text-2xl mr-3">✅</div>
+                <div>
+                  <h3 className="text-lg font-semibold text-orange-800 mb-1">
+                    Bulk Price Confirmation
+                  </h3>
+                  <p className="text-sm text-orange-700">
+                    Confirm or unconfirm prices for all countries at once
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center space-x-4">
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to CONFIRM prices for all countries?\n\nThis will remove "Price unconfirmed" from all countries.')) {
+                    bulkConfirmPrices(true);
+                  }
+                }}
+                disabled={bulkUpdating}
+                className={`px-4 py-2 rounded-md font-medium text-white ${
+                  bulkUpdating
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500'
+                }`}
+              >
+                {bulkUpdating ? 'Updating...' : '✅ Confirm all prices'}
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to UNCONFIRM prices for all countries?\n\nThis will mark all countries as "Price unconfirmed".')) {
+                    bulkConfirmPrices(false);
+                  }
+                }}
+                disabled={bulkUpdating}
+                className={`px-4 py-2 rounded-md font-medium text-white ${
+                  bulkUpdating
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-orange-600 hover:bg-orange-700 focus:ring-2 focus:ring-orange-500'
+                }`}
+              >
+                {bulkUpdating ? 'Updating...' : '⚠️ Unconfirm all prices'}
+              </button>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-xs">
+              <span className="text-orange-600">
+                📊 {countries.filter(c => c.priceUnconfirmed).length} of {countries.length} countries have unconfirmed prices
+              </span>
+            </div>
+          </div>
 
           {/* Countries Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -458,7 +565,7 @@ function SimpleEmbassyPricesPage() {
                   </div>
                   {country.lastUpdated && (
                     <span className="text-xs text-gray-400">
-                      Uppdaterad {country.lastUpdated.toLocaleDateString('sv-SE')}
+                      Updated {country.lastUpdated.toLocaleDateString('en-US')}
                     </span>
                   )}
                 </div>
@@ -467,7 +574,7 @@ function SimpleEmbassyPricesPage() {
                 <div className="space-y-3">
                   {/* Official Fee - Editable */}
                   <div className="flex items-center justify-between py-1">
-                    <span className="text-sm text-gray-600 flex-shrink-0 w-32">Ambassadavgift:</span>
+                    <span className="text-sm text-gray-600 flex-shrink-0 w-32">Embassy fee:</span>
                     <div className="flex items-center">
                       <input
                         type="number"
@@ -501,7 +608,7 @@ function SimpleEmbassyPricesPage() {
 
                   {/* Service Fee - Editable */}
                   <div className="flex items-center justify-between py-1">
-                    <span className="text-sm text-gray-600 flex-shrink-0 w-32">Serviceavgift:</span>
+                    <span className="text-sm text-gray-600 flex-shrink-0 w-32">Service fee:</span>
                     <div className="flex items-center">
                       <input
                         type="number"
@@ -538,9 +645,9 @@ function SimpleEmbassyPricesPage() {
 
                   {/* Total Price */}
                   <div className="flex items-center justify-between">
-                    <span className="text-lg font-semibold text-gray-900">Totalpris:</span>
+                    <span className="text-lg font-semibold text-gray-900">Total price:</span>
                     {country.priceUnconfirmed ? (
-                      <span className="text-lg font-bold text-orange-500">Pris på förfrågan</span>
+                      <span className="text-lg font-bold text-orange-500">Price on request</span>
                     ) : (
                       <span className="text-xl font-bold text-green-600">{country.totalPrice} kr</span>
                     )}
@@ -557,12 +664,12 @@ function SimpleEmbassyPricesPage() {
                         disabled={saving}
                       />
                       <span className={`ml-2 text-sm ${country.priceUnconfirmed ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
-                        ⚠️ Pris ej bekräftat
+                        ⚠️ Price unconfirmed
                       </span>
                     </label>
                     {country.priceUnconfirmed && (
                       <p className="mt-1 text-xs text-orange-600">
-                        Kunden ser "Pris på förfrågan" istället för priset
+                        Customer sees "Price on request" instead of the price
                       </p>
                     )}
                   </div>
@@ -573,7 +680,7 @@ function SimpleEmbassyPricesPage() {
                   <div className="flex items-center">
                     <div className={`w-2 h-2 rounded-full mr-2 ${country.priceUnconfirmed ? 'bg-orange-500' : 'bg-green-500'}`}></div>
                     <span className="text-xs text-gray-500">
-                      {saving ? 'Sparar...' : country.priceUnconfirmed ? 'Pris obekräftat' : 'Redo att uppdatera'}
+                      {saving ? 'Saving...' : country.priceUnconfirmed ? 'Price unconfirmed' : 'Ready to update'}
                     </span>
                   </div>
                 </div>
@@ -583,23 +690,23 @@ function SimpleEmbassyPricesPage() {
 
           {/* Summary */}
           <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Sammanfattning</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Summary</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{countries.length}</div>
-                <div className="text-sm text-gray-600">Länder</div>
+                <div className="text-sm text-gray-600">Countries</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {countries.reduce((sum, c) => sum + c.totalPrice, 0).toLocaleString('sv-SE')}
                 </div>
-                <div className="text-sm text-gray-600">kr totalt (medel)</div>
+                <div className="text-sm text-gray-600">SEK total (sum)</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
                   {Math.round(countries.reduce((sum, c) => sum + c.totalPrice, 0) / countries.length).toLocaleString('sv-SE')}
                 </div>
-                <div className="text-sm text-gray-600">kr genomsnitt</div>
+                <div className="text-sm text-gray-600">SEK average</div>
               </div>
             </div>
           </div>
