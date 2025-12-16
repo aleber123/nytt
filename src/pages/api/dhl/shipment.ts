@@ -59,10 +59,12 @@ interface ShipmentRequestBody {
       phone: string;
       email?: string;
     };
+    typeCode?: 'business' | 'private'; // 'business' for company, 'private' for residential
   };
   includePickup?: boolean;
   productCode?: string; // 'D' for domestic, 'P' for international
   premiumDelivery?: string; // 'dhl-pre-9' or 'dhl-pre-12' for time-definite delivery
+  deliveryAddressType?: 'business' | 'residential'; // Whether delivery is to business or home address
   packages?: {
     weight: number;
     dimensions?: {
@@ -150,6 +152,7 @@ export default async function handler(
     // DHL Product codes for DOCUMENTS:
     // 
     // DOMESTIC (Sweden):
+    //   X = EXPRESS ENVELOPE (billigare för dokument)
     //   N = DOMESTIC EXPRESS (standard)
     //   1 = DOMESTIC EXPRESS 12:00 (Pre 12)
     //   I = DOMESTIC EXPRESS 9:00 (Pre 9)
@@ -167,30 +170,19 @@ export default async function handler(
     let productCode: string;
     let deliveryTimeNote = '';
     
-    if (isDomestic) {
-      // Sweden domestic
+    if (isDomestic || isEU) {
+      // Sweden domestic & EU - use EXPRESS ENVELOPE
       if (body.premiumDelivery === 'dhl-pre-9') {
-        productCode = 'I'; // DOMESTIC EXPRESS 9:00
+        productCode = isDomestic ? 'I' : 'K'; // DOMESTIC EXPRESS 9:00 / EXPRESS 9:00
         deliveryTimeNote = ' - Leverans före 09:00';
       } else if (body.premiumDelivery === 'dhl-pre-12') {
-        productCode = '1'; // DOMESTIC EXPRESS 12:00
+        productCode = isDomestic ? '1' : 'T'; // DOMESTIC EXPRESS 12:00 / EXPRESS 12:00
         deliveryTimeNote = ' - Leverans före 12:00';
       } else {
-        productCode = 'N'; // DOMESTIC EXPRESS (standard)
-      }
-    } else if (isEU) {
-      // EU countries
-      if (body.premiumDelivery === 'dhl-pre-9') {
-        productCode = 'K'; // EXPRESS 9:00
-        deliveryTimeNote = ' - Leverans före 09:00';
-      } else if (body.premiumDelivery === 'dhl-pre-12') {
-        productCode = 'T'; // EXPRESS 12:00
-        deliveryTimeNote = ' - Leverans före 12:00';
-      } else {
-        productCode = 'U'; // EXPRESS WORLDWIDE
+        productCode = 'X'; // EXPRESS ENVELOPE (cheaper for documents)
       }
     } else {
-      // Outside EU (documents)
+      // Outside EU (documents) - use EXPRESS WORLDWIDE DOX
       if (body.premiumDelivery === 'dhl-pre-9') {
         productCode = 'K'; // EXPRESS 9:00 (limited destinations)
         deliveryTimeNote = ' - Leverans före 09:00';
@@ -232,13 +224,15 @@ export default async function handler(
             fullName: body.receiver.contact.fullName,
             phone: body.receiver.contact.phone,
             email: body.receiver.contact.email
-          }
+          },
+          // Set typeCode based on deliveryAddressType: 'business' or 'private' (residential)
+          typeCode: body.deliveryAddressType === 'business' ? 'business' : 'private'
         }
       },
       content: {
         packages: [{
-          weight: 0.5,
-          dimensions: { length: 35, width: 27, height: 1 }
+          weight: 0.3,
+          dimensions: { length: 25, width: 20, height: 1 } // Envelope size for EXPRESS ENVELOPE (X)
         }],
         isCustomsDeclarable: false,
         description: `Legalized documents - Order ${body.orderNumber}`,
@@ -277,11 +271,17 @@ export default async function handler(
       });
     }
 
+    // Generate public tracking URL (DHL API returns API URL, not public page)
+    const trackingNumber = responseData.shipmentTrackingNumber;
+    const publicTrackingUrl = trackingNumber 
+      ? `https://www.dhl.com/se-sv/home/tracking.html?tracking-id=${trackingNumber}`
+      : responseData.trackingUrl;
+
     // Return success response
     return res.status(200).json({
       success: true,
-      shipmentTrackingNumber: responseData.shipmentTrackingNumber,
-      trackingUrl: responseData.trackingUrl,
+      shipmentTrackingNumber: trackingNumber,
+      trackingUrl: publicTrackingUrl,
       dispatchConfirmationNumber: responseData.dispatchConfirmationNumber,
       packages: responseData.packages,
       documents: responseData.documents, // Contains base64 encoded labels

@@ -120,6 +120,15 @@ function AdminOrderDetailPage() {
   });
   const [savingCustomerInfo, setSavingCustomerInfo] = useState(false);
   
+  // DHL address edit modal state
+  const [showDhlAddressModal, setShowDhlAddressModal] = useState(false);
+  const [dhlAddressError, setDhlAddressError] = useState('');
+  const [dhlEditAddress, setDhlEditAddress] = useState({
+    postalCode: '',
+    city: '',
+    country: 'SE'
+  });
+  
   // Address confirmation states
   const [sendingAddressConfirmation, setSendingAddressConfirmation] = useState(false);
   const [showAddressWarningModal, setShowAddressWarningModal] = useState(false);
@@ -1763,6 +1772,42 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Save edited DHL address and retry booking
+  const saveDhlAddressAndRetry = async () => {
+    if (!order) return;
+    
+    const lookupId = (order.orderNumber as string) || (router.query.id as string);
+    if (!lookupId) return;
+
+    try {
+      // Update order with new address
+      await adminUpdateOrder(lookupId, {
+        'customerInfo.postalCode': dhlEditAddress.postalCode,
+        'customerInfo.city': dhlEditAddress.city,
+        'customerInfo.country': dhlEditAddress.country
+      });
+
+      // Update local state
+      setOrder({
+        ...order,
+        customerInfo: {
+          ...order.customerInfo,
+          postalCode: dhlEditAddress.postalCode,
+          city: dhlEditAddress.city,
+          country: dhlEditAddress.country
+        }
+      } as ExtendedOrder);
+
+      setShowDhlAddressModal(false);
+      toast.success('Address updated');
+      
+      // Retry booking with new address
+      setTimeout(() => bookDhlShipment(), 500);
+    } catch (err: any) {
+      toast.error(`Could not update address: ${err.message}`);
+    }
+  };
+
   const bookDhlShipment = async () => {
     if (!order) {
       toast.error('Order saknas, kan inte boka DHL-frakt');
@@ -1775,6 +1820,17 @@ function AdminOrderDetailPage() {
       return;
     }
 
+    // Check if return address has been confirmed by customer
+    const extOrder = order as any;
+    if (!extOrder.returnAddressConfirmed) {
+      const proceed = window.confirm(
+        '⚠️ Returadress har inte bekräftats av kunden.\n\nVill du fortsätta med DHL-bokningen ändå?'
+      );
+      if (!proceed) {
+        return;
+      }
+    }
+
     // Validate customer info
     const ci = order.customerInfo;
     if (!ci?.address || !ci?.postalCode || !ci?.city || !ci?.phone) {
@@ -1785,37 +1841,118 @@ function AdminOrderDetailPage() {
     try {
       setBookingDhlShipment(true);
 
-      // Step 1: Get shipping settings (max price limit)
-      const settingsDoc = await getDoc(fsDoc(getFirebaseDb(), 'settings', 'shipping'));
-      const shippingSettings = settingsDoc.exists() ? settingsDoc.data() as Record<string, any> : {};
-      const maxPriceEnabled = shippingSettings.dhlMaxPriceEnabled !== false;
-      const maxPrice = shippingSettings.dhlMaxPrice || 300;
+      // Step 1: Get shipping settings (max price limit) via API
+      let maxPriceEnabled = true;
+      let maxPrice = 300;
+      try {
+        const settingsResponse = await fetch('/api/admin/shipping-settings');
+        if (settingsResponse.ok) {
+          const responseData = await settingsResponse.json();
+          const shippingSettings = responseData.settings || responseData;
+          maxPriceEnabled = shippingSettings.dhlMaxPriceEnabled !== false;
+          maxPrice = shippingSettings.dhlMaxPrice || 300;
+          console.log('Shipping settings loaded:', { maxPriceEnabled, maxPrice, shippingSettings });
+        }
+      } catch (settingsErr) {
+        console.error('Failed to load shipping settings:', settingsErr);
+        // Use defaults if settings fetch fails
+      }
 
       // Step 2: Get DHL rate quote first
+      // Validate required fields for rates
+      if (!ci.postalCode || !ci.city) {
+        toast.error('Customer postal code or city is missing - cannot get DHL rate');
+        setBookingDhlShipment(false);
+        return;
+      }
+
+      // Convert country name to 2-letter code if needed
+      const countryNameToCode: Record<string, string> = {
+        'sweden': 'SE', 'sverige': 'SE',
+        'norway': 'NO', 'norge': 'NO',
+        'denmark': 'DK', 'danmark': 'DK',
+        'finland': 'FI',
+        'germany': 'DE', 'deutschland': 'DE', 'tyskland': 'DE',
+        'united kingdom': 'GB', 'uk': 'GB', 'storbritannien': 'GB',
+        'united states': 'US', 'usa': 'US',
+        'france': 'FR', 'frankrike': 'FR',
+        'spain': 'ES', 'spanien': 'ES',
+        'italy': 'IT', 'italien': 'IT',
+        'netherlands': 'NL', 'holland': 'NL', 'nederländerna': 'NL',
+        'belgium': 'BE', 'belgien': 'BE',
+        'austria': 'AT', 'österrike': 'AT',
+        'switzerland': 'CH', 'schweiz': 'CH',
+        'poland': 'PL', 'polen': 'PL'
+      };
+      
+      let countryCode = ci.country || 'SE';
+      if (countryCode.length > 2) {
+        const normalized = countryCode.toLowerCase().trim();
+        countryCode = countryNameToCode[normalized] || 'SE';
+      }
+
+      // Format postal code for DHL (Swedish format: "123 45")
+      let formattedPostalCode = ci.postalCode.replace(/\s/g, ''); // First remove all spaces
+      if (countryCode === 'SE' && formattedPostalCode.length === 5) {
+        formattedPostalCode = formattedPostalCode.slice(0, 3) + ' ' + formattedPostalCode.slice(3);
+      }
+
+      const ratesRequestBody = {
+        receiver: {
+          postalCode: formattedPostalCode,
+          cityName: ci.city,
+          countryCode: countryCode,
+        },
+        isPickup: false, // Return shipment: DOX -> Customer
+      };
+
       const ratesResponse = await fetch('/api/dhl/rates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          receiver: {
-            postalCode: ci.postalCode,
-            cityName: ci.city,
-            countryCode: ci.country || 'SE',
-          },
-          isPickup: false, // Return shipment: DOX -> Customer
-        })
+        body: JSON.stringify(ratesRequestBody)
       });
 
       const ratesData = await ratesResponse.json();
 
       if (!ratesResponse.ok || !ratesData.success) {
-        // If rates API fails, show warning but allow manual override
-        const proceed = window.confirm(
-          `⚠️ Kunde inte hämta DHL-pris: ${ratesData.details || ratesData.error || 'Okänt fel'}\n\nVill du fortsätta med bokningen ändå?`
-        );
-        if (!proceed) {
-          setBookingDhlShipment(false);
-          return;
+        // If rates API fails, show address edit modal
+        const errorDetail = ratesData.details || ratesData.error || 'Unknown error';
+        setDhlAddressError(errorDetail);
+        
+        // Convert country name to code if needed
+        const countryNameToCode: Record<string, string> = {
+          'sweden': 'SE', 'sverige': 'SE',
+          'norway': 'NO', 'norge': 'NO',
+          'denmark': 'DK', 'danmark': 'DK',
+          'finland': 'FI',
+          'germany': 'DE', 'deutschland': 'DE', 'tyskland': 'DE',
+          'united kingdom': 'GB', 'uk': 'GB', 'storbritannien': 'GB',
+          'united states': 'US', 'usa': 'US',
+          'france': 'FR', 'frankrike': 'FR',
+          'spain': 'ES', 'spanien': 'ES',
+          'italy': 'IT', 'italien': 'IT',
+          'netherlands': 'NL', 'holland': 'NL', 'nederländerna': 'NL',
+          'belgium': 'BE', 'belgien': 'BE',
+          'austria': 'AT', 'österrike': 'AT',
+          'switzerland': 'CH', 'schweiz': 'CH',
+          'poland': 'PL', 'polen': 'PL'
+        };
+        
+        let countryCode = ci.country || 'SE';
+        // If country is longer than 2 chars, try to convert it
+        if (countryCode.length > 2) {
+          const normalized = countryCode.toLowerCase().trim();
+          countryCode = countryNameToCode[normalized] || 'SE';
         }
+        
+        setDhlEditAddress({
+          postalCode: ci.postalCode || '',
+          city: ci.city || '',
+          country: countryCode
+        });
+        setShowDhlAddressModal(true);
+        setBookingDhlShipment(false);
+        return;
       } else {
         // Check price against max limit
         const dhlPrice = ratesData.rate?.price || 0;
@@ -1823,7 +1960,7 @@ function AdminOrderDetailPage() {
         
         if (maxPriceEnabled && dhlPrice > maxPrice) {
           toast.error(
-            `❌ DHL-priset (${dhlPrice} ${currency}) överstiger maxgränsen (${maxPrice} kr).\n\nVar god gör en manuell bokning via DHL:s webbplats.`,
+            `❌ DHL price (${dhlPrice} ${currency}) exceeds max limit (${maxPrice} SEK). Please book manually via DHL website.`,
             { duration: 8000 }
           );
           setBookingDhlShipment(false);
@@ -1832,7 +1969,7 @@ function AdminOrderDetailPage() {
 
         // Show price confirmation
         const confirmBooking = window.confirm(
-          `DHL-pris: ${dhlPrice} ${currency}\n\nVill du boka DHL-frakt för denna order?`
+          `DHL price: ${dhlPrice} ${currency}\n\nDo you want to book DHL shipping for this order?`
         );
         if (!confirmBooking) {
           setBookingDhlShipment(false);
@@ -1865,7 +2002,8 @@ function AdminOrderDetailPage() {
             }
           },
           includePickup: false,
-          premiumDelivery: premiumDelivery // Pass 'dhl-pre-9' or 'dhl-pre-12' if selected
+          premiumDelivery: premiumDelivery, // Pass 'dhl-pre-9' or 'dhl-pre-12' if selected
+          deliveryAddressType: (order as any).deliveryAddressType || 'residential' // 'business' or 'residential'
         })
       });
 
@@ -1902,6 +2040,8 @@ function AdminOrderDetailPage() {
         ...order,
         returnTrackingNumber: newTrackingNumber || (order as any).returnTrackingNumber,
         returnTrackingUrl: newTrackingUrl || (order as any).returnTrackingUrl,
+        dhlShipmentBooked: true,
+        dhlShipmentBookedAt: new Date().toISOString(),
         dhlReturnLabelBase64: labelBase64
       } as any);
 
@@ -2073,11 +2213,22 @@ function AdminOrderDetailPage() {
 
     setCreatingDhlPickupLabel(true);
     try {
-      // Step 1: Get shipping settings (max price limit)
-      const pickupSettingsDoc = await getDoc(fsDoc(getFirebaseDb(), 'settings', 'shipping'));
-      const pickupShippingSettings = pickupSettingsDoc.exists() ? pickupSettingsDoc.data() as Record<string, any> : {};
-      const maxPriceEnabled = pickupShippingSettings.dhlPickupMaxPriceEnabled !== false;
-      const maxPrice = pickupShippingSettings.dhlPickupMaxPrice || 300;
+      // Step 1: Get shipping settings (max price limit) via API
+      let maxPriceEnabled = true;
+      let maxPrice = 300;
+      try {
+        const settingsResponse = await fetch('/api/admin/shipping-settings');
+        if (settingsResponse.ok) {
+          const responseData = await settingsResponse.json();
+          const pickupShippingSettings = responseData.settings || responseData;
+          maxPriceEnabled = pickupShippingSettings.dhlPickupMaxPriceEnabled !== false;
+          maxPrice = pickupShippingSettings.dhlPickupMaxPrice || 300;
+          console.log('Pickup shipping settings loaded:', { maxPriceEnabled, maxPrice, pickupShippingSettings });
+        }
+      } catch (settingsErr) {
+        console.error('Failed to load pickup shipping settings:', settingsErr);
+        // Use defaults if settings fetch fails
+      }
 
       // Step 2: Get pickup address for rate check
       const pa = (order as any).pickupAddress || {};
@@ -2117,7 +2268,7 @@ function AdminOrderDetailPage() {
         
         if (maxPriceEnabled && dhlPrice > maxPrice) {
           toast.error(
-            `❌ DHL-priset (${dhlPrice} ${currency}) överstiger maxgränsen (${maxPrice} kr).\n\nVar god gör en manuell bokning via DHL:s webbplats.`,
+            `❌ DHL price (${dhlPrice} ${currency}) exceeds max limit (${maxPrice} SEK). Please book manually via DHL website.`,
             { duration: 8000 }
           );
           setCreatingDhlPickupLabel(false);
@@ -2126,7 +2277,7 @@ function AdminOrderDetailPage() {
 
         // Show price confirmation
         const confirmBooking = window.confirm(
-          `DHL-pris för upphämtning: ${dhlPrice} ${currency}\n\nVill du skapa och skicka DHL-etikett till kunden?`
+          `DHL pickup price: ${dhlPrice} ${currency}\n\nDo you want to create and send DHL label to customer?`
         );
         if (!confirmBooking) {
           setCreatingDhlPickupLabel(false);
@@ -4212,9 +4363,13 @@ function AdminOrderDetailPage() {
                                             📥 Download label
                                           </button>
                                         ) : trackingNumber ? (
-                                          <span className="text-xs text-gray-500 italic">
-                                            Label not stored (created before update)
-                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => downloadDhlLabel()}
+                                            className="px-3 py-1.5 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-700 flex items-center gap-1"
+                                          >
+                                            📄 Generate label
+                                          </button>
                                         ) : null}
                                         {trackingUrl && (
                                           <a
@@ -4694,6 +4849,135 @@ function AdminOrderDetailPage() {
                 className="w-full px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DHL Address Edit Modal */}
+      {showDhlAddressModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                <span className="text-xl">⚠️</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">DHL Address Issue</h3>
+                <p className="text-sm text-gray-500">Please correct the address to proceed</p>
+              </div>
+            </div>
+
+            {/* User-friendly error message */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-sm font-medium text-amber-800 mb-1">Please check the following:</p>
+              <ul className="text-sm text-amber-700 list-disc list-inside space-y-1">
+                {dhlAddressError.toLowerCase().includes('postcode') || dhlAddressError.toLowerCase().includes('postal') ? (
+                  <li>Postal code format may be incorrect (Swedish: 123 45)</li>
+                ) : null}
+                {dhlAddressError.toLowerCase().includes('country') ? (
+                  <li>Country code must be selected from the dropdown</li>
+                ) : null}
+                {dhlAddressError.toLowerCase().includes('city') ? (
+                  <li>City name may be missing or incorrect</li>
+                ) : null}
+                {!dhlAddressError.toLowerCase().includes('postcode') && 
+                 !dhlAddressError.toLowerCase().includes('postal') && 
+                 !dhlAddressError.toLowerCase().includes('country') && 
+                 !dhlAddressError.toLowerCase().includes('city') ? (
+                  <li>Address validation failed - please verify all fields</li>
+                ) : null}
+              </ul>
+              <details className="mt-2">
+                <summary className="text-xs text-amber-600 cursor-pointer">Technical details</summary>
+                <p className="text-xs text-amber-600 mt-1 font-mono">{dhlAddressError}</p>
+              </details>
+            </div>
+
+            {/* Address form */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Postal Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={dhlEditAddress.postalCode}
+                  onChange={(e) => setDhlEditAddress({ ...dhlEditAddress, postalCode: e.target.value })}
+                  placeholder="123 45"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    dhlAddressError.toLowerCase().includes('postcode') || dhlAddressError.toLowerCase().includes('postal')
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                />
+                <p className="text-xs text-gray-500 mt-1">Format: 123 45 (with space)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  City <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={dhlEditAddress.city}
+                  onChange={(e) => setDhlEditAddress({ ...dhlEditAddress, city: e.target.value })}
+                  placeholder="Stockholm"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    dhlAddressError.toLowerCase().includes('city')
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={dhlEditAddress.country}
+                  onChange={(e) => setDhlEditAddress({ ...dhlEditAddress, country: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    dhlAddressError.toLowerCase().includes('country')
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                >
+                  <option value="SE">🇸🇪 Sweden (SE)</option>
+                  <option value="NO">🇳🇴 Norway (NO)</option>
+                  <option value="DK">🇩🇰 Denmark (DK)</option>
+                  <option value="FI">🇫🇮 Finland (FI)</option>
+                  <option value="DE">🇩🇪 Germany (DE)</option>
+                  <option value="GB">🇬🇧 United Kingdom (GB)</option>
+                  <option value="US">🇺🇸 United States (US)</option>
+                  <option value="FR">🇫🇷 France (FR)</option>
+                  <option value="ES">🇪🇸 Spain (ES)</option>
+                  <option value="IT">🇮🇹 Italy (IT)</option>
+                  <option value="NL">🇳🇱 Netherlands (NL)</option>
+                  <option value="BE">🇧🇪 Belgium (BE)</option>
+                  <option value="AT">🇦🇹 Austria (AT)</option>
+                  <option value="CH">🇨🇭 Switzerland (CH)</option>
+                  <option value="PL">🇵🇱 Poland (PL)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Must be a 2-letter country code</p>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDhlAddressModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveDhlAddressAndRetry}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+              >
+                Save & Retry
               </button>
             </div>
           </div>

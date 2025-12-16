@@ -39,6 +39,7 @@ export interface Order {
   pickupTimeWindow?: string; // Optional pickup time window label/value
   scannedCopies: boolean; // Whether scanned copies are requested
   returnService: string; // Return service selection
+  deliveryAddressType?: 'business' | 'residential'; // Whether delivery is to business or home address
   customerInfo?: {
     firstName?: string;
     lastName?: string;

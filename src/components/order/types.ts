@@ -47,6 +47,7 @@ export interface OrderAnswers {
   returnService: string;
   ownReturnTrackingNumber: string;
   premiumDelivery: string;
+  deliveryAddressType: 'business' | 'residential'; // Whether delivery is to business or home address
   uploadedFiles: File[];
   
   // Customer type: private person or company

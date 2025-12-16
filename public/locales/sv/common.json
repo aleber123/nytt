@@ -840,6 +840,7 @@
     "returnInfo": "Returinformation",
     "returnTrackingNumber": "Returspårningsnummer",
     "returnDate": "Returdatum",
+    "trackShipment": "Spåra försändelse",
     "returnInstructions": "Vi har registrerat ett returspårningsnummer för dina dokument. Använd spårningslänken eller kontakta oss om du har frågor om returen.",
     "steps": {
       "orderReceived": {

@@ -4,9 +4,6 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
-import { db } from '@/firebase/config';
-import { Order } from '@/firebase/orderService';
 
 interface OrderStatusProps {}
 
@@ -26,7 +23,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Real order status check using Firebase
+  // Real order status check using API
   const checkOrderStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -34,90 +31,53 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     
     // Validate input
     if (!orderNumber || !email) {
-      setError(t('orderStatus.errors.missingFields') || 'Vänligen fyll i både ordernummer och e-post');
+      setError(t('orderStatus.errors.missingFields'));
       setIsLoading(false);
       return;
     }
     
     try {
-      // Normalize order number to match stored format (e.g. SWE000111) regardless of user casing
-      const normalizedOrderNumber = orderNumber.trim().toUpperCase();
+      const response = await fetch('/api/order-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, email })
+      });
 
-      // First try to get the order directly by document ID (which is the order number)
-      const orderDoc = await getDoc(doc(db, 'orders', normalizedOrderNumber));
+      const data = await response.json();
 
-      if (orderDoc.exists()) {
-        const orderData = orderDoc.data() as Order;
-
-        // Check if customer info exists and if the email matches (case insensitive)
-        if (!orderData.customerInfo?.email || 
-            orderData.customerInfo.email.toLowerCase() !== email.toLowerCase()) {
-          setError(t('orderStatus.errors.notFound') || 'Ingen beställning hittades med angivet ordernummer och e-post');
-          setIsLoading(false);
-          return;
+      if (!response.ok || !data.success) {
+        if (response.status === 404) {
+          setError(t('orderStatus.errors.notFound'));
+        } else {
+          setError(t('orderStatus.errors.technical'));
         }
-
-        // Format the order data for display
-        const formattedOrder = formatOrderForDisplay(orderDoc.id, orderData);
-        setOrderStatus(formattedOrder);
-      } else {
-        // If direct lookup fails, try querying by orderNumber field (fallback)
-        const ordersRef = collection(db, 'orders');
-        const q = query(
-          ordersRef,
-          where('orderNumber', '==', normalizedOrderNumber),
-          where('customerInfo.email', '==', email.toLowerCase())
-        );
-
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          setError(t('orderStatus.errors.notFound') || 'Ingen beställning hittades med angivet ordernummer och e-post');
-          setIsLoading(false);
-          return;
-        }
-
-        // Format the order data for display
-        const orderDoc = querySnapshot.docs[0];
-        const orderData = orderDoc.data() as Order;
-        const formattedOrder = formatOrderForDisplay(orderDoc.id, orderData);
-        setOrderStatus(formattedOrder);
+        setIsLoading(false);
+        return;
       }
+
+      // Format the order data for display
+      const formattedOrder = formatOrderForDisplayFromApi(data.order);
+      setOrderStatus(formattedOrder);
     } catch (error) {
-      console.error('Error checking order status:', error);
-      setError(t('orderStatus.errors.technical') || 'Ett tekniskt fel uppstod. Försök igen senare.');
+      setError(t('orderStatus.errors.technical'));
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Format order data for display
-  const formatOrderForDisplay = (orderId: string, orderData: Order) => {
+
+  // Format order data from API response
+  const formatOrderForDisplayFromApi = (orderData: any) => {
     const status = orderData.status;
+    const createdAtIso = orderData.createdAt;
+    const updatedAtIso = orderData.updatedAt;
 
-    const createdAtIso = orderData.createdAt?.toDate().toISOString();
-    const updatedAtIso = orderData.updatedAt?.toDate().toISOString();
-
-    const processingSteps = (orderData as any).processingSteps as any[] | undefined;
+    const processingSteps = orderData.processingSteps as any[] | undefined;
     const hasProcessingSteps = Array.isArray(processingSteps) && processingSteps.length > 0;
 
     const isProcessingStarted = ['processing', 'completed', 'shipped', 'delivered'].includes(status);
     const isProcessingCompleted = ['completed', 'shipped', 'delivered'].includes(status);
     const isShipped = ['shipped', 'delivered'].includes(status);
     const isDelivered = status === 'delivered';
-
-    const getStepDate = (value: any): Date | undefined => {
-      if (!value) return undefined;
-      if (typeof value.toDate === 'function') {
-        try {
-          return value.toDate();
-        } catch {
-          // fall back to Date constructor
-        }
-      }
-      const date = new Date(value);
-      return isNaN(date.getTime()) ? undefined : date;
-    };
 
     let steps: {
       name: string;
@@ -128,78 +88,47 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
 
     if (hasProcessingSteps) {
       const coreProcessingStepIds = new Set<string>([
-        'document_receipt',
-        'pickup_booking',
-        'notarization_delivery',
-        'notarization_pickup',
-        'translation_delivery',
-        'translation_pickup',
-        'chamber_delivery',
-        'chamber_pickup',
-        'ud_delivery',
-        'ud_pickup',
-        'embassy_delivery',
-        'embassy_pickup',
-        'scanning'
+        'document_receipt', 'pickup_booking', 'notarization_delivery', 'notarization_pickup',
+        'translation_delivery', 'translation_pickup', 'chamber_delivery', 'chamber_pickup',
+        'ud_delivery', 'ud_pickup', 'embassy_delivery', 'embassy_pickup', 'scanning'
       ]);
 
-      const coreCompletedSteps = processingSteps
-        .filter(
-          (s: any) =>
-            coreProcessingStepIds.has(s.id) &&
-            s.status === 'completed' &&
-            s.completedAt
-        );
+      const coreCompletedSteps = processingSteps.filter(
+        (s: any) => coreProcessingStepIds.has(s.id) && s.status === 'completed' && s.completedAt
+      );
 
       let earliestCoreCompletedDate: Date | undefined;
       let latestCoreCompletedDate: Date | undefined;
 
       coreCompletedSteps.forEach((s: any) => {
-        const date = getStepDate(s.completedAt);
-        if (!date) return;
-        if (!earliestCoreCompletedDate || date < earliestCoreCompletedDate) {
-          earliestCoreCompletedDate = date;
-        }
-        if (!latestCoreCompletedDate || date > latestCoreCompletedDate) {
-          latestCoreCompletedDate = date;
-        }
+        const date = s.completedAt ? new Date(s.completedAt) : undefined;
+        if (!date || isNaN(date.getTime())) return;
+        if (!earliestCoreCompletedDate || date < earliestCoreCompletedDate) earliestCoreCompletedDate = date;
+        if (!latestCoreCompletedDate || date > latestCoreCompletedDate) latestCoreCompletedDate = date;
       });
 
-      const allCoreStepsCompleted =
-        processingSteps.filter((s: any) => coreProcessingStepIds.has(s.id)).length > 0 &&
-        processingSteps
-          .filter((s: any) => coreProcessingStepIds.has(s.id))
-          .every((s: any) => s.status === 'completed');
+      const allCoreStepsCompleted = processingSteps.filter((s: any) => coreProcessingStepIds.has(s.id)).length > 0 &&
+        processingSteps.filter((s: any) => coreProcessingStepIds.has(s.id)).every((s: any) => s.status === 'completed');
 
-      const finalCheckStep = processingSteps.find((s: any) => s.id === 'final_check');
-      const finalCheckCompletedDate =
-        finalCheckStep && finalCheckStep.status === 'completed'
-          ? getStepDate(finalCheckStep.completedAt)
-          : undefined;
+      const finalCheckStep = processingSteps.find((s: any) => s.id === 'final_check' && s.status === 'completed' && s.completedAt);
+      const finalCheckCompletedDate = finalCheckStep?.completedAt ? new Date(finalCheckStep.completedAt) : undefined;
 
       const orderReceivedStep = {
-        name: t('orderStatus.steps.orderReceived.name', 'Beställning mottagen'),
-        description: t(
-          'orderStatus.steps.orderReceived.description',
-          'Din beställning har registrerats i vårt system'
-        ),
+        name: t('orderStatus.steps.orderReceived.name'),
+        description: t('orderStatus.steps.orderReceived.description'),
         completed: true,
         date: createdAtIso
       };
 
       const processingStep = {
-        name: t('orderStatus.steps.processing.name', 'Dokument under behandling'),
-        description: t(
-          'orderStatus.steps.processing.description',
-          'Vi bearbetar dina dokument enligt gällande krav'
-        ),
+        name: t('orderStatus.steps.processing.name'),
+        description: t('orderStatus.steps.processing.description'),
         completed: !!earliestCoreCompletedDate,
         date: earliestCoreCompletedDate ? earliestCoreCompletedDate.toISOString() : undefined
       };
 
       let legalizedCompleted = false;
       let legalizedDate: Date | undefined;
-
       if (finalCheckCompletedDate) {
         legalizedCompleted = true;
         legalizedDate = finalCheckCompletedDate;
@@ -209,43 +138,25 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
       }
 
       const legalizedStep = {
-        name: t('orderStatus.steps.legalized.name', 'Dokument legaliserade'),
-        description: t(
-          'orderStatus.steps.legalized.description',
-          'Alla dokument har legaliserats och är klara'
-        ),
+        name: t('orderStatus.steps.legalized.name'),
+        description: t('orderStatus.steps.legalized.description'),
         completed: legalizedCompleted,
         date: legalizedDate ? legalizedDate.toISOString() : undefined
       };
 
-      const returnShippingStep = processingSteps.find(
-        (s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt
-      );
-
-      const shippedDate = returnShippingStep
-        ? getStepDate(returnShippingStep.completedAt)
-        : undefined;
+      const returnShippingStep = processingSteps.find((s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt);
+      const shippedDate = returnShippingStep?.completedAt ? new Date(returnShippingStep.completedAt) : undefined;
 
       const shippedStep = {
-        name: t('orderStatus.steps.shipped.name', 'Dokument skickade'),
-        description: t(
-          'orderStatus.steps.shipped.description',
-          'Dokumenten har skickats till dig'
-        ),
+        name: t('orderStatus.steps.shipped.name'),
+        description: t('orderStatus.steps.shipped.description'),
         completed: !!shippedDate || isShipped || isDelivered,
-        date: shippedDate
-          ? shippedDate.toISOString()
-          : status === 'shipped'
-          ? updatedAtIso
-          : undefined
+        date: shippedDate ? shippedDate.toISOString() : (status === 'shipped' ? updatedAtIso : undefined)
       };
 
       const deliveredStep = {
-        name: t('orderStatus.steps.delivered.name', 'Levererade'),
-        description: t(
-          'orderStatus.steps.delivered.description',
-          'Dokumenten har levererats till dig'
-        ),
+        name: t('orderStatus.steps.delivered.name'),
+        description: t('orderStatus.steps.delivered.description'),
         completed: isDelivered,
         date: isDelivered ? updatedAtIso : undefined
       };
@@ -254,120 +165,62 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     } else {
       // Fallback: customer-facing steps based on high-level order status
       steps = [
-        {
-          name: t('orderStatus.steps.orderReceived.name', 'Beställning mottagen'),
-          description: t(
-            'orderStatus.steps.orderReceived.description',
-            'Din beställning har registrerats i vårt system'
-          ),
-          completed: true,
-          date: createdAtIso
-        },
-        {
-          name: t('orderStatus.steps.processing.name', 'Dokument under behandling'),
-          description: t(
-            'orderStatus.steps.processing.description',
-            'Vi bearbetar dina dokument enligt gällande krav'
-          ),
-          completed: isProcessingCompleted || isShipped || isDelivered,
-          date: isProcessingStarted ? updatedAtIso : undefined
-        },
-        {
-          name: t('orderStatus.steps.legalized.name', 'Dokument legaliserade'),
-          description: t(
-            'orderStatus.steps.legalized.description',
-            'Alla dokument har legaliserats och är klara'
-          ),
-          completed: isShipped || isDelivered,
-          date: isProcessingCompleted ? updatedAtIso : undefined
-        },
-        {
-          name: t('orderStatus.steps.shipped.name', 'Dokument skickade'),
-          description: t(
-            'orderStatus.steps.shipped.description',
-            'Dokumenten har skickats till dig'
-          ),
-          completed: isShipped || isDelivered,
-          date: status === 'shipped' ? updatedAtIso : undefined
-        },
-        {
-          name: t('orderStatus.steps.delivered.name', 'Levererade'),
-          description: t(
-            'orderStatus.steps.delivered.description',
-            'Dokumenten har levererats till dig'
-          ),
-          completed: isDelivered,
-          date: isDelivered ? updatedAtIso : undefined
-        }
+        { name: t('orderStatus.steps.orderReceived.name'), description: t('orderStatus.steps.orderReceived.description'), completed: true, date: createdAtIso },
+        { name: t('orderStatus.steps.processing.name'), description: t('orderStatus.steps.processing.description'), completed: isProcessingCompleted || isShipped || isDelivered, date: isProcessingStarted ? updatedAtIso : undefined },
+        { name: t('orderStatus.steps.legalized.name'), description: t('orderStatus.steps.legalized.description'), completed: isShipped || isDelivered, date: isProcessingCompleted ? updatedAtIso : undefined },
+        { name: t('orderStatus.steps.shipped.name'), description: t('orderStatus.steps.shipped.description'), completed: isShipped || isDelivered, date: status === 'shipped' ? updatedAtIso : undefined },
+        { name: t('orderStatus.steps.delivered.name'), description: t('orderStatus.steps.delivered.description'), completed: isDelivered, date: isDelivered ? updatedAtIso : undefined }
       ];
     }
 
-    // Helper to add business days (Mon-Fri)
+    // Calculate estimated delivery
     const addBusinessDays = (startDate: Date, businessDays: number) => {
       const date = new Date(startDate);
       let added = 0;
       while (added < businessDays) {
         date.setDate(date.getDate() + 1);
         const day = date.getDay();
-        if (day !== 0 && day !== 6) {
-          added++;
-        }
+        if (day !== 0 && day !== 6) added++;
       }
       return date;
     };
 
-    const createdDate = orderData.createdAt?.toDate();
-
-    // If return shipping step is completed, estimate 2 business days after that
-    const returnShippingStep = hasProcessingSteps
-      ? processingSteps.find(
-          (s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt
-        )
-      : undefined;
-
+    const createdDate = createdAtIso ? new Date(createdAtIso) : new Date();
+    const returnShippingStep = hasProcessingSteps ? processingSteps?.find((s: any) => s.id === 'return_shipping' && s.status === 'completed' && s.completedAt) : undefined;
+    
     let estimatedDeliveryDate: Date;
-
-    if (returnShippingStep && returnShippingStep.completedAt) {
-      const baseDate: Date = getStepDate(returnShippingStep.completedAt) || new Date();
-      estimatedDeliveryDate = addBusinessDays(baseDate, 2);
-    } else if (createdDate) {
-      // Fallback: 7 calendar days after order creation
-      estimatedDeliveryDate = new Date(createdDate);
-      estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
+    if (returnShippingStep?.completedAt) {
+      estimatedDeliveryDate = addBusinessDays(new Date(returnShippingStep.completedAt), 2);
     } else {
-      // Last resort: 7 days from today
-      estimatedDeliveryDate = new Date();
+      estimatedDeliveryDate = new Date(createdDate);
       estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 7);
     }
 
-    // Format the order for display
     return {
-      orderNumber: orderId,
+      orderNumber: orderData.orderNumber,
       status: orderData.status,
       createdAt: createdAtIso,
       estimatedDelivery: estimatedDeliveryDate.toISOString().split('T')[0],
       service: Array.isArray(orderData.services) ? orderData.services[0] : orderData.services,
       services: orderData.services,
       customer: {
-        name: orderData.customerInfo ? 
-          `${orderData.customerInfo.firstName || ''} ${orderData.customerInfo.lastName || ''}`.trim() || 'Ej angivet' : 
-          'Ej angivet',
-        email: orderData.customerInfo?.email || 'Ingen e-post angiven'
+        name: orderData.customerInfo ? `${orderData.customerInfo.firstName || ''} ${orderData.customerInfo.lastName || ''}`.trim() || t('common.notSpecified', 'Not specified') : t('common.notSpecified', 'Not specified'),
+        email: orderData.customerInfo?.email || t('common.noEmailProvided', 'No email provided')
       },
       steps: steps,
       totalPrice: orderData.totalPrice,
-      // Return tracking information
-      returnTrackingNumber: (orderData as any).returnTrackingNumber || null,
-      returnTrackingUrl: (orderData as any).returnTrackingUrl || null,
-      returnDate: orderData.status === 'cancelled' ? orderData.updatedAt?.toDate().toISOString() : null
+      returnTrackingNumber: orderData.returnTrackingNumber || null,
+      returnTrackingUrl: orderData.returnTrackingUrl || null,
+      returnDate: orderData.status === 'cancelled' ? updatedAtIso : null
     };
   };
 
-  // Formatera datum till läsbart format
+  // Format date for display - uses locale from router
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('sv-SE', {
+    const locale = router.locale === 'en' ? 'en-GB' : 'sv-SE';
+    return new Intl.DateTimeFormat(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -381,45 +234,45 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     switch (status) {
       case 'pending':
         return {
-          text: t('orderStatus.statuses.pending') || 'Väntar på behandling',
+          text: t('orderStatus.statuses.pending'),
           color: 'bg-gray-100 text-gray-800',
-          description: t('orderStatus.statusDescriptions.pending', 'Din beställning väntar på att behandlas')
+          description: t('orderStatus.statusDescriptions.pending')
         };
       case 'processing':
         return {
-          text: t('orderStatus.statuses.processing') || 'Under behandling',
+          text: t('orderStatus.statuses.processing'),
           color: 'bg-yellow-100 text-yellow-800',
-          description: t('orderStatus.statusDescriptions.processing', 'Vi arbetar aktivt med dina dokument')
+          description: t('orderStatus.statusDescriptions.processing')
         };
       case 'completed':
         return {
-          text: t('orderStatus.statuses.completed') || 'Färdigbehandlad',
+          text: t('orderStatus.statuses.completed'),
           color: 'bg-blue-100 text-blue-800',
-          description: t('orderStatus.statusDescriptions.completed', 'Dokumenten är klara för leverans')
+          description: t('orderStatus.statusDescriptions.completed')
         };
       case 'shipped':
         return {
-          text: t('orderStatus.statuses.shipped') || 'Skickad',
+          text: t('orderStatus.statuses.shipped'),
           color: 'bg-purple-100 text-purple-800',
-          description: t('orderStatus.statusDescriptions.shipped', 'Dokumenten är på väg till dig')
+          description: t('orderStatus.statusDescriptions.shipped')
         };
       case 'delivered':
         return {
-          text: t('orderStatus.statuses.delivered') || 'Levererad',
+          text: t('orderStatus.statuses.delivered'),
           color: 'bg-green-100 text-green-800',
-          description: t('orderStatus.statusDescriptions.delivered', 'Dokumenten har levererats')
+          description: t('orderStatus.statusDescriptions.delivered')
         };
       case 'cancelled':
         return {
-          text: t('orderStatus.statuses.cancelled') || 'Avbruten/Returnerad',
+          text: t('orderStatus.statuses.cancelled'),
           color: 'bg-red-100 text-red-800',
-          description: t('orderStatus.statusDescriptions.cancelled', 'Beställningen har avbrutits eller returnerats')
+          description: t('orderStatus.statusDescriptions.cancelled')
         };
       default:
         return {
           text: status,
           color: 'bg-gray-100 text-gray-800',
-          description: t('orderStatus.statusDescriptions.default', 'Status uppdateras snart')
+          description: t('orderStatus.statusDescriptions.default')
         };
     }
   };
@@ -427,10 +280,10 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
   return (
     <>
       <Head>
-        <title>{t('orderStatus.pageTitle') || 'Orderstatus - Legaliseringstjänst'}</title>
+        <title>{t('orderStatus.pageTitle')}</title>
         <meta 
           name="description" 
-          content={t('orderStatus.pageDescription') || 'Kontrollera status på din beställning av legaliseringstjänster.'} 
+          content={t('orderStatus.pageDescription')} 
         />
       </Head>
 
@@ -439,10 +292,10 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto mb-16 text-center">
           <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-            {t('orderStatus.title') || 'Kontrollera orderstatus'}
+            {t('orderStatus.title')}
           </h2>
           <p className="text-lg text-gray-600">
-            {t('orderStatus.subtitle') || 'Ange ditt ordernummer och e-post för att kontrollera status'}
+            {t('orderStatus.subtitle')}
           </p>
         </div>
 
@@ -450,13 +303,13 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
           <div className="max-w-2xl mx-auto">
             <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-xl font-heading font-bold text-gray-900 mb-6 text-center">
-                {t('orderStatus.trackTitle', 'Spåra din beställning')}
+                {t('orderStatus.trackTitle')}
               </h3>
 
               <form onSubmit={checkOrderStatus} className="space-y-4">
                 <div>
                   <label htmlFor="order-number" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('orderStatus.orderNumber') || 'Ordernummer'} *
+                    {t('orderStatus.orderNumber')} *
                   </label>
                   <input
                     type="text"
@@ -471,7 +324,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('orderStatus.email') || 'E-post'} *
+                    {t('orderStatus.email')} *
                   </label>
                   <input
                     type="email"
@@ -502,10 +355,10 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        {t('orderStatus.checking') || 'Kontrollerar...'}
+                        {t('orderStatus.checking')}
                       </>
                     ) : (
-                      t('orderStatus.check') || 'Kontrollera status'
+                      t('orderStatus.check')
                     )}
                   </button>
                 </div>
@@ -514,7 +367,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
               {orderStatus && (
                 <div className="mt-8 border-t border-gray-200 pt-8">
                   <h3 className="text-lg font-medium text-gray-900 mb-6">
-                    {t('orderStatus.result') || 'Orderstatus'}
+                    {t('orderStatus.result')}
                   </h3>
 
                   <div className="bg-gray-50 rounded-lg p-6">
@@ -527,7 +380,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                               {getStatusText(orderStatus.status).text}
                             </span>
                             <span className="text-sm text-gray-500">
-                              {t('orderStatus.orderNumber') || 'Ordernummer'}: {orderStatus.orderNumber}
+                              {t('orderStatus.orderNumber')}: {orderStatus.orderNumber}
                             </span>
                           </div>
                           <p className="text-sm text-gray-600">
@@ -536,7 +389,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                         </div>
                         <div className="mt-3 md:mt-0 md:text-right">
                           <p className="text-sm text-gray-500">
-                            {t('orderStatus.estimatedDelivery') || 'Beräknad leverans'}
+                            {t('orderStatus.estimatedDelivery')}
                           </p>
                           <p className="text-sm font-medium">{orderStatus.estimatedDelivery}</p>
                         </div>
@@ -546,14 +399,14 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                       <div>
                         <p className="text-sm text-gray-500 mb-1">
-                          {t('orderStatus.orderDate') || 'Beställningsdatum'}:
+                          {t('orderStatus.orderDate')}:
                         </p>
                         <p>{formatDate(orderStatus.createdAt)}</p>
                       </div>
 
                       <div>
                         <p className="text-sm text-gray-500 mb-1">
-                          {t('orderStatus.estimatedDelivery') || 'Beräknad leverans'}:
+                          {t('orderStatus.estimatedDelivery')}:
                         </p>
                         <p>{orderStatus.estimatedDelivery}</p>
                       </div>
@@ -561,7 +414,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                       {orderStatus.actualShipment && (
                         <div>
                           <p className="text-sm text-gray-500 mb-1">
-                            {t('orderStatus.shipmentDate') || 'Skickad datum'}:
+                            {t('orderStatus.shipmentDate')}:
                           </p>
                           <p>{orderStatus.actualShipment}</p>
                         </div>
@@ -570,7 +423,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                       {orderStatus.trackingNumber && (
                         <div>
                           <p className="text-sm text-gray-500 mb-1">
-                            {t('orderStatus.trackingNumber') || 'Spårningsnummer'}:
+                            {t('orderStatus.trackingNumber')}:
                           </p>
                           <p>{orderStatus.trackingNumber}</p>
                         </div>
@@ -579,7 +432,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                       {orderStatus.actualDelivery && (
                         <div>
                           <p className="text-sm text-gray-500 mb-1">
-                            {t('orderStatus.deliveryDate') || 'Leveransdatum'}:
+                            {t('orderStatus.deliveryDate')}:
                           </p>
                           <p>{orderStatus.actualDelivery}</p>
                         </div>
@@ -590,13 +443,13 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                         <>
                           <div className="col-span-2 border-t border-gray-200 pt-4 mt-4">
                             <h4 className="text-base font-medium text-gray-900 mb-3">
-                              {t('orderStatus.returnInfo') || 'Returinformation'}
+                              {t('orderStatus.returnInfo')}
                             </h4>
                           </div>
 
                           <div className="col-span-2">
                             <p className="text-sm text-gray-500 mb-1">
-                              {t('orderStatus.returnTrackingNumber') || 'Returspårningsnummer'}:
+                              {t('orderStatus.returnTrackingNumber')}:
                             </p>
                             <p className="font-mono text-sm font-medium">{orderStatus.returnTrackingNumber}</p>
                             {(orderStatus as any).returnTrackingUrl && (
@@ -606,7 +459,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
                               >
-                                Spåra försändelse →
+                                {t('orderStatus.trackShipment')} →
                               </a>
                             )}
                           </div>
@@ -614,7 +467,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                           {orderStatus.returnDate && (
                             <div>
                               <p className="text-sm text-gray-500 mb-1">
-                                {t('orderStatus.returnDate') || 'Returdatum'}:
+                                {t('orderStatus.returnDate')}:
                               </p>
                               <p>{orderStatus.returnDate}</p>
                             </div>
@@ -622,7 +475,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
 
                           <div className="col-span-2">
                             <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
-                              {t('orderStatus.returnInstructions') || 'Dina dokument har returnerats. Kontakta oss om du har frågor om returen.'}
+                              {t('orderStatus.returnInstructions')}
                             </p>
                           </div>
                         </>
@@ -630,7 +483,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
 
                       <div>
                         <p className="text-sm text-gray-500 mb-1">
-                          {t('orderStatus.service') || 'Tjänst'}:
+                          {t('orderStatus.service')}:
                         </p>
                         <p>
                           {Array.isArray(orderStatus.services)
@@ -643,7 +496,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
 
                     <div className="border-t border-gray-200 pt-6">
                       <h4 className="text-base font-medium mb-4">
-                        {t('orderStatus.progress') || 'Förlopp'}
+                        {t('orderStatus.progress')}
                       </h4>
 
                       <ol className="relative border-l border-gray-200 ml-3">
@@ -677,9 +530,9 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
 
                     <div className="mt-6 border-t border-gray-200 pt-6">
                       <p className="text-sm text-gray-500">
-                        {t('orderStatus.questions') || 'Har du frågor om din beställning?'}{' '}
+                        {t('orderStatus.questions')}{' '}
                         <a href="/kontakt" className="text-primary-600 hover:text-primary-500">
-                          {t('orderStatus.contactUs') || 'Kontakta oss'}
+                          {t('orderStatus.contactUs')}
                         </a>
                       </p>
                     </div>

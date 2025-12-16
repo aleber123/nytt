@@ -83,6 +83,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     returnService: '',
     ownReturnTrackingNumber: '',
     premiumDelivery: '',
+    deliveryAddressType: 'residential', // Default to residential (home address)
     uploadedFiles: [],
     // Customer type: private or company
     customerType: 'private',

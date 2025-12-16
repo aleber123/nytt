@@ -867,6 +867,7 @@
     "returnInfo": "Return Information",
     "returnTrackingNumber": "Return Tracking Number",
     "returnDate": "Return Date",
+    "trackShipment": "Track shipment",
     "returnInstructions": "Your documents have been returned. Contact us if you have questions about the return.",
     "steps": {
       "orderReceived": {

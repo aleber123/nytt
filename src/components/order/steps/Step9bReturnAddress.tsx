@@ -193,23 +193,92 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
             </span>
           </label>
         )}
-        {/* Company name - available for all customers (can deliver to a company) */}
+        {/* Address type selector */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {isEn ? 'Company Name' : 'Företagsnamn'}
-            <span className="text-gray-400 font-normal ml-1">({isEn ? 'if applicable' : 'om tillämpligt'})</span>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {isEn ? 'Address Type' : 'Adresstyp'} *
           </label>
-          <input
-            type="text"
-            value={answers.returnAddress.companyName || ''}
-            onChange={(e) => setAnswers(prev => ({
-              ...prev,
-              returnAddress: { ...prev.returnAddress, companyName: e.target.value }
-            }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
-            placeholder={isEn ? 'Company name (leave empty if private address)' : 'Företagsnamn (lämna tomt om privatadress)'}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <label 
+              className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                answers.deliveryAddressType === 'business' 
+                  ? 'border-custom-button bg-custom-button/5' 
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="addressType"
+                value="business"
+                checked={answers.deliveryAddressType === 'business'}
+                onChange={() => setAnswers(prev => ({ ...prev, deliveryAddressType: 'business' }))}
+                className="sr-only"
+              />
+              <div className="flex items-center">
+                <span className="text-2xl mr-3">🏢</span>
+                <div>
+                  <div className="font-medium text-gray-900">
+                    {isEn ? 'Business Address' : 'Företagsadress'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {isEn ? 'Office, company, etc.' : 'Kontor, företag, etc.'}
+                  </div>
+                </div>
+              </div>
+            </label>
+            <label 
+              className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                answers.deliveryAddressType === 'residential' 
+                  ? 'border-custom-button bg-custom-button/5' 
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="addressType"
+                value="residential"
+                checked={answers.deliveryAddressType === 'residential'}
+                onChange={() => setAnswers(prev => ({ ...prev, deliveryAddressType: 'residential' }))}
+                className="sr-only"
+              />
+              <div className="flex items-center">
+                <span className="text-2xl mr-3">🏠</span>
+                <div>
+                  <div className="font-medium text-gray-900">
+                    {isEn ? 'Home Address' : 'Hemadress'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {isEn ? 'Private residence' : 'Privatbostad'}
+                  </div>
+                </div>
+              </div>
+            </label>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {isEn 
+              ? 'Note: Delivery to home addresses may have a different price than business addresses.' 
+              : 'OBS: Leverans till hemadress kan ha ett annat pris än företagsadress.'}
+          </p>
         </div>
+
+        {/* Company name - show only if business address is selected */}
+        {answers.deliveryAddressType === 'business' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {isEn ? 'Company Name' : 'Företagsnamn'} *
+            </label>
+            <input
+              type="text"
+              value={answers.returnAddress.companyName || ''}
+              onChange={(e) => setAnswers(prev => ({
+                ...prev,
+                returnAddress: { ...prev.returnAddress, companyName: e.target.value }
+              }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
+              placeholder={isEn ? 'Company name' : 'Företagsnamn'}
+            />
+          </div>
+        )}
 
         {/* Name fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
