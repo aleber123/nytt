@@ -58,5 +58,8 @@ export const adminDb = admin.firestore(app);
 // Export Auth instance (for verifying tokens, managing users)
 export const adminAuth = admin.auth(app);
 
+// Export Storage instance
+export const adminStorage = admin.storage(app);
+
 // Export the admin module for other uses
 export { admin };

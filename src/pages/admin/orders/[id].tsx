@@ -77,7 +77,8 @@ function AdminOrderDetailPage() {
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
   const [internalNoteText, setInternalNoteText] = useState('');
-  const [internalNotesList, setInternalNotesList] = useState<Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>>([]);
+  const [internalNotesList, setInternalNotesList] = useState<Array<{ id: string; content: string; createdAt?: any; createdBy?: string; readBy?: string[] }>>([]);
+  const [unreadNotesCount, setUnreadNotesCount] = useState(0);
   const [processingSteps, setProcessingSteps] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
@@ -100,6 +101,12 @@ function AdminOrderDetailPage() {
   const [sendingPickupLabel, setSendingPickupLabel] = useState(false);
   const [creatingDhlPickupLabel, setCreatingDhlPickupLabel] = useState(false);
   const pickupLabelInputRef = useRef<HTMLInputElement | null>(null);
+  // Document request state
+  const [showDocumentRequestModal, setShowDocumentRequestModal] = useState(false);
+  const [documentRequestTemplate, setDocumentRequestTemplate] = useState('custom');
+  const [documentRequestMessage, setDocumentRequestMessage] = useState('');
+  const [sendingDocumentRequest, setSendingDocumentRequest] = useState(false);
+  const [unreadSupplementaryCount, setUnreadSupplementaryCount] = useState(0);
   const [editedCustomer, setEditedCustomer] = useState({
     firstName: '',
     lastName: '',
@@ -457,9 +464,48 @@ function AdminOrderDetailPage() {
     const unsub = onSnapshot(q, (snap) => {
       const notes = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
       setInternalNotesList(notes);
+      
+      // Count unread notes (notes not created by current user and not marked as read)
+      if (currentUser?.uid) {
+        const unread = notes.filter(note => {
+          const readBy = note.readBy || [];
+          const createdByCurrentUser = note.createdBy === currentUser.uid || 
+            note.createdBy === currentUser.email ||
+            note.createdBy === currentUser.displayName;
+          return !createdByCurrentUser && !readBy.includes(currentUser.uid);
+        });
+        setUnreadNotesCount(unread.length);
+      }
     });
     return () => unsub();
-  }, [router.query.id]);
+  }, [router.query.id, currentUser?.uid, currentUser?.email, currentUser?.displayName]);
+
+  // Check for unread supplementary files
+  useEffect(() => {
+    if (!order || !currentUser?.uid) return;
+    
+    const supplementaryFiles = (order as any).supplementaryFiles || [];
+    const viewedBy = (order as any).supplementaryViewedBy || {};
+    const lastViewed = viewedBy[currentUser.uid];
+    
+    if (supplementaryFiles.length === 0) {
+      setUnreadSupplementaryCount(0);
+      return;
+    }
+    
+    if (!lastViewed) {
+      // Never viewed - all are unread
+      setUnreadSupplementaryCount(supplementaryFiles.length);
+    } else {
+      // Count files uploaded after last view
+      const lastViewedDate = new Date(lastViewed);
+      const unread = supplementaryFiles.filter((file: any) => {
+        if (!file.uploadedAt) return false;
+        return new Date(file.uploadedAt) > lastViewedDate;
+      });
+      setUnreadSupplementaryCount(unread.length);
+    }
+  }, [order, currentUser?.uid]);
 
   // Load current admin profile
   useEffect(() => {
@@ -2677,13 +2723,114 @@ function AdminOrderDetailPage() {
       await addDoc(collection(db, 'orders', orderId, 'internalNotes'), {
         content: text,
         createdAt: serverTimestamp(),
-        createdBy: actor
+        createdBy: actor,
+        readBy: currentUser?.uid ? [currentUser.uid] : [] // Mark as read by creator
       });
       setInternalNoteText('');
       toast.success('Anteckning tillagd');
     } catch (e) {
-      console.error('Failed to add internal note:', e);
       toast.error('Kunde inte lägga till anteckning');
+    }
+  };
+
+  // Mark all unread notes as read when opening Notes tab
+  const markNotesAsRead = async () => {
+    if (!currentUser?.uid) return;
+    const db = getFirebaseDb();
+    const orderId = router.query.id as string;
+    if (!db || !orderId) return;
+
+    const unreadNotes = internalNotesList.filter(note => {
+      const readBy = note.readBy || [];
+      const createdByCurrentUser = note.createdBy === currentUser.uid || 
+        note.createdBy === currentUser.email ||
+        note.createdBy === currentUser.displayName;
+      return !createdByCurrentUser && !readBy.includes(currentUser.uid);
+    });
+
+    // Update each unread note to add current user to readBy array
+    const { doc, updateDoc, arrayUnion } = await import('firebase/firestore');
+    for (const note of unreadNotes) {
+      try {
+        const noteRef = doc(db, 'orders', orderId, 'internalNotes', note.id);
+        await updateDoc(noteRef, {
+          readBy: arrayUnion(currentUser.uid)
+        });
+      } catch (e) {
+        // Silently fail - not critical
+      }
+    }
+    setUnreadNotesCount(0);
+  };
+
+  // Document request templates (with both Swedish and English messages)
+  const documentRequestTemplates = [
+    { id: 'custom', name: 'Custom message', messageSv: '', messageEn: '' },
+    { id: 'missing_original', name: 'Missing original document', messageSv: 'Vi behöver originaldokumentet för att kunna fortsätta med legaliseringen. Vänligen ladda upp en kopia av originalet.', messageEn: 'We need the original document to proceed with the legalization. Please upload a copy of the original.' },
+    { id: 'unclear_scan', name: 'Unclear scan', messageSv: 'Den uppladdade skanningen är otydlig eller har dålig kvalitet. Vänligen ladda upp en ny, tydligare version.', messageEn: 'The uploaded scan is unclear or of poor quality. Please upload a new, clearer version.' },
+    { id: 'missing_signature', name: 'Missing signature', messageSv: 'Dokumentet saknar nödvändig signatur. Vänligen ladda upp en signerad version av dokumentet.', messageEn: 'The document is missing a required signature. Please upload a signed version of the document.' },
+    { id: 'missing_translation', name: 'Missing translation', messageSv: 'Vi behöver en auktoriserad översättning av dokumentet. Vänligen ladda upp översättningen.', messageEn: 'We need an authorized translation of the document. Please upload the translation.' },
+    { id: 'additional_document', name: 'Additional document', messageSv: 'Vi behöver ett kompletterande dokument för att slutföra ärendet.', messageEn: 'We need an additional document to complete the case.' },
+    { id: 'id_verification', name: 'ID verification', messageSv: 'Vi behöver en kopia av din legitimation (pass eller nationellt ID-kort) för att verifiera din identitet.', messageEn: 'We need a copy of your ID (passport or national ID card) to verify your identity.' }
+  ];
+
+  // Get message in customer's language
+  const getTemplateMessage = (templateId: string) => {
+    const template = documentRequestTemplates.find(t => t.id === templateId);
+    if (!template) return '';
+    const isEnglish = (order as any)?.locale === 'en';
+    return isEnglish ? template.messageEn : template.messageSv;
+  };
+
+  // Send document request to customer
+  const sendDocumentRequest = async () => {
+    if (!documentRequestMessage.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    setSendingDocumentRequest(true);
+    try {
+      const orderId = router.query.id as string;
+      const response = await fetch('/api/document-request/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          templateId: documentRequestTemplate,
+          customMessage: documentRequestMessage
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not send request');
+      }
+
+      toast.success('Document request has been sent to the customer');
+      setShowDocumentRequestModal(false);
+      setDocumentRequestMessage('');
+      setDocumentRequestTemplate('custom');
+    } catch (error: any) {
+      toast.error(error.message || 'Could not send request');
+    } finally {
+      setSendingDocumentRequest(false);
+    }
+  };
+
+  // Mark supplementary files as viewed
+  const markSupplementaryAsViewed = async () => {
+    if (!currentUser?.uid) return;
+    const orderId = router.query.id as string;
+    if (!orderId) return;
+
+    try {
+      await adminUpdateOrder(orderId, {
+        [`supplementaryViewedBy.${currentUser.uid}`]: new Date().toISOString()
+      });
+      setUnreadSupplementaryCount(0);
+    } catch (e) {
+      // Silently fail
     }
   };
 
@@ -3173,8 +3320,16 @@ function AdminOrderDetailPage() {
                   ].map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center px-4 py-2 mr-2 rounded-md font-medium text-sm transition-colors ${
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        if (tab.id === 'notes') {
+                          markNotesAsRead();
+                        }
+                        if (tab.id === 'files') {
+                          markSupplementaryAsViewed();
+                        }
+                      }}
+                      className={`relative flex items-center px-4 py-2 mr-2 rounded-md font-medium text-sm transition-colors ${
                         activeTab === tab.id
                           ? 'bg-primary-100 text-primary-700'
                           : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
@@ -3182,6 +3337,18 @@ function AdminOrderDetailPage() {
                     >
                       <span className="mr-2">{tab.icon}</span>
                       {tab.label}
+                      {/* Unread notes badge */}
+                      {tab.id === 'notes' && unreadNotesCount > 0 && activeTab !== 'notes' && (
+                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-bold text-white bg-red-500 rounded-full">
+                          {unreadNotesCount > 9 ? '9+' : unreadNotesCount}
+                        </span>
+                      )}
+                      {/* Unread supplementary files badge */}
+                      {tab.id === 'files' && unreadSupplementaryCount > 0 && activeTab !== 'files' && (
+                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-bold text-white bg-red-500 rounded-full">
+                          {unreadSupplementaryCount > 9 ? '9+' : unreadSupplementaryCount}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </nav>
@@ -4516,6 +4683,65 @@ function AdminOrderDetailPage() {
                       )}
                     </div>
 
+                    {/* Supplementary Files */}
+                    {(order as any).supplementaryFiles && (order as any).supplementaryFiles.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Supplementary Documents</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {(order as any).supplementaryFiles.map((file: any, index: number) => (
+                            <div key={index} className="border border-green-200 bg-green-50 rounded-lg p-4">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  <div>
+                                    <p className="font-medium text-gray-900">{file.name}</p>
+                                    <p className="text-sm text-gray-500">
+                                      {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : ''} 
+                                      {file.uploadedAt && ` • ${new Date(file.uploadedAt).toLocaleDateString('sv-SE')}`}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 text-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                                >
+                                  Download
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Request Additional Documents */}
+                    <div className="border-t border-gray-200 pt-6">
+                      <h3 className="text-lg font-medium mb-4">Request Additional Documents</h3>
+                      <p className="text-gray-600 mb-4">
+                        Send an email to the customer with a secure upload link to request additional documents.
+                      </p>
+                      <button
+                        onClick={() => setShowDocumentRequestModal(true)}
+                        className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Send Document Request
+                      </button>
+                      {(order as any).documentRequestSent && (
+                        <p className="text-sm text-green-600 mt-2">
+                          ✓ Request sent {(order as any).documentRequestSentAt && new Date((order as any).documentRequestSentAt).toLocaleDateString('en-GB')}
+                        </p>
+                      )}
+                    </div>
+
                     {/* Pickup Address */}
                     {order.pickupService && order.pickupAddress && (
                       <div>
@@ -4979,6 +5205,114 @@ function AdminOrderDetailPage() {
               >
                 Save & Retry
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Request Modal */}
+      {showDocumentRequestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Request Additional Documents</h2>
+                <button
+                  onClick={() => setShowDocumentRequestModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-gray-600 mb-4">
+                An email with a secure upload link will be sent to the customer at: <strong>{order?.customerInfo?.email}</strong>
+              </p>
+
+              {/* Customer language indicator */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Customer language:</span>{' '}
+                  {(order as any)?.locale === 'en' ? '🇬🇧 English' : '🇸🇪 Swedish'}
+                  <span className="text-blue-600 ml-2">(Email will be sent in this language)</span>
+                </p>
+              </div>
+
+              {/* Template Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select template</label>
+                <select
+                  value={documentRequestTemplate}
+                  onChange={(e) => {
+                    setDocumentRequestTemplate(e.target.value);
+                    const message = getTemplateMessage(e.target.value);
+                    if (message) {
+                      setDocumentRequestMessage(message);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                >
+                  {documentRequestTemplates.map(template => (
+                    <option key={template.id} value={template.id}>{template.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Message */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message to customer <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={documentRequestMessage}
+                  onChange={(e) => setDocumentRequestMessage(e.target.value)}
+                  placeholder="Describe which documents are needed and why..."
+                  rows={5}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This message will be shown in the email and on the upload page.
+                </p>
+              </div>
+
+              {/* Preview */}
+              {documentRequestMessage && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm font-medium text-yellow-800 mb-2">Preview:</p>
+                  <p className="text-sm text-yellow-700 whitespace-pre-wrap">{documentRequestMessage}</p>
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDocumentRequestModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendDocumentRequest}
+                  disabled={sendingDocumentRequest || !documentRequestMessage.trim()}
+                  className="flex-1 px-4 py-2 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition disabled:opacity-50 flex items-center justify-center"
+                >
+                  {sendingDocumentRequest ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Send Request
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
