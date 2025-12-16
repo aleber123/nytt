@@ -15,6 +15,7 @@ interface DocumentRequest {
   customerName: string;
   status: 'pending' | 'uploaded' | 'expired';
   expiresAt: string;
+  locale: string;
   uploadedFiles: Array<{
     name: string;
     url: string;
@@ -28,6 +29,70 @@ interface UploadDocumentsPageProps {
   error?: string;
 }
 
+// Translations
+const translations = {
+  sv: {
+    pageTitle: 'Ladda upp dokument',
+    invalidLink: 'Ogiltig eller utgången länk',
+    invalidLinkDesc: 'Denna uppladdningslänk är inte längre giltig. Kontakta oss om du behöver ladda upp dokument.',
+    contactUs: 'Kontakta oss',
+    linkExpired: 'Länken har gått ut',
+    linkExpiredDesc: 'Denna uppladdningslänk har gått ut. Kontakta oss för att få en ny länk.',
+    alreadyUploaded: 'Dokument redan uppladdade',
+    alreadyUploadedDesc: 'Du har redan laddat upp dokument via denna länk. Om du behöver ladda upp fler dokument, kontakta oss.',
+    uploadedFiles: 'Uppladdade filer',
+    uploadSuccess: 'Uppladdning lyckades!',
+    uploadSuccessDesc: 'Dina dokument har laddats upp. Vi kommer att granska dem och återkomma till dig.',
+    filesUploaded: 'Uppladdade filer:',
+    backToStatus: 'Gå till orderstatus',
+    uploadDocs: 'Ladda upp kompletterande dokument',
+    order: 'Order',
+    messageFromHandler: 'Meddelande från handläggare:',
+    dragAndDrop: 'Dra och släpp filer här',
+    orClickToSelect: 'eller klicka för att välja filer',
+    fileTypes: 'PDF, bilder, Word-dokument (max 25 MB per fil)',
+    dropHere: 'Släpp filerna här...',
+    selectedFiles: 'Valda filer',
+    fileTooLarge: 'är för stor (max 25 MB)',
+    uploading: 'Laddar upp...',
+    uploadFiles: 'Ladda upp',
+    file: 'fil',
+    files: 'filer',
+    questions: 'Har du frågor? Kontakta oss på',
+    uploadError: 'Ett fel uppstod vid uppladdningen',
+  },
+  en: {
+    pageTitle: 'Upload Documents',
+    invalidLink: 'Invalid or expired link',
+    invalidLinkDesc: 'This upload link is no longer valid. Contact us if you need to upload documents.',
+    contactUs: 'Contact us',
+    linkExpired: 'Link has expired',
+    linkExpiredDesc: 'This upload link has expired. Contact us to get a new link.',
+    alreadyUploaded: 'Documents already uploaded',
+    alreadyUploadedDesc: 'You have already uploaded documents via this link. If you need to upload more documents, please contact us.',
+    uploadedFiles: 'Uploaded files',
+    uploadSuccess: 'Upload successful!',
+    uploadSuccessDesc: 'Your documents have been uploaded. We will review them and get back to you.',
+    filesUploaded: 'Uploaded files:',
+    backToStatus: 'Go to order status',
+    uploadDocs: 'Upload supplementary documents',
+    order: 'Order',
+    messageFromHandler: 'Message from case handler:',
+    dragAndDrop: 'Drag and drop files here',
+    orClickToSelect: 'or click to select files',
+    fileTypes: 'PDF, images, Word documents (max 25 MB per file)',
+    dropHere: 'Drop files here...',
+    selectedFiles: 'Selected files',
+    fileTooLarge: 'is too large (max 25 MB)',
+    uploading: 'Uploading...',
+    uploadFiles: 'Upload',
+    file: 'file',
+    files: 'files',
+    questions: 'Have questions? Contact us at',
+    uploadError: 'An error occurred during upload',
+  }
+};
+
 export default function UploadDocumentsPage({ token, documentRequest, error }: UploadDocumentsPageProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -36,6 +101,10 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get translations based on locale
+  const locale = documentRequest?.locale === 'en' ? 'en' : 'sv';
+  const t = translations[locale];
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -46,7 +115,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
     // Filter valid files (max 25MB each)
     const validFiles = newFiles.filter(file => {
       if (file.size > 25 * 1024 * 1024) {
-        setUploadError(`Filen "${file.name}" är för stor (max 25 MB)`);
+        setUploadError(`"${file.name}" ${t.fileTooLarge}`);
         return false;
       }
       return true;
@@ -93,7 +162,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      setUploadError('Vänligen välj minst en fil att ladda upp');
+      setUploadError(locale === 'en' ? 'Please select at least one file' : 'Vänligen välj minst en fil');
       return;
     }
 
@@ -120,14 +189,14 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Uppladdningen misslyckades');
+        throw new Error(data.error || t.uploadError);
       }
 
       setUploadSuccess(true);
       setUploadedFiles(files.map(f => f.name));
       setFiles([]);
     } catch (err: any) {
-      setUploadError(err.message || 'Ett fel uppstod vid uppladdningen');
+      setUploadError(err.message || t.uploadError);
     } finally {
       setUploading(false);
     }
@@ -145,7 +214,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
     return (
       <>
         <Head>
-          <title>Ogiltig länk - DOX Visumpartner</title>
+          <title>{t.invalidLink} - DOX Visumpartner</title>
         </Head>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
@@ -154,15 +223,15 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Ogiltig eller utgången länk</h1>
+            <h1 className="text-xl font-bold text-gray-900 mb-2">{t.invalidLink}</h1>
             <p className="text-gray-600 mb-6">
-              Denna uppladdningslänk är inte längre giltig. Kontakta oss om du behöver ladda upp dokument.
+              {t.invalidLinkDesc}
             </p>
             <a 
               href="mailto:info@doxvl.se"
               className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
-              Kontakta oss
+              {t.contactUs}
             </a>
           </div>
         </div>
@@ -174,7 +243,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
     return (
       <>
         <Head>
-          <title>Länken har gått ut - DOX Visumpartner</title>
+          <title>{t.linkExpired} - DOX Visumpartner</title>
         </Head>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
@@ -183,15 +252,15 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Länken har gått ut</h1>
+            <h1 className="text-xl font-bold text-gray-900 mb-2">{t.linkExpired}</h1>
             <p className="text-gray-600 mb-6">
-              Denna uppladdningslänk har gått ut. Kontakta oss för att få en ny länk.
+              {t.linkExpiredDesc}
             </p>
             <a 
               href="mailto:info@doxvl.se"
               className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
-              Kontakta oss
+              {t.contactUs}
             </a>
           </div>
         </div>
@@ -203,7 +272,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
     return (
       <>
         <Head>
-          <title>Dokument uppladdade - DOX Visumpartner</title>
+          <title>{t.uploadSuccess} - DOX Visumpartner</title>
         </Head>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
@@ -212,13 +281,13 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Tack för din uppladdning!</h1>
+            <h1 className="text-xl font-bold text-gray-900 mb-2">{t.uploadSuccess}</h1>
             <p className="text-gray-600 mb-4">
-              Dina dokument har tagits emot och vi kommer att granska dem så snart som möjligt.
+              {t.uploadSuccessDesc}
             </p>
             {uploadedFiles.length > 0 && (
               <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-                <p className="text-sm font-medium text-gray-700 mb-2">Uppladdade filer:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">{t.filesUploaded}</p>
                 <ul className="text-sm text-gray-600 space-y-1">
                   {uploadedFiles.map((name, i) => (
                     <li key={i} className="flex items-center">
@@ -232,13 +301,13 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
               </div>
             )}
             <p className="text-sm text-gray-500 mb-6">
-              Order: #{documentRequest.orderNumber}
+              {t.order}: #{documentRequest.orderNumber}
             </p>
             <a 
               href={`/orderstatus?order=${documentRequest.orderNumber}`}
               className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
-              Se orderstatus
+              {t.backToStatus}
             </a>
           </div>
         </div>
@@ -249,14 +318,14 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
   return (
     <>
       <Head>
-        <title>Ladda upp dokument - DOX Visumpartner</title>
+        <title>{t.pageTitle} - DOX Visumpartner</title>
       </Head>
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Ladda upp kompletterande dokument</h1>
-            <p className="text-gray-600">Order: #{documentRequest.orderNumber}</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.uploadDocs}</h1>
+            <p className="text-gray-600">{t.order}: #{documentRequest.orderNumber}</p>
           </div>
 
           {/* Message from handler */}
@@ -268,7 +337,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
                 </svg>
               </div>
               <div className="ml-4">
-                <h3 className="text-sm font-medium text-yellow-800 mb-1">Meddelande från handläggare:</h3>
+                <h3 className="text-sm font-medium text-yellow-800 mb-1">{t.messageFromHandler}</h3>
                 <p className="text-sm text-yellow-700 whitespace-pre-wrap">{documentRequest.customMessage}</p>
               </div>
             </div>
@@ -301,12 +370,12 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
                 </svg>
               </div>
               {isDragActive ? (
-                <p className="text-primary-600 font-medium">Släpp filerna här...</p>
+                <p className="text-primary-600 font-medium">{t.dropHere}</p>
               ) : (
                 <>
-                  <p className="text-gray-700 font-medium mb-1">Dra och släpp filer här</p>
-                  <p className="text-gray-500 text-sm">eller klicka för att välja filer</p>
-                  <p className="text-gray-400 text-xs mt-2">PDF, bilder, Word-dokument (max 25 MB per fil)</p>
+                  <p className="text-gray-700 font-medium mb-1">{t.dragAndDrop}</p>
+                  <p className="text-gray-500 text-sm">{t.orClickToSelect}</p>
+                  <p className="text-gray-400 text-xs mt-2">{t.fileTypes}</p>
                 </>
               )}
             </div>
@@ -314,7 +383,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
             {/* Selected files */}
             {files.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Valda filer ({files.length})</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">{t.selectedFiles} ({files.length})</h3>
                 <ul className="space-y-2">
                   {files.map((file, index) => (
                     <li key={index} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
@@ -360,14 +429,14 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Laddar upp...
+                  {t.uploading}
                 </>
               ) : (
                 <>
                   <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
-                  Ladda upp {files.length} {files.length === 1 ? 'fil' : 'filer'}
+                  {t.uploadFiles} {files.length} {files.length === 1 ? t.file : t.files}
                 </>
               )}
             </button>
@@ -375,7 +444,7 @@ export default function UploadDocumentsPage({ token, documentRequest, error }: U
 
           {/* Help text */}
           <div className="text-center text-sm text-gray-500">
-            <p>Har du frågor? Kontakta oss på <a href="mailto:info@doxvl.se" className="text-primary-600 hover:underline">info@doxvl.se</a></p>
+            <p>{t.questions} <a href="mailto:info@doxvl.se" className="text-primary-600 hover:underline">info@doxvl.se</a></p>
           </div>
         </div>
       </div>
@@ -417,12 +486,12 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
           customerName: data.customerName,
           status: data.status,
           expiresAt: data.expiresAt,
+          locale: data.locale || 'sv',
           uploadedFiles: data.uploadedFiles || []
         }
       }
     };
   } catch (error) {
-    console.error('Error fetching document request:', error);
     return { props: { token, documentRequest: null, error: 'Server error' } };
   }
 };

@@ -16,6 +16,8 @@ function initializeFirebaseAdmin() {
     return admin.app();
   }
 
+  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'doxvl-51a30.firebasestorage.app';
+
   // Try to use environment variable first (works in both local and production)
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
   
@@ -25,6 +27,7 @@ function initializeFirebaseAdmin() {
       return admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id,
+        storageBucket,
       });
     } catch (parseError) {
       console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', parseError);
@@ -39,12 +42,14 @@ function initializeFirebaseAdmin() {
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: serviceAccount.project_id,
+      storageBucket,
     });
   } catch (e) {
     // Fallback: Try default credentials (works in Google Cloud environments)
     console.warn('No service account found, trying default credentials');
     return admin.initializeApp({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'doxvl-51a30',
+      storageBucket,
     });
   }
 }

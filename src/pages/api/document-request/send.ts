@@ -156,6 +156,7 @@ export default async function handler(
       requestedDocuments: requestedDocuments || [],
       customerEmail,
       customerName,
+      locale: orderLocale, // Save customer's language preference
       createdAt: new Date().toISOString(),
       expiresAt: expiresAt.toISOString(),
       status: 'pending', // pending, uploaded, expired
