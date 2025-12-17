@@ -73,15 +73,6 @@ function DriverDashboardPage() {
 
   const handleSaveDailyReport = async () => {
     try {
-      console.log('📝 handleSaveDailyReport called', {
-        selectedDate,
-        hoursWorked,
-        parkingCost,
-        embassyCost,
-        otherCost,
-        driverNotes,
-      });
-
       setIsSavingDailyReport(true);
       setSaveDailyMessage(null);
 
@@ -95,11 +86,9 @@ function DriverDashboardPage() {
         notes: driverNotes,
       });
 
-      console.log('✅ Daily driver report saved');
       setSaveDailyMessage('Dagsrapport sparad.');
       await loadMonthlySummaryForSelectedDate();
     } catch (error) {
-      console.error('❌ Failed to save driver daily report', error);
       setSaveDailyMessage('Kunde inte spara dagsrapporten. Försök igen eller kontakta kontoret.');
     } finally {
       setIsSavingDailyReport(false);
@@ -214,11 +203,9 @@ function DriverDashboardPage() {
 
       if (typeof window !== 'undefined') {
         const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
-        console.log('📧 Opening monthly report email', { to, subject, bodyLines });
         window.location.href = mailto;
       }
     } catch (error) {
-      console.error('❌ Failed to open monthly driver report email', error);
       setMonthlyMessage('Kunde inte hämta månadsrapporten. Försök igen eller kontakta kontoret.');
     } finally {
       setIsOpeningMonthlyEmail(false);
@@ -228,6 +215,12 @@ function DriverDashboardPage() {
   // Simplified version of initializeProcessingSteps for driver dashboard
   const initializeProcessingSteps = (orderData: Order): ProcessingStep[] => {
     const steps: ProcessingStep[] = [];
+
+    const toDateOrUndefined = (ymd?: string) => {
+      if (!ymd) return undefined;
+      const d = new Date(ymd + 'T00:00:00');
+      return Number.isNaN(d.getTime()) ? undefined : d;
+    };
 
     // Document receipt - always needed for processing
     if (orderData.documentSource !== 'upload') {
@@ -250,6 +243,20 @@ function DriverDashboardPage() {
         description: `Upphämtning bokad från ${orderData.pickupAddress?.street || 'kundadress'}`,
         status: 'pending',
         expectedCompletionDate: new Date() // Today - ready for pickup
+      });
+    }
+
+    // Stockholm City Courier pickup (special task for own driver)
+    if (orderData.pickupService && orderData.pickupMethod === 'stockholm-city') {
+      const premium = orderData.premiumPickup || '';
+      const level = premium === 'stockholm-sameday' ? 'Urgent (2h)' : premium === 'stockholm-express' ? 'Express (4h)' : 'End of day';
+      steps.push({
+        id: 'stockholm_courier_pickup',
+        name: '🚚 Stockholm Courier - hämta',
+        description: `Hämta hos kund (${level})`,
+        status: 'pending',
+        expectedCompletionDate: toDateOrUndefined(orderData.pickupDate) || new Date(),
+        submittedAt: toDateOrUndefined(orderData.pickupDate) || new Date(),
       });
     }
 
@@ -373,38 +380,42 @@ function DriverDashboardPage() {
       expectedCompletionDate: new Date() // Today when ready
     });
 
+    // Stockholm City Courier return delivery (special task for own driver)
+    if (orderData.returnService === 'stockholm-city') {
+      const premium = orderData.premiumDelivery || '';
+      const level = premium === 'stockholm-sameday' ? 'Urgent (2h)' : premium === 'stockholm-express' ? 'Express (4h)' : 'End of day';
+      steps.push({
+        id: 'stockholm_courier_delivery',
+        name: '🚚 Stockholm Courier - lämna',
+        description: `Leverera till kund (${level})`,
+        status: 'pending',
+        expectedCompletionDate: toDateOrUndefined(orderData.returnDeliveryDate) || new Date(),
+        submittedAt: toDateOrUndefined(orderData.returnDeliveryDate) || new Date(),
+      });
+    }
+
     return steps;
   };
 
   const fetchDriverTasks = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Starting to fetch driver tasks...');
-      console.log('📅 Selected date:', selectedDate);
 
       const orders = (await getAllOrders()).filter(
         (order) => order.status === 'pending' || order.status === 'processing'
       );
-      console.log(`📊 Total active orders for driver (pending/processing): ${orders.length}`);
 
       const driverTasks: DriverTask[] = [];
       const ordersToUpdate: Array<{orderId: string, processingSteps: ProcessingStep[]}> = [];
 
       orders.forEach((order: Order) => {
-        console.log(`🏷️  Processing order ${order.id}: pickupService=${order.pickupService}, services=${JSON.stringify(order.services)}`);
-        console.log(`   📋 Order number: ${order.orderNumber}`);
-        console.log(`   📅 Order created: ${order.createdAt?.toDate().toISOString()}`);
-        console.log(`   📋 Processing steps count: ${order.processingSteps?.length || 0}`);
-
         // Initialize processing steps if they don't exist
         let processingSteps = order.processingSteps;
         let needsUpdate = false;
 
         if (!processingSteps || !Array.isArray(processingSteps) || processingSteps.length === 0) {
-          console.log(`   ⚠️  No processing steps found, creating new ones...`);
           processingSteps = initializeProcessingSteps(order);
           needsUpdate = true;
-          console.log(`   ✅ Created ${processingSteps.length} processing steps for ${order.id}`);
         }
 
         if (needsUpdate) {
@@ -415,13 +426,10 @@ function DriverDashboardPage() {
         }
 
         if (processingSteps && Array.isArray(processingSteps)) {
-          console.log(`   🔄 Processing ${processingSteps.length} steps...`);
-
           // Check if we need to add pickup steps for existing orders
           const hasDeliverySteps = processingSteps.some(step =>
             ['notarization', 'chamber_processing', 'apostille', 'ud_processing', 'embassy_processing'].includes(step.id)
           );
-          console.log(`   📦 Has delivery steps: ${hasDeliverySteps}`);
 
           if (hasDeliverySteps) {
             // Add corresponding pickup steps for existing orders
@@ -429,7 +437,6 @@ function DriverDashboardPage() {
 
             if (processingSteps.some(step => step.id === 'notarization' && step.status === 'completed') &&
                 !processingSteps.some(step => step.id === 'notarization_pickup')) {
-              console.log(`   ➕ Adding notarization pickup step...`);
               const notarizationStep = processingSteps.find(step => step.id === 'notarization');
               if (notarizationStep?.completedAt) {
                 pickupStepsToAdd.push({
@@ -445,7 +452,6 @@ function DriverDashboardPage() {
 
             if (processingSteps.some(step => step.id === 'chamber_processing' && step.status === 'completed') &&
                 !processingSteps.some(step => step.id === 'chamber_pickup')) {
-              console.log(`   ➕ Adding chamber pickup step...`);
               const chamberStep = processingSteps.find(step => step.id === 'chamber_processing');
               if (chamberStep?.completedAt) {
                 pickupStepsToAdd.push({
@@ -461,7 +467,6 @@ function DriverDashboardPage() {
 
             if (processingSteps.some(step => step.id === 'apostille' && step.status === 'completed') &&
                 !processingSteps.some(step => step.id === 'apostille_pickup')) {
-              console.log(`   ➕ Adding apostille pickup step...`);
               const apostilleStep = processingSteps.find(step => step.id === 'apostille');
               if (apostilleStep?.completedAt) {
                 pickupStepsToAdd.push({
@@ -477,7 +482,6 @@ function DriverDashboardPage() {
 
             if (processingSteps.some(step => step.id === 'ud_processing' && step.status === 'completed') &&
                 !processingSteps.some(step => step.id === 'ud_pickup')) {
-              console.log(`   ➕ Adding ud pickup step...`);
               const udStep = processingSteps.find(step => step.id === 'ud_processing');
               if (udStep?.completedAt) {
                 pickupStepsToAdd.push({
@@ -493,7 +497,6 @@ function DriverDashboardPage() {
 
             if (processingSteps.some(step => step.id === 'embassy_processing' && step.status === 'completed') &&
                 !processingSteps.some(step => step.id === 'embassy_pickup')) {
-              console.log(`   ➕ Adding embassy pickup step...`);
               const embassyStep = processingSteps.find(step => step.id === 'embassy_processing');
               if (embassyStep?.completedAt) {
                 pickupStepsToAdd.push({
@@ -510,15 +513,10 @@ function DriverDashboardPage() {
             if (pickupStepsToAdd.length > 0) {
               processingSteps.push(...pickupStepsToAdd);
               needsUpdate = true;
-              console.log(`   ✅ Added ${pickupStepsToAdd.length} pickup steps for ${order.id}`);
             }
           }
 
           processingSteps.forEach((step: ProcessingStep) => {
-            console.log(`   📋 Step: ${step.id} (${step.status}) - ${step.name}`);
-            console.log(`      📅 Expected: ${step.expectedCompletionDate ? new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0] : 'N/A'}`);
-            console.log(`      📅 Submitted: ${step.submittedAt ? new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] : 'N/A'}`);
-
             let taskType: 'pickup' | 'delivery' | null = null;
             let authority = '';
             let address = '';
@@ -527,6 +525,10 @@ function DriverDashboardPage() {
             if (step.id === 'pickup_booking' && order.pickupService) {
               taskType = 'pickup';
               authority = 'Kundadress';
+              address = `${order.pickupAddress?.street || ''}, ${order.pickupAddress?.postalCode || ''} ${order.pickupAddress?.city || ''}`;
+            } else if (step.id === 'stockholm_courier_pickup') {
+              taskType = 'pickup';
+              authority = 'Stockholm City Courier';
               address = `${order.pickupAddress?.street || ''}, ${order.pickupAddress?.postalCode || ''} ${order.pickupAddress?.city || ''}`;
             } else if (step.id === 'document_receipt') {
               taskType = 'pickup';
@@ -588,9 +590,16 @@ function DriverDashboardPage() {
               taskType = 'pickup';
               authority = 'Fraktleverantör';
               address = 'Fraktleverantörens terminal';
+            } else if (step.id === 'stockholm_courier_delivery') {
+              taskType = 'delivery';
+              authority = 'Stockholm City Courier';
+              const a = (order as any).returnAddress || {};
+              const line1 = [a.firstName, a.lastName].filter(Boolean).join(' ').trim();
+              const line2 = [a.companyName].filter(Boolean).join(' ').trim();
+              const line3 = [a.street, a.addressLine2].filter(Boolean).join(', ').trim();
+              const line4 = [a.postalCode, a.city].filter(Boolean).join(' ').trim();
+              address = [line1, line2, line3, line4].filter(Boolean).join(' | ');
             }
-
-            console.log(`      -> Task type: ${taskType}, Authority: ${authority}`);
 
             // Only show tasks that have dates (submitted or expected) AND are relevant for today
             // Skip internal locations that driver doesn't deliver to
@@ -601,17 +610,12 @@ function DriverDashboardPage() {
                   new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] :
                   new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0];
 
-                console.log(`      📅 Task date calculated: ${taskDate}`);
-
                 // Only show tasks for the selected date
                 const selectedDateObj = new Date(selectedDate + 'T00:00:00');
                 const taskDateObj = new Date(taskDate);
                 const daysDiff = Math.floor((taskDateObj.getTime() - selectedDateObj.getTime()) / (1000 * 60 * 60 * 24));
 
-                console.log(`      📊 Date comparison: selected=${selectedDate}, task=${taskDate}, diff=${daysDiff} days`);
-
                 if (daysDiff === 0) { // Only show tasks for the exact selected date
-                  console.log(`      ✅ Adding task to driverTasks: ${step.name} (${authority})`);
                   driverTasks.push({
                     orderId: order.id || '',
                     orderNumber: order.orderNumber || order.id || '',
@@ -626,62 +630,26 @@ function DriverDashboardPage() {
                     notes: step.notes,
                     stepId: step.id // Include the actual step ID from processingSteps
                   });
-                } else {
-                  console.log(`      ❌ Date out of range: ${daysDiff} days (${taskDate})`);
                 }
               } catch (dateError) {
-                console.error('Error processing date for step:', step.id, dateError);
               }
-            } else {
-              console.log(`      ❌ Filtered out: ${!taskType ? 'no taskType' : 'no dates or excluded authority'} (${authority})`);
             }
           });
         }
       });
 
-      console.log('📊 Total driver tasks created:', driverTasks.length);
-
-      // Group tasks by type for debugging
-      const pickupTasks = driverTasks.filter(t => t.type === 'pickup');
-      const deliveryTasks = driverTasks.filter(t => t.type === 'delivery');
-      console.log(`📦 Pickups: ${pickupTasks.length}, 📤 Deliveries: ${deliveryTasks.length}`);
-
-      // Log sample of tasks being created
-      if (pickupTasks.length > 0) {
-        console.log('🔍 Sample pickup tasks:', pickupTasks.slice(0, 2).map(t => ({
-          orderId: t.orderId,
-          stepId: t.stepId,
-          stepName: t.stepName,
-          status: t.status,
-          date: t.date
-        })));
-      }
-      if (deliveryTasks.length > 0) {
-        console.log('🔍 Sample delivery tasks:', deliveryTasks.slice(0, 2).map(t => ({
-          orderId: t.orderId,
-          stepId: t.stepId,
-          stepName: t.stepName,
-          status: t.status,
-          date: t.date
-        })));
-      }
-
       // Save newly created processingSteps back to Firebase
       if (ordersToUpdate.length > 0) {
-        console.log(`💾 Saving processingSteps for ${ordersToUpdate.length} orders...`);
         for (const update of ordersToUpdate) {
           try {
             await updateOrder(update.orderId, { processingSteps: update.processingSteps });
-            console.log(`   ✅ Saved processingSteps for order ${update.orderId}`);
           } catch (error) {
-            console.error(`   ❌ Failed to save processingSteps for order ${update.orderId}:`, error);
           }
         }
       }
 
       setTasks(driverTasks);
     } catch (error) {
-      console.error('❌ Error fetching driver tasks:', error);
       setTasks([]);
     } finally {
       setLoading(false);

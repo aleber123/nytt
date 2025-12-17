@@ -11,7 +11,9 @@ import { StepProps } from '../types';
 const DOCUMENT_TYPES = [
   { id: 'birthCertificate' },
   { id: 'marriageCertificate' },
+  { id: 'certificateOfOrigin' },
   { id: 'diploma' },
+  { id: 'passport' },
   { id: 'commercial' },
   { id: 'powerOfAttorney' },
   { id: 'other' }
@@ -109,8 +111,8 @@ export const Step2DocumentType: React.FC<StepProps> = ({
                   : 'border-gray-200 hover:border-custom-button hover:bg-custom-button-bg'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-medium text-gray-900">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-lg font-medium text-gray-900 break-words">
                   {t(`orderFlow.step2.${docType.id}`, docType.id)}
                 </span>
                 <input
@@ -120,7 +122,7 @@ export const Step2DocumentType: React.FC<StepProps> = ({
                     e.stopPropagation();
                     handleToggleDocumentType(docType.id);
                   }}
-                  className="h-5 w-5 accent-custom-button rounded focus:ring-custom-button pointer-events-none"
+                  className="h-5 w-5 accent-custom-button rounded focus:ring-custom-button pointer-events-none self-start sm:self-auto"
                   tabIndex={-1}
                   readOnly
                 />

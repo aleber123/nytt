@@ -30,6 +30,8 @@ export interface Order {
   expedited: boolean;
   documentSource: string; // 'original' or 'upload'
   pickupService: boolean; // Whether pickup service is requested
+  pickupMethod?: string; // Pickup service ID (dhl-sweden, dhl-europe, dhl-worldwide, stockholm-city, etc)
+  premiumPickup?: string; // Premium pickup option ID (e.g. stockholm-express, stockholm-sameday)
   pickupAddress?: { // Pickup address details
     street: string;
     postalCode: string;
@@ -39,7 +41,22 @@ export interface Order {
   pickupTimeWindow?: string; // Optional pickup time window label/value
   scannedCopies: boolean; // Whether scanned copies are requested
   returnService: string; // Return service selection
+  premiumDelivery?: string; // Premium delivery option ID (e.g. stockholm-express, stockholm-sameday)
+  returnDeliveryDate?: string; // Desired delivery date (YYYY-MM-DD) for Stockholm courier return
   deliveryAddressType?: 'business' | 'residential'; // Whether delivery is to business or home address
+  returnAddress?: {
+    firstName?: string;
+    lastName?: string;
+    companyName?: string;
+    street?: string;
+    addressLine2?: string;
+    postalCode?: string;
+    city?: string;
+    country?: string;
+    countryCode?: string;
+    phone?: string;
+    email?: string;
+  };
   customerInfo?: {
     firstName?: string;
     lastName?: string;

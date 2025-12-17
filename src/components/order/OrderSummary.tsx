@@ -73,8 +73,10 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
     const names: { [key: string]: string } = {
       birthCertificate: 'Födelsebevis',
       marriageCertificate: 'Vigselbevis',
+      certificateOfOrigin: 'Ursprungscertifikat (COO)',
       deathCertificate: 'Dödsbevis',
       diploma: 'Examensbevis',
+      passport: 'Pass',
       transcript: 'Studieutdrag',
       criminalRecord: 'Utdrag ur belastningsregistret',
       other: 'Annat dokument'
@@ -193,7 +195,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
       {/* Header */}
       <div className="border-b border-gray-200 pb-4 mb-4">
         <h3 className="text-lg font-bold text-gray-900">
@@ -204,9 +206,9 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
       {/* Country */}
       {answers.country && (
         <div className="mb-4">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
             <span className="text-gray-600">{currentLocale === 'en' ? 'Country' : 'Land'}:</span>
-            <span className="font-semibold text-gray-900">{getCountryName(answers.country)}</span>
+            <span className="font-semibold text-gray-900 break-words">{getCountryName(answers.country)}</span>
           </div>
         </div>
       )}
@@ -214,12 +216,12 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
       {/* Document Type */}
       {documentTypesToDisplay.length > 0 && (
         <div className="mb-4">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
             <span className="text-gray-600">{currentLocale === 'en' ? 'Document Type' : 'Dokumenttyp'}:</span>
           </div>
           <div className="mt-1 ml-4 space-y-0.5">
             {documentTypesToDisplay.map((type: string) => (
-              <div key={type} className="text-xs text-gray-600">
+              <div key={type} className="text-xs text-gray-600 break-words">
                 • {getDocumentTypeName(type)}
               </div>
             ))}
@@ -232,14 +234,14 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
         const breakdown = getQuantityBreakdown();
         return (
           <div className="mb-4">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span className="text-gray-600">{currentLocale === 'en' ? 'Number of documents' : 'Antal dokument'}:</span>
-              <span className="font-semibold text-gray-900">{breakdown.totalLabel}</span>
+              <span className="font-semibold text-gray-900 break-words">{breakdown.totalLabel}</span>
             </div>
             {breakdown.parts.length > 0 && (
               <div className="mt-1 ml-4 space-y-0.5">
                 {breakdown.parts.map((part: string) => (
-                  <div key={part} className="text-xs text-gray-600">• {part}</div>
+                  <div key={part} className="text-xs text-gray-600 break-words">• {part}</div>
                 ))}
               </div>
             )}

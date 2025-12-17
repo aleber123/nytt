@@ -375,11 +375,11 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                     <div className="bg-white rounded-lg p-4 mb-6 border border-gray-200">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center mb-2">
+                          <div className="flex flex-wrap items-center mb-2">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusText(orderStatus.status).color} mr-3`}>
                               {getStatusText(orderStatus.status).text}
                             </span>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-gray-500 break-words">
                               {t('orderStatus.orderNumber')}: {orderStatus.orderNumber}
                             </span>
                           </div>
@@ -425,7 +425,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                           <p className="text-sm text-gray-500 mb-1">
                             {t('orderStatus.trackingNumber')}:
                           </p>
-                          <p>{orderStatus.trackingNumber}</p>
+                          <p className="break-words">{orderStatus.trackingNumber}</p>
                         </div>
                       )}
 
@@ -451,13 +451,13 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                             <p className="text-sm text-gray-500 mb-1">
                               {t('orderStatus.returnTrackingNumber')}:
                             </p>
-                            <p className="font-mono text-sm font-medium">{orderStatus.returnTrackingNumber}</p>
+                            <p className="font-mono text-sm font-medium break-all">{orderStatus.returnTrackingNumber}</p>
                             {(orderStatus as any).returnTrackingUrl && (
                               <a 
                                 href={(orderStatus as any).returnTrackingUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
+                                className="inline-flex items-center mt-2 text-sm text-blue-600 hover:text-blue-800 underline break-words"
                               >
                                 {t('orderStatus.trackShipment')} →
                               </a>
@@ -485,7 +485,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                         <p className="text-sm text-gray-500 mb-1">
                           {t('orderStatus.service')}:
                         </p>
-                        <p>
+                        <p className="break-words">
                           {Array.isArray(orderStatus.services)
                             ? orderStatus.services.map((service: string) => t(`services.${service}.title`) || service).join(', ')
                             : t(`services.${orderStatus.service}.title`) || orderStatus.service

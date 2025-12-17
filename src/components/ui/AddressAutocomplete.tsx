@@ -11,46 +11,77 @@ declare global {
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (data: {
+    street?: string;
+    postalCode?: string;
+    city?: string;
+    countryCode?: string;
+    formattedAddress?: string;
+  }) => void;
   placeholder?: string;
   className?: string;
   required?: boolean;
+  countryRestriction?: string | string[];
 }
 
 const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   value,
   onChange,
+  onSelect,
   placeholder = "Sök adress...",
   className = "",
-  required = false
+  required = false,
+  countryRestriction = 'se'
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed' | 'fallback'>('loading');
   const [inputValue, setInputValue] = useState(value);
 
-  // Load Google Maps API using script tag (more reliable than @googlemaps/js-api-loader)
+  // Load Google Maps API using script tag
   useEffect(() => {
-    const loadGoogleMaps = () => {
-      // Check if Google Maps is already loaded
+    let timeoutId: NodeJS.Timeout;
+    let pollId: NodeJS.Timeout;
+
+    const checkGoogleReady = () => {
       if (window.google && window.google.maps && window.google.maps.places) {
         setStatus('ready');
-        return;
+        return true;
       }
+      return false;
+    };
 
-      // Check if script is already loading
-      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-        return;
-      }
+    const loadGoogleMaps = () => {
+      // Check if Google Maps is already loaded
+      if (checkGoogleReady()) return;
 
       // Use environment variable for API key
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
       if (!apiKey) {
-        console.error('❌ No Google Maps API key found');
         setStatus('fallback');
         return;
       }
 
+      // Check if script is already loading/loaded
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript) {
+        // Script exists, poll until Google is ready
+        pollId = setInterval(() => {
+          if (checkGoogleReady()) {
+            clearInterval(pollId);
+          }
+        }, 200);
+
+        // Timeout after 10 seconds
+        timeoutId = setTimeout(() => {
+          clearInterval(pollId);
+          if (!checkGoogleReady()) {
+            setStatus('fallback');
+          }
+        }, 10000);
+        return;
+      }
 
       // Create callback function
       window.initGoogleMapsCallback = () => {
@@ -63,26 +94,26 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       script.async = true;
       script.defer = true;
 
-      script.onload = () => {};
-
       script.onerror = () => {
         setStatus('fallback');
       };
 
       document.head.appendChild(script);
 
-      // Increased timeout and better status checking
-      const timeoutId = setTimeout(() => {
-        if (status === 'loading') {
+      // Timeout fallback
+      timeoutId = setTimeout(() => {
+        if (!checkGoogleReady()) {
           setStatus('fallback');
         }
-      }, 15000);
-
-      // Cleanup timeout on unmount
-      return () => clearTimeout(timeoutId);
+      }, 10000);
     };
 
     loadGoogleMaps();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (pollId) clearInterval(pollId);
+    };
   }, []);
 
   // Initialize autocomplete when Google Maps is ready
@@ -90,10 +121,47 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     if (status === 'ready' && inputRef.current && window.google && window.google.maps && window.google.maps.places) {
       try {
 
+        const normalizeCountryRestriction = () => {
+          if (!countryRestriction) return undefined;
+          if (Array.isArray(countryRestriction)) {
+            const list = countryRestriction.map((c) => (c || '').toLowerCase()).filter(Boolean);
+            return list.length ? list : undefined;
+          }
+          const single = (countryRestriction || '').toLowerCase();
+          return single ? single : undefined;
+        };
+
+        const parsePlace = (place: any) => {
+          const components = place?.address_components || [];
+          const get = (type: string, useShort = false) => {
+            const comp = components.find((c: any) => Array.isArray(c.types) && c.types.includes(type));
+            if (!comp) return '';
+            return useShort ? (comp.short_name || '') : (comp.long_name || '');
+          };
+
+          const streetNumber = get('street_number');
+          const route = get('route');
+          const postalCode = get('postal_code');
+          const postalTown = get('postal_town');
+          const locality = get('locality');
+          const sublocality = get('sublocality');
+          const city = postalTown || locality || sublocality;
+          const countryCode = get('country', true);
+          const street = [route, streetNumber].filter(Boolean).join(' ').trim();
+
+          return {
+            street: street || undefined,
+            postalCode: postalCode || undefined,
+            city: city || undefined,
+            countryCode: countryCode || undefined,
+            formattedAddress: place?.formatted_address || undefined
+          };
+        };
+
         const autocomplete = new window.google.maps.places.Autocomplete(
           inputRef.current,
           {
-            componentRestrictions: { country: 'se' },
+            componentRestrictions: normalizeCountryRestriction() ? { country: normalizeCountryRestriction() } : undefined,
             fields: ['formatted_address', 'address_components'],
             types: ['address']
           }
@@ -105,6 +173,9 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             const address = place.formatted_address;
             setInputValue(address);
             onChange(address);
+            if (onSelect) {
+              onSelect(parsePlace(place));
+            }
           } else {
             onChange(inputValue);
           }
@@ -116,7 +187,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         setStatus('fallback');
       }
     }
-  }, [status, onChange, inputValue]);
+  }, [status, onChange, onSelect, inputValue, countryRestriction]);
 
   // Update local input value when prop changes
   useEffect(() => {
@@ -143,43 +214,6 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         required={required}
       />
 
-      {/* Status indicators */}
-      {status === 'loading' && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-        </div>
-      )}
-
-      {status === 'ready' && autocompleteRef.current && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <span className="text-xs text-green-600">✅ Active</span>
-        </div>
-      )}
-
-      {status === 'failed' && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <span className="text-xs text-red-600">❌ Failed</span>
-        </div>
-      )}
-
-      {status === 'fallback' && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <span className="text-xs text-blue-600">📝 Manual</span>
-        </div>
-      )}
-
-      {/* Help text */}
-      {status === 'fallback' && (
-        <p className="text-xs text-gray-500 mt-1">
-          Skriv din adress manuellt (Google Maps är inte tillgängligt)
-        </p>
-      )}
-
-      {status === 'ready' && autocompleteRef.current && (
-        <p className="text-xs text-gray-500 mt-1">
-          💡 Skriv för att få adressförslag från Google Maps
-        </p>
-      )}
     </div>
   );
 };

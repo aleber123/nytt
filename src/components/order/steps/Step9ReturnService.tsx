@@ -33,11 +33,80 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
 }) => {
   const { t } = useTranslation('common');
 
+  const getStockholmNow = () => {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Stockholm',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(now);
+
+    const get = (type: string) => parts.find((p) => p.type === type)?.value;
+    const year = Number(get('year'));
+    const month = Number(get('month'));
+    const day = Number(get('day'));
+    const hour = Number(get('hour'));
+    const minute = Number(get('minute'));
+
+    return { year, month, day, hour, minute };
+  };
+
+  const formatYmd = (y: number, m: number, d: number) => {
+    const mm = String(m).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    return `${y}-${mm}-${dd}`;
+  };
+
+  const getNextBusinessDay = (ymd: string) => {
+    const [y, m, d] = ymd.split('-').map((v) => Number(v));
+    const date = new Date(Date.UTC(y, m - 1, d));
+    date.setUTCDate(date.getUTCDate() + 1);
+    while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+      date.setUTCDate(date.getUTCDate() + 1);
+    }
+    return formatYmd(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+  };
+
+  const isStockholmOptionAvailableToday = (leadHours: number) => {
+    const { year, month, day, hour, minute } = getStockholmNow();
+    const todayYmd = formatYmd(year, month, day);
+    const selected = answers.returnDeliveryDate || todayYmd;
+
+    if (selected !== todayYmd) return true;
+
+    const openMinutes = 8 * 60;
+    const closeMinutes = 15 * 60;
+    const nowMinutes = hour * 60 + minute;
+
+    if (nowMinutes >= closeMinutes) return false;
+
+    const effectiveStart = Math.max(nowMinutes, openMinutes);
+    const readyAt = effectiveStart + leadHours * 60;
+    return readyAt <= closeMinutes;
+  };
+
+  const getEarliestStockholmDeliveryDate = () => {
+    const { year, month, day, hour, minute } = getStockholmNow();
+    const todayYmd = formatYmd(year, month, day);
+    const closeMinutes = 15 * 60;
+    const nowMinutes = hour * 60 + minute;
+    if (nowMinutes >= closeMinutes) return getNextBusinessDay(todayYmd);
+    return todayYmd;
+  };
+
   const handleServiceSelect = (serviceId: string) => {
     setAnswers({
       ...answers,
       returnService: serviceId,
       premiumDelivery: '', // Reset premium delivery when changing base service
+      billingInfo: {
+        ...answers.billingInfo,
+        sameAsReturn: serviceId === 'own-delivery' ? false : answers.billingInfo.sameAsReturn
+      },
       // Clear tracking number when switching away from own-delivery
       ownReturnTrackingNumber: serviceId === 'own-delivery' ? answers.ownReturnTrackingNumber : ''
     });
@@ -56,14 +125,40 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
   );
 
   // Premium DHL options
-  const dhlPremiumOptions = returnServices.filter(
-    service => ['dhl-pre-12', 'dhl-pre-9'].includes(service.id)
-  );
+  const dhlPremiumOptions = returnServices
+    .filter(service => ['dhl-pre-12', 'dhl-pre-9'].includes(service.id))
+    .sort((a, b) => {
+      const order = ['dhl-pre-12', 'dhl-pre-9'];
+      return order.indexOf(a.id) - order.indexOf(b.id);
+    });
+
+  const dhlTimeOptions = [
+    {
+      id: '',
+      name: t('orderFlow.step9.dhlEndOfDayName', 'End of day (standard)'),
+      description: t('orderFlow.step9.dhlEndOfDayDescription', 'Leverans sker innan dagens slut'),
+      price: ''
+    },
+    ...dhlPremiumOptions
+  ];
 
   // Premium Stockholm options
-  const stockholmPremiumOptions = returnServices.filter(
-    service => ['stockholm-express', 'stockholm-sameday'].includes(service.id)
-  );
+  const stockholmPremiumOptions = returnServices
+    .filter(service => ['stockholm-express', 'stockholm-sameday'].includes(service.id))
+    .sort((a, b) => {
+      const order = ['stockholm-express', 'stockholm-sameday'];
+      return order.indexOf(a.id) - order.indexOf(b.id);
+    });
+
+  const stockholmTimeOptions = [
+    {
+      id: '',
+      name: t('orderFlow.step9.stockholmStandardName', 'Standard (end of day)'),
+      description: t('orderFlow.step9.stockholmStandardDescription', 'Leverans sker under dagen'),
+      price: ''
+    },
+    ...stockholmPremiumOptions
+  ];
 
   const showDHLPremium = answers.returnService && ['dhl-sweden', 'dhl-europe', 'dhl-worldwide'].includes(answers.returnService);
   const showStockholmPremium = answers.returnService === 'stockholm-city';
@@ -109,21 +204,27 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
               {/* Base Service */}
               <button
                 onClick={() => handleServiceSelect(service.id)}
-                className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+                className={`w-full p-4 sm:p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                   answers.returnService === service.id
                     ? 'border-custom-button bg-custom-button-bg'
                     : 'border-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center">
                     <div className="text-left">
-                      <div className="text-lg font-medium text-gray-900">{service.name}</div>
-                      <div className="text-gray-600">{service.description}</div>
+                      <div className="text-lg font-medium text-gray-900 break-words">
+                        {t(`orderFlow.step9.services.${service.id}.name`, service.name)}
+                      </div>
+                      <div className="text-gray-600 break-words">
+                        {t(`orderFlow.step9.services.${service.id}.description`, service.description)}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold text-custom-button">{service.price}</div>
+                  <div className="text-left sm:text-right">
+                    <div className="text-lg font-semibold text-custom-button break-words">
+                      {t(`orderFlow.step9.services.${service.id}.price`, service.price)}
+                    </div>
                     <div className="text-xs text-gray-500">{service.provider}</div>
                   </div>
                 </div>
@@ -133,10 +234,10 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
               {answers.returnService === service.id && showDHLPremium && (
                 <div className="mt-4 ml-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="text-sm font-medium text-blue-900 mb-3">
-                    🚀 {t('orderFlow.step9.premiumDelivery', 'Premiumleverans (valfritt)')}
+                    🚀 {t('orderFlow.step9.deliveryTimeOptions', 'Välj leveranstid')}
                   </h4>
-                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step9.premiumDelivery', 'Premiumleverans (valfritt)')}>
-                    {dhlPremiumOptions.map((premium) => (
+                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step9.deliveryTimeOptions', 'Välj leveranstid')}>
+                    {dhlTimeOptions.map((premium) => (
                       <label
                         key={premium.id}
                         className="flex items-center space-x-3 cursor-pointer hover:bg-blue-100 p-2 rounded transition-colors"
@@ -155,12 +256,21 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                           tabIndex={-1}
                         />
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">{premium.name}</div>
-                          <div className="text-xs text-gray-600">{premium.description}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {premium.id
+                              ? t(`orderFlow.step9.services.${premium.id}.name`, premium.name)
+                              : premium.name}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {premium.id
+                              ? t(`orderFlow.step9.services.${premium.id}.description`, premium.description)
+                              : premium.description}
+                          </div>
                         </div>
                         <div className="text-sm font-semibold text-custom-button">
                           {(() => {
-                            const rawPrice = premium.price;
+                            if (!premium.id) return t('orderFlow.step9.noExtraCost', '+0 kr');
+                            const rawPrice = t(`orderFlow.step9.services.${premium.id}.price`, premium.price);
                             if (rawPrice.startsWith('Från +')) return rawPrice;
                             if (rawPrice.startsWith('Från ')) {
                               return `Från +${rawPrice.slice('Från '.length)}`;
@@ -177,34 +287,92 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
               {/* Stockholm Premium Options */}
               {answers.returnService === service.id && showStockholmPremium && (
                 <div className="mt-4 ml-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="mb-4">
+                    <label htmlFor="return-delivery-date" className="block text-sm font-medium text-green-900 mb-1">
+                      {t('orderFlow.step9.stockholmDeliveryDateLabel', 'Önskat leveransdatum')}
+                    </label>
+                    <input
+                      id="return-delivery-date"
+                      type="date"
+                      value={answers.returnDeliveryDate || ''}
+                      min={getEarliestStockholmDeliveryDate()}
+                      onChange={(e) =>
+                        setAnswers((prev) => ({
+                          ...prev,
+                          returnDeliveryDate: e.target.value
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button bg-white"
+                    />
+                  </div>
+
                   <h4 className="text-sm font-medium text-green-900 mb-3">
-                    ⚡ {t('orderFlow.step9.expressDelivery', 'Expressleverans (valfritt)')}
+                    ⚡ {t('orderFlow.step9.deliveryTimeOptionsStockholm', 'Välj leveranstid')}
                   </h4>
-                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step9.expressDelivery', 'Expressleverans (valfritt)')}>
-                    {stockholmPremiumOptions.map((premium) => (
+                  <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step9.deliveryTimeOptionsStockholm', 'Välj leveranstid')}>
+                    {stockholmTimeOptions.map((premium) => (
+                      (() => {
+                        const leadHours = !premium.id
+                          ? 0
+                          : premium.id === 'stockholm-sameday'
+                            ? 2
+                            : premium.id === 'stockholm-express'
+                              ? 4
+                              : 0;
+                        const isAvailable = isStockholmOptionAvailableToday(leadHours);
+
+                        return (
                       <label
                         key={premium.id}
-                        className="flex items-center space-x-3 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
+                        className={`flex items-center space-x-3 p-2 rounded transition-colors ${
+                          isAvailable ? 'cursor-pointer hover:bg-green-100' : 'opacity-50 cursor-not-allowed'
+                        }`}
                         role="radio"
                         aria-checked={answers.premiumDelivery === premium.id}
                         tabIndex={0}
-                        onKeyDown={(event) => handlePremiumOptionKeyDown(event, premium.id)}
+                        onKeyDown={(event) => {
+                          if (!isAvailable) return;
+                          handlePremiumOptionKeyDown(event, premium.id);
+                        }}
                       >
                         <input
                           type="radio"
                           name="premium-delivery"
                           value={premium.id}
                           checked={answers.premiumDelivery === premium.id}
-                          onChange={(e) => handlePremiumSelect(e.target.value)}
+                          onChange={(e) => {
+                            if (!isAvailable) return;
+                            handlePremiumSelect(e.target.value);
+                          }}
                           className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
                           tabIndex={-1}
+                          disabled={!isAvailable}
                         />
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">{premium.name}</div>
-                          <div className="text-xs text-gray-600">{premium.description}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {premium.id
+                              ? t(`orderFlow.step9.services.${premium.id}.name`, premium.name)
+                              : premium.name}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {premium.id
+                              ? t(`orderFlow.step9.services.${premium.id}.description`, premium.description)
+                              : premium.description}
+                          </div>
+                          {!isAvailable && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {t('orderFlow.step9.stockholmNotAvailableToday', 'Inte tillgänglig idag – välj annat alternativ eller en senare dag.')}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-sm font-semibold text-custom-button">{premium.price}</div>
+                        <div className="text-sm font-semibold text-custom-button">
+                          {!premium.id
+                            ? t('orderFlow.step9.noExtraCost', '+0 kr')
+                            : t(`orderFlow.step9.services.${premium.id}.price`, premium.price)}
+                        </div>
                       </label>
+                        );
+                      })()
                     ))}
                   </div>
                 </div>
@@ -228,7 +396,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                   : 'border-gray-200'
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-sm font-medium text-gray-900">
                     {t('orderFlow.step9.ownReturnTitle', 'Egen returfrakt (redan bokad)')}
@@ -240,7 +408,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                     )}
                   </div>
                 </div>
-                <div className="ml-4 text-right">
+                <div className="text-left sm:text-right sm:ml-4">
                   <div className="text-sm font-semibold text-custom-button">0 kr</div>
                 </div>
               </div>
@@ -265,7 +433,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                       'orderFlow.step9.ownReturnTrackingPlaceholder',
                       'Ange spårningsnummer för din retur...'
                     )}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm py-1 focus:ring-custom-button focus:border-custom-button sm:text-sm bg-white"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button bg-white"
                   />
                 </div>
               </div>
@@ -281,7 +449,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                   : 'border-gray-200'
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="text-sm font-medium text-gray-900">
                     {t('orderFlow.step9.officePickupTitle', 'Hämtning på vårt kontor')}
@@ -293,7 +461,7 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                     )}
                   </div>
                 </div>
-                <div className="ml-4 text-right">
+                <div className="text-left sm:text-right sm:ml-4">
                   <div className="text-sm font-semibold text-custom-button">0 kr</div>
                 </div>
               </div>

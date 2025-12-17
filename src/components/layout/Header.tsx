@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { useRouter } from 'next/router';
@@ -13,6 +13,17 @@ const Header: React.FC = () => {
     const value = t(key);
     return value === key ? fallback : value;
   };
+
+  useEffect(() => {
+    const handleRouteChangeComplete = () => {
+      setIsMenuOpen(false);
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+    };
+  }, [router.events]);
   
   const navigation = [
     { name: safeT('nav.home', 'Hem'), href: '/' },
@@ -135,6 +146,7 @@ const Header: React.FC = () => {
             <Link
               key={item.name}
               href={item.href}
+              onClick={() => setIsMenuOpen(false)}
               className={`block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 ${
                 router.pathname === item.href
                   ? 'text-custom-button bg-custom-button/10 font-semibold'
@@ -176,6 +188,7 @@ const Header: React.FC = () => {
             
             <Link
               href="/bestall"
+              onClick={() => setIsMenuOpen(false)}
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button shadow-sm transition-all duration-200 hover:shadow"
             >
               {t('nav.order')}

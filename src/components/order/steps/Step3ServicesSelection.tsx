@@ -89,7 +89,9 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
     const typeMap: { [key: string]: string } = {
       birthCertificate: t('orderFlow.step2.birthCertificate', 'Födelsebevis'),
       marriageCertificate: t('orderFlow.step2.marriageCertificate', 'Vigselbevis'),
+      certificateOfOrigin: t('orderFlow.step2.certificateOfOrigin', 'Ursprungscertifikat (COO)'),
       diploma: t('orderFlow.step2.diploma', 'Examensbevis'),
+      passport: t('orderFlow.step2.passport', 'Pass'),
       commercial: t('orderFlow.step2.commercial', 'Handelsdokument'),
       powerOfAttorney: t('orderFlow.step2.powerOfAttorney', 'Fullmakt'),
       other: t('orderFlow.step2.other', 'Annat dokument')
@@ -183,7 +185,11 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
       setAnswers({
         ...answers,
         helpMeChooseServices: true,
-        services: []
+        services: [],
+        billingInfo: {
+          ...answers.billingInfo,
+          sameAsReturn: false
+        }
       });
     } else {
       setAnswers({
@@ -252,11 +258,11 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                     : 'border-gray-200 hover:border-custom-button-light hover:bg-gray-50'
                 }`}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900 mb-1">{service.name}</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-1 break-words">{service.name}</h3>
                     {/* <p className="text-gray-600 mb-2">{service.description}</p> */}
-                    <span className="text-custom-button font-medium">{service.price}</span>
+                    <span className="text-custom-button font-medium break-words">{service.price}</span>
 
                     {/* Service Badge (temporarily hidden to reduce text in cards)
                     {badge && (
@@ -273,7 +279,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                   </div>
                   
                   {/* Checkbox */}
-                  <div className="ml-4 flex-shrink-0">
+                  <div className="flex-shrink-0 self-start sm:self-auto sm:ml-4">
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -304,7 +310,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                 : 'border-gray-200 hover:border-custom-button-light hover:bg-gray-50'
             }`}
           >
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
                 <h3 className="text-lg font-medium text-gray-900 mb-1">
                   {t('orderFlow.step3.helpMeChooseTitle', 'Vet ej vilka tjänster jag behöver')}
@@ -322,7 +328,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                 </span>
               </div>
 
-              <div className="ml-4 flex-shrink-0">
+              <div className="flex-shrink-0 self-start sm:self-auto sm:ml-4">
                 <input
                   type="checkbox"
                   checked={answers.helpMeChooseServices}
@@ -352,7 +358,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
             className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 focus:outline-none"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+            <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-semibold text-gray-900">
                   {t('orderFlow.step3.notarizationDetailsTitle', 'Vilken typ av notarisering behövs?')}
@@ -374,7 +380,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
               <label className="flex items-center space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -451,7 +457,7 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
               </label>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end bg-gray-50 rounded-b-2xl">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex justify-end bg-gray-50 rounded-b-2xl">
               <button
                 type="button"
                 onClick={() => setIsNotarizationModalOpen(false)}

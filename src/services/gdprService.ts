@@ -8,8 +8,7 @@
  * - Personal data: Anonymized after 7 years
  */
 
-import { db } from '@/firebase/config';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 // Anonymized placeholder values
 const ANONYMIZED_DATA = {
@@ -47,8 +46,8 @@ export interface GdprResult {
  * Get statistics about orders that need GDPR processing
  */
 export async function getGdprStats(anonymizeAfterYears: number = 7, deleteFilesAfterDays: number = 90): Promise<GdprStats> {
-  const ordersRef = collection(db, 'orders');
-  const allOrdersSnapshot = await getDocs(ordersRef);
+  const ordersRef = adminDb.collection('orders');
+  const allOrdersSnapshot = await ordersRef.get();
   
   const now = new Date();
   const anonymizeCutoff = new Date(now.getFullYear() - anonymizeAfterYears, now.getMonth(), now.getDate());
@@ -97,8 +96,8 @@ export async function getOrdersForGdprProcessing(
   toAnonymize: Array<{ id: string; orderNumber: string; createdAt: string; customerName: string }>;
   toDeleteFiles: Array<{ id: string; orderNumber: string; createdAt: string; customerName: string }>;
 }> {
-  const ordersRef = collection(db, 'orders');
-  const allOrdersSnapshot = await getDocs(ordersRef);
+  const ordersRef = adminDb.collection('orders');
+  const allOrdersSnapshot = await ordersRef.get();
   
   const now = new Date();
   const anonymizeCutoff = new Date(now.getFullYear() - anonymizeAfterYears, now.getMonth(), now.getDate());
@@ -144,9 +143,9 @@ export async function getOrdersForGdprProcessing(
  */
 export async function anonymizeOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const orderRef = doc(db, 'orders', orderId);
+    const orderRef = adminDb.collection('orders').doc(orderId);
     
-    await updateDoc(orderRef, {
+    await orderRef.update({
       // Anonymize customerInfo
       'customerInfo.firstName': ANONYMIZED_DATA.firstName,
       'customerInfo.lastName': ANONYMIZED_DATA.lastName,
@@ -206,8 +205,8 @@ export async function deleteOrderFiles(orderId: string): Promise<{ success: bool
     // Update order to mark files as deleted
     // Note: Actual file deletion from storage would need to be implemented
     // based on where files are stored (Firebase Storage, external service, etc.)
-    const orderRef = doc(db, 'orders', orderId);
-    await updateDoc(orderRef, {
+    const orderRef = adminDb.collection('orders').doc(orderId);
+    await orderRef.update({
       'gdprFilesDeleted': true,
       'gdprFilesDeletedAt': new Date().toISOString(),
       'hasUploadedFiles': false,
@@ -291,19 +290,21 @@ export async function exportCustomerData(email: string): Promise<{
   error?: string;
 }> {
   try {
-    const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, where('customerInfo.email', '==', email));
-    const snapshot = await getDocs(q);
+    const ordersRef = adminDb.collection('orders');
+    const snapshot = await ordersRef.where('customerInfo.email', '==', email).get();
     
-    const orders = snapshot.docs.map(doc => ({
-      orderId: doc.id,
-      ...doc.data(),
-      // Remove internal fields
-      gdprAnonymized: undefined,
-      gdprAnonymizedAt: undefined,
-      gdprFilesDeleted: undefined,
-      gdprFilesDeletedAt: undefined,
-    }));
+    const orders = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        orderId: doc.id,
+        ...data,
+        // Remove internal fields
+        gdprAnonymized: undefined,
+        gdprAnonymizedAt: undefined,
+        gdprFilesDeleted: undefined,
+        gdprFilesDeletedAt: undefined,
+      };
+    });
     
     return { success: true, data: orders };
   } catch (error) {
@@ -323,9 +324,8 @@ export async function deleteCustomerData(email: string): Promise<{
   error?: string;
 }> {
   try {
-    const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, where('customerInfo.email', '==', email));
-    const snapshot = await getDocs(q);
+    const ordersRef = adminDb.collection('orders');
+    const snapshot = await ordersRef.where('customerInfo.email', '==', email).get();
     
     let deletedOrders = 0;
     

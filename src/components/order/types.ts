@@ -47,6 +47,7 @@ export interface OrderAnswers {
   returnService: string;
   ownReturnTrackingNumber: string;
   premiumDelivery: string;
+  returnDeliveryDate?: string; // Desired delivery date (YYYY-MM-DD) for Stockholm courier return
   deliveryAddressType: 'business' | 'residential'; // Whether delivery is to business or home address
   uploadedFiles: File[];
   

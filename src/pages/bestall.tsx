@@ -83,6 +83,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     returnService: '',
     ownReturnTrackingNumber: '',
     premiumDelivery: '',
+    returnDeliveryDate: undefined,
     deliveryAddressType: 'residential', // Default to residential (home address)
     uploadedFiles: [],
     // Customer type: private or company
@@ -517,8 +518,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [hasUnconfirmedPrices, setHasUnconfirmedPrices] = useState(false);
 
-  // Calculate total price from pricing breakdown
-  const totalPrice = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
+  // Calculate total price from pricing breakdown (exclude TBC items)
+  const totalPrice = pricingBreakdown.reduce((sum, item) => sum + (item.isTBC ? 0 : (item.total || 0)), 0);
 
   // Load services when country changes
   useEffect(() => {
@@ -1361,7 +1362,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         ...answers,
         recaptchaToken,
         totalPrice,
-        pricingBreakdown
+        pricingBreakdown,
+        hasUnconfirmedPrices
       });
 
       if (result.success) {
@@ -1469,6 +1471,21 @@ export default function TestOrderPage({}: TestOrderPageProps) {
               </svg>
             </button>
           </div>
+
+          {/* Mobile summary: show directly under toggle */}
+          {isSummaryExpanded && (
+            <div className="lg:hidden mb-6">
+              <OrderSummary
+                answers={answers}
+                pricingBreakdown={pricingBreakdown}
+                totalPrice={totalPrice}
+                allCountries={allCountries}
+                returnServices={returnServices}
+                pickupServices={pickupServices}
+                hasUnconfirmedPrices={hasUnconfirmedPrices}
+              />
+            </div>
+          )}
 
           {/* Layout: grid that adapts when summary is expanded/collapsed */}
           <div className={`grid grid-cols-1 ${isSummaryExpanded ? 'lg:grid-cols-3' : ''} gap-8 relative`}>
@@ -1612,9 +1629,13 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   setAnswers={setAnswers}
                   onNext={() => {}}
                   onBack={() => {
+                    if (answers.helpMeChooseServices) {
+                      navigateToStep(4);
+                      return;
+                    }
                     // Go back to step 9.5 if return address was required, otherwise step 9
                     const requiresReturnAddress = !!answers.returnService && 
-                      ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city'].includes(answers.returnService);
+                      ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city', 'postnord-rek'].includes(answers.returnService);
                     navigateToStep(requiresReturnAddress ? 9.5 : 9);
                   }}
                   allCountries={allCountries}
@@ -1633,7 +1654,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
             {/* Sidebar - Order Summary */}
             {isSummaryExpanded && (
-              <div className="lg:col-span-1 self-start">
+              <div className="hidden lg:block lg:col-span-1 self-start">
                 <OrderSummary
                   answers={answers}
                   pricingBreakdown={pricingBreakdown}

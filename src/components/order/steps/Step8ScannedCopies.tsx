@@ -50,31 +50,10 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
 
       {/* Options */}
       <div className="space-y-4">
-        {/* No Copies */}
-        <button
-          onClick={() => handleSelect(false)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
-            answers.scannedCopies === false
-              ? 'border-custom-button bg-custom-button-bg'
-              : 'border-gray-200'
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="text-left">
-              <div className="text-lg font-medium text-gray-900">
-                {t('orderFlow.step8.noCopies', 'Nej tack')}
-              </div>
-              <div className="text-gray-600">
-                {t('orderFlow.step8.noCopiesDescription', 'Jag behöver bara de fysiska dokumenten')}
-              </div>
-            </div>
-          </div>
-        </button>
-
         {/* Yes Copies */}
         <button
           onClick={() => handleSelect(true)}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+          className={`w-full p-4 sm:p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.scannedCopies === true
               ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
@@ -87,6 +66,27 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
               </div>
               <div className="text-gray-600">
                 {t('orderFlow.step8.yesCopiesDescription', 'Få högkvalitativa skanningar via e-post')}
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* No Copies */}
+        <button
+          onClick={() => handleSelect(false)}
+          className={`w-full p-4 sm:p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+            answers.scannedCopies === false
+              ? 'border-custom-button bg-custom-button-bg'
+              : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-center">
+            <div className="text-left">
+              <div className="text-lg font-medium text-gray-900">
+                {t('orderFlow.step8.noCopies', 'Nej tack')}
+              </div>
+              <div className="text-gray-600">
+                {t('orderFlow.step8.noCopiesDescription', 'Jag behöver bara de fysiska dokumenten')}
               </div>
             </div>
           </div>

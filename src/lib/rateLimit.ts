@@ -141,4 +141,11 @@ export const rateLimiters = {
     windowSeconds: 60,
     identifier: 'order-create',
   }),
+
+  // PostNord API: 10 requests per minute per IP
+  postnord: (ip: string) => checkRateLimit(ip, {
+    limit: 10,
+    windowSeconds: 60,
+    identifier: 'postnord',
+  }),
 };

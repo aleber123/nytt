@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 
 interface Step9bProps extends Omit<StepProps, 'currentLocale'> {
   onSkip: () => void;
@@ -34,7 +35,7 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
 
   // Check if this step should be shown
   const requiresReturnAddress = !!answers.returnService && 
-    ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city'].includes(answers.returnService);
+    ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city', 'postnord-rek'].includes(answers.returnService);
 
   // Skip if return address is not required
   React.useEffect(() => {
@@ -321,16 +322,30 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
           <label className={`block text-sm font-medium mb-1 ${showValidation && validation.street ? 'text-red-600' : 'text-gray-700'}`}>
             {isEn ? 'Street Address' : 'Gatuadress'} *
           </label>
-          <input
-            type="text"
+          <AddressAutocomplete
             value={answers.returnAddress.street}
-            onChange={(e) => setAnswers(prev => ({
-              ...prev,
-              returnAddress: { ...prev.returnAddress, street: e.target.value }
-            }))}
-            className={getInputClassName(validation.street)}
+            onChange={(value) =>
+              setAnswers((prev) => ({
+                ...prev,
+                returnAddress: { ...prev.returnAddress, street: value }
+              }))
+            }
+            onSelect={(data) => {
+              setAnswers((prev) => ({
+                ...prev,
+                returnAddress: {
+                  ...prev.returnAddress,
+                  street: data.street ?? prev.returnAddress.street,
+                  postalCode: data.postalCode ?? prev.returnAddress.postalCode,
+                  city: data.city ?? prev.returnAddress.city,
+                  countryCode: data.countryCode ?? prev.returnAddress.countryCode
+                }
+              }));
+            }}
             placeholder={isEn ? 'Street address' : 'Gatuadress'}
+            className={getInputClassName(validation.street)}
             required
+            countryRestriction={['se', 'no', 'dk', 'fi']}
           />
         </div>
 

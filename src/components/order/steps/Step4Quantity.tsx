@@ -178,8 +178,8 @@ export const Step4Quantity: React.FC<StepProps> = ({
             const qty = getQuantityForType(typeId);
             return (
               <div key={typeId} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="font-medium text-gray-900">
+                <div className="flex flex-col gap-1 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="font-medium text-gray-900 break-words">
                     {getDocumentTypeName(typeId)}
                   </div>
                 </div>

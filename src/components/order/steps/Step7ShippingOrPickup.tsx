@@ -11,6 +11,7 @@ import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 
 interface Step7Props extends Omit<StepProps, 'currentLocale'> {
   onSkip: () => void; // Called when step should be skipped
@@ -29,36 +30,173 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
     (answers.shippingMethod as 'rek' | 'courier' | null) ?? null
   );
 
+  const openPrintWindow = (variant: 'rek' | 'courier') => {
+    const isRek = variant === 'rek';
+    const title = isRek ? t('orderFlow.step7.rekTab', 'REK (rekommenderad post)') : t('orderFlow.step7.courierTab', 'BUD (t.ex. DHL, Bring m.m.)');
+    const subtitle = isRek
+      ? t('orderFlow.step7.rekLabel', 'Rekommenderat brev (REK) – boxadress')
+      : t('orderFlow.step7.courierLabel', 'Bud / DHL – besöksadress');
+
+    const companyLine = isRek
+      ? t('orderFlow.step7.companyName')
+      : t('orderFlow.step7.companyName');
+
+    const street = isRek
+      ? t('orderFlow.step7.street')
+      : t('orderFlow.step7.courierStreet', 'Livdjursgatan 4, våning 6');
+
+    const postalCode = isRek
+      ? t('orderFlow.step7.postalCode')
+      : t('orderFlow.step7.courierPostalCode', '121 62');
+
+    const city = isRek ? t('orderFlow.step7.city') : t('orderFlow.step7.courierCity', 'Johanneshov');
+    const country = isRek ? t('orderFlow.step7.country') : t('orderFlow.step7.courierCountry', 'Sverige');
+
+    const printWindow = window.open('', '_blank', 'width=720,height=520');
+    if (!printWindow) return;
+
+    const accent = isRek ? '#dc2626' : '#2563eb';
+    const bg = isRek ? '#fef2f2' : '#eff6ff';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${t('orderFlow.step7.shippingAddressTitle', 'Leveransadress')}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+              margin: 0;
+              padding: 32px;
+              color: #111827;
+              background: #ffffff;
+            }
+            .wrap { max-width: 720px; margin: 0 auto; }
+            h1 { font-size: 20px; margin: 0 0 6px 0; }
+            .meta { font-size: 12px; color: #6b7280; margin-bottom: 18px; }
+            .badge {
+              display: inline-block;
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: ${accent};
+              margin-bottom: 10px;
+            }
+            .card {
+              border: 2px solid ${accent};
+              border-radius: 12px;
+              background: ${bg};
+              padding: 18px;
+            }
+            .company { font-weight: 800; font-size: 18px; margin-bottom: 6px; }
+            .line { margin: 3px 0; font-size: 14px; }
+            .note {
+              margin-top: 14px;
+              font-size: 12px;
+              color: #374151;
+              line-height: 1.35;
+            }
+            .note strong { color: ${accent}; }
+            @media print {
+              body { padding: 16px; }
+              .meta { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="wrap">
+            <h1>${t('orderFlow.step7.shippingAddressTitle', 'Leveransadress')}</h1>
+            <div class="meta">${title}</div>
+
+            <div class="badge">${subtitle}</div>
+            <div class="card">
+              <div class="company">${companyLine}</div>
+              <div class="line">${t('orderFlow.step7.attention')}</div>
+              <div class="line">${street}</div>
+              <div class="line">${postalCode} ${city}</div>
+              <div class="line">${country}</div>
+            </div>
+
+            <div class="note">
+              ${isRek
+                ? `<strong>${t('orderFlow.step7.rekTab', 'REK')}:</strong> ${t('orderFlow.step7.rekInfo', 'För rekommenderat brev (REK) ska du alltid använda denna boxadress.')}`
+                : `<strong>${t('orderFlow.step7.courierTab', 'BUD')}:</strong> ${t('orderFlow.step7.courierWarning', 'Viktigt: Skicka inte REK till denna adress.')}`}
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
   // Earliest allowed pickup date: next business day (skip weekends)
-  // If after 15:00 Stockholm time, add an extra day since office closes at 15:00
+  // Stockholm courier has additional cutoffs (08-15) + lead time (urgent=2h, express=4h)
   const earliestPickupDate = React.useMemo(() => {
     const now = new Date();
-    // Get current hour in Stockholm timezone (CET/CEST)
-    const stockholmHour = parseInt(now.toLocaleString('en-US', { 
-      timeZone: 'Europe/Stockholm', 
-      hour: 'numeric', 
-      hour12: false 
-    }));
-    
+
+    // Get current hour+minute in Stockholm timezone (CET/CEST)
+    const stockholmHour = parseInt(
+      now.toLocaleString('en-US', {
+        timeZone: 'Europe/Stockholm',
+        hour: 'numeric',
+        hour12: false
+      })
+    );
+    const stockholmMinute = parseInt(
+      now.toLocaleString('en-US', {
+        timeZone: 'Europe/Stockholm',
+        minute: 'numeric',
+        hour12: false
+      })
+    );
+
+    const openMinutes = 8 * 60;
+    const closeMinutes = 15 * 60;
+    const nowMinutes = stockholmHour * 60 + stockholmMinute;
+
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    // If after 15:00 Stockholm time, earliest pickup is day after tomorrow
-    // Otherwise, earliest pickup is tomorrow
-    if (stockholmHour >= 15) {
-      d.setDate(d.getDate() + 2); // Day after tomorrow
+
+    const isStockholmCourier = answers.pickupMethod === 'stockholm-city';
+    const leadHours =
+      !answers.premiumPickup
+        ? 0
+        : answers.premiumPickup === 'stockholm-sameday'
+          ? 2
+          : answers.premiumPickup === 'stockholm-express'
+            ? 4
+            : 0;
+
+    const effectiveStart = Math.max(nowMinutes, openMinutes);
+    const readyAt = effectiveStart + leadHours * 60;
+
+    // Default rule: earliest is tomorrow, but after 15:00 it becomes day after tomorrow.
+    // For Stockholm courier, allow today only if lead time fits within 08-15.
+    if (isStockholmCourier && nowMinutes < closeMinutes && readyAt <= closeMinutes) {
+      // Allow same-day pickup
     } else {
-      d.setDate(d.getDate() + 1); // Tomorrow
+      if (nowMinutes >= closeMinutes) {
+        d.setDate(d.getDate() + 2);
+      } else {
+        d.setDate(d.getDate() + 1);
+      }
     }
-    
+
     // Skip Saturday (6) and Sunday (0)
     while (d.getDay() === 0 || d.getDay() === 6) {
       d.setDate(d.getDate() + 1);
     }
+
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  }, []);
+  }, [answers.pickupMethod, answers.premiumPickup]);
 
   // Skip logic
   React.useEffect(() => {
@@ -102,13 +240,13 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
                 shippingMethod: 'rek'
               }));
             }}
-            className={`w-full p-6 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+            className={`w-full p-4 sm:p-6 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
               selectedShippingMethod === 'rek'
                 ? 'border-custom-button bg-custom-button-bg'
                 : 'border-gray-200 hover:border-custom-button'
             }`}
           >
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="text-left">
                 <div className="text-lg font-medium text-gray-900 mb-1">
                   {t('orderFlow.step7.rekTab', 'REK (rekommenderad post)')}
@@ -147,62 +285,9 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
-                    const printWindow = window.open('', '_blank', 'width=600,height=400');
-                    if (printWindow) {
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>DOX Visumpartner AB - Leveransadress</title>
-                            <style>
-                              body {
-                                font-family: Arial, sans-serif;
-                                margin: 40px;
-                                text-align: center;
-                              }
-                              .address {
-                                border: 2px solid #dc2626;
-                                padding: 20px;
-                                border-radius: 8px;
-                                background: #fef2f2;
-                                display: inline-block;
-                                margin: 20px 0;
-                              }
-                              .company {
-                                font-weight: bold;
-                                font-size: 18px;
-                                color: #1f2937;
-                                margin-bottom: 8px;
-                              }
-                              .address-line {
-                                color: #374151;
-                                margin: 4px 0;
-                              }
-                              @media print {
-                                body { margin: 20px; }
-                              }
-                            </style>
-                          </head>
-                          <body>
-                            <h2>${t('orderFlow.step7.shippingAddressTitle')}</h2>
-                            <div class="address">
-                              <div class="company">${t('orderFlow.step7.companyName')}</div>
-                              <div class="address-line">${t('orderFlow.step7.attention')}</div>
-                              <div class="address-line">${t('orderFlow.step7.street')}</div>
-                              <div class="address-line">${t('orderFlow.step7.postalCode')} ${t('orderFlow.step7.city')}</div>
-                              <div class="address-line">${t('orderFlow.step7.country')}</div>
-                            </div>
-                          </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      setTimeout(() => {
-                        printWindow.print();
-                        printWindow.close();
-                      }, 250);
-                    }
+                    openPrintWindow('rek');
                   }}
-                  className="ml-4 flex items-center justify-center w-10 h-10 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200"
+                  className="flex items-center justify-center w-10 h-10 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors duration-200 self-start sm:self-auto sm:ml-4"
                   title={t('orderFlow.step7.printAddress')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -223,41 +308,59 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
                 shippingMethod: 'courier'
               }));
             }}
-            className={`w-full p-6 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+            className={`w-full p-4 sm:p-6 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
               selectedShippingMethod === 'courier'
                 ? 'border-custom-button bg-custom-button-bg'
                 : 'border-gray-200 hover:border-custom-button'
             }`}
           >
-            <div className="text-left">
-              <div className="text-lg font-medium text-gray-900 mb-1">
-                {t('orderFlow.step7.courierTab', 'BUD (t.ex. DHL, Bring m.m.)')}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="text-left">
+                <div className="text-lg font-medium text-gray-900 mb-1">
+                  {t('orderFlow.step7.courierTab', 'BUD (t.ex. DHL, Bring m.m.)')}
+                </div>
+
+                {selectedShippingMethod === 'courier' && (
+                  <div className="mt-3 text-sm text-gray-800">
+                    <div className="text-xs font-semibold uppercase text-red-700 mb-1">
+                      {t('orderFlow.step7.courierLabel', 'Bud / DHL – besöksadress')}
+                    </div>
+                    <div className="font-medium text-gray-900 mb-1">
+                      {t('orderFlow.step7.companyName')}
+                    </div>
+                    <div>{t('orderFlow.step7.attention')}</div>
+                    <div>{t('orderFlow.step7.courierStreet', 'Livdjursgatan 4, våning 6')}</div>
+                    <div>
+                      {t('orderFlow.step7.courierPostalCode', '121 62')}{' '}
+                      {t('orderFlow.step7.courierCity', 'Johanneshov')}
+                    </div>
+                    <div>
+                      {t('orderFlow.step7.courierCountry', 'Sverige')}
+                    </div>
+                    <p className="mt-2 text-xs text-red-700 font-medium">
+                      {t(
+                        'orderFlow.step7.courierWarning',
+                        'Viktigt: Skicka inte REK till denna adress.'
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {selectedShippingMethod === 'courier' && (
-                <div className="mt-3 text-sm text-gray-800">
-                  <div className="text-xs font-semibold uppercase text-red-700 mb-1">
-                    {t('orderFlow.step7.courierLabel', 'Bud / DHL – besöksadress')}
-                  </div>
-                  <div className="font-medium text-gray-900 mb-1">
-                    {t('orderFlow.step7.companyName')}
-                  </div>
-                  <div>{t('orderFlow.step7.attention')}</div>
-                  <div>{t('orderFlow.step7.courierStreet', 'Livdjursgatan 4, våning 6')}</div>
-                  <div>
-                    {t('orderFlow.step7.courierPostalCode', '121 62')}{' '}
-                    {t('orderFlow.step7.courierCity', 'Johanneshov')}
-                  </div>
-                  <div>
-                    {t('orderFlow.step7.courierCountry', 'Sverige')}
-                  </div>
-                  <p className="mt-2 text-xs text-red-700 font-medium">
-                    {t(
-                      'orderFlow.step7.courierWarning',
-                      'Viktigt: Skicka inte REK till denna adress.'
-                    )}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openPrintWindow('courier');
+                  }}
+                  className="flex items-center justify-center w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors duration-200 self-start sm:self-auto sm:ml-4"
+                  title={t('orderFlow.step7.printAddress')}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                </button>
               )}
             </div>
           </button>
@@ -340,18 +443,30 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t('orderFlow.pickupAddress.street')} {t('orderFlow.pickupAddress.requiredField')}
             </label>
-            <input
-              type="text"
+            <AddressAutocomplete
               value={answers.pickupAddress.street}
-              onChange={(e) =>
+              onChange={(value) =>
                 setAnswers((prev) => ({
                   ...prev,
-                  pickupAddress: { ...prev.pickupAddress, street: e.target.value },
+                  pickupAddress: { ...prev.pickupAddress, street: value }
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
+              onSelect={(data) => {
+                setAnswers((prev) => ({
+                  ...prev,
+                  pickupAddress: {
+                    ...prev.pickupAddress,
+                    street: data.street ?? prev.pickupAddress.street,
+                    postalCode: data.postalCode ?? prev.pickupAddress.postalCode,
+                    city: data.city ?? prev.pickupAddress.city,
+                    country: data.countryCode ?? prev.pickupAddress.country
+                  }
+                }));
+              }}
               placeholder={t('orderFlow.pickupAddress.streetPlaceholder')}
+              className="focus:ring-custom-button"
               required
+              countryRestriction={['se', 'no', 'dk', 'fi']}
             />
           </div>
 

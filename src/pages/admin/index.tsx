@@ -133,12 +133,21 @@ function AdminIndexPage() {
       category: 'analytics'
     },
     {
-      title: 'Fraktinställningar',
-      description: 'Konfigurera maxpriser för DHL-bokningar',
+      title: 'Shipping Settings',
+      description: 'Configure max prices for DHL bookings',
       href: '/admin/shipping-settings',
       color: 'bg-yellow-600 hover:bg-yellow-700',
       badge: 'DHL',
       icon: 'truck',
+      category: 'operations'
+    },
+    {
+      title: 'GDPR Management',
+      description: 'Manage data retention, anonymization and customer data requests',
+      href: '/admin/gdpr',
+      color: 'bg-slate-600 hover:bg-slate-700',
+      badge: 'Privacy',
+      icon: 'clipboard-list',
       category: 'operations'
     }
   ];

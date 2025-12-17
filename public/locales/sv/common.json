@@ -950,7 +950,9 @@
       "subtitle": "Välj den dokumenttyp som bäst matchar ditt behov.",
       "birthCertificate": "Födelsebevis",
       "marriageCertificate": "Vigselbevis",
+      "certificateOfOrigin": "Ursprungscertifikat (COO)",
       "diploma": "Examensbevis",
+      "passport": "Pass",
       "commercial": "Handelsdokument",
       "powerOfAttorney": "Fullmakt",
       "other": "Annat dokument"
@@ -1053,8 +1055,8 @@
           "description": "Expressupphämtning inom Stockholm samma dag"
         },
         "stockholm-sameday": {
-          "name": "Stockholm Same Day",
-          "description": "Samma dags upphämtning inom Stockholm"
+          "name": "Stockholm urgent",
+          "description": "Levereras ASAP inom Stockholm"
         }
       }
     },
@@ -1106,6 +1108,12 @@
       "ownReturnTrackingPlaceholder": "Ange spårningsnummer för din retur...",
       "officePickupTitle": "Hämtning på vårt kontor",
       "officePickupDescription": "Du hämtar själv dina färdiga dokument på vårt kontor i Stockholm.",
+      "services": {
+        "stockholm-sameday": {
+          "name": "Stockholm urgent",
+          "description": "Levereras ASAP inom Stockholm"
+        }
+      },
       "backButton": "Tillbaka"
     },
     "step10": {

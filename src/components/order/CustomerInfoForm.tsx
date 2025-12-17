@@ -8,9 +8,10 @@
  * 3. Billing Information (for invoicing)
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
-import { ALL_COUNTRIES } from './data/countries';
+import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 import { OrderAnswers } from './types';
 
 interface CustomerInfoFormProps {
@@ -217,8 +218,8 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
       <div className="bg-green-50 border border-green-200 rounded-lg p-6">
         <SectionHeader 
           icon="🧾" 
-          title={isEn ? 'Billing Information' : 'Faktureringsuppgifter'}
-          subtitle={isEn ? 'Information for the invoice' : 'Uppgifter för fakturan'}
+          title={isEn ? 'Contact Information' : 'Kontaktuppgifter'}
+          subtitle={isEn ? 'Contact details' : 'Kontaktuppgifter'}
         />
 
         {/* Same as return address checkbox */}
@@ -290,7 +291,8 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {isEn ? 'Organization Number' : 'Organisationsnummer'} *
+                      {isEn ? 'Organization Number' : 'Organisationsnummer'}
+                      <span className="text-gray-400 font-normal ml-1">({isEn ? 'optional' : 'valfritt'})</span>
                     </label>
                     <input
                       type="text"
@@ -303,11 +305,11 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
                       placeholder="XXXXXX-XXXX"
                     />
                     <ErrorMessage 
-                      show={showValidation && answers.customerType === 'company' && !answers.billingInfo.organizationNumber} 
-                      message={isEn ? 'Organization number is required' : 'Organisationsnummer krävs'} 
-                    />
-                    <ErrorMessage 
-                      show={showValidation && !!answers.billingInfo.organizationNumber && !isValidOrgNumber(answers.billingInfo.organizationNumber)} 
+                      show={
+                        showValidation &&
+                        !!answers.billingInfo.organizationNumber &&
+                        !isValidOrgNumber(answers.billingInfo.organizationNumber)
+                      }
                       message={isEn ? 'Invalid format (10 digits)' : 'Ogiltigt format (10 siffror)'} 
                     />
                   </div>
@@ -397,15 +399,29 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {isEn ? 'Street Address' : 'Gatuadress'} *
               </label>
-              <input
-                type="text"
+              <AddressAutocomplete
                 value={answers.billingInfo.street}
-                onChange={(e) => setAnswers(prev => ({
-                  ...prev,
-                  billingInfo: { ...prev.billingInfo, street: e.target.value }
-                }))}
-                className={getInputClass(answers.billingInfo.street)}
+                onChange={(value) =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    billingInfo: { ...prev.billingInfo, street: value }
+                  }))
+                }
+                onSelect={(data) => {
+                  setAnswers((prev) => ({
+                    ...prev,
+                    billingInfo: {
+                      ...prev.billingInfo,
+                      street: data.street ?? prev.billingInfo.street,
+                      postalCode: data.postalCode ?? prev.billingInfo.postalCode,
+                      city: data.city ?? prev.billingInfo.city,
+                      countryCode: data.countryCode ?? prev.billingInfo.countryCode
+                    }
+                  }));
+                }}
                 placeholder={isEn ? 'Street address' : 'Gatuadress'}
+                className={getInputClass(answers.billingInfo.street)}
+                countryRestriction={['se', 'no', 'dk', 'fi']}
               />
               <ErrorMessage 
                 show={showValidation && !answers.billingInfo.street} 

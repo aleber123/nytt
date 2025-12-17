@@ -70,7 +70,7 @@ export default function GdprAdminPage() {
   };
 
   const runCleanup = async (dryRun: boolean = false) => {
-    if (!dryRun && !confirm('Är du säker på att du vill köra GDPR-rensning? Detta kan inte ångras.')) {
+    if (!dryRun && !confirm('Are you sure you want to run GDPR cleanup? This cannot be undone.')) {
       return;
     }
     
@@ -109,7 +109,7 @@ export default function GdprAdminPage() {
 
   const exportCustomerData = async () => {
     if (!customerEmail) {
-      alert('Ange en e-postadress');
+      alert('Please enter an email address');
       return;
     }
     
@@ -129,11 +129,11 @@ export default function GdprAdminPage() {
 
   const deleteCustomerDataHandler = async () => {
     if (!customerEmail) {
-      alert('Ange en e-postadress');
+      alert('Please enter an email address');
       return;
     }
     
-    if (!confirm(`Är du säker på att du vill radera all data för ${customerEmail}? Detta kan inte ångras.`)) {
+    if (!confirm(`Are you sure you want to delete all data for ${customerEmail}? This cannot be undone.`)) {
       return;
     }
     
@@ -147,7 +147,7 @@ export default function GdprAdminPage() {
       });
       
       const data = await res.json();
-      alert(`Raderade data för ${data.deletedOrders} ordrar`);
+      alert(`Deleted data for ${data.deletedOrders} orders`);
       setCustomerData(null);
       await loadStats();
     } catch (err) {
@@ -158,7 +158,7 @@ export default function GdprAdminPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    return new Date(dateString).toLocaleDateString('en-GB', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -168,7 +168,7 @@ export default function GdprAdminPage() {
   return (
     <>
       <Head>
-        <title>GDPR-hantering | Admin</title>
+        <title>GDPR Management | Admin</title>
       </Head>
       
       <div className="min-h-screen bg-gray-100">
@@ -178,10 +178,10 @@ export default function GdprAdminPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Link href="/admin" className="text-gray-500 hover:text-gray-700 mr-4">
-                  ← Tillbaka
+                  ← Back
                 </Link>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  🔒 GDPR-hantering
+                  🔒 GDPR Management
                 </h1>
               </div>
               <button
@@ -189,7 +189,7 @@ export default function GdprAdminPage() {
                 disabled={loading}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
               >
-                🔄 Uppdatera
+                🔄 Refresh
               </button>
             </div>
           </div>
@@ -208,30 +208,30 @@ export default function GdprAdminPage() {
               <div className="text-3xl font-bold text-gray-900">
                 {loading ? '...' : stats?.totalOrders || 0}
               </div>
-              <div className="text-sm text-gray-500">Totalt antal ordrar</div>
+              <div className="text-sm text-gray-500">Total orders</div>
             </div>
             
             <div className="bg-white rounded-lg shadow p-6">
               <div className="text-3xl font-bold text-amber-600">
                 {loading ? '...' : stats?.ordersToAnonymize || 0}
               </div>
-              <div className="text-sm text-gray-500">Ordrar att anonymisera</div>
-              <div className="text-xs text-gray-400 mt-1">Äldre än {anonymizeYears} år</div>
+              <div className="text-sm text-gray-500">Orders to anonymize</div>
+              <div className="text-xs text-gray-400 mt-1">Older than {anonymizeYears} years</div>
             </div>
             
             <div className="bg-white rounded-lg shadow p-6">
               <div className="text-3xl font-bold text-blue-600">
                 {loading ? '...' : stats?.ordersWithFilesToDelete || 0}
               </div>
-              <div className="text-sm text-gray-500">Filer att radera</div>
-              <div className="text-xs text-gray-400 mt-1">Äldre än {deleteFilesDays} dagar</div>
+              <div className="text-sm text-gray-500">Files to delete</div>
+              <div className="text-xs text-gray-400 mt-1">Older than {deleteFilesDays} days</div>
             </div>
             
             <div className="bg-white rounded-lg shadow p-6">
               <div className="text-sm font-medium text-gray-900">
                 {loading ? '...' : stats?.oldestOrderDate ? formatDate(stats.oldestOrderDate) : 'N/A'}
               </div>
-              <div className="text-sm text-gray-500">Äldsta ordern</div>
+              <div className="text-sm text-gray-500">Oldest order</div>
             </div>
           </div>
 
@@ -240,10 +240,10 @@ export default function GdprAdminPage() {
             <div className="bg-white rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  🧹 Automatisk rensning
+                  🧹 Automatic Cleanup
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Anonymisera gamla ordrar och radera uppladdade filer
+                  Anonymize old orders and delete uploaded files
                 </p>
               </div>
               
@@ -252,7 +252,7 @@ export default function GdprAdminPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Anonymisera efter (år)
+                      Anonymize after (years)
                     </label>
                     <input
                       type="number"
@@ -265,7 +265,7 @@ export default function GdprAdminPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Radera filer efter (dagar)
+                      Delete files after (days)
                     </label>
                     <input
                       type="number"
@@ -282,15 +282,15 @@ export default function GdprAdminPage() {
                 {result && (
                   <div className={`p-4 rounded-lg ${result.errors?.includes('DRY RUN') ? 'bg-blue-50 border border-blue-200' : 'bg-green-50 border border-green-200'}`}>
                     <div className="font-medium">
-                      {result.errors?.includes('DRY RUN') ? '🔍 Förhandsvisning (inga ändringar gjorda)' : '✅ Rensning slutförd'}
+                      {result.errors?.includes('DRY RUN') ? '🔍 Preview (no changes made)' : '✅ Cleanup completed'}
                     </div>
                     <div className="text-sm mt-2">
-                      <div>Anonymiserade ordrar: {result.anonymizedOrders}</div>
-                      <div>Raderade filer: {result.deletedFiles}</div>
+                      <div>Anonymized orders: {result.anonymizedOrders}</div>
+                      <div>Deleted files: {result.deletedFiles}</div>
                     </div>
                     {result.errors?.length > 0 && !result.errors.includes('DRY RUN') && (
                       <div className="text-sm text-red-600 mt-2">
-                        Fel: {result.errors.join(', ')}
+                        Errors: {result.errors.join(', ')}
                       </div>
                     )}
                   </div>
@@ -303,14 +303,14 @@ export default function GdprAdminPage() {
                     disabled={processing}
                     className="flex-1 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50"
                   >
-                    {processing ? '⏳ Bearbetar...' : '🔍 Förhandsgranska'}
+                    {processing ? '⏳ Processing...' : '🔍 Preview'}
                   </button>
                   <button
                     onClick={() => runCleanup(false)}
                     disabled={processing}
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                   >
-                    {processing ? '⏳ Bearbetar...' : '🧹 Kör rensning'}
+                    {processing ? '⏳ Processing...' : '🧹 Run Cleanup'}
                   </button>
                 </div>
               </div>
@@ -320,23 +320,23 @@ export default function GdprAdminPage() {
             <div className="bg-white rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  👤 Kunddataförfrågan
+                  👤 Customer Data Request
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Exportera eller radera kunddata (GDPR artikel 15 & 17)
+                  Export or delete customer data (GDPR Article 15 & 17)
                 </p>
               </div>
               
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kundens e-postadress
+                    Customer email address
                   </label>
                   <input
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="kund@example.com"
+                    placeholder="customer@example.com"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -347,14 +347,14 @@ export default function GdprAdminPage() {
                     disabled={customerLoading || !customerEmail}
                     className="flex-1 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50"
                   >
-                    {customerLoading ? '⏳ Laddar...' : '📤 Exportera data'}
+                    {customerLoading ? '⏳ Loading...' : '📤 Export Data'}
                   </button>
                   <button
                     onClick={deleteCustomerDataHandler}
                     disabled={customerLoading || !customerEmail}
                     className="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50"
                   >
-                    {customerLoading ? '⏳ Laddar...' : '🗑️ Radera data'}
+                    {customerLoading ? '⏳ Loading...' : '🗑️ Delete Data'}
                   </button>
                 </div>
 
@@ -363,12 +363,12 @@ export default function GdprAdminPage() {
                     {customerData.success ? (
                       <div className="p-4 bg-gray-50 rounded-lg">
                         <div className="font-medium mb-2">
-                          Hittade {customerData.data?.length || 0} ordrar
+                          Found {customerData.data?.length || 0} orders
                         </div>
                         {customerData.data?.length > 0 && (
                           <>
                             <div className="text-sm text-gray-600 mb-2">
-                              Ordernummer: {customerData.data.map((o: any) => o.orderNumber).join(', ')}
+                              Order numbers: {customerData.data.map((o: any) => o.orderNumber).join(', ')}
                             </div>
                             <button
                               onClick={() => {
@@ -381,7 +381,7 @@ export default function GdprAdminPage() {
                               }}
                               className="text-sm text-blue-600 hover:underline"
                             >
-                              📥 Ladda ner som JSON
+                              📥 Download as JSON
                             </button>
                           </>
                         )}
@@ -405,7 +405,7 @@ export default function GdprAdminPage() {
                 <div className="bg-white rounded-lg shadow">
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="font-semibold text-gray-900">
-                      📋 Ordrar att anonymisera ({preview.toAnonymize.length})
+                      📋 Orders to anonymize ({preview.toAnonymize.length})
                     </h3>
                   </div>
                   <div className="overflow-x-auto">
@@ -413,8 +413,8 @@ export default function GdprAdminPage() {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Order</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Kund</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Datum</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Customer</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -429,7 +429,7 @@ export default function GdprAdminPage() {
                     </table>
                     {preview.toAnonymize.length > 10 && (
                       <div className="p-4 text-center text-sm text-gray-500">
-                        ... och {preview.toAnonymize.length - 10} till
+                        ... and {preview.toAnonymize.length - 10} more
                       </div>
                     )}
                   </div>
@@ -441,7 +441,7 @@ export default function GdprAdminPage() {
                 <div className="bg-white rounded-lg shadow">
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="font-semibold text-gray-900">
-                      🗑️ Filer att radera ({preview.toDeleteFiles.length})
+                      🗑️ Files to delete ({preview.toDeleteFiles.length})
                     </h3>
                   </div>
                   <div className="overflow-x-auto">
@@ -449,8 +449,8 @@ export default function GdprAdminPage() {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Order</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Kund</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Datum</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Customer</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -465,7 +465,7 @@ export default function GdprAdminPage() {
                     </table>
                     {preview.toDeleteFiles.length > 10 && (
                       <div className="p-4 text-center text-sm text-gray-500">
-                        ... och {preview.toDeleteFiles.length - 10} till
+                        ... and {preview.toDeleteFiles.length - 10} more
                       </div>
                     )}
                   </div>
@@ -476,19 +476,19 @@ export default function GdprAdminPage() {
 
           {/* Info Section */}
           <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-semibold text-blue-900 mb-3">ℹ️ Om GDPR-rensning</h3>
+            <h3 className="font-semibold text-blue-900 mb-3">ℹ️ About GDPR Cleanup</h3>
             <div className="text-sm text-blue-800 space-y-2">
               <p>
-                <strong>Anonymisering (efter {anonymizeYears} år):</strong> Personuppgifter ersätts med [RADERAT]. 
-                Orderdata (belopp, dokumenttyper, datum) behålls för bokföring enligt Bokföringslagen.
+                <strong>Anonymization (after {anonymizeYears} years):</strong> Personal data is replaced with [DELETED]. 
+                Order data (amounts, document types, dates) is retained for accounting purposes.
               </p>
               <p>
-                <strong>Filradering (efter {deleteFilesDays} dagar):</strong> Uppladdade dokument (ID-kopior, certifikat) 
-                raderas permanent. Orderinformation behålls.
+                <strong>File deletion (after {deleteFilesDays} days):</strong> Uploaded documents (ID copies, certificates) 
+                are permanently deleted. Order information is retained.
               </p>
               <p>
-                <strong>Kunddataförfrågan:</strong> Exportera all data för en kund (GDPR artikel 15) eller 
-                radera all data (GDPR artikel 17 - rätten att bli glömd).
+                <strong>Customer data request:</strong> Export all data for a customer (GDPR Article 15) or 
+                delete all data (GDPR Article 17 - right to be forgotten).
               </p>
             </div>
           </div>

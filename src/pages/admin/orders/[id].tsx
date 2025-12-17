@@ -25,6 +25,13 @@ interface ExtendedOrder extends Order {
   adminNotes?: AdminNote[];
   internalNotes?: string;
   adminPrice?: any;
+  hasUnconfirmedPrices?: boolean;
+  embassyPriceConfirmationSent?: boolean;
+  embassyPriceConfirmed?: boolean;
+  embassyPriceDeclined?: boolean;
+  confirmedEmbassyPrice?: number;
+  pendingEmbassyPrice?: number;
+  pendingTotalPrice?: number;
 }
 
 interface ProcessingStep {
@@ -97,6 +104,7 @@ function AdminOrderDetailPage() {
   const [savingTracking, setSavingTracking] = useState(false);
   const [bookingDhlShipment, setBookingDhlShipment] = useState(false);
   const [bookingDhlPickup, setBookingDhlPickup] = useState(false);
+  const [bookingPostNordShipment, setBookingPostNordShipment] = useState(false);
   const [isUploadingPickupLabel, setIsUploadingPickupLabel] = useState(false);
   const [sendingPickupLabel, setSendingPickupLabel] = useState(false);
   const [creatingDhlPickupLabel, setCreatingDhlPickupLabel] = useState(false);
@@ -145,6 +153,11 @@ function AdminOrderDetailPage() {
     notes?: string;
     updatedStep?: Partial<ProcessingStep>;
   } | null>(null);
+
+  // Embassy price confirmation states
+  const [sendingEmbassyPriceConfirmation, setSendingEmbassyPriceConfirmation] = useState(false);
+  const [embassyPriceInput, setEmbassyPriceInput] = useState<string>('');
+  const [showEmbassyPriceWarningModal, setShowEmbassyPriceWarningModal] = useState(false);
 
   useEffect(() => {
     const orderId = router.query.id as string | undefined;
@@ -646,6 +659,17 @@ function AdminOrderDetailPage() {
       // Embassy legalization (usually after UD)
       if (orderData.services.includes('embassy')) {
         const embassyCountry = getCountryInfo(orderData.country);
+        
+        // Add price confirmation step if order has unconfirmed embassy prices
+        if (orderData.hasUnconfirmedPrices) {
+          steps.push({
+            id: 'embassy_price_confirmation',
+            name: '💰 Confirm embassy price',
+            description: `Confirm official embassy fee for ${embassyCountry.name || embassyCountry.code || orderData.country} and get customer approval`,
+            status: 'pending'
+          });
+        }
+        
         steps.push({
           id: 'embassy_delivery',
           name: '📤 Embassy – drop off',
@@ -2101,6 +2125,128 @@ function AdminOrderDetailPage() {
     }
   };
 
+  const bookPostNordShipment = async () => {
+    if (!order) {
+      toast.error('Order missing, cannot book PostNord shipment');
+      return;
+    }
+
+    const lookupId = (order.orderNumber as string) || (router.query.id as string);
+    if (!lookupId) {
+      toast.error('Order number missing, cannot book PostNord shipment');
+      return;
+    }
+
+    // Get return address from order
+    const ra = (order as any).returnAddress || {};
+    const ci = order.customerInfo || {};
+    
+    const receiverAddress = ra.street ? ra : {
+      firstName: ci.firstName,
+      lastName: ci.lastName,
+      street: ci.address,
+      postalCode: ci.postalCode,
+      city: ci.city,
+      country: ci.country || 'SE',
+      phone: ci.phone,
+      email: ci.email
+    };
+
+    // Validate required fields
+    if (!receiverAddress.street || !receiverAddress.postalCode || !receiverAddress.city) {
+      toast.error('Return address is incomplete - cannot book PostNord shipment');
+      return;
+    }
+
+    // Confirm booking
+    const confirmBooking = window.confirm(
+      `Book PostNord REK (Registered Mail) for order ${order.orderNumber}?\n\nRecipient:\n${receiverAddress.firstName || ''} ${receiverAddress.lastName || ''}\n${receiverAddress.street}\n${receiverAddress.postalCode} ${receiverAddress.city}`
+    );
+    if (!confirmBooking) return;
+
+    try {
+      setBookingPostNordShipment(true);
+
+      // Get tomorrow's date for shipping
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const shippingDate = tomorrow.toISOString().split('T')[0];
+
+      // Determine country code
+      let countryCode = receiverAddress.country || 'SE';
+      if (countryCode.length > 2) {
+        const countryNameToCode: Record<string, string> = {
+          'Sweden': 'SE', 'Sverige': 'SE',
+          'Norway': 'NO', 'Norge': 'NO',
+          'Denmark': 'DK', 'Danmark': 'DK',
+          'Finland': 'FI',
+          'Germany': 'DE', 'Deutschland': 'DE', 'Tyskland': 'DE',
+        };
+        countryCode = countryNameToCode[countryCode] || countryCode.substring(0, 2).toUpperCase();
+      }
+
+      const response = await fetch('/api/postnord/shipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: order.orderNumber,
+          shippingDate,
+          receiver: {
+            name: `${receiverAddress.firstName || ''} ${receiverAddress.lastName || ''}`.trim() || 'Customer',
+            street1: receiverAddress.street,
+            postalCode: receiverAddress.postalCode,
+            city: receiverAddress.city,
+            countryCode,
+            phone: receiverAddress.phone || '',
+            email: receiverAddress.email || ''
+          },
+          withReceipt: false // Can be made configurable
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'PostNord booking failed');
+      }
+
+      // Save tracking info to order
+      const newTrackingNumber = data.trackingNumber || data.shipmentId;
+      
+      await adminUpdateOrder(lookupId, {
+        postnordShipmentBooked: true,
+        postnordTrackingNumber: newTrackingNumber,
+        postnordTrackingUrl: data.trackingUrl,
+        postnordLabelBase64: data.labelBase64,
+        postnordBookedAt: new Date().toISOString(),
+        postnordServiceName: data.serviceName,
+        returnTrackingNumber: newTrackingNumber,
+        returnTrackingUrl: data.trackingUrl
+      });
+
+      // Update local state
+      setOrder((prev: any) => prev ? {
+        ...prev,
+        postnordShipmentBooked: true,
+        postnordTrackingNumber: newTrackingNumber,
+        postnordTrackingUrl: data.trackingUrl,
+        postnordLabelBase64: data.labelBase64,
+        returnTrackingNumber: newTrackingNumber,
+        returnTrackingUrl: data.trackingUrl
+      } : prev);
+
+      setTrackingNumber(newTrackingNumber);
+      setTrackingUrl(data.trackingUrl || '');
+
+      const envLabel = data.environment === 'sandbox' ? ' (SANDBOX)' : '';
+      toast.success(`PostNord REK booked${envLabel}! Tracking: ${newTrackingNumber}`);
+    } catch (err: any) {
+      toast.error(`Could not book PostNord shipment: ${err.message}`);
+    } finally {
+      setBookingPostNordShipment(false);
+    }
+  };
+
   const bookDhlPickup = async () => {
     if (!order) {
       toast.error('Order missing, cannot book DHL pickup');
@@ -2393,6 +2539,75 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Send embassy price confirmation email to customer
+  const sendEmbassyPriceConfirmation = async (confirmedPrice: number) => {
+    if (!order) return;
+    
+    setSendingEmbassyPriceConfirmation(true);
+    try {
+      const orderId = order.orderNumber || (router.query.id as string);
+      
+      // Calculate new total price
+      // Get current total (excluding TBC items) and add the confirmed embassy price
+      const currentTotalExcludingTBC = (order.pricingBreakdown || []).reduce((sum: number, item: any) => {
+        if (item.isTBC) return sum;
+        return sum + (item.total || 0);
+      }, 0);
+      const confirmedTotalPrice = currentTotalExcludingTBC + confirmedPrice;
+      
+      const response = await fetch('/api/embassy-price-confirmation/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          orderId, 
+          confirmedEmbassyPrice: confirmedPrice,
+          confirmedTotalPrice
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Kunde inte skicka prisbekräftelsemail');
+      }
+
+      toast.success(`Prisbekräftelsemail har skickats till ${order.customerInfo?.email}`);
+      
+      // Refresh order to update confirmation status
+      await fetchOrder(router.query.id as string);
+    } catch (err: any) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setSendingEmbassyPriceConfirmation(false);
+    }
+  };
+
+  // Check if embassy price confirmation is needed
+  const needsEmbassyPriceConfirmation = (stepId: string): boolean => {
+    return stepId === 'embassy_price_confirmation';
+  };
+
+  // Check if embassy price has been confirmed
+  const isEmbassyPriceConfirmed = (): boolean => {
+    if (!order) return false;
+    const extOrder = order as any;
+    return !!extOrder.embassyPriceConfirmed;
+  };
+
+  // Check if embassy price confirmation email has been sent
+  const isEmbassyPriceConfirmationSent = (): boolean => {
+    if (!order) return false;
+    const extOrder = order as any;
+    return !!extOrder.embassyPriceConfirmationSent;
+  };
+
+  // Check if embassy price was declined
+  const isEmbassyPriceDeclined = (): boolean => {
+    if (!order) return false;
+    const extOrder = order as any;
+    return !!extOrder.embassyPriceDeclined;
+  };
+
   // Check if address confirmation is needed for a step
   const needsAddressConfirmation = (stepId: string): 'pickup' | 'return' | null => {
     if (stepId === 'order_verification' && order?.pickupService) {
@@ -2436,6 +2651,13 @@ function AdminOrderDetailPage() {
       // Show warning modal
       setPendingStepUpdate({ stepId, status, notes, updatedStep });
       setShowAddressWarningModal(true);
+      return;
+    }
+
+    // Check if completing embassy price confirmation step without customer confirmation
+    if (status === 'completed' && stepId === 'embassy_price_confirmation' && !isEmbassyPriceConfirmed()) {
+      setPendingStepUpdate({ stepId, status, notes, updatedStep });
+      setShowEmbassyPriceWarningModal(true);
       return;
     }
     
@@ -4214,6 +4436,127 @@ function AdminOrderDetailPage() {
                                 )}
                               </div>
                             )}
+
+                            {/* Embassy price confirmation section */}
+                            {needsEmbassyPriceConfirmation(step.id) && (
+                              <div className={`mt-3 p-3 rounded-lg border ${
+                                isEmbassyPriceConfirmed() 
+                                  ? 'bg-green-50 border-green-200' 
+                                  : isEmbassyPriceDeclined()
+                                  ? 'bg-red-50 border-red-200'
+                                  : 'bg-amber-50 border-amber-200'
+                              }`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <p className={`text-sm font-medium ${
+                                      isEmbassyPriceConfirmed() 
+                                        ? 'text-green-900' 
+                                        : isEmbassyPriceDeclined()
+                                        ? 'text-red-900'
+                                        : 'text-amber-900'
+                                    }`}>
+                                      💰 Embassy official fee
+                                    </p>
+                                    {isEmbassyPriceConfirmed() ? (
+                                      <div className="mt-1">
+                                        <p className="text-xs text-green-700 flex items-center gap-1">
+                                          <span>✓</span> Confirmed by customer
+                                          {(order as any)?.embassyPriceConfirmedAt && (
+                                            <span className="text-green-600 ml-1">
+                                              ({new Date((order as any).embassyPriceConfirmedAt).toLocaleDateString('sv-SE')})
+                                            </span>
+                                          )}
+                                        </p>
+                                        <p className="text-sm font-bold text-green-800 mt-1">
+                                          {(order as any)?.confirmedEmbassyPrice?.toLocaleString()} kr
+                                        </p>
+                                      </div>
+                                    ) : isEmbassyPriceDeclined() ? (
+                                      <div className="mt-1">
+                                        <p className="text-xs text-red-700 flex items-center gap-1">
+                                          <span>✗</span> Declined by customer
+                                          {(order as any)?.embassyPriceDeclinedAt && (
+                                            <span className="text-red-600 ml-1">
+                                              ({new Date((order as any).embassyPriceDeclinedAt).toLocaleDateString('sv-SE')})
+                                            </span>
+                                          )}
+                                        </p>
+                                      </div>
+                                    ) : isEmbassyPriceConfirmationSent() ? (
+                                      <div className="mt-1">
+                                        <p className="text-xs text-yellow-700 flex items-center gap-1">
+                                          <span>⏳</span> Awaiting customer confirmation
+                                        </p>
+                                        {(order as any)?.embassyPriceConfirmationSentAt && (
+                                          <p className="text-xs text-gray-500 mt-0.5">
+                                            Email sent: {new Date((order as any).embassyPriceConfirmationSentAt).toLocaleDateString('sv-SE')} {new Date((order as any).embassyPriceConfirmationSentAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                                          </p>
+                                        )}
+                                        {(order as any)?.pendingEmbassyPrice && (
+                                          <p className="text-sm font-medium text-amber-800 mt-1">
+                                            Pending: {(order as any).pendingEmbassyPrice.toLocaleString()} kr
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        Enter confirmed price and send to customer
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Price input and send button */}
+                                {!isEmbassyPriceConfirmed() && !isEmbassyPriceDeclined() && (
+                                  <div className="mt-3 pt-3 border-t border-amber-200">
+                                    <div className="flex items-end gap-2">
+                                      <div className="flex-1">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                          Confirmed embassy fee (SEK)
+                                        </label>
+                                        <input
+                                          type="number"
+                                          value={embassyPriceInput}
+                                          onChange={(e) => setEmbassyPriceInput(e.target.value)}
+                                          placeholder="e.g. 1500"
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                                        />
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          const price = parseFloat(embassyPriceInput);
+                                          if (isNaN(price) || price <= 0) {
+                                            toast.error('Please enter a valid price');
+                                            return;
+                                          }
+                                          sendEmbassyPriceConfirmation(price);
+                                        }}
+                                        disabled={sendingEmbassyPriceConfirmation || !embassyPriceInput}
+                                        className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                      >
+                                        {sendingEmbassyPriceConfirmation ? 'Sending...' : 
+                                         isEmbassyPriceConfirmationSent() ? '📧 Send reminder' : '📧 Send to customer'}
+                                      </button>
+                                    </div>
+                                    {embassyPriceInput && !isNaN(parseFloat(embassyPriceInput)) && (
+                                      <div className="mt-2 p-2 bg-white rounded border border-amber-100">
+                                        <p className="text-xs text-gray-600">
+                                          New total: <span className="font-bold text-gray-900">
+                                            {(() => {
+                                              const currentTotalExcludingTBC = (order?.pricingBreakdown || []).reduce((sum: number, item: any) => {
+                                                if (item.isTBC) return sum;
+                                                return sum + (item.total || 0);
+                                              }, 0);
+                                              return (currentTotalExcludingTBC + parseFloat(embassyPriceInput)).toLocaleString();
+                                            })()} kr
+                                          </span>
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             
                             {isAuthorityService(step.id) && (
                               <div className="mt-4 space-y-4">
@@ -4557,17 +4900,70 @@ function AdminOrderDetailPage() {
                                 ) : (
                                   <>
                                     {/* Check if customer selected non-DHL return service */}
-                                    {order?.returnService && ['postnord-rek', 'postnord-express', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(order.returnService) ? (
+                                    {order?.returnService === 'postnord-rek' ? (
+                                      // PostNord REK booking
+                                      (order as any).postnordShipmentBooked ? (
+                                        <div className="p-3 bg-green-50 border border-green-200 rounded">
+                                          <p className="text-green-800 font-medium text-sm">
+                                            ✅ PostNord REK booked
+                                          </p>
+                                          <div className="mt-2 flex flex-wrap gap-2 items-center">
+                                            {(order as any).postnordTrackingNumber && (
+                                              <span className="text-xs bg-white px-2 py-1 rounded border">
+                                                📮 {(order as any).postnordTrackingNumber}
+                                              </span>
+                                            )}
+                                            {(order as any).postnordTrackingUrl && (
+                                              <a
+                                                href={(order as any).postnordTrackingUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-blue-600 hover:underline"
+                                              >
+                                                🔍 Track shipment
+                                              </a>
+                                            )}
+                                            {(order as any).postnordLabelBase64 && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const link = document.createElement('a');
+                                                  link.href = `data:application/pdf;base64,${(order as any).postnordLabelBase64}`;
+                                                  link.download = `postnord-label-${order.orderNumber}.pdf`;
+                                                  link.click();
+                                                }}
+                                                className="text-xs text-green-600 hover:underline"
+                                              >
+                                                📄 Download label
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={bookPostNordShipment}
+                                            disabled={bookingPostNordShipment || !order}
+                                            className="px-3 py-1.5 bg-yellow-600 text-white rounded-md text-sm hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {bookingPostNordShipment ? '📮 Booking PostNord REK...' : '📮 Book PostNord REK'}
+                                          </button>
+                                          <span className="text-xs text-gray-500">
+                                            Customer selected: PostNord REK (Registered Mail)
+                                          </span>
+                                        </div>
+                                      )
+                                    ) : order?.returnService && ['postnord-express', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(order.returnService) ? (
                                       <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                                         <p className="text-blue-800 font-medium text-sm">
-                                          ℹ️ Customer selected: {order.returnService === 'postnord-rek' ? 'PostNord REK' : 
-                                            order.returnService === 'postnord-express' ? 'PostNord Express' :
+                                          ℹ️ Customer selected: {order.returnService === 'postnord-express' ? 'PostNord Express' :
                                             order.returnService === 'stockholm-city' ? 'Stockholm City Courier' :
                                             order.returnService === 'stockholm-express' ? 'Stockholm Express' :
                                             'Stockholm Same Day'}
                                         </p>
                                         <p className="text-blue-600 text-xs mt-1">
-                                          DHL booking is not needed for this shipping method. Use the selected carrier instead.
+                                          Manual booking required for this shipping method.
                                         </p>
                                       </div>
                                     ) : (
@@ -5070,6 +5466,71 @@ function AdminOrderDetailPage() {
               <button
                 onClick={() => {
                   setShowAddressWarningModal(false);
+                  setPendingStepUpdate(null);
+                }}
+                className="w-full px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Embassy Price Warning Modal */}
+      {showEmbassyPriceWarningModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">💰</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Price not confirmed
+              </h3>
+              <p className="text-gray-600">
+                Customer has not confirmed the embassy official fee yet.
+              </p>
+            </div>
+            
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-amber-800">
+                ⚠️ Proceeding without price confirmation means the customer has not explicitly approved the final cost.
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setShowEmbassyPriceWarningModal(false);
+                  setPendingStepUpdate(null);
+                }}
+                className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+              >
+                📧 Go back and send confirmation first
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (pendingStepUpdate) {
+                    updateProcessingStep(
+                      pendingStepUpdate.stepId,
+                      pendingStepUpdate.status,
+                      pendingStepUpdate.notes,
+                      pendingStepUpdate.updatedStep
+                    );
+                  }
+                  setShowEmbassyPriceWarningModal(false);
+                  setPendingStepUpdate(null);
+                }}
+                className="w-full px-4 py-3 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition"
+              >
+                ⚠️ Proceed anyway
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowEmbassyPriceWarningModal(false);
                   setPendingStepUpdate(null);
                 }}
                 className="w-full px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"

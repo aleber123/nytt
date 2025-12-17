@@ -151,7 +151,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
         </div>
 
         {/* Support Documents Section */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 sm:p-6 mb-6">
           <div className="flex items-start mb-4">
             <span className="text-2xl mr-3">📋</span>
             <div>
@@ -393,7 +393,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
         nextLabel={isEn ? 'Continue' : 'Fortsätt'}
       >
         {/* Main Documents Upload */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6 mb-6">
           <div className="flex items-start mb-4">
             <span className="text-2xl mr-3">📄</span>
             <div>
@@ -431,7 +431,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
                   
                   <label 
                     htmlFor={`doc-upload-${index}`}
-                    className="flex items-center justify-between cursor-pointer"
+                    className="flex flex-col gap-3 cursor-pointer sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">
@@ -442,7 +442,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
                           {isEn ? `Document ${index + 1}` : `Dokument ${index + 1}`}
                         </div>
                         {answers.uploadedFiles[index] ? (
-                          <div className="text-sm text-green-600">
+                          <div className="text-sm text-green-600 break-words">
                             {answers.uploadedFiles[index]?.name}
                           </div>
                         ) : (
@@ -499,7 +499,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
 
         {/* Support Documents for Notarization */}
         {hasNotarization && (needsIdDocument || needsSigningAuthority) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 sm:p-6 mb-6">
             <div className="flex items-start mb-4">
               <span className="text-2xl mr-3">📋</span>
               <div>
@@ -533,7 +533,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
                       />
                       <label 
                         htmlFor="id-doc-upload"
-                        className="flex items-center justify-between cursor-pointer"
+                        className="flex flex-col gap-3 cursor-pointer sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="flex items-center">
                           <span className="text-2xl mr-3">
@@ -544,7 +544,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
                               {isEn ? 'ID/Passport copy' : 'Kopia på ID/Pass'}
                             </div>
                             {answers.idDocumentFile ? (
-                              <div className="text-sm text-green-600">
+                              <div className="text-sm text-green-600 break-words">
                                 {answers.idDocumentFile.name}
                               </div>
                             ) : (
@@ -615,7 +615,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
                       />
                       <label 
                         htmlFor="reg-cert-upload"
-                        className="flex items-center justify-between cursor-pointer"
+                        className="flex flex-col gap-3 cursor-pointer sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="flex items-center">
                           <span className="text-2xl mr-3">
@@ -626,7 +626,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
                               {isEn ? 'Registration certificate' : 'Registreringsbevis'}
                             </div>
                             {answers.registrationCertFile ? (
-                              <div className="text-sm text-green-600">
+                              <div className="text-sm text-green-600 break-words">
                                 {answers.registrationCertFile.name}
                               </div>
                             ) : (
@@ -692,7 +692,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
                       />
                       <label 
                         htmlFor="signing-auth-id-upload"
-                        className="flex items-center justify-between cursor-pointer"
+                        className="flex flex-col gap-3 cursor-pointer sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="flex items-center">
                           <span className="text-2xl mr-3">
@@ -700,10 +700,10 @@ export const Step5DocumentSource: React.FC<StepProps & {
                           </span>
                           <div>
                             <div className="font-medium text-gray-900">
-                              {isEn ? 'ID/Passport of signatory' : 'ID/Pass på firmatecknaren'}
+                              {isEn ? 'ID of signatory' : 'ID på firmatecknaren'}
                             </div>
                             {answers.signingAuthorityIdFile ? (
-                              <div className="text-sm text-green-600">
+                              <div className="text-sm text-green-600 break-words">
                                 {answers.signingAuthorityIdFile.name}
                               </div>
                             ) : (
@@ -760,7 +760,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
 
         {/* Upload Progress Summary */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="font-medium text-gray-900">
                 {isEn ? 'Upload status' : 'Uppladdningsstatus'}
@@ -821,7 +821,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
         {/* Original Documents */}
         <button
           onClick={() => handleSourceSelect('original')}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+          className={`w-full p-4 sm:p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.documentSource === 'original'
               ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'
@@ -843,7 +843,7 @@ export const Step5DocumentSource: React.FC<StepProps & {
         {/* Upload Documents */}
         <button
           onClick={() => handleSourceSelect('upload')}
-          className={`w-full p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
+          className={`w-full p-4 sm:p-6 border-2 rounded-lg hover:border-custom-button transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
             answers.documentSource === 'upload'
               ? 'border-custom-button bg-custom-button-bg'
               : 'border-gray-200'

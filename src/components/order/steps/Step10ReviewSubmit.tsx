@@ -77,15 +77,47 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
     
     // Return address is now validated in Step 9 for DHL/Stockholm deliveries
     // No return address validation needed here
+
+    // === Return address validation (only when billing is set to "same as return") ===
+    // This prevents cases where the user checks "same as return" even though the return address steps were skipped.
+    if (answers.billingInfo.sameAsReturn) {
+      if (answers.customerType === 'company') {
+        if (!answers.returnAddress.companyName) {
+          missing.push({ field: 'returnCompanyName', label: isEn ? 'Company name (return)' : 'Företagsnamn (returadress)', id: 'return-firstName' });
+        }
+      } else {
+        if (!answers.returnAddress.firstName) {
+          missing.push({ field: 'returnFirstName', label: isEn ? 'First name (return)' : 'Förnamn (returadress)', id: 'return-firstName' });
+        }
+        if (!answers.returnAddress.lastName) {
+          missing.push({ field: 'returnLastName', label: isEn ? 'Last name (return)' : 'Efternamn (returadress)', id: 'return-firstName' });
+        }
+      }
+      if (!answers.returnAddress.street) {
+        missing.push({ field: 'returnStreet', label: isEn ? 'Street address (return)' : 'Gatuadress (returadress)', id: 'return-firstName' });
+      }
+      if (!answers.returnAddress.postalCode) {
+        missing.push({ field: 'returnPostalCode', label: isEn ? 'Postal code (return)' : 'Postnummer (returadress)', id: 'return-firstName' });
+      }
+      if (!answers.returnAddress.city) {
+        missing.push({ field: 'returnCity', label: isEn ? 'City (return)' : 'Stad (returadress)', id: 'return-firstName' });
+      }
+      if (!answers.returnAddress.countryCode) {
+        missing.push({ field: 'returnCountry', label: isEn ? 'Country (return)' : 'Land (returadress)', id: 'return-firstName' });
+      }
+      if (!answers.returnAddress.email) {
+        missing.push({ field: 'returnEmail', label: isEn ? 'Email (return)' : 'E-post (returadress)', id: 'return-firstName' });
+      }
+      if (!answers.returnAddress.phone) {
+        missing.push({ field: 'returnPhone', label: isEn ? 'Phone (return)' : 'Telefon (returadress)', id: 'return-firstName' });
+      }
+    }
     
     // === Billing validation (only if not same as return) ===
     if (!answers.billingInfo.sameAsReturn) {
       if (answers.customerType === 'company') {
         if (!answers.billingInfo.companyName) {
           missing.push({ field: 'billingCompanyName', label: isEn ? 'Company name (billing)' : 'Företagsnamn (faktura)', id: 'return-firstName' });
-        }
-        if (!answers.billingInfo.organizationNumber) {
-          missing.push({ field: 'billingOrgNumber', label: isEn ? 'Organization number' : 'Organisationsnummer', id: 'return-firstName' });
         }
       } else {
         if (!answers.billingInfo.firstName) {
@@ -120,6 +152,15 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       if (answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file)) {
         missing.push({ field: 'files', label: isEn ? 'Document files' : 'Dokumentfiler', id: 'file-upload-0' });
       }
+    }
+
+    // Stockholm courier return requires a delivery date
+    if (answers.returnService === 'stockholm-city' && !answers.returnDeliveryDate) {
+      missing.push({
+        field: 'returnDeliveryDate',
+        label: isEn ? 'Delivery date (Stockholm courier)' : 'Leveransdatum (Stockholm courier)',
+        id: 'return-delivery-date'
+      });
     }
     
     return missing;
@@ -286,7 +327,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       const isComplete = file || willSendLater;
 
       return (
-        <div className={`flex items-center justify-between p-3 rounded-lg ${isComplete ? 'bg-green-50 border border-green-200' : 'bg-white border border-gray-200'}`}>
+        <div className={`flex flex-col gap-3 p-3 rounded-lg sm:flex-row sm:items-center sm:justify-between ${isComplete ? 'bg-green-50 border border-green-200' : 'bg-white border border-gray-200'}`}>
           <div className="flex items-center space-x-3">
             <span className={`text-lg ${isComplete ? 'text-green-600' : 'text-gray-400'}`}>
               {isComplete ? '✓' : '○'}
@@ -294,14 +335,14 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             <div>
               <span className="text-sm font-medium text-gray-900">{title}</span>
               {file && (
-                <p className="text-xs text-green-700">{file.name}</p>
+                <p className="text-xs text-green-700 break-words">{file.name}</p>
               )}
               {willSendLater && !file && (
                 <p className="text-xs text-blue-600">{isEn ? 'Will send later' : 'Skickas senare'}</p>
               )}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:space-x-2">
             <input
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
@@ -378,16 +419,16 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       </div>
 
       {/* Final Order Summary */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 mb-6">
         <h3 className="text-lg font-semibold text-green-900 mb-4">
           {t('orderFlow.step10.summaryTitle')}
         </h3>
 
         <div className="space-y-3">
           {/* Country and Document Type */}
-          <div className="flex justify-between items-center py-2 border-b border-green-200">
+          <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
             <span className="text-gray-700">{t('orderFlow.step10.country')}:</span>
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-gray-900 break-words">
               {(() => {
                 const country = allCountries.find(c => c.code === answers.country);
                 const name = country?.name || answers.country;
@@ -401,20 +442,22 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             </span>
           </div>
 
-          <div className="flex justify-between items-center py-2 border-b border-green-200">
+          <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
             <span className="text-gray-700">{t('orderFlow.step10.documentType')}:</span>
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-gray-900 break-words">
               {answers.documentType === 'birthCertificate' ? t('orderFlow.step2.birthCertificate') :
                answers.documentType === 'marriageCertificate' ? t('orderFlow.step2.marriageCertificate') :
+               answers.documentType === 'certificateOfOrigin' ? t('orderFlow.step2.certificateOfOrigin') :
                answers.documentType === 'diploma' ? t('orderFlow.step2.diploma') :
+               answers.documentType === 'passport' ? t('orderFlow.step2.passport') :
                answers.documentType === 'commercial' ? t('orderFlow.step2.commercial') :
                answers.documentType === 'powerOfAttorney' ? t('orderFlow.step2.powerOfAttorney') : t('orderFlow.step2.other')}
             </span>
           </div>
 
-          <div className="flex justify-between items-center py-2 border-b border-green-200">
+          <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
             <span className="text-gray-700">{t('orderFlow.step10.quantity')}:</span>
-            <span className="font-medium text-gray-900">{answers.quantity} st</span>
+            <span className="font-medium text-gray-900 break-words">{answers.quantity} st</span>
           </div>
 
           {/* Selected Services */}
@@ -444,12 +487,12 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   
                   return (
                     <div key={`${item.service}_${index}`} className="text-sm">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center">
+                        <span className="text-gray-600 break-words">
                           • {translatePricingDescription(item.description)}{' '}
                           {priceDetail}
                         </span>
-                        <span className={`font-medium ${isTBC ? 'text-amber-600' : 'text-gray-900'}`}>
+                        <span className={`font-medium break-words ${isTBC ? 'text-amber-600' : 'text-gray-900'}`}>
                           {priceDisplay}
                         </span>
                       </div>
@@ -462,29 +505,41 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
           {/* Own Return Tracking Number - only show if customer provides their own return */}
           {answers.returnService === 'own-delivery' && answers.ownReturnTrackingNumber && (
-            <div className="flex justify-between items-center py-2 border-b border-green-200">
+            <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
               <span className="text-gray-700">
                 {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}:
               </span>
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-gray-900 break-words">
                 {answers.ownReturnTrackingNumber}
               </span>
             </div>
           )}
 
           {/* Total Price */}
-          <div className="flex justify-between items-center py-3 border-t-2 border-green-300 bg-green-100 -mx-6 px-6 rounded-b-lg">
-            <span className="text-lg font-semibold text-green-900">{t('orderFlow.step10.total')}:</span>
-            <span className="text-xl font-bold text-green-900">
-              {(() => {
-                if (loadingPricing) return 'Beräknar...';
+          <div className="flex flex-col py-3 border-t-2 border-green-300 bg-green-100 -mx-4 sm:-mx-6 px-4 sm:px-6 rounded-b-lg">
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center">
+              <span className="text-lg font-semibold text-green-900">
+                {t('orderFlow.step10.total')}:
+                {pricingBreakdown.some(item => item.isTBC) && '*'}
+              </span>
+              <span className="text-xl font-bold text-green-900">
+                {(() => {
+                  if (loadingPricing) return 'Beräknar...';
 
-                // Use totalPrice from pricingBreakdown directly - it already includes everything
-                const total = pricingBreakdown.reduce((sum, item) => sum + (item.total || 0), 0);
-                
-                return `${total.toLocaleString()} kr`;
-              })()}
-            </span>
+                  // Use totalPrice from pricingBreakdown - exclude TBC items from total
+                  const total = pricingBreakdown.reduce((sum, item) => sum + (item.isTBC ? 0 : (item.total || 0)), 0);
+                  
+                  return `${total.toLocaleString()} kr`;
+                })()}
+              </span>
+            </div>
+            {pricingBreakdown.some(item => item.isTBC) && (
+              <p className="text-xs text-green-700 mt-1">
+                * {locale === 'en' 
+                  ? 'Excl. official fees that will be confirmed separately' 
+                  : 'Exkl. officiella avgifter som bekräftas separat'}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -582,10 +637,10 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           {/* Validation Summary */}
           {renderValidationSummary()}
 
-          <div className="mt-8 flex justify-between">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-between">
             <button
               onClick={onBack}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="w-full px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 sm:w-auto"
             >
               {t('orderFlow.backToPrevious')}
             </button>
@@ -648,13 +703,19 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     documentSource: answers.documentSource,
                     scannedCopies: answers.scannedCopies,
                     pickupService: answers.pickupService,
+                    pickupMethod: answers.pickupMethod,
+                    premiumPickup: answers.premiumPickup,
                     pickupAddress: answers.pickupAddress,
+                    pickupDate: answers.pickupDate,
+                    pickupTimeWindow: answers.pickupTimeWindow,
                     returnService: answers.returnService,
                     returnTrackingNumber:
                       answers.returnService === 'own-delivery'
                         ? (answers.ownReturnTrackingNumber || '')
                         : '',
                     premiumDelivery: answers.premiumDelivery,
+                    returnDeliveryDate: answers.returnDeliveryDate,
+                    returnAddress: answers.returnAddress,
                     customerInfo: answers.customerInfo,
                     paymentMethod: 'invoice',
                     totalPrice: pricingResult.totalPrice,
@@ -785,10 +846,10 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 submissionInProgressRef.current ||
                 isInCooldown
               }
-              className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
-                isSubmitting || submissionInProgressRef.current || isInCooldown
-                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
-                  : 'bg-custom-button text-white hover:bg-custom-button-hover'
+              className={`w-full px-6 py-3 rounded-md font-medium text-white transition-all duration-200 sm:w-auto ${
+                isSubmitting || isInCooldown
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-custom-button hover:bg-custom-button-hover'
               }`}
             >
               {isSubmitting || submissionInProgressRef.current ? (
@@ -818,8 +879,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
         <div className="space-y-4">
           {/* Address Display for Original Documents - only show if services are selected */}
           {!answers.helpMeChooseServices && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-              <div className="flex items-start justify-between">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 mb-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-red-900 mb-2">
                     {t('orderFlow.step10.shippingAddressTitle')}
@@ -835,7 +896,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     <strong>Viktigt:</strong> Skriv tydligt ordernumret på kuvertet eller skriv ut en fraktsedel nedan.
                   </div>
                 </div>
-                <div className="ml-4">
+                <div className="sm:ml-4">
                   <button
                     onClick={() => {
                       // Print shipping label with blank order number so customer can write it by hand
@@ -855,7 +916,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
           {/* Info message when customer chose "help me choose" */}
           {answers.helpMeChooseServices && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6 mb-6">
               <div className="flex items-start">
                 <span className="text-2xl mr-3">📋</span>
                 <div>
@@ -898,7 +959,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <div className="mt-8 flex justify-between">
             <button
               onClick={onBack}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-4 sm:px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               {t('orderFlow.backToPrevious')}
             </button>
@@ -959,9 +1020,15 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     documentSource: answers.documentSource,
                     scannedCopies: answers.scannedCopies,
                     pickupService: answers.pickupService,
+                    pickupMethod: answers.pickupMethod,
+                    premiumPickup: answers.premiumPickup,
                     pickupAddress: answers.pickupAddress,
+                    pickupDate: answers.pickupDate,
+                    pickupTimeWindow: answers.pickupTimeWindow,
                     returnService: answers.returnService,
                     premiumDelivery: answers.premiumDelivery,
+                    returnDeliveryDate: answers.returnDeliveryDate,
+                    returnAddress: answers.returnAddress,
                     customerInfo: answers.customerInfo,
                     paymentMethod: 'invoice',
                     totalPrice: pricingResult.totalPrice,
@@ -1001,13 +1068,29 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                         'dhl-pre-12': 'DHL Express före 12:00',
                         'dhl-pre-9': 'DHL Express före 09:00',
                         'stockholm-express': 'Stockholm Express',
-                        'stockholm-sameday': 'Stockholm Samma dag'
+                        'stockholm-sameday': 'Stockholm urgent'
                       };
                       return premium ? premiums[premium] || premium : '';
+                    };
+
+                    const getStockholmLevel = (premium?: string): string => {
+                      if (!premium) return 'End of day';
+                      if (premium === 'stockholm-sameday') return 'Urgent (2h)';
+                      if (premium === 'stockholm-express') return 'Express (4h)';
+                      return premium;
                     };
                     
                     const hasPickup = answers.pickupService === true;
                     const pickupAddr = answers.pickupAddress;
+
+                    const isStockholmPickup = hasPickup && answers.pickupMethod === 'stockholm-city';
+                    const isStockholmReturn = answers.returnService === 'stockholm-city';
+
+                    const returnAddr = answers.returnAddress;
+                    const returnAddrLine1 = [returnAddr?.firstName, returnAddr?.lastName].filter(Boolean).join(' ').trim();
+                    const returnAddrLine2 = [returnAddr?.companyName].filter(Boolean).join(' ').trim();
+                    const returnAddrLine3 = [returnAddr?.street, returnAddr?.addressLine2].filter(Boolean).join(', ').trim();
+                    const returnAddrLine4 = [returnAddr?.postalCode, returnAddr?.city].filter(Boolean).join(' ').trim();
                     
                     const internalHtml = `
 <!DOCTYPE html>
@@ -1036,6 +1119,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
     .pickup-alert-icon { font-size:28px; }
     .pickup-alert-title { color:#92400E; font-size:18px; font-weight:700; margin:0; }
     .pickup-address { background:#fff; border:2px solid #F59E0B; border-radius:6px; padding:14px; margin-top:12px; }
+    .return-alert { background:#E0F2FE; border:2px solid #0284C7; border-radius:8px; padding:16px; margin:16px 0; }
+    .return-alert-title { color:#075985; font-size:18px; font-weight:700; margin:0; }
+    .return-address { background:#fff; border:2px solid #0284C7; border-radius:6px; padding:14px; margin-top:12px; }
   </style>
   </head>
   <body>
@@ -1057,7 +1143,9 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
             Kunden har beställt att vi hämtar dokumenten. Boka DHL-upphämtning!
           </p>
           <div class="row" style="border:none; padding:4px 0;"><span class="label">Upphämtningstjänst</span><span class="value">${getPickupMethodName(answers.pickupMethod)}</span></div>
-          ${answers.premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(answers.premiumPickup)}</span></div>` : ''}
+          ${isStockholmPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Nivå</span><span class="value">${getStockholmLevel(answers.premiumPickup)}</span></div>` : (answers.premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(answers.premiumPickup)}</span></div>` : '')}
+          ${isStockholmPickup && answers.pickupDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Datum</span><span class="value">${answers.pickupDate}</span></div>` : ''}
+          ${isStockholmPickup && answers.pickupTimeWindow ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Tidsfönster</span><span class="value">${answers.pickupTimeWindow}</span></div>` : ''}
           
           ${pickupAddr && pickupAddr.street ? `
           <div class="pickup-address">
@@ -1068,6 +1156,26 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
             <div>${pickupAddr.postalCode} ${pickupAddr.city}</div>
           </div>
           ` : ''}
+        </div>
+        ` : ''}
+
+        ${isStockholmReturn ? `
+        <!-- STOCKHOLM COURIER RETURN ALERT -->
+        <div class="return-alert">
+          <div class="pickup-alert-header">
+            <span class="pickup-alert-icon">⚡</span>
+            <h2 class="return-alert-title">STOCKHOLM COURIER - LEVERANS</h2>
+          </div>
+          <div class="row" style="border:none; padding:4px 0;"><span class="label">Nivå</span><span class="value">${getStockholmLevel(answers.premiumDelivery)}</span></div>
+          ${answers.returnDeliveryDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Datum</span><span class="value">${answers.returnDeliveryDate}</span></div>` : ''}
+
+          <div class="return-address">
+            <div style="font-weight:700; margin-bottom:8px; color:#075985;">📍 Leveransadress:</div>
+            ${returnAddrLine2 ? `<div style="font-weight:700;">${returnAddrLine2}</div>` : ''}
+            ${returnAddrLine1 ? `<div>${returnAddrLine1}</div>` : ''}
+            ${returnAddrLine3 ? `<div>${returnAddrLine3}</div>` : ''}
+            ${returnAddrLine4 ? `<div>${returnAddrLine4}</div>` : ''}
+          </div>
         </div>
         ` : ''}
 
@@ -1539,7 +1647,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 submissionInProgressRef.current ||
                 isInCooldown
               }
-              className={`px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
+              className={`px-6 sm:px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
                 isSubmitting || submissionInProgressRef.current || isInCooldown
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
                   : 'bg-custom-button text-white hover:bg-custom-button-hover'
@@ -1571,7 +1679,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
 
       {(showFullScreenLoader) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-900/70 to-black/80 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 max-w-md mx-4 text-center space-y-6 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl px-6 sm:px-10 py-6 sm:py-8 max-w-md mx-4 text-center space-y-6 animate-fade-in">
             {/* Animated Logo/Icon */}
             <div className="flex justify-center">
               <div className="relative">

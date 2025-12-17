@@ -956,7 +956,9 @@
       "subtitle": "Choose the document type that best matches your needs.",
       "birthCertificate": "Birth Certificate",
       "marriageCertificate": "Marriage Certificate",
+      "certificateOfOrigin": "Certificate of Origin (COO)",
       "diploma": "Diploma",
+      "passport": "Passport",
       "commercial": "Commercial Documents",
       "powerOfAttorney": "Power of Attorney",
       "other": "Other document"
@@ -1059,8 +1061,8 @@
           "description": "Express pickup within Stockholm same day"
         },
         "stockholm-sameday": {
-          "name": "Stockholm Same Day",
-          "description": "Same day pickup within Stockholm"
+          "name": "Stockholm urgent",
+          "description": "Delivered ASAP within Stockholm"
         }
       }
     },
@@ -1098,20 +1100,26 @@
       "yesCopiesDescription": "Add scanned copies (+200 kr per document)"
     },
     "step9": {
-      "title": "Choose return delivery",
+      "title": "Choose return shipping",
       "subtitle": "Choose how you want your legalized documents to be returned to you",
-      "returnNote": "Your documents will be returned once legalization is complete",
-      "returnDescription": "We will send your documents back to you using your preferred shipping method",
+      "returnNote": "Your documents will be returned when the legalization is complete",
+      "returnDescription": "We return your documents using your selected shipping method",
       "loadingServices": "Loading shipping options...",
       "priceDisclaimerTitle": "Note: Prices may vary",
-      "priceDisclaimerText": "The stated prices are from-prices and may vary depending on weight, size and destination address. The final price is confirmed upon delivery.",
+      "priceDisclaimerText": "The listed prices are starting prices and may vary depending on weight, size, and destination address. The final price is confirmed at delivery.",
       "otherOptionsTitle": "Other options",
       "ownReturnTitle": "Own return shipping (already booked)",
-      "ownReturnDescription": "You have already booked return shipping for your documents. Enter the tracking number so we can link the return to your order.",
+      "ownReturnDescription": "You have booked return shipping yourself. Enter the tracking number so we can link the return to your order.",
       "ownReturnTrackingLabel": "Tracking number",
-      "ownReturnTrackingPlaceholder": "Enter the tracking number for your return...",
+      "ownReturnTrackingPlaceholder": "Enter your return tracking number...",
       "officePickupTitle": "Pickup at our office",
-      "officePickupDescription": "You will pick up your completed documents at our office in Stockholm.",
+      "officePickupDescription": "You pick up your completed documents at our office in Stockholm.",
+      "services": {
+        "stockholm-sameday": {
+          "name": "Stockholm urgent",
+          "description": "Delivered ASAP within Stockholm"
+        }
+      },
       "backButton": "Back"
     },
     "step10": {
