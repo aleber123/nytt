@@ -363,6 +363,56 @@ const extractPrice = (service: any): number => {
   return 0;
 };
 
+// Customer pricing interface (imported from customerService)
+interface CustomerPricingData {
+  customPricing?: {
+    // Service fees
+    doxServiceFee?: number;
+    expressServiceFee?: number;
+    apostilleServiceFee?: number;
+    notarizationServiceFee?: number;
+    embassyServiceFee?: number;
+    translationServiceFee?: number;
+    chamberServiceFee?: number;
+    udServiceFee?: number;
+    // Pickup fees
+    dhlPickupFee?: number;
+    dhlExpressPickupFee?: number;
+    stockholmCourierFee?: number;
+    stockholmSamedayFee?: number;
+    // DHL Return delivery options
+    dhlPre12Fee?: number;
+    dhlPre9Fee?: number;
+    // Stockholm Courier return delivery options
+    stockholmCityFee?: number;
+    stockholmExpressFee?: number;
+    stockholmUrgentFee?: number;
+    // Return fees
+    scannedCopiesFee?: number;
+    returnDhlFee?: number;
+    returnPostnordFee?: number;
+    returnBudFee?: number;
+  };
+  vatExempt?: boolean;
+  companyName?: string;
+}
+
+// Helper to get custom service fee for a service type
+const getCustomServiceFee = (serviceType: string, customerPricing?: CustomerPricingData['customPricing']): number | undefined => {
+  if (!customerPricing) return undefined;
+  
+  const feeMap: Record<string, number | undefined> = {
+    'apostille': customerPricing.apostilleServiceFee,
+    'notarization': customerPricing.notarizationServiceFee,
+    'embassy': customerPricing.embassyServiceFee,
+    'translation': customerPricing.translationServiceFee,
+    'chamber': customerPricing.chamberServiceFee,
+    'ud': customerPricing.udServiceFee
+  };
+  
+  return feeMap[serviceType];
+};
+
 // Calculate price for an order
 export const calculateOrderPrice = async (orderData: {
   country: string;
@@ -377,6 +427,7 @@ export const calculateOrderPrice = async (orderData: {
   pickupMethod?: 'dhl' | 'stockholm_courier';
   premiumPickup?: string;
   premiumDelivery?: string;
+  customerPricing?: CustomerPricingData; // Customer-specific pricing data
 }): Promise<{
   basePrice: number;
   additionalFees: number;
@@ -384,6 +435,8 @@ export const calculateOrderPrice = async (orderData: {
   breakdown: any[];
   hasUnconfirmedPrices?: boolean;
   unconfirmedServices?: string[];
+  vatExempt?: boolean;
+  matchedCustomer?: string;
 }> => {
   try {
     let totalBasePrice = 0;
@@ -391,6 +444,9 @@ export const calculateOrderPrice = async (orderData: {
     const breakdown: any[] = [];
     let hasUnconfirmedPrices = false;
     const unconfirmedServices: string[] = [];
+    
+    // Check if customer is VAT exempt
+    const isVatExempt = orderData.customerPricing?.vatExempt || false;
 
     for (const serviceType of orderData.services) {
       let rule = await getPricingRule(orderData.country, serviceType);
@@ -431,11 +487,20 @@ export const calculateOrderPrice = async (orderData: {
         // Get service name from centralized config
         const serviceName = SERVICE_NAMES_SV[serviceType] || serviceType;
         const officialTotal = rule.officialFee * orderData.quantity;
-        const serviceFeeTotal = rule.serviceFee;
+        
+        // Check for customer-specific service fee, otherwise use standard
+        const customServiceFee = getCustomServiceFee(serviceType, orderData.customerPricing?.customPricing);
+        const serviceFeeTotal = customServiceFee !== undefined ? customServiceFee : rule.serviceFee;
+        
+        // Check for custom DOX service fee (applies to all services as a general override)
+        const doxServiceFee = orderData.customerPricing?.customPricing?.doxServiceFee;
+        const finalServiceFee = doxServiceFee !== undefined && customServiceFee === undefined 
+          ? doxServiceFee 
+          : serviceFeeTotal;
 
-        totalBasePrice += officialTotal + serviceFeeTotal;
+        totalBasePrice += officialTotal + finalServiceFee;
 
-        // Add official fee line (per document, VAT exempt)
+        // Add official fee line (per document, VAT exempt for official fees)
         breakdown.push({
           service: `${serviceType}_official`,
           description: `${serviceName} - Officiell avgift`,
@@ -446,14 +511,15 @@ export const calculateOrderPrice = async (orderData: {
           isTBC: rule.priceUnconfirmed || false
         });
 
-        // Add service fee line (per order, not per document, 25% VAT)
+        // Add service fee line (per order, not per document)
+        // VAT rate depends on customer VAT exempt status
         breakdown.push({
           service: `${serviceType}_service`,
           description: `DOX Visumpartner serviceavgift (${serviceName})`,
           quantity: 1,
-          unitPrice: serviceFeeTotal,
-          total: serviceFeeTotal,
-          vatRate: VAT_RATES.STANDARD,
+          unitPrice: finalServiceFee,
+          total: finalServiceFee,
+          vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD,
           isTBC: false // Service fee is always confirmed
         });
 
@@ -461,42 +527,73 @@ export const calculateOrderPrice = async (orderData: {
     }
 
     // Add express fee if applicable (once per order, not per service)
+    // Use customer-specific express fee if available
     if (orderData.expedited) {
-      totalAdditionalFees += EXPRESS_FEE;
+      const customExpressFee = orderData.customerPricing?.customPricing?.expressServiceFee;
+      const expressFee = customExpressFee !== undefined ? customExpressFee : EXPRESS_FEE;
+      totalAdditionalFees += expressFee;
       breakdown.push({
         service: 'express',
         description: 'Expresstjänst',
-        fee: EXPRESS_FEE,
-        total: EXPRESS_FEE,
+        fee: expressFee,
+        total: expressFee,
         quantity: 1,
-        unitPrice: EXPRESS_FEE,
-        vatRate: VAT_RATES.STANDARD
+        unitPrice: expressFee,
+        vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD
       });
     }
 
-    // Add return service cost
+    // Add return service cost (with customer-specific overrides)
     if (orderData.returnService && orderData.returnServices) {
       const returnService = orderData.returnServices.find(s => s.id === orderData.returnService);
       if (returnService) {
-        const returnCost = extractPrice(returnService);
-        if (returnCost > 0) {
-          totalAdditionalFees += returnCost;
+        const standardReturnCost = extractPrice(returnService);
+        
+        // Check for customer-specific return fee based on service type
+        let customReturnFee: number | undefined;
+        const serviceId = orderData.returnService.toLowerCase();
+        // DHL options
+        if (serviceId.includes('pre12') || serviceId.includes('pre-12')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.dhlPre12Fee;
+        } else if (serviceId.includes('pre9') || serviceId.includes('pre-9')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.dhlPre9Fee;
+        } else if (serviceId.includes('dhl')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.returnDhlFee;
+        // Stockholm Courier options
+        } else if (serviceId.includes('stockholm-city') || serviceId.includes('stockholm_city')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.stockholmCityFee;
+        } else if (serviceId.includes('stockholm-express') || serviceId.includes('stockholm_express')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.stockholmExpressFee;
+        } else if (serviceId.includes('stockholm-sameday') || serviceId.includes('stockholm_sameday') || serviceId.includes('stockholm-urgent') || serviceId.includes('stockholm_urgent')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.stockholmUrgentFee;
+        // Other options
+        } else if (serviceId.includes('postnord')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.returnPostnordFee;
+        } else if (serviceId.includes('bud') || serviceId.includes('courier')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.returnBudFee;
+        }
+        
+        const finalReturnCost = customReturnFee !== undefined ? customReturnFee : standardReturnCost;
+        if (finalReturnCost > 0) {
+          totalAdditionalFees += finalReturnCost;
           breakdown.push({
             service: 'return_service',
             description: returnService.name,
-            fee: returnCost,
-            total: returnCost,
+            fee: finalReturnCost,
+            total: finalReturnCost,
             quantity: 1,
-            unitPrice: returnCost,
-            vatRate: VAT_RATES.STANDARD
+            unitPrice: finalReturnCost,
+            vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD
           });
         }
       }
     }
 
-    // Add scanned copies cost
+    // Add scanned copies cost (use customer-specific fee if available)
     if (orderData.scannedCopies) {
-      const scannedCost = SCANNED_COPIES_FEE * orderData.quantity;
+      const customScannedFee = orderData.customerPricing?.customPricing?.scannedCopiesFee;
+      const scannedUnitFee = customScannedFee !== undefined ? customScannedFee : SCANNED_COPIES_FEE;
+      const scannedCost = scannedUnitFee * orderData.quantity;
       totalAdditionalFees += scannedCost;
       breakdown.push({
         service: 'scanned_copies',
@@ -504,72 +601,104 @@ export const calculateOrderPrice = async (orderData: {
         fee: scannedCost,
         total: scannedCost,
         quantity: orderData.quantity,
-        unitPrice: SCANNED_COPIES_FEE,
-        vatRate: VAT_RATES.STANDARD
+        unitPrice: scannedUnitFee,
+        vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD
       });
     }
 
-    // Add pickup service cost (dynamic pricing based on method)
+    // Add pickup service cost (dynamic pricing based on method, with customer overrides)
     if (orderData.pickupService && orderData.pickupMethod) {
       const pickupPricing = await getPickupPricingByMethod(orderData.pickupMethod);
+      
+      // Check for customer-specific pickup fee
+      let customPickupFee: number | undefined;
+      if (orderData.pickupMethod === 'dhl') {
+        customPickupFee = orderData.customerPricing?.customPricing?.dhlPickupFee;
+      } else if (orderData.pickupMethod === 'stockholm_courier') {
+        customPickupFee = orderData.customerPricing?.customPricing?.stockholmCourierFee;
+      }
+      
       if (pickupPricing) {
-        totalAdditionalFees += pickupPricing.price;
+        const finalPickupPrice = customPickupFee !== undefined ? customPickupFee : pickupPricing.price;
+        totalAdditionalFees += finalPickupPrice;
         breakdown.push({
           service: 'pickup_service',
           description: pickupPricing.name,
-          fee: pickupPricing.price,
-          total: pickupPricing.price,
+          fee: finalPickupPrice,
+          total: finalPickupPrice,
           quantity: 1,
-          unitPrice: pickupPricing.price,
-          vatRate: VAT_RATES.STANDARD
+          unitPrice: finalPickupPrice,
+          vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD
         });
       } else {
         // Fallback to default price from centralized config
-        totalAdditionalFees += DEFAULT_PICKUP_FEE;
+        const fallbackPrice = customPickupFee !== undefined ? customPickupFee : DEFAULT_PICKUP_FEE;
+        totalAdditionalFees += fallbackPrice;
         breakdown.push({
           service: 'pickup_service',
           description: 'Hämtning av dokument',
-          fee: DEFAULT_PICKUP_FEE,
-          total: DEFAULT_PICKUP_FEE,
+          fee: fallbackPrice,
+          total: fallbackPrice,
           quantity: 1,
-          unitPrice: DEFAULT_PICKUP_FEE,
-          vatRate: VAT_RATES.STANDARD
+          unitPrice: fallbackPrice,
+          vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD
         });
       }
     }
 
-    // Add premium pickup cost if selected
+    // Add premium pickup cost if selected (with customer overrides)
     if (orderData.premiumPickup) {
       const premiumPickupPricing = await getPickupPricingByMethod(orderData.premiumPickup as any);
+      
+      // Check for customer-specific premium pickup fee
+      let customPremiumPickupFee: number | undefined;
+      if (orderData.premiumPickup === 'dhl_express') {
+        customPremiumPickupFee = orderData.customerPricing?.customPricing?.dhlExpressPickupFee;
+      } else if (orderData.premiumPickup === 'stockholm_sameday') {
+        customPremiumPickupFee = orderData.customerPricing?.customPricing?.stockholmSamedayFee;
+      }
+      
       if (premiumPickupPricing) {
-        totalAdditionalFees += premiumPickupPricing.price;
+        const finalPremiumPrice = customPremiumPickupFee !== undefined ? customPremiumPickupFee : premiumPickupPricing.price;
+        totalAdditionalFees += finalPremiumPrice;
         breakdown.push({
           service: 'premium_pickup',
           description: premiumPickupPricing.name,
-          fee: premiumPickupPricing.price,
-          total: premiumPickupPricing.price,
+          fee: finalPremiumPrice,
+          total: finalPremiumPrice,
           quantity: 1,
-          unitPrice: premiumPickupPricing.price,
-          vatRate: VAT_RATES.STANDARD
+          unitPrice: finalPremiumPrice,
+          vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD
         });
       }
     }
 
-    // Add premium delivery cost (if selected separately from return service)
+    // Add premium delivery cost (if selected separately from return service, with customer overrides)
     if (orderData.premiumDelivery && orderData.returnServices) {
       const premiumService = orderData.returnServices.find((s: any) => s.id === orderData.premiumDelivery);
       if (premiumService) {
-        const premiumCost = extractPrice(premiumService);
-        if (premiumCost > 0) {
-          totalAdditionalFees += premiumCost;
+        const standardPremiumCost = extractPrice(premiumService);
+        
+        // Check for customer-specific premium delivery fee
+        let customPremiumDeliveryFee: number | undefined;
+        const deliveryId = orderData.premiumDelivery.toLowerCase();
+        if (deliveryId.includes('dhl')) {
+          customPremiumDeliveryFee = orderData.customerPricing?.customPricing?.returnDhlFee;
+        } else if (deliveryId.includes('bud') || deliveryId.includes('courier')) {
+          customPremiumDeliveryFee = orderData.customerPricing?.customPricing?.returnBudFee;
+        }
+        
+        const finalPremiumCost = customPremiumDeliveryFee !== undefined ? customPremiumDeliveryFee : standardPremiumCost;
+        if (finalPremiumCost > 0) {
+          totalAdditionalFees += finalPremiumCost;
           breakdown.push({
             service: 'premium_delivery',
             description: premiumService.name,
-            fee: premiumCost,
-            total: premiumCost,
+            fee: finalPremiumCost,
+            total: finalPremiumCost,
             quantity: 1,
-            unitPrice: premiumCost,
-            vatRate: VAT_RATES.STANDARD
+            unitPrice: finalPremiumCost,
+            vatRate: isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD
           });
         }
       }
@@ -581,7 +710,9 @@ export const calculateOrderPrice = async (orderData: {
       totalPrice: totalBasePrice + totalAdditionalFees,
       breakdown,
       hasUnconfirmedPrices,
-      unconfirmedServices
+      unconfirmedServices,
+      vatExempt: isVatExempt,
+      matchedCustomer: orderData.customerPricing?.companyName
     };
   } catch (error) {
     throw error;

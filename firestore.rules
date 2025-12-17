@@ -132,6 +132,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // CUSTOMERS – CRM database, admin only
+    match /customers/{customerId} {
+      allow read, write: if isAdmin() || isDoxStaff();
+    }
+
     // INVOICES – admin only
     match /invoices/{invoiceId} {
       allow read, write: if isAdmin();

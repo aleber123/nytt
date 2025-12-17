@@ -14,6 +14,7 @@ import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { createOrderWithFiles } from '@/services/hybridOrderService';
 import { calculateOrderPrice } from '@/firebase/pricingService';
+import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { printShippingLabel } from '@/services/shippingLabelService';
 import { StepProps } from '../types';
 import CountryFlag from '../../ui/CountryFlag';
@@ -680,6 +681,19 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 try {
                   setShowFullScreenLoader(true);
 
+                  // Try to match customer by email domain for custom pricing
+                  let customerPricingData = undefined;
+                  if (answers.customerInfo?.email) {
+                    const matchedCustomer = await getCustomerByEmailDomain(answers.customerInfo.email);
+                    if (matchedCustomer) {
+                      customerPricingData = {
+                        customPricing: matchedCustomer.customPricing,
+                        vatExempt: matchedCustomer.vatExempt,
+                        companyName: matchedCustomer.companyName
+                      };
+                    }
+                  }
+
                   // Calculate pricing using Firebase pricing service
                   const pricingResult = await calculateOrderPrice({
                     country: answers.country,
@@ -690,7 +704,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     returnServices: returnServices,
                     scannedCopies: answers.scannedCopies,
                     pickupService: answers.pickupService,
-                    premiumDelivery: answers.premiumDelivery
+                    premiumDelivery: answers.premiumDelivery,
+                    customerPricing: customerPricingData
                   });
 
                   // Prepare order data
@@ -997,6 +1012,19 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 submissionInProgressRef.current = true;
 
                 try {
+                  // Try to match customer by email domain for custom pricing
+                  let customerPricingData2 = undefined;
+                  if (answers.customerInfo?.email) {
+                    const matchedCustomer2 = await getCustomerByEmailDomain(answers.customerInfo.email);
+                    if (matchedCustomer2) {
+                      customerPricingData2 = {
+                        customPricing: matchedCustomer2.customPricing,
+                        vatExempt: matchedCustomer2.vatExempt,
+                        companyName: matchedCustomer2.companyName
+                      };
+                    }
+                  }
+
                   // Calculate pricing using Firebase pricing service
                   const pricingResult = await calculateOrderPrice({
                     country: answers.country,
@@ -1007,7 +1035,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     returnServices: returnServices,
                     scannedCopies: answers.scannedCopies,
                     pickupService: answers.pickupService,
-                    premiumDelivery: answers.premiumDelivery
+                    premiumDelivery: answers.premiumDelivery,
+                    customerPricing: customerPricingData2
                   });
 
                   // Prepare order data

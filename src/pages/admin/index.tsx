@@ -44,6 +44,12 @@ function AdminIndexPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
         );
+      case 'users':
+        return (
+          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        );
       case 'receipt':
         return (
           <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -68,6 +74,15 @@ function AdminIndexPage() {
       badge: t('admin.index.pages.orders.badge', 'Alla ordrar'),
       icon: 'clipboard-list',
       category: 'orders'
+    },
+    {
+      title: 'Customer Registry',
+      description: 'Manage business customers, contacts and terms',
+      href: '/admin/customers',
+      color: 'bg-teal-600 hover:bg-teal-700',
+      badge: 'CRM',
+      icon: 'users',
+      category: 'customers'
     },
     {
       title: t('admin.index.pages.driver.title', 'Chaufför'),
@@ -220,6 +235,7 @@ function AdminIndexPage() {
                   page.category === 'operations' ? 'border-green-100 hover:border-green-200' :
                   page.category === 'orders' ? 'border-orange-100 hover:border-orange-200' :
                   page.category === 'billing' ? 'border-purple-100 hover:border-purple-200' :
+                  page.category === 'customers' ? 'border-teal-100 hover:border-teal-200' :
                   'border-red-100 hover:border-red-200'
                 }`}>
                   <div className="flex items-start flex-1">
@@ -228,6 +244,7 @@ function AdminIndexPage() {
                       page.category === 'operations' ? 'bg-green-50' :
                       page.category === 'orders' ? 'bg-orange-50' :
                       page.category === 'billing' ? 'bg-purple-50' :
+                      page.category === 'customers' ? 'bg-teal-50' :
                       'bg-red-50'
                     }`}>
                       {renderIcon(page.icon)}
@@ -238,6 +255,7 @@ function AdminIndexPage() {
                           page.category === 'pricing' ? 'group-hover:text-blue-700' :
                           page.category === 'operations' ? 'group-hover:text-green-700' :
                           page.category === 'orders' ? 'group-hover:text-orange-700' :
+                          page.category === 'customers' ? 'group-hover:text-teal-700' :
                           page.category === 'billing' ? 'group-hover:text-purple-700' :
                           'group-hover:text-red-700'
                         }`}>
@@ -248,6 +266,7 @@ function AdminIndexPage() {
                             page.category === 'pricing' ? 'bg-blue-100 text-blue-800' :
                             page.category === 'operations' ? 'bg-green-100 text-green-800' :
                             page.category === 'orders' ? 'bg-orange-100 text-orange-800' :
+                            page.category === 'customers' ? 'bg-teal-100 text-teal-800' :
                             page.category === 'billing' ? 'bg-purple-100 text-purple-800' :
                             'bg-red-100 text-red-800'
                           }`}>

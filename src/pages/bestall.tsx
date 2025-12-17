@@ -11,6 +11,7 @@ import * as gtag from '../../lib/analytics';
 import { OrderSEO } from '@/components/SEO/OrderSEO';
 import { ProgressIndicator } from '@/components/order/ProgressIndicator';
 import { getCountryPricingRules, getAllActivePricingRules, getPricingRule, calculateOrderPrice } from '@/firebase/pricingService';
+import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -553,7 +554,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     answers.returnService,
     answers.scannedCopies,
     answers.premiumDelivery,
-    answers.helpMeChooseServices
+    answers.helpMeChooseServices,
+    answers.customerInfo.email,
+    answers.returnAddress.email,
+    answers.billingInfo.email
   ]);
 
   // Scroll to top when moving between steps
@@ -1191,6 +1195,26 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const calculatePricingBreakdown = async () => {
     try {
       setLoadingPricing(true);
+
+      // Try to match customer by email domain for custom pricing (preview/summary pricing)
+      const emailForPricing = (
+        answers.billingInfo?.email ||
+        answers.returnAddress?.email ||
+        answers.customerInfo?.email ||
+        ''
+      ).trim();
+
+      let customerPricingData = undefined;
+      if (emailForPricing) {
+        const matchedCustomer = await getCustomerByEmailDomain(emailForPricing);
+        if (matchedCustomer) {
+          customerPricingData = {
+            customPricing: matchedCustomer.customPricing,
+            vatExempt: matchedCustomer.vatExempt,
+            companyName: matchedCustomer.companyName
+          };
+        }
+      }
       
       // Use the centralized calculateOrderPrice function from pricingService
       const pricingResult = await calculateOrderPrice({
@@ -1204,7 +1228,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         pickupService: answers.pickupService,
         pickupMethod: answers.pickupMethod as 'dhl' | 'stockholm_courier' | undefined,
         premiumPickup: answers.premiumPickup,
-        premiumDelivery: answers.premiumDelivery
+        premiumDelivery: answers.premiumDelivery,
+        customerPricing: customerPricingData
       });
 
       setPricingBreakdown(pricingResult.breakdown);
