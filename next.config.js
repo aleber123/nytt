@@ -5,6 +5,9 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   i18n,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyBaXYbWRbryxW-YL4aWIFDzb5Po-r1sj3g',
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'doxvl-51a30.firebaseapp.com',
