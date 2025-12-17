@@ -144,12 +144,20 @@ function AdminOrdersPage() {
 
     setIsBulkUpdating(true);
     try {
-      const mod = await import('@/services/hybridOrderService');
-      const updateOrder = (mod as any).default?.updateOrder || (mod as any).updateOrder;
-      if (typeof updateOrder !== 'function') throw new Error('updateOrder not available');
-
+      // Use Admin API to bypass Firestore security rules
       await Promise.all(
-        selectedOrderIds.map((orderId) => updateOrder(orderId, { status: bulkStatus }))
+        selectedOrderIds.map(async (orderId) => {
+          const response = await fetch('/api/admin/update-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId, updates: { status: bulkStatus } })
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update order');
+          }
+          return response.json();
+        })
       );
 
       setOrders((prev) =>

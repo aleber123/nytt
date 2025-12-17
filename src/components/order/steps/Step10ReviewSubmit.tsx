@@ -1055,6 +1055,10 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     pickupDate: answers.pickupDate,
                     pickupTimeWindow: answers.pickupTimeWindow,
                     returnService: answers.returnService,
+                    returnTrackingNumber:
+                      answers.returnService === 'own-delivery'
+                        ? (answers.ownReturnTrackingNumber || '')
+                        : '',
                     premiumDelivery: answers.premiumDelivery,
                     returnDeliveryDate: answers.returnDeliveryDate,
                     returnAddress: answers.returnAddress,

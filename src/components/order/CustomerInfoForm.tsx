@@ -100,25 +100,26 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
     }
   }, [answers.returnAddress, answers.billingInfo.sameAsReturn, setAnswers]);
 
-  // Sync to legacy customerInfo whenever return address changes
+  // Sync to legacy customerInfo whenever billing info changes
+  // All customer info comes from billingInfo (the invoice/contact section)
   useEffect(() => {
     setAnswers(prev => ({
       ...prev,
       customerInfo: {
         ...prev.customerInfo,
-        firstName: prev.returnAddress.firstName,
-        lastName: prev.returnAddress.lastName,
-        companyName: prev.returnAddress.companyName,
-        email: prev.returnAddress.email,
-        phone: prev.returnAddress.phone,
-        address: prev.returnAddress.street,
-        postalCode: prev.returnAddress.postalCode,
-        city: prev.returnAddress.city,
-        country: prev.returnAddress.country,
-        countryCode: prev.returnAddress.countryCode
+        firstName: prev.billingInfo.firstName || prev.returnAddress.firstName,
+        lastName: prev.billingInfo.lastName || prev.returnAddress.lastName,
+        companyName: prev.billingInfo.companyName || prev.returnAddress.companyName,
+        email: prev.billingInfo.email || prev.returnAddress.email,
+        phone: prev.billingInfo.phone || prev.returnAddress.phone,
+        address: prev.billingInfo.street || prev.returnAddress.street,
+        postalCode: prev.billingInfo.postalCode || prev.returnAddress.postalCode,
+        city: prev.billingInfo.city || prev.returnAddress.city,
+        country: prev.billingInfo.country || prev.returnAddress.country,
+        countryCode: prev.billingInfo.countryCode || prev.returnAddress.countryCode
       }
     }));
-  }, [answers.returnAddress, setAnswers]);
+  }, [answers.billingInfo, answers.returnAddress, setAnswers]);
 
   // Email validation helper
   const isValidEmail = (email: string) => {

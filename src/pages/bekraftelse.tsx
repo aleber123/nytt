@@ -70,8 +70,9 @@ export function ConfirmationPage() {
       setError(null);
 
       try {
-        const hybridOrderService = (await import('@/services/hybridOrderService')).default;
-        const { getOrderById, getOrderConfirmationByToken } = hybridOrderService;
+        const hybridOrderService = await import('@/services/hybridOrderService');
+        const getOrderById = hybridOrderService.default?.getOrderById || hybridOrderService.getOrderById;
+        const getOrderConfirmationByToken = hybridOrderService.default?.getOrderConfirmationByToken || hybridOrderService.getOrderConfirmationByToken;
 
         let orderData: any = null;
 
@@ -178,6 +179,10 @@ export function ConfirmationPage() {
         return 'Stockholm Express';
       case 'stockholm-sameday':
         return 'Stockholm Same Day';
+      case 'own-delivery':
+        return 'Egen returfrakt (redan bokad)';
+      case 'office-pickup':
+        return 'Hämtning på vårt kontor';
       default:
         return serviceId;
     }

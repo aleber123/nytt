@@ -748,7 +748,8 @@ function AdminOrderDetailPage() {
   const fetchOrder = async (orderIdParam?: string) => {
     setLoading(true);
     try {
-      const { getOrderById } = (await import('@/services/hybridOrderService')).default;
+      const mod = await import('@/services/hybridOrderService');
+      const getOrderById = mod.default?.getOrderById || mod.getOrderById;
       const orderId = orderIdParam || (router.query.id as string);
       if (!orderId) throw new Error('Missing order id');
       const orderData = await getOrderById(orderId);
@@ -919,6 +920,8 @@ function AdminOrderDetailPage() {
     const customerEmail = order.customerInfo?.email || '';
     let shouldSendDocumentReceiptEmail = false;
     let shouldSendReturnShipmentEmail = false;
+    let shouldSendOwnDeliveryReturnEmail = false;
+    let shouldSendOfficePickupReadyEmail = false;
 
     const trackingNumberForEmail = trackingNumber || (order as any).returnTrackingNumber || '';
     const trackingUrlForEmail = trackingUrl || (order as any).returnTrackingUrl || '';
@@ -989,15 +992,44 @@ function AdminOrderDetailPage() {
       status === 'completed' &&
       customerEmail
     ) {
-      if (typeof window !== 'undefined') {
-        const confirmReturn = window.confirm(
-          'Do you want to send an email to the customer informing them that the return shipment has been sent, including the tracking number?'
-        );
-        if (confirmReturn) {
-          shouldSendReturnShipmentEmail = true;
+      const returnService = (order as any)?.returnService as string | undefined;
+      const extOrder = order as any;
+      const alreadySentOwnDelivery = !!extOrder.ownDeliveryReturnEmailSent;
+      const alreadySentOfficePickup = !!extOrder.officePickupReadyEmailSent;
+
+      if (returnService === 'own-delivery') {
+        if (!alreadySentOwnDelivery) {
+          if (typeof window !== 'undefined') {
+            const confirmSend = window.confirm('Do you want to send an email to the customer confirming that the tracking number has been registered?');
+            if (confirmSend) {
+              shouldSendOwnDeliveryReturnEmail = true;
+            }
+          } else {
+            shouldSendOwnDeliveryReturnEmail = true;
+          }
+        }
+      } else if (returnService === 'office-pickup') {
+        if (!alreadySentOfficePickup) {
+          if (typeof window !== 'undefined') {
+            const confirmSend = window.confirm('Do you want to send an email to the customer informing them that the documents are ready for pickup at our office?');
+            if (confirmSend) {
+              shouldSendOfficePickupReadyEmail = true;
+            }
+          } else {
+            shouldSendOfficePickupReadyEmail = true;
+          }
         }
       } else {
-        shouldSendReturnShipmentEmail = true;
+        if (typeof window !== 'undefined') {
+          const confirmReturn = window.confirm(
+            'Do you want to send an email to the customer informing them that the return shipment has been sent, including the tracking number?'
+          );
+          if (confirmReturn) {
+            shouldSendReturnShipmentEmail = true;
+          }
+        } else {
+          shouldSendReturnShipmentEmail = true;
+        }
       }
     }
 
@@ -1587,6 +1619,451 @@ function AdminOrderDetailPage() {
         } catch (pickupEmailErr) {
           console.error('Error queuing pickup expected completion email:', pickupEmailErr);
           toast.error('Kunde inte skapa upphämtningsmail till kund');
+        }
+      }
+
+      if (shouldSendOwnDeliveryReturnEmail) {
+        try {
+          const db = getFirebaseDb();
+          if (db) {
+            // Try customerInfo first, then billingInfo as fallback for older orders
+            const extOrder = order as any;
+            const firstName = order.customerInfo?.firstName || extOrder.billingInfo?.firstName || '';
+            const lastName = order.customerInfo?.lastName || extOrder.billingInfo?.lastName || '';
+            const customerName = `${firstName} ${lastName}`.trim() || 'Customer';
+            const orderNumber = order.orderNumber || orderId;
+            const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
+            const trackingNumberText = trackingNumberForEmail || '';
+
+            if (!trackingNumberText) {
+              toast.error('Tracking number is missing – cannot send Own delivery email');
+            } else {
+              const messageHtml = emailLocale === 'en'
+                ? `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tracking registered</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    .highlight { background:#fef3c7; padding:2px 6px; border-radius:3px; font-weight:700; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Tracking number registered</h1>
+      <p>Update for your order with DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Dear ${customerName},
+      </div>
+
+      <p>
+        You selected <strong>Own delivery</strong> (you have already booked the return shipment).
+        We have registered your tracking number and linked it to your order.
+      </p>
+
+      <p>Tracking number: <span class="highlight">${trackingNumberText}</span></p>
+
+      <div class="order-summary">
+        <div class="order-number">Order number: #${orderNumber}</div>
+      </div>
+
+      <p>If you have any questions, you are welcome to contact us at
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> or by phone.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professional document legalisation for many years</p>
+      <p>This is an automatically generated message.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim()
+                : `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spårningsnummer registrerat</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    .highlight { background:#fef3c7; padding:2px 6px; border-radius:3px; font-weight:700; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Spårningsnummer registrerat</h1>
+      <p>Uppdatering för din order hos DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Hej ${customerName}!
+      </div>
+
+      <p>
+        Du har valt <strong>Egen returfrakt</strong> (du har redan bokat returfrakten).
+        Vi har registrerat ditt spårningsnummer och kopplat det till din order.
+      </p>
+
+      <p>Spårningsnummer: <span class="highlight">${trackingNumberText}</span></p>
+
+      <div class="order-summary">
+        <div class="order-number">Ordernummer: #${orderNumber}</div>
+      </div>
+
+      <p>Har du frågor är du välkommen att kontakta oss på
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> eller via telefon.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professionell dokumentlegalisering sedan många år</p>
+      <p>Detta är ett automatiskt genererat meddelande.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim();
+
+              const subject = emailLocale === 'en'
+                ? `Update: Tracking number registered – ${orderNumber}`
+                : `Uppdatering: Spårningsnummer registrerat – ${orderNumber}`;
+
+              await addDoc(collection(db, 'customerEmails'), {
+                name: customerName,
+                email: customerEmail,
+                phone: order.customerInfo?.phone || '',
+                subject,
+                message: messageHtml,
+                orderId: orderNumber,
+                createdAt: serverTimestamp(),
+                status: 'unread'
+              });
+
+              await adminUpdateOrder(orderId, {
+                ownDeliveryReturnEmailSent: true,
+                ownDeliveryReturnEmailSentAt: new Date().toISOString()
+              });
+              const sentAt = new Date().toISOString();
+              setOrder((prev) => ({
+                ...(prev as any),
+                ownDeliveryReturnEmailSent: true,
+                ownDeliveryReturnEmailSentAt: sentAt
+              }) as ExtendedOrder);
+              toast.success('Own delivery mail has been queued');
+            }
+          }
+        } catch (ownDeliveryEmailErr) {
+          console.error('Error queuing own delivery return email:', ownDeliveryEmailErr);
+          toast.error('Could not queue Own delivery email');
+        }
+      }
+
+      if (shouldSendOfficePickupReadyEmail) {
+        try {
+          const db = getFirebaseDb();
+          if (db) {
+            // Try customerInfo first, then billingInfo as fallback for older orders
+            const extOrderPickup = order as any;
+            const firstNamePickup = order.customerInfo?.firstName || extOrderPickup.billingInfo?.firstName || '';
+            const lastNamePickup = order.customerInfo?.lastName || extOrderPickup.billingInfo?.lastName || '';
+            const customerName = `${firstNamePickup} ${lastNamePickup}`.trim() || 'Customer';
+            const orderNumber = order.orderNumber || orderId;
+            const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
+            const officeAddressLines = emailLocale === 'en'
+              ? 'DOX Visumpartner AB<br/>Livdjursgatan 4<br/>121 62 Johanneshov<br/>Sweden'
+              : 'DOX Visumpartner AB<br/>Livdjursgatan 4<br/>121 62 Johanneshov<br/>Sverige';
+            const openingHours = emailLocale === 'en'
+              ? 'Mon–Thu 09:00–16:00<br/>Fri 09:00–15:00'
+              : 'Mån–Tor 09:00–16:00<br/>Fre 09:00–15:00';
+
+            const messageHtml = emailLocale === 'en'
+              ? `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ready for pickup</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .address-box { background:#fff; border:2px solid #0EB0A6; border-radius:8px; padding:14px; margin:12px 0; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Ready for pickup</h1>
+      <p>Update for your order with DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Dear ${customerName},
+      </div>
+
+      <p>Your documents are now ready for pickup at our office in Stockholm.</p>
+
+      <div class="order-summary">
+        <div class="order-number">Order number: #${orderNumber}</div>
+      </div>
+
+      <div class="address-box">
+        <div style="font-weight:700; margin-bottom:8px;">Pickup address</div>
+        ${officeAddressLines}
+        <div style="margin-top:10px; font-size:13px; color:#5f6368;">
+          <strong>Opening hours:</strong><br/>
+          ${openingHours}
+        </div>
+      </div>
+
+      <p>Please bring valid ID and your order number when collecting your documents.</p>
+
+      <p>If you have any questions, you are welcome to contact us at
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> or by phone.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professional document legalisation for many years</p>
+      <p>This is an automatically generated message.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim()
+              : `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klara för upphämtning</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #202124;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+    .email-container {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #2E2D2C;
+      color: #ffffff;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .order-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin:20px 0; }
+    .order-number { background:#0EB0A6; color:#fff; padding:10px 16px; border-radius:6px; display:inline-block; font-weight:700; font-size:15px; margin: 12px 0; }
+    .address-box { background:#fff; border:2px solid #0EB0A6; border-radius:8px; padding:14px; margin:12px 0; }
+    .footer { background:#f8f9fa; padding:24px 36px; text-align:center; border-top:1px solid #eaecef; }
+    .footer p { margin:5px 0; color:#5f6368; font-size:13px; }
+    @media (max-width:600px){ body{padding:10px;} .header,.content,.footer{padding:20px;} }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Dina dokument är klara att hämta</h1>
+      <p>Uppdatering för din order hos DOX Visumpartner AB</p>
+    </div>
+
+    <div class="content">
+      <div class="greeting">
+        Hej ${customerName}!
+      </div>
+
+      <p>Dina dokument är nu klara för upphämtning på vårt kontor i Stockholm.</p>
+
+      <div class="order-summary">
+        <div class="order-number">Ordernummer: #${orderNumber}</div>
+      </div>
+
+      <div class="address-box">
+        <div style="font-weight:700; margin-bottom:8px;">Upphämtningsadress</div>
+        ${officeAddressLines}
+        <div style="margin-top:10px; font-size:13px; color:#5f6368;">
+          <strong>Öppettider:</strong><br/>
+          ${openingHours}
+        </div>
+      </div>
+
+      <p>Ta med giltig legitimation och ditt ordernummer när du hämtar dina dokument.</p>
+
+      <p>Har du frågor är du välkommen att kontakta oss på
+        <a href="mailto:info@doxvl.se">info@doxvl.se</a> eller via telefon.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p><strong>DOX Visumpartner AB</strong></p>
+      <p>Professionell dokumentlegalisering sedan många år</p>
+      <p>Detta är ett automatiskt genererat meddelande.</p>
+    </div>
+  </div>
+</body>
+</html>
+              `.trim();
+
+            const subject = emailLocale === 'en'
+              ? `Your documents are ready for pickup – ${orderNumber}`
+              : `Dina dokument är klara för upphämtning – ${orderNumber}`;
+
+            await addDoc(collection(db, 'customerEmails'), {
+              name: customerName,
+              email: customerEmail,
+              phone: order.customerInfo?.phone || '',
+              subject,
+              message: messageHtml,
+              orderId: orderNumber,
+              createdAt: serverTimestamp(),
+              status: 'unread'
+            });
+
+            await adminUpdateOrder(orderId, {
+              officePickupReadyEmailSent: true,
+              officePickupReadyEmailSentAt: new Date().toISOString()
+            });
+            const sentAt = new Date().toISOString();
+            setOrder((prev) => ({
+              ...(prev as any),
+              officePickupReadyEmailSent: true,
+              officePickupReadyEmailSentAt: sentAt
+            }) as ExtendedOrder);
+            toast.success('Office pickup mail has been queued');
+          }
+        } catch (officePickupEmailErr) {
+          console.error('Error queuing office pickup ready email:', officePickupEmailErr);
+          toast.error('Could not queue Office pickup email');
         }
       }
 
@@ -2614,6 +3091,10 @@ function AdminOrderDetailPage() {
       return 'pickup';
     }
     if (stepId === 'prepare_return') {
+      const returnService = (order as any)?.returnService as string | undefined;
+      if (returnService && ['own-delivery', 'office-pickup'].includes(returnService)) {
+        return null;
+      }
       return 'return';
     }
     return null;
@@ -4820,6 +5301,8 @@ function AdminOrderDetailPage() {
                                      order?.returnService === 'stockholm-city' ? '🚴 Stockholm City Courier' :
                                      order?.returnService === 'stockholm-express' ? '🚴 Stockholm Express' :
                                      order?.returnService === 'stockholm-sameday' ? '🚴 Stockholm Same Day' :
+                                     order?.returnService === 'own-delivery' ? '📦 Own delivery' :
+                                     order?.returnService === 'office-pickup' ? '🏢 Office pickup' :
                                      order?.returnService ? `📦 ${order.returnService}` :
                                      '❌ Ingen returtjänst vald'}
                                   </p>
@@ -4964,6 +5447,15 @@ function AdminOrderDetailPage() {
                                         </p>
                                         <p className="text-blue-600 text-xs mt-1">
                                           Manual booking required for this shipping method.
+                                        </p>
+                                      </div>
+                                    ) : order?.returnService && ['own-delivery', 'office-pickup'].includes(order.returnService) ? (
+                                      <div className="p-3 bg-slate-50 border border-slate-200 rounded">
+                                        <p className="text-slate-800 font-medium text-sm">
+                                          ℹ️ Customer selected: {order.returnService === 'own-delivery' ? 'Own delivery' : 'Office pickup'}
+                                        </p>
+                                        <p className="text-slate-600 text-xs mt-1">
+                                          No return shipment booking is needed for this return option.
                                         </p>
                                       </div>
                                     ) : (

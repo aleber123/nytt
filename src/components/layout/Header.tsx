@@ -57,7 +57,7 @@ const Header: React.FC = () => {
                 width={120}
                 height={40}
                 priority
-                style={{ height: 'auto', width: 'auto', maxHeight: '2.5rem' }}
+                style={{ width: 'auto', height: 'auto', maxHeight: '2.5rem' }}
               />
             </Link>
           </div>

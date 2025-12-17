@@ -1,5 +1,5 @@
 // Hybrid Order Service - tries Firebase first, falls back to local storage
-const { initializeApp } = require('firebase/app');
+const { initializeApp, getApps, getApp } = require('firebase/app');
 const { getFirestore, collection, addDoc, getDoc, doc, setDoc, updateDoc, Timestamp } = require('firebase/firestore');
 const { getStorage, ref, uploadBytes, getDownloadURL } = require('firebase/storage');
 const { mockFirebase } = require('./mockFirebase');
@@ -24,29 +24,46 @@ const firebaseConfig = {
 // Import initializeFirestore for proper configuration
 const { initializeFirestore } = require('firebase/firestore');
 
-// Initialize Firebase
+// Initialize Firebase lazily to handle SSR properly
 let db = null;
 let storage = null;
 let firebaseAvailable = false;
+let firebaseInitialized = false;
 
-if (!useMockOnly) {
+// Check if Firebase config is valid (has required fields)
+const hasValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== '';
+
+// Lazy initialization function - called before each operation
+function ensureFirebaseInitialized() {
+  if (firebaseInitialized) return;
+  firebaseInitialized = true;
+
+  if (useMockOnly || !hasValidConfig) {
+    firebaseAvailable = false;
+    return;
+  }
+
   try {
-    const app = initializeApp(firebaseConfig);
+    // Use existing app if already initialized, otherwise create new one
+    const existingApps = getApps();
+    const app = existingApps.length > 0 ? getApp() : initializeApp(firebaseConfig);
 
     // Initialize Firestore with settings to avoid WebSocket connection issues
-    // This should prevent the "Listen" stream 400 errors in Vercel
-    db = initializeFirestore(app, {
-      experimentalForceLongPolling: true, // Use HTTP long polling instead of WebSocket
-      experimentalAutoDetectLongPolling: false // Disable auto-detection
-    });
+    try {
+      db = initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+        experimentalAutoDetectLongPolling: false
+      });
+    } catch (firestoreError) {
+      // Firestore might already be initialized, try to get existing instance
+      db = getFirestore(app);
+    }
 
     storage = getStorage(app);
     firebaseAvailable = true;
   } catch (error) {
     firebaseAvailable = false;
   }
-} else {
-  firebaseAvailable = false;
 }
 
 // Format the order ID with SWE prefix and padded number
@@ -56,6 +73,7 @@ function formatOrderId(number) {
 
 // Get next order number (self-healing based on both counter doc and actual orders count)
 async function getNextOrderNumber() {
+  ensureFirebaseInitialized();
   if (firebaseAvailable && db) {
     try {
       // Try to get the counter document
@@ -101,8 +119,34 @@ async function getNextOrderNumber() {
   return counter.currentCount;
 }
 
+// Helper function to remove undefined values from an object (Firebase doesn't accept undefined)
+// Preserves Firestore Timestamp objects so they are stored correctly
+function removeUndefinedValues(obj) {
+  if (obj === null || obj === undefined) return obj;
+  
+  // Preserve Firestore Timestamp objects (they have toDate method)
+  if (obj && typeof obj === 'object' && typeof obj.toDate === 'function') {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefinedValues(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = removeUndefinedValues(value);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 // Create order with hybrid approach
 const createOrder = async (orderData) => {
+  ensureFirebaseInitialized();
   try {
 
     if (firebaseAvailable && db) {
@@ -119,8 +163,11 @@ const createOrder = async (orderData) => {
           orderNumber: formattedOrderId
         };
 
+        // Remove undefined values - Firebase doesn't accept them
+        const cleanedOrder = removeUndefinedValues(orderWithTimestamps);
+
         await setDoc(doc(db, 'orders', formattedOrderId), {
-          ...orderWithTimestamps,
+          ...cleanedOrder,
           orderNumber: formattedOrderId // Store the formatted order number as a field
         });
 
@@ -161,10 +208,14 @@ const createOrder = async (orderData) => {
         return formattedOrderId;
 
       } catch (firebaseError) {
+        console.error('❌ Firebase order creation failed:', firebaseError.message);
+        console.error('Stack:', firebaseError.stack);
+        // Fall through to mock service
       }
     }
 
     // Fallback to mock service
+    console.warn('⚠️ Using mock service for order creation (firebaseAvailable:', firebaseAvailable, ', db:', !!db, ')');
     const orderWithDefaults = {
       ...orderData,
       status: 'pending',
@@ -183,6 +234,7 @@ const createOrder = async (orderData) => {
 
 // Get order by ID with hybrid approach
 const getOrderById = async (orderId) => {
+  ensureFirebaseInitialized();
   
   if (!orderId) {
     console.error('❌ Error: No order ID provided to getOrderById');
@@ -247,6 +299,7 @@ const getOrderById = async (orderId) => {
 
 // Get public order confirmation by token
 const getOrderConfirmationByToken = async (token) => {
+  ensureFirebaseInitialized();
 
   if (!token) {
     console.error('❌ Error: No token provided to getOrderConfirmationByToken');
@@ -283,6 +336,7 @@ const getOrderConfirmationByToken = async (token) => {
 
 // Get all orders
 const getAllOrders = async () => {
+  ensureFirebaseInitialized();
   try {
     if (firebaseAvailable && db) {
       try {
@@ -315,6 +369,7 @@ const getAllOrders = async () => {
 
 // Update order
 const updateOrder = async (orderId, updates) => {
+  ensureFirebaseInitialized();
   
   try {
     if (firebaseAvailable && db) {
@@ -343,8 +398,11 @@ const updateOrder = async (orderId, updates) => {
       } else {
       }
       
+      // Remove undefined values - Firebase doesn't accept them
+      const cleanedUpdates = removeUndefinedValues(updates);
+      
       await updateDoc(docRef, {
-        ...updates,
+        ...cleanedUpdates,
         updatedAt: Timestamp.now()
       });
       return true;
@@ -365,6 +423,7 @@ const updateOrder = async (orderId, updates) => {
 
 // Upload files to Firebase Storage or mock service
 const uploadFiles = async (files, orderId) => {
+  ensureFirebaseInitialized();
   if (!firebaseAvailable || !storage) {
     // Use mock service for file upload
     return await mockFirebase.uploadFiles(files, orderId);
@@ -409,6 +468,7 @@ const uploadFiles = async (files, orderId) => {
 
 // Check for duplicate orders (within last 5 minutes)
 const checkForDuplicateOrder = async (orderData) => {
+  ensureFirebaseInitialized();
   try {
     const fiveMinutesAgo = new Date(Date.now() - 300000); // 5 minutes ago
 

@@ -1,14 +1,12 @@
 import React from 'react';
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 
 function AdminIndexPage() {
-  const { t } = useTranslation('common');
   const { signOut } = useAuth();
   const renderIcon = (iconName: string) => {
     const iconClasses = "h-8 w-8 text-primary-600";
@@ -67,11 +65,11 @@ function AdminIndexPage() {
 
   const adminPages = [
     {
-      title: t('admin.index.pages.orders.title', 'Beställningar'),
-      description: t('admin.index.pages.orders.description', 'Se och hantera kundbeställningar'),
+      title: 'Orders',
+      description: 'View and manage customer orders',
       href: '/admin/orders',
       color: 'bg-orange-600 hover:bg-orange-700',
-      badge: t('admin.index.pages.orders.badge', 'Alla ordrar'),
+      badge: 'All orders',
       icon: 'clipboard-list',
       category: 'orders'
     },
@@ -85,65 +83,65 @@ function AdminIndexPage() {
       category: 'customers'
     },
     {
-      title: t('admin.index.pages.driver.title', 'Chaufför'),
-      description: t('admin.index.pages.driver.description', 'Dagliga körningar - lämna in och hämta dokument från myndigheter'),
+      title: 'Driver',
+      description: 'Daily runs - drop off and pick up documents from authorities',
       href: '/admin/driver',
       color: 'bg-indigo-600 hover:bg-indigo-700',
       icon: 'car',
-      badge: t('admin.index.pages.driver.badge', 'Dagliga uppgifter'),
+      badge: 'Daily tasks',
       category: 'operations'
     },
     {
-      title: t('admin.index.pages.embassyPrices.title', 'Ambassadpriser'),
-      description: t('admin.index.pages.embassyPrices.description', 'Hantera priser för ambassadlegalisering per land'),
+      title: 'Embassy Prices',
+      description: 'Manage prices for embassy legalization per country',
       href: '/admin/simple-embassy-prices',
       color: 'bg-blue-600 hover:bg-blue-700',
       icon: 'building',
-      badge: t('admin.index.pages.embassyPrices.badge', '10+ länder'),
+      badge: '10+ countries',
       category: 'pricing'
     },
     {
-      title: t('admin.index.pages.standardPrices.title', 'Standardpriser'),
-      description: t('admin.index.pages.standardPrices.description', 'Konfigurera priser för grundläggande tjänster'),
+      title: 'Standard Prices',
+      description: 'Configure prices for core services',
       href: '/admin/standard-services-prices',
       color: 'bg-blue-600 hover:bg-blue-700',
       icon: 'calculator',
-      badge: t('admin.index.pages.standardPrices.badge', '6 tjänster'),
+      badge: '6 services',
       category: 'pricing'
     },
     {
-      title: t('admin.index.pages.shipping.title', 'Frakt & Leverans'),
-      description: t('admin.index.pages.shipping.description', 'Hantera fraktpriser och leveransalternativ'),
+      title: 'Shipping & Delivery',
+      description: 'Manage shipping prices and delivery options',
       href: '/admin/shipping-services',
       color: 'bg-green-600 hover:bg-green-700',
       icon: 'truck',
-      badge: t('admin.index.pages.shipping.badge', '3 leverantörer'),
+      badge: '3 providers',
       category: 'operations'
     },
     {
-      title: t('admin.index.pages.invoices.title', 'Fakturor'),
-      description: t('admin.index.pages.invoices.description', 'Se och hantera kundfakturor'),
+      title: 'Invoices',
+      description: 'View and manage customer invoices',
       href: '/admin/invoices',
       color: 'bg-purple-600 hover:bg-purple-700',
-      badge: t('admin.index.pages.invoices.badge', 'Alla fakturor'),
+      badge: 'All invoices',
       icon: 'receipt',
       category: 'billing'
     },
     {
-      title: t('admin.index.pages.profile.title', 'Profil'),
-      description: t('admin.index.pages.profile.description', 'Uppdatera namn och telefon för ditt admin-konto'),
+      title: 'Profile',
+      description: 'Update name and phone for your admin account',
       href: '/admin/profile',
       color: 'bg-gray-700 hover:bg-gray-800',
-      badge: t('admin.index.pages.profile.badge', 'Konto'),
+      badge: 'Account',
       icon: 'clipboard-list',
       category: 'operations'
     },
     {
-      title: t('admin.index.pages.stats.title', 'Statistik'),
-      description: t('admin.index.pages.stats.description', 'Analysera försäljning och prestation'),
+      title: 'Statistics',
+      description: 'Analyze sales and performance',
       href: '/admin/stats',
       color: 'bg-red-600 hover:bg-red-700',
-      badge: t('admin.index.pages.stats.badge', 'Analytics'),
+      badge: 'Analytics',
       icon: 'calculator',
       category: 'analytics'
     },
@@ -167,10 +165,18 @@ function AdminIndexPage() {
     }
   ];
 
+  // Group pages by category
+  const categories = [
+    { id: 'orders', title: 'Orders & Customers', pages: adminPages.filter(p => p.category === 'orders' || p.category === 'customers') },
+    { id: 'pricing', title: 'Prices', pages: adminPages.filter(p => p.category === 'pricing') },
+    { id: 'operations', title: 'Operations', pages: adminPages.filter(p => p.category === 'operations') },
+    { id: 'billing', title: 'Billing & Analytics', pages: adminPages.filter(p => p.category === 'billing' || p.category === 'analytics') },
+  ];
+
   return (
     <ProtectedRoute>
       <Head>
-        <title>{t('admin.index.metaTitle', 'Admin Panel - Legaliseringstjänst')}</title>
+        <title>Admin Panel - Legalization Service</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-8">
@@ -178,10 +184,10 @@ function AdminIndexPage() {
           {/* Header */}
           <div className="text-center mb-6">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              {t('admin.index.heading', 'Admin Panel')}
+              Admin Panel
             </h1>
             <p className="text-xl text-gray-600">
-              {t('admin.index.subheading', 'Hantera priser, beställningar och allt annat för din legaliseringstjänst')}
+              Manage prices, orders and everything else for your legalization service
             </p>
           </div>
 
@@ -191,7 +197,7 @@ function AdminIndexPage() {
               onClick={() => signOut()}
               className="text-sm font-medium text-gray-600 hover:text-gray-800"
             >
-              {t('admin.orders.headerSignOut', 'Sign Out')}
+              Sign Out
             </button>
           </div>
 
@@ -204,7 +210,7 @@ function AdminIndexPage() {
                 </svg>
               </div>
               <div className="text-3xl font-bold text-primary-600 mb-2">10+</div>
-              <div className="text-sm text-gray-600">{t('admin.index.stats.embassyCountries', 'Länder med ambassadpriser')}</div>
+              <div className="text-sm text-gray-600">Countries with embassy prices</div>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 text-center hover:shadow-lg hover:border-primary-200 transition-all duration-300">
               <div className="p-3 bg-custom-button/10 rounded-lg w-fit mx-auto mb-3">
@@ -213,7 +219,7 @@ function AdminIndexPage() {
                 </svg>
               </div>
               <div className="text-3xl font-bold text-primary-600 mb-2">6</div>
-              <div className="text-sm text-gray-600">{t('admin.index.stats.services', 'Olika tjänster')}</div>
+              <div className="text-sm text-gray-600">Different services</div>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6 text-center hover:shadow-lg hover:border-primary-200 transition-all duration-300">
               <div className="p-3 bg-secondary-100 rounded-lg w-fit mx-auto mb-3">
@@ -222,139 +228,82 @@ function AdminIndexPage() {
                 </svg>
               </div>
               <div className="text-3xl font-bold text-primary-600 mb-2">∞</div>
-              <div className="text-sm text-gray-600">{t('admin.index.stats.priceCombinations', 'Möjliga priskombinationer')}</div>
+              <div className="text-sm text-gray-600">Possible price combinations</div>
             </div>
           </div>
 
-          {/* Admin Pages Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {adminPages.map((page, index) => (
-              <Link key={index} href={page.href}>
-                <div className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group h-full flex flex-col ${
-                  page.category === 'pricing' ? 'border-blue-100 hover:border-blue-200' :
-                  page.category === 'operations' ? 'border-green-100 hover:border-green-200' :
-                  page.category === 'orders' ? 'border-orange-100 hover:border-orange-200' :
-                  page.category === 'billing' ? 'border-purple-100 hover:border-purple-200' :
-                  page.category === 'customers' ? 'border-teal-100 hover:border-teal-200' :
-                  'border-red-100 hover:border-red-200'
-                }`}>
-                  <div className="flex items-start flex-1">
-                    <div className={`flex-shrink-0 mr-4 p-3 rounded-lg group-hover:opacity-80 transition-colors ${
-                      page.category === 'pricing' ? 'bg-blue-50' :
-                      page.category === 'operations' ? 'bg-green-50' :
-                      page.category === 'orders' ? 'bg-orange-50' :
-                      page.category === 'billing' ? 'bg-purple-50' :
-                      page.category === 'customers' ? 'bg-teal-50' :
-                      'bg-red-50'
-                    }`}>
-                      {renderIcon(page.icon)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className={`text-lg font-semibold text-gray-900 transition-colors ${
-                          page.category === 'pricing' ? 'group-hover:text-blue-700' :
-                          page.category === 'operations' ? 'group-hover:text-green-700' :
-                          page.category === 'orders' ? 'group-hover:text-orange-700' :
-                          page.category === 'customers' ? 'group-hover:text-teal-700' :
-                          page.category === 'billing' ? 'group-hover:text-purple-700' :
-                          'group-hover:text-red-700'
-                        }`}>
-                          {page.title}
-                        </h3>
-                        {page.badge && (
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            page.category === 'pricing' ? 'bg-blue-100 text-blue-800' :
-                            page.category === 'operations' ? 'bg-green-100 text-green-800' :
-                            page.category === 'orders' ? 'bg-orange-100 text-orange-800' :
-                            page.category === 'customers' ? 'bg-teal-100 text-teal-800' :
-                            page.category === 'billing' ? 'bg-purple-100 text-purple-800' :
-                            'bg-red-100 text-red-800'
+          {/* Admin Pages Grid - Grouped by Category */}
+          {categories.map((category) => (
+            category.pages.length > 0 && (
+              <div key={category.id} className="mb-10">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">{category.title}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {category.pages.map((page, index) => (
+                    <Link key={`${category.id}-${index}`} href={page.href}>
+                      <div className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group h-full flex flex-col ${
+                        page.category === 'pricing' ? 'border-blue-100 hover:border-blue-200' :
+                        page.category === 'operations' ? 'border-green-100 hover:border-green-200' :
+                        page.category === 'orders' ? 'border-orange-100 hover:border-orange-200' :
+                        page.category === 'billing' ? 'border-purple-100 hover:border-purple-200' :
+                        page.category === 'customers' ? 'border-teal-100 hover:border-teal-200' :
+                        page.category === 'analytics' ? 'border-red-100 hover:border-red-200' :
+                        'border-gray-100 hover:border-gray-200'
+                      }`}>
+                        <div className="flex items-start flex-1">
+                          <div className={`flex-shrink-0 mr-4 p-3 rounded-lg group-hover:opacity-80 transition-colors ${
+                            page.category === 'pricing' ? 'bg-blue-50' :
+                            page.category === 'operations' ? 'bg-green-50' :
+                            page.category === 'orders' ? 'bg-orange-50' :
+                            page.category === 'billing' ? 'bg-purple-50' :
+                            page.category === 'customers' ? 'bg-teal-50' :
+                            page.category === 'analytics' ? 'bg-red-50' :
+                            'bg-gray-50'
                           }`}>
-                            {page.badge}
-                          </span>
-                        )}
+                            {renderIcon(page.icon)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className={`text-lg font-semibold text-gray-900 transition-colors ${
+                                page.category === 'pricing' ? 'group-hover:text-blue-700' :
+                                page.category === 'operations' ? 'group-hover:text-green-700' :
+                                page.category === 'orders' ? 'group-hover:text-orange-700' :
+                                page.category === 'customers' ? 'group-hover:text-teal-700' :
+                                page.category === 'billing' ? 'group-hover:text-purple-700' :
+                                page.category === 'analytics' ? 'group-hover:text-red-700' :
+                                'group-hover:text-gray-700'
+                              }`}>
+                                {page.title}
+                              </h3>
+                              {page.badge && (
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                  page.category === 'pricing' ? 'bg-blue-100 text-blue-800' :
+                                  page.category === 'operations' ? 'bg-green-100 text-green-800' :
+                                  page.category === 'orders' ? 'bg-orange-100 text-orange-800' :
+                                  page.category === 'customers' ? 'bg-teal-100 text-teal-800' :
+                                  page.category === 'billing' ? 'bg-purple-100 text-purple-800' :
+                                  page.category === 'analytics' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {page.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-600 mb-4 text-sm flex-1">
+                              {page.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white ${page.color} transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5 mt-auto`}>
+                          Open →
+                        </div>
                       </div>
-                      <p className="text-gray-600 mb-4 text-sm flex-1">
-                        {page.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white ${page.color} transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5 mt-auto`}>
-                    {t('admin.index.openButton', 'Öppna →')}
-                  </div>
+                    </Link>
+                  ))}
                 </div>
-              </Link>
-            ))}
-          </div>
+              </div>
+            )
+          ))}
 
-          {/* Quick Actions */}
-          <div className="mt-12 bg-white rounded-xl shadow-sm border border-primary-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.index.quickActions.title', 'Snabba åtgärder')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
-                onClick={() => window.open('/admin/simple-embassy-prices', '_blank')}
-                className="flex items-center justify-center px-4 py-3 bg-custom-button hover:bg-custom-button/90 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5"
-              >
-                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                {t('admin.index.quickActions.updateEmbassyPrices', 'Uppdatera ambassadpriser')}
-              </button>
-              <button
-                onClick={() => window.open('/priser', '_blank')}
-                className="flex items-center justify-center px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5"
-              >
-                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                {t('admin.index.quickActions.previewPrices', 'Förhandsgranska priser')}
-              </button>
-            </div>
-          </div>
-
-          {/* Help Section */}
-          <div className="mt-8 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-100 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {t('admin.index.help.title', 'Behöver du hjälp?')}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.embassy.title', 'Ambassadpriser')}</h4>
-                <p className="text-gray-600">{t('admin.index.help.embassy.text', 'Använd "Ambassadpriser" för att snabbt uppdatera priser per land')}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.standard.title', 'Standardpriser')}</h4>
-                <p className="text-gray-600">{t('admin.index.help.standard.text', 'Använd när du vill spara priser permanent i systemet')}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.shipping.title', 'Frakt & Leverans')}</h4>
-                <p className="text-gray-600">{t('admin.index.help.shipping.text', 'Hantera priser för PostNord, DHL och lokala budtjänster')}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.driver.title', 'Chaufför')}</h4>
-                <p className="text-gray-600">{t('admin.index.help.driver.text', 'Se dagliga körningar och hantera inlämning/hämtning av dokument')}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.orders.title', 'Beställningar')}</h4>
-                <p className="text-gray-600">{t('admin.index.help.orders.text', 'Se och hantera kundbeställningar')}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-800 mb-1">{t('admin.index.help.invoices.title', 'Fakturor')}</h4>
-                <p className="text-gray-600">{t('admin.index.help.invoices.text', 'Se och hantera kundfakturor, uppdatera status och ladda ner PDF')}</p>
-              </div>
-            </div>
-            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-primary-50 rounded-xl border border-blue-200">
-              <div className="flex items-start">
-                <svg className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-sm text-blue-800">
-                  <strong>{t('admin.index.help.tipLabel', 'Tips:')}</strong> {t('admin.index.help.tipText', 'Om Firebase inte fungerar används alltid standardpriser som fallback')}
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </ProtectedRoute>

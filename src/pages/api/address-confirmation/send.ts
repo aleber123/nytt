@@ -78,6 +78,16 @@ export default async function handler(
     }
 
     const order = orderSnap.data() as any;
+
+    if (type === 'return') {
+      const returnService = order?.returnService as string | undefined;
+      if (returnService && ['own-delivery', 'office-pickup'].includes(returnService)) {
+        return res.status(400).json({
+          error: 'Bekräftelsemail för returadress ska inte skickas när kunden har valt egen retur (own-delivery) eller hämtning på kontor (office-pickup)'
+        });
+      }
+    }
+
     const customerEmail = order?.customerInfo?.email;
     const customerName = `${order?.customerInfo?.firstName || ''} ${order?.customerInfo?.lastName || ''}`.trim();
 
