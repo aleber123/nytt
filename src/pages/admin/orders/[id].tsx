@@ -819,7 +819,7 @@ function AdminOrderDetailPage() {
       // Store the invoice
       const invoiceId = await storeInvoice(invoice);
 
-      toast.success('Faktura skapad framgångsrikt');
+      toast.success('Invoice created successfully');
 
       // Refresh invoices list
       await fetchInvoices(router.query.id as string);
@@ -828,7 +828,7 @@ function AdminOrderDetailPage() {
       setActiveTab('invoice');
     } catch (err) {
       console.error('Error creating invoice:', err);
-      toast.error('Kunde inte skapa faktura');
+      toast.error('Could not create invoice');
     } finally {
       setCreatingInvoice(false);
     }
@@ -839,13 +839,13 @@ function AdminOrderDetailPage() {
     try {
       const success = await sendInvoiceEmail(invoice);
       if (success) {
-        toast.success('Faktura skickad via e-post');
+        toast.success('Invoice sent via email');
       } else {
-        toast.error('Kunde inte skicka faktura via e-post');
+        toast.error('Could not send invoice via email');
       }
     } catch (err) {
       console.error('Error sending invoice:', err);
-      toast.error('Kunde inte skicka faktura via e-post');
+      toast.error('Could not send invoice via email');
     } finally {
       setSendingInvoice(null);
     }
@@ -854,10 +854,10 @@ function AdminOrderDetailPage() {
   const handleDownloadInvoice = async (invoice: Invoice) => {
     try {
       await generateInvoicePDF(invoice);
-      toast.success('Faktura laddas ner');
+      toast.success('Invoice downloading');
     } catch (err) {
       console.error('Error downloading invoice:', err);
-      toast.error('Kunde inte ladda ner faktura');
+      toast.error('Could not download invoice');
     }
   };
 
@@ -865,10 +865,10 @@ function AdminOrderDetailPage() {
     if (!order) return;
     try {
       downloadCoverLetter(order);
-      toast.success('Följesedel laddas ner');
+      toast.success('Packing slip downloading');
     } catch (err) {
       console.error('Error generating cover letter:', err);
-      toast.error('Kunde inte skapa följesedel');
+      toast.error('Could not create packing slip');
     }
   };
 
@@ -876,10 +876,10 @@ function AdminOrderDetailPage() {
     if (!order) return;
     try {
       downloadOrderConfirmation(order);
-      toast.success('Orderbekräftelse laddas ner');
+      toast.success('Order confirmation downloading');
     } catch (err) {
       console.error('Error generating order confirmation:', err);
-      toast.error('Kunde inte skapa orderbekräftelse');
+      toast.error('Could not create order confirmation');
     }
   };
 
@@ -887,10 +887,10 @@ function AdminOrderDetailPage() {
     if (!order) return;
     try {
       printCoverLetter(order);
-      toast.success('Utskrift startar');
+      toast.success('Printing started');
     } catch (err) {
       console.error('Error printing cover letter:', err);
-      toast.error('Kunde inte skriva ut följesedel');
+      toast.error('Could not print packing slip');
     }
   };
 
@@ -1163,13 +1163,13 @@ function AdminOrderDetailPage() {
       await adminUpdateOrder(orderId, { processingSteps: updatedSteps });
       setProcessingSteps(updatedSteps);
       setOrder(updatedOrder);
-      toast.success('Bearbetningssteg uppdaterat');
+      toast.success('Processing step updated');
 
       if (shouldSendDocumentReceiptEmail) {
         try {
           const db = getFirebaseDb();
           if (db) {
-            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Kund';
+            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer';
             const orderNumber = order.orderNumber || orderId;
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
             const messageHtml = emailLocale === 'en'
@@ -1388,11 +1388,11 @@ function AdminOrderDetailPage() {
               createdAt: serverTimestamp(),
               status: 'unread'
             });
-            toast.success('Bekräftelsemail till kund har köats');
+            toast.success('Confirmation email to customer queued');
           }
         } catch (emailErr) {
           console.error('Error queuing customer document receipt email:', emailErr);
-          toast.error('Kunde inte skapa bekräftelsemail till kund');
+          toast.error('Could not create confirmation email to customer');
         }
       }
 
@@ -1400,7 +1400,7 @@ function AdminOrderDetailPage() {
         try {
           const db = getFirebaseDb();
           if (db) {
-            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Kund';
+            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer';
             const orderNumber = order.orderNumber || orderId;
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
             const expectedDateFormatted = emailLocale === 'en'
@@ -1614,11 +1614,11 @@ function AdminOrderDetailPage() {
               status: 'unread'
             });
 
-            toast.success('Kundmail om upphämtning har köats');
+            toast.success('Pickup email to customer queued');
           }
         } catch (pickupEmailErr) {
           console.error('Error queuing pickup expected completion email:', pickupEmailErr);
-          toast.error('Kunde inte skapa upphämtningsmail till kund');
+          toast.error('Could not create pickup email to customer');
         }
       }
 
@@ -1853,8 +1853,8 @@ function AdminOrderDetailPage() {
               ? 'DOX Visumpartner AB<br/>Livdjursgatan 4<br/>121 62 Johanneshov<br/>Sweden'
               : 'DOX Visumpartner AB<br/>Livdjursgatan 4<br/>121 62 Johanneshov<br/>Sverige';
             const openingHours = emailLocale === 'en'
-              ? 'Mon–Thu 09:00–16:00<br/>Fri 09:00–15:00'
-              : 'Mån–Tor 09:00–16:00<br/>Fre 09:00–15:00';
+              ? 'Mon–Fri 09:00–15:00'
+              : 'Mån–Fre 09:00–15:00';
 
             const messageHtml = emailLocale === 'en'
               ? `
@@ -2071,7 +2071,7 @@ function AdminOrderDetailPage() {
         try {
           const db = getFirebaseDb();
           if (db) {
-            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Kund';
+            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer';
             const orderNumber = order.orderNumber || orderId;
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
             const trackingNumberText = trackingNumberForEmail || '';
@@ -2179,7 +2179,7 @@ function AdminOrderDetailPage() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Returförsändelse skickad</title>
+  <title>Return shipment sent</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -2270,16 +2270,16 @@ function AdminOrderDetailPage() {
               status: 'unread'
             });
 
-            toast.success('Returförsändelsemail till kund har köats');
+            toast.success('Return shipment email to customer queued');
           }
         } catch (returnEmailErr) {
           console.error('Error queuing return shipment email:', returnEmailErr);
-          toast.error('Kunde inte skapa mail om returförsändelse till kund');
+          toast.error('Could not create return shipment email to customer');
         }
       }
     } catch (err) {
       console.error('Error updating processing step:', err);
-      toast.error('Kunde inte uppdatera bearbetningssteg');
+      toast.error('Could not update processing step');
     }
   };
 
@@ -2310,10 +2310,10 @@ function AdminOrderDetailPage() {
         returnTrackingUrl: trackingUrl
       });
       setOrder({ ...order, returnTrackingNumber: trackingNumber, returnTrackingUrl: trackingUrl });
-      toast.success('Tracking-information sparad');
+      toast.success('Tracking information saved');
     } catch (err) {
       console.error('Error saving tracking info:', err);
-      toast.error('Kunde inte spara tracking-information');
+      toast.error('Could not save tracking information');
     } finally {
       setSavingTracking(false);
     }
@@ -2357,13 +2357,13 @@ function AdminOrderDetailPage() {
 
   const bookDhlShipment = async () => {
     if (!order) {
-      toast.error('Order saknas, kan inte boka DHL-frakt');
+      toast.error('Order missing, cannot book DHL shipping');
       return;
     }
 
     const lookupId = (order.orderNumber as string) || (router.query.id as string);
     if (!lookupId) {
-      toast.error('Ordernummer saknas, kan inte boka DHL-frakt');
+      toast.error('Order number missing, cannot book DHL shipping');
       return;
     }
 
@@ -2371,7 +2371,7 @@ function AdminOrderDetailPage() {
     const extOrder = order as any;
     if (!extOrder.returnAddressConfirmed) {
       const proceed = window.confirm(
-        '⚠️ Returadress har inte bekräftats av kunden.\n\nVill du fortsätta med DHL-bokningen ändå?'
+        '⚠️ Return address has not been confirmed by customer.\n\nDo you want to continue with DHL booking anyway?'
       );
       if (!proceed) {
         return;
@@ -2381,7 +2381,7 @@ function AdminOrderDetailPage() {
     // Validate customer info
     const ci = order.customerInfo;
     if (!ci?.address || !ci?.postalCode || !ci?.city || !ci?.phone) {
-      toast.error('Kunduppgifter saknas (adress, postnummer, stad eller telefon)');
+      toast.error('Customer info missing (address, postal code, city or phone)');
       return;
     }
 
@@ -2924,7 +2924,7 @@ function AdminOrderDetailPage() {
       if (!ratesResponse.ok || !ratesData.success) {
         // If rates API fails, show warning but allow manual override
         const proceed = window.confirm(
-          `⚠️ Kunde inte hämta DHL-pris: ${ratesData.details || ratesData.error || 'Okänt fel'}\n\nVill du fortsätta med bokningen ändå?`
+          `⚠️ Could not fetch DHL price: ${ratesData.details || ratesData.error || 'Unknown error'}\n\nDo you want to continue with the booking anyway?`
         );
         if (!proceed) {
           setCreatingDhlPickupLabel(false);
@@ -2991,7 +2991,7 @@ function AdminOrderDetailPage() {
     setSendingAddressConfirmation(true);
     try {
       const orderId = order.orderNumber || (router.query.id as string);
-      const addressTypeText = type === 'pickup' ? 'upphämtningsadress' : 'returadress';
+      const addressTypeText = type === 'pickup' ? 'pickup address' : 'return address';
       
       const response = await fetch('/api/address-confirmation/send', {
         method: 'POST',
@@ -3002,10 +3002,10 @@ function AdminOrderDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte skicka bekräftelsemail');
+        throw new Error(data.error || 'Could not send confirmation email');
       }
 
-      toast.success(`Bekräftelsemail för ${addressTypeText} har skickats till ${order.customerInfo?.email}`);
+      toast.success(`Confirmation email for ${addressTypeText} sent to ${order.customerInfo?.email}`);
       
       // Refresh order to update confirmation status
       await fetchOrder(router.query.id as string);
@@ -3045,10 +3045,10 @@ function AdminOrderDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte skicka prisbekräftelsemail');
+        throw new Error(data.error || 'Could not send price confirmation email');
       }
 
-      toast.success(`Prisbekräftelsemail har skickats till ${order.customerInfo?.email}`);
+      toast.success(`Price confirmation email sent to ${order.customerInfo?.email}`);
       
       // Refresh order to update confirmation status
       await fetchOrder(router.query.id as string);
@@ -3181,7 +3181,7 @@ function AdminOrderDetailPage() {
       company: pa.company || '',
       name: pa.name || ''
     });
-    toast.success('Tidigare kunduppgifter inlästa – glöm inte att spara');
+    toast.success('Previous customer info loaded – remember to save');
   };
 
   // Upload pickup label file (e.g. DHL-label)
@@ -3292,9 +3292,9 @@ function AdminOrderDetailPage() {
       };
 
       await addDoc(collection(db, 'emailQueue'), emailData);
-      toast.success('Label skickad till kunden');
+      toast.success('Label sent to customer');
     } catch (err) {
-      toast.error('Kunde inte skicka label via e-post');
+      toast.error('Could not send label via email');
     } finally {
       setSendingPickupLabel(false);
     }
@@ -3311,10 +3311,10 @@ function AdminOrderDetailPage() {
         pickupTrackingNumber
       });
       setOrder({ ...order, pickupTrackingNumber });
-      toast.success('Tracking för upphämtning sparad');
+      toast.success('Pickup tracking saved');
     } catch (err) {
       console.error('Error saving pickup tracking info:', err);
-      toast.error('Kunde inte spara tracking för upphämtning');
+      toast.error('Could not save pickup tracking');
     } finally {
       setSavingTracking(false);
     }
@@ -3405,10 +3405,10 @@ function AdminOrderDetailPage() {
         customerHistory: updatedHistory
       } as ExtendedOrder);
 
-      toast.success('Kundinformation sparad');
+      toast.success('Customer information saved');
     } catch (err) {
       console.error('Error saving customer info:', err);
-      toast.error('Kunde inte spara kundinformation');
+      toast.error('Could not save customer information');
     } finally {
       setSavingCustomerInfo(false);
     }
@@ -3430,9 +3430,9 @@ function AdminOrderDetailPage() {
         readBy: currentUser?.uid ? [currentUser.uid] : [] // Mark as read by creator
       });
       setInternalNoteText('');
-      toast.success('Anteckning tillagd');
+      toast.success('Note added');
     } catch (e) {
-      toast.error('Kunde inte lägga till anteckning');
+      toast.error('Could not add note');
     }
   };
 
@@ -3559,10 +3559,10 @@ function AdminOrderDetailPage() {
       await adminUpdateOrder(orderId, { adminNotes: updatedOrder.adminNotes });
       setOrder(updatedOrder);
       setNewNote('');
-      toast.success('Anteckning tillagd');
+      toast.success('Note added');
     } catch (err) {
       console.error('Error adding note:', err);
-      toast.error('Kunde inte lägga till anteckning');
+      toast.error('Could not add note');
     }
   };
 
@@ -4110,23 +4110,23 @@ function AdminOrderDetailPage() {
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('order.summary.quantity', 'Antal dokument')}:
+                                        {t('order.summary.quantity', 'Number of documents')}:
                                       </span>
                                       <span className="font-medium text-gray-900">{order.quantity}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('admin.orderDetail.labels.source', 'Källa')}:
+                                        {t('admin.orderDetail.labels.source', 'Source')}:
                                       </span>
                                       <span className="font-medium text-gray-900">
                                         {order.documentSource === 'original'
-                                          ? t('admin.orderDetail.source.original', 'Originaldokument')
-                                          : t('admin.orderDetail.source.files', 'Uppladdade filer')}
+                                          ? t('admin.orderDetail.source.original', 'Original document')
+                                          : t('admin.orderDetail.source.files', 'Uploaded files')}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('admin.orderDetail.labels.customerRef', 'Kundens ref')}:
+                                        {t('admin.orderDetail.labels.customerRef', 'Customer ref')}:
                                       </span>
                                       <span className="font-medium text-gray-900">{order.invoiceReference}</span>
                                     </div>
@@ -5045,7 +5045,7 @@ function AdminOrderDetailPage() {
                                 {step.id.endsWith('_delivery') && (
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Datum för inlämning till myndighet
+                                      Date submitted to authority
                                     </label>
                                     <input
                                       type="date"
@@ -5067,7 +5067,7 @@ function AdminOrderDetailPage() {
                                 {step.id.endsWith('_pickup') && (
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Datum klart för upphämtning
+                                      Expected completion date
                                     </label>
                                     <input
                                       type="date"
@@ -5130,7 +5130,7 @@ function AdminOrderDetailPage() {
                             )}
                             {step.status === 'completed' && step.completedAt && (
                               <div className="text-xs text-gray-500 mt-2">
-                                Slutfört {formatDate(step.completedAt)} av {step.completedBy}
+                                Completed {formatDate(step.completedAt)} by {step.completedBy}
                               </div>
                             )}
                             {step.notes && (
@@ -5293,7 +5293,7 @@ function AdminOrderDetailPage() {
                               <div className="mt-3 space-y-3">
                                 {/* Show selected return service */}
                                 <div className="p-3 bg-gray-50 border border-gray-200 rounded">
-                                  <p className="text-sm font-medium text-gray-700 mb-1">Kundens valda returtjänst:</p>
+                                  <p className="text-sm font-medium text-gray-700 mb-1">Customer selected return service:</p>
                                   <p className="text-base font-semibold">
                                     {order?.returnService === 'dhl' || order?.returnService === 'retur' ? '📦 DHL Express' :
                                      order?.returnService === 'postnord-rek' ? '📮 PostNord REK' :
@@ -5304,23 +5304,26 @@ function AdminOrderDetailPage() {
                                      order?.returnService === 'own-delivery' ? '📦 Own delivery' :
                                      order?.returnService === 'office-pickup' ? '🏢 Office pickup' :
                                      order?.returnService ? `📦 ${order.returnService}` :
-                                     '❌ Ingen returtjänst vald'}
+                                     '❌ No return service selected'}
                                   </p>
                                 </div>
 
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Return tracking number
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={trackingNumber}
-                                    onChange={(e) => setTrackingNumber(e.target.value)}
-                                    onBlur={saveTrackingInfo}
-                                    placeholder="t.ex. 1234567890"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
-                                </div>
+                                {/* Hide tracking number input for office-pickup since no shipping is needed */}
+                                {order?.returnService !== 'office-pickup' && (
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Return tracking number
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={trackingNumber}
+                                      onChange={(e) => setTrackingNumber(e.target.value)}
+                                      onBlur={saveTrackingInfo}
+                                      placeholder="t.ex. 1234567890"
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                )}
                                 
                                 {/* Show if shipment already booked */}
                                 {/* Show if return shipment has been booked */}
