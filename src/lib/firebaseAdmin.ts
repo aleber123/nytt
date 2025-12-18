@@ -10,23 +10,35 @@
 import * as admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 
-// Initialize Firebase Admin SDK
-function initializeFirebaseAdmin() {
+// Lazy initialization - only initialize when first accessed
+let _app: admin.app.App | null = null;
+let _db: admin.firestore.Firestore | null = null;
+let _auth: admin.auth.Auth | null = null;
+let _storage: admin.storage.Storage | null = null;
+
+// Get or initialize Firebase Admin app
+function getAdminApp(): admin.app.App {
+  if (_app) {
+    return _app;
+  }
+
   if (getApps().length > 0) {
-    return admin.app();
+    _app = admin.app();
+    return _app;
   }
 
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'doxvl-51a30';
   const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'doxvl-51a30.firebasestorage.app';
 
   // In Google Cloud environments (Firebase Hosting with Cloud Run), use default credentials
-  // This works automatically without needing a service account JSON
-  if (process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || process.env.K_SERVICE) {
-    console.log('Using Google Cloud default credentials');
-    return admin.initializeApp({
+  // K_SERVICE is set in Cloud Run, GOOGLE_CLOUD_PROJECT in other GCP environments
+  if (process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT) {
+    console.log('Firebase Admin: Using Google Cloud default credentials');
+    _app = admin.initializeApp({
       projectId,
       storageBucket,
     });
+    return _app;
   }
 
   // Try to use environment variable (for custom deployments)
@@ -35,11 +47,13 @@ function initializeFirebaseAdmin() {
   if (serviceAccountJson) {
     try {
       const serviceAccount = JSON.parse(serviceAccountJson);
-      return admin.initializeApp({
+      console.log('Firebase Admin: Using FIREBASE_SERVICE_ACCOUNT env var');
+      _app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id,
         storageBucket,
       });
+      return _app;
     } catch (parseError) {
       console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', parseError);
     }
@@ -49,33 +63,65 @@ function initializeFirebaseAdmin() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const serviceAccount = require('../../service-account.json');
-    
-    return admin.initializeApp({
+    console.log('Firebase Admin: Using local service-account.json');
+    _app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: serviceAccount.project_id,
       storageBucket,
     });
+    return _app;
   } catch (e) {
-    // Final fallback: Try default credentials
-    console.warn('No service account found, trying default credentials');
-    return admin.initializeApp({
+    // Final fallback: Try default credentials (may work in some environments)
+    console.warn('Firebase Admin: No service account found, trying default credentials');
+    _app = admin.initializeApp({
       projectId,
       storageBucket,
     });
+    return _app;
   }
 }
 
-// Initialize the app
-const app = initializeFirebaseAdmin();
+// Lazy getters for Firebase services
+export function getAdminDb(): admin.firestore.Firestore {
+  if (!_db) {
+    _db = admin.firestore(getAdminApp());
+  }
+  return _db;
+}
 
-// Export Firestore instance
-export const adminDb = admin.firestore(app);
+export function getAdminAuth(): admin.auth.Auth {
+  if (!_auth) {
+    _auth = admin.auth(getAdminApp());
+  }
+  return _auth;
+}
 
-// Export Auth instance (for verifying tokens, managing users)
-export const adminAuth = admin.auth(app);
+export function getAdminStorage(): admin.storage.Storage {
+  if (!_storage) {
+    _storage = admin.storage(getAdminApp());
+  }
+  return _storage;
+}
 
-// Export Storage instance
-export const adminStorage = admin.storage(app);
+// Legacy exports for backward compatibility (lazy initialized)
+export const adminDb = {
+  collection: (path: string) => getAdminDb().collection(path),
+  doc: (path: string) => getAdminDb().doc(path),
+  batch: () => getAdminDb().batch(),
+  runTransaction: <T>(fn: (transaction: admin.firestore.Transaction) => Promise<T>) => getAdminDb().runTransaction(fn),
+};
+
+export const adminAuth = {
+  verifyIdToken: (token: string) => getAdminAuth().verifyIdToken(token),
+  getUser: (uid: string) => getAdminAuth().getUser(uid),
+  createUser: (properties: admin.auth.CreateRequest) => getAdminAuth().createUser(properties),
+  updateUser: (uid: string, properties: admin.auth.UpdateRequest) => getAdminAuth().updateUser(uid, properties),
+  deleteUser: (uid: string) => getAdminAuth().deleteUser(uid),
+};
+
+export const adminStorage = {
+  bucket: (name?: string) => getAdminStorage().bucket(name),
+};
 
 // Export the admin module for other uses
 export { admin };
