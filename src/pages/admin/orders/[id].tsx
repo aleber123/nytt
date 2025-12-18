@@ -55,6 +55,26 @@ interface AdminNote {
   type: 'general' | 'processing' | 'customer' | 'issue';
 }
 
+// Helper function to get friendly return service name
+const getReturnServiceName = (serviceCode: string | undefined): string => {
+  if (!serviceCode) return 'return';
+  const serviceNames: Record<string, string> = {
+    'dhl': 'DHL Express',
+    'retur': 'DHL Express',
+    'dhl-sweden': 'DHL Sweden',
+    'dhl-international': 'DHL International',
+    'postnord': 'PostNord',
+    'postnord-rek': 'PostNord REK',
+    'postnord-express': 'PostNord Express',
+    'stockholm-city': 'Stockholm City Courier',
+    'stockholm-express': 'Stockholm Express',
+    'stockholm-sameday': 'Stockholm Same Day',
+    'own-delivery': 'Own Delivery',
+    'office-pickup': 'Office Pickup',
+  };
+  return serviceNames[serviceCode] || serviceCode;
+};
+
 // Helper function to update order via Admin API (bypasses Firestore security rules)
 const adminUpdateOrder = async (orderId: string, updates: Record<string, any>): Promise<void> => {
   const response = await fetch('/api/admin/update-order', {
@@ -723,7 +743,7 @@ function AdminOrderDetailPage() {
     steps.push({
       id: 'prepare_return',
       name: '📦 Prepare return',
-      description: `Pack documents for ${orderData.returnService || 'return'}`,
+      description: `Pack documents for ${getReturnServiceName(orderData.returnService)}`,
       status: 'pending'
     });
 
@@ -5090,7 +5110,7 @@ function AdminOrderDetailPage() {
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Datum för inlämning till myndighet
+                                        Date submitted to authority
                                       </label>
                                       <input
                                         type="date"
@@ -5108,7 +5128,7 @@ function AdminOrderDetailPage() {
                                     </div>
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Datum klart för upphämtning
+                                        Expected completion date
                                       </label>
                                       <input
                                         type="date"
@@ -5295,16 +5315,15 @@ function AdminOrderDetailPage() {
                                 <div className="p-3 bg-gray-50 border border-gray-200 rounded">
                                   <p className="text-sm font-medium text-gray-700 mb-1">Customer selected return service:</p>
                                   <p className="text-base font-semibold">
-                                    {order?.returnService === 'dhl' || order?.returnService === 'retur' ? '📦 DHL Express' :
-                                     order?.returnService === 'postnord-rek' ? '📮 PostNord REK' :
-                                     order?.returnService === 'postnord-express' ? '📮 PostNord Express' :
-                                     order?.returnService === 'stockholm-city' ? '🚴 Stockholm City Courier' :
-                                     order?.returnService === 'stockholm-express' ? '🚴 Stockholm Express' :
-                                     order?.returnService === 'stockholm-sameday' ? '🚴 Stockholm Same Day' :
-                                     order?.returnService === 'own-delivery' ? '📦 Own delivery' :
-                                     order?.returnService === 'office-pickup' ? '🏢 Office pickup' :
-                                     order?.returnService ? `📦 ${order.returnService}` :
-                                     '❌ No return service selected'}
+                                    {order?.returnService ? (
+                                      <>
+                                        {order.returnService.includes('dhl') || order.returnService === 'retur' || order.returnService === 'own-delivery' ? '📦 ' :
+                                         order.returnService.includes('postnord') ? '📮 ' :
+                                         order.returnService.includes('stockholm') ? '🚴 ' :
+                                         order.returnService === 'office-pickup' ? '🏢 ' : '📦 '}
+                                        {getReturnServiceName(order.returnService)}
+                                      </>
+                                    ) : '❌ No return service selected'}
                                   </p>
                                 </div>
 
