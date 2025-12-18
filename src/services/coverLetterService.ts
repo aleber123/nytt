@@ -119,9 +119,62 @@ function getServiceName(id: string): string {
     ud: 'Ministry for Foreign Affairs',
     chamber: 'Chamber of Commerce',
     scanned_copies: 'Scanned Copies',
-    pickup_service: 'Document Pickup'
+    pickup_service: 'Document Pickup',
+    'dhl-sweden': 'DHL Sweden',
+    'dhl-europe': 'DHL Europe',
+    'dhl-world': 'DHL World',
+    'dhl-express-12': 'DHL Express 12:00',
+    'dhl-express-09': 'DHL Express 09:00',
+    'postnord-rek': 'PostNord Registered',
+    'office-pickup': 'Office Pickup',
+    'own-delivery': 'Own Delivery',
+    express: 'Express Service',
+    return_service: 'Return Shipping',
+    premium_delivery: 'Premium Delivery',
+    premium_pickup: 'Premium Pickup'
   };
   return map[id] || id;
+}
+
+// Translate Swedish pricing descriptions to English
+function translateDescription(desc: string): string {
+  if (!desc) return '';
+  
+  const translations: Record<string, string> = {
+    'Skannade kopior': 'Scanned Copies',
+    'Expresstjänst': 'Express Service',
+    'Hämtning av dokument': 'Document Pickup',
+    'Officiell avgift': 'Official Fee',
+    'serviceavgift': 'Service Fee',
+    'DOX Visumpartner serviceavgift': 'DOX Visumpartner Service Fee',
+    'Apostille - Officiell avgift': 'Apostille - Official Fee',
+    'Notarisering - Officiell avgift': 'Notarization - Official Fee',
+    'Handelskammarlegalisering - Officiell avgift': 'Chamber of Commerce - Official Fee',
+    'Utrikesdepartementets legalisering - Officiell avgift': 'Ministry for Foreign Affairs - Official Fee',
+    'Ambassadlegalisering - Officiell avgift': 'Embassy Legalisation - Official Fee',
+    'Översättning - Officiell avgift': 'Translation - Official Fee'
+  };
+  
+  // Check for exact match first
+  if (translations[desc]) return translations[desc];
+  
+  // Check for partial matches and replace
+  let result = desc;
+  
+  // Replace Swedish service names in descriptions
+  result = result.replace(/Apostille/g, 'Apostille');
+  result = result.replace(/Notarisering/g, 'Notarization');
+  result = result.replace(/Handelskammarlegalisering/g, 'Chamber of Commerce');
+  result = result.replace(/Utrikesdepartementets legalisering/g, 'Ministry for Foreign Affairs');
+  result = result.replace(/Ambassadlegalisering/g, 'Embassy Legalisation');
+  result = result.replace(/Översättning/g, 'Translation');
+  result = result.replace(/Officiell avgift/g, 'Official Fee');
+  result = result.replace(/serviceavgift/g, 'Service Fee');
+  result = result.replace(/Skannade kopior/g, 'Scanned Copies');
+  result = result.replace(/Expresstjänst/g, 'Express Service');
+  result = result.replace(/Hämtning av dokument/g, 'Document Pickup');
+  
+  return result;
 }
 
 export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: boolean }): Promise<jsPDF> {
@@ -515,7 +568,7 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.line(20, y, 190, y);
   y += 10;
 
-  // Pricing summary box
+  // Pricing summary box - show individual line items
   const hasPricingData = Array.isArray(order.pricingBreakdown) || typeof order.totalPrice === 'number';
   if (hasPricingData) {
     doc.setFillColor(softBg[0], softBg[1], softBg[2]);
@@ -526,26 +579,6 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     doc.text('Pricing summary', 20, y);
     y += 8;
 
-    let officialTotal = 0;
-    let serviceTotal = 0;
-    let otherFees = 0;
-
-    if (Array.isArray(order.pricingBreakdown)) {
-      order.pricingBreakdown.forEach((item: any) => {
-        const svc = String(item.service || '');
-        const total = typeof item.total === 'number' ? item.total : 0;
-        if (!total) return;
-
-        if (svc.endsWith('_official')) {
-          officialTotal += total;
-        } else if (svc.endsWith('_service')) {
-          serviceTotal += total;
-        } else {
-          otherFees += total;
-        }
-      });
-    }
-
     const labelX = 20;
     const valueX = 188;
 
@@ -553,58 +586,40 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     doc.setFontSize(10);
     doc.setTextColor(text[0], text[1], text[2]);
 
-    if (officialTotal > 0) {
-      let officialLabel = 'Official fees';
-
-      // If breakdown is available, try to show quantity × unit price
-      if (Array.isArray(order.pricingBreakdown)) {
-        const officialItems = order.pricingBreakdown.filter((item: any) => {
-          const svc = String(item.service || '');
-          const total = typeof item.total === 'number' ? item.total : 0;
-          return total && svc.endsWith('_official');
-        });
-
-        if (officialItems.length > 0) {
-          const totalQty = officialItems.reduce((sum: number, it: any) => {
-            return sum + (typeof it.quantity === 'number' ? it.quantity : 0);
-          }, 0);
-
-          const unitPrices = new Set<number>();
-          officialItems.forEach((it: any) => {
-            if (typeof it.unitPrice === 'number') {
-              unitPrices.add(it.unitPrice);
-            }
-          });
-
-          if (totalQty > 0 && unitPrices.size === 1) {
-            const unit = Array.from(unitPrices)[0];
-            officialLabel = `Official fees (${totalQty} × ${unit})`;
-          }
+    // Show each line item from pricing breakdown
+    if (Array.isArray(order.pricingBreakdown)) {
+      order.pricingBreakdown.forEach((item: any) => {
+        // Get the price - prefer total, then fee, then calculate from unitPrice
+        let price = 0;
+        if (typeof item.total === 'number') {
+          price = item.total;
+        } else if (typeof item.fee === 'number') {
+          price = item.fee;
+        } else if (typeof item.unitPrice === 'number') {
+          price = item.unitPrice * (item.quantity || 1);
         }
-      }
-
-      doc.text(officialLabel, labelX, y);
-      doc.text(formatCurrency(officialTotal), valueX, y, { align: 'right' });
-      y += 5;
+        
+        if (!price) return;
+        
+        // Get description - translate if needed
+        let description = item.description || getServiceName(item.service) || 'Item';
+        description = translateDescription(description);
+        
+        doc.text(description, labelX, y);
+        doc.text(formatCurrency(price), valueX, y, { align: 'right' });
+        y += 5;
+      });
     }
 
-    if (serviceTotal > 0) {
-      doc.text('Service fees', labelX, y);
-      doc.text(formatCurrency(serviceTotal), valueX, y, { align: 'right' });
-      y += 5;
-    }
-
-    if (otherFees > 0) {
-      doc.text('Additional fees', labelX, y);
-      doc.text(formatCurrency(otherFees), valueX, y, { align: 'right' });
-      y += 5;
-    }
-
+    // Show total
     if (typeof order.totalPrice === 'number') {
+      y += 2;
+      doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+      doc.line(labelX, y - 2, valueX, y - 2);
       doc.setFont('helvetica', 'bold');
-      doc.text('Total', labelX, y);
-      doc.text(formatCurrency(order.totalPrice), valueX, y, { align: 'right' });
-      y += 6;
+      doc.text('Total', labelX, y + 2);
+      doc.text(formatCurrency(order.totalPrice), valueX, y + 2, { align: 'right' });
+      y += 8;
     }
 
     y += 6;
