@@ -7,7 +7,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,
@@ -27,16 +27,17 @@ export default async function handler(
   }
 
   try {
+    const db = getAdminDb();
     const normalizedOrderNumber = orderNumber.trim().toUpperCase();
     const normalizedEmail = email.trim().toLowerCase();
 
     // First try to get the order directly by document ID
-    let orderDoc = await adminDb.collection('orders').doc(normalizedOrderNumber).get();
+    let orderDoc = await db.collection('orders').doc(normalizedOrderNumber).get();
     let orderData = orderDoc.exists ? orderDoc.data() : null;
 
     // If not found by ID, try querying by orderNumber field
     if (!orderData) {
-      const querySnapshot = await adminDb.collection('orders')
+      const querySnapshot = await db.collection('orders')
         .where('orderNumber', '==', normalizedOrderNumber)
         .limit(1)
         .get();

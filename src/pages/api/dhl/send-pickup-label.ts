@@ -8,7 +8,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 import { rateLimiters, getClientIp } from '@/lib/rateLimit';
 
 // DHL API Configuration
@@ -90,8 +90,10 @@ export default async function handler(
   }
 
   try {
+    const db = getAdminDb();
+    
     // Get order details using Admin SDK
-    const orderRef = adminDb.collection('orders').doc(orderId);
+    const orderRef = db.collection('orders').doc(orderId);
     const orderSnap = await orderRef.get();
 
     if (!orderSnap.exists) {
@@ -223,7 +225,7 @@ export default async function handler(
     });
 
     // Queue email with label attachment using customerEmails collection
-    const emailsRef = adminDb.collection('customerEmails');
+    const emailsRef = db.collection('customerEmails');
     const orderLocale = order.locale || 'sv';
     const isEnglish = orderLocale === 'en';
     const emailSubject = isEnglish 

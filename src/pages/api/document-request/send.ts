@@ -6,7 +6,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 import { rateLimiters, getClientIp } from '@/lib/rateLimit';
 import crypto from 'crypto';
 
@@ -102,14 +102,16 @@ export default async function handler(
   }
 
   try {
+    const db = getAdminDb();
+    
     // Get order
-    let orderRef = adminDb.collection('orders').doc(orderId);
+    let orderRef = db.collection('orders').doc(orderId);
     let orderSnap = await orderRef.get();
     let actualOrderId = orderId;
     
     // If not found, try to find by orderNumber
     if (!orderSnap.exists) {
-      const querySnap = await adminDb.collection('orders')
+      const querySnap = await db.collection('orders')
         .where('orderNumber', '==', orderId)
         .limit(1)
         .get();
@@ -118,7 +120,7 @@ export default async function handler(
         const foundDoc = querySnap.docs[0];
         orderSnap = foundDoc;
         actualOrderId = foundDoc.id;
-        orderRef = adminDb.collection('orders').doc(actualOrderId);
+        orderRef = db.collection('orders').doc(actualOrderId);
       }
     }
 
@@ -146,7 +148,7 @@ export default async function handler(
     const template = documentRequestTemplates.find(t => t.id === templateId);
 
     // Store document request record
-    await adminDb.collection('documentRequests').add({
+    await db.collection('documentRequests').add({
       orderId: actualOrderId,
       orderNumber,
       token,
@@ -172,7 +174,7 @@ export default async function handler(
       ? `Document request - Order ${orderNumber}`
       : `Begäran om komplettering - Order ${orderNumber}`;
 
-    await adminDb.collection('customerEmails').add({
+    await db.collection('customerEmails').add({
       name: customerName,
       email: customerEmail,
       phone: order?.customerInfo?.phone || '',

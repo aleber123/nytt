@@ -8,7 +8,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 import { rateLimiters, getClientIp } from '@/lib/rateLimit';
 import crypto from 'crypto';
 
@@ -51,15 +51,16 @@ export default async function handler(
   }
 
   try {
+    const db = getAdminDb();
     
     // Try to get order by document ID first using Admin SDK
-    let orderRef = adminDb.collection('orders').doc(orderId);
+    let orderRef = db.collection('orders').doc(orderId);
     let orderSnap = await orderRef.get();
     let actualOrderId = orderId;
     
     // If not found, try to find by orderNumber
     if (!orderSnap.exists) {
-      const querySnap = await adminDb.collection('orders')
+      const querySnap = await db.collection('orders')
         .where('orderNumber', '==', orderId)
         .limit(1)
         .get();
@@ -68,7 +69,7 @@ export default async function handler(
         const foundDoc = querySnap.docs[0];
         orderSnap = foundDoc;
         actualOrderId = foundDoc.id;
-        orderRef = adminDb.collection('orders').doc(actualOrderId);
+        orderRef = db.collection('orders').doc(actualOrderId);
       }
     }
     
@@ -126,7 +127,7 @@ export default async function handler(
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
     // Store confirmation record using Admin SDK
-    await adminDb.collection('addressConfirmations').add({
+    await db.collection('addressConfirmations').add({
       orderId: actualOrderId,
       orderNumber: order?.orderNumber || orderId,
       type,
@@ -157,7 +158,7 @@ export default async function handler(
       ? (isEnglish ? 'pickup address' : 'upphämtningsadress')
       : (isEnglish ? 'return address' : 'returadress');
 
-    await adminDb.collection('customerEmails').add({
+    await db.collection('customerEmails').add({
       name: customerName,
       email: customerEmail,
       phone: order?.customerInfo?.phone || '',

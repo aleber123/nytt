@@ -6,13 +6,14 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const docRef = adminDb.collection('settings').doc('shipping');
+  const db = getAdminDb();
+  const docRef = db.collection('settings').doc('shipping');
 
   if (req.method === 'GET') {
     try {

@@ -9,7 +9,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 
 interface EmbassyPriceConfirmation {
   orderId: string;
@@ -40,13 +40,11 @@ export default async function handler(
     return res.status(400).json({ error: 'Token saknas' });
   }
 
-  if (!adminDb) {
-    return res.status(500).json({ error: 'Database not available' });
-  }
-
   try {
+    const db = getAdminDb();
+    
     // Find the confirmation by token using Admin SDK
-    const snapshot = await adminDb.collection('embassyPriceConfirmations')
+    const snapshot = await db.collection('embassyPriceConfirmations')
       .where('token', '==', token)
       .limit(1)
       .get();
@@ -66,7 +64,7 @@ export default async function handler(
     // GET: Return confirmation details
     if (req.method === 'GET') {
       // Get order details
-      const orderSnap = await adminDb.collection('orders').doc(confirmation.orderId).get();
+      const orderSnap = await db.collection('orders').doc(confirmation.orderId).get();
       const orderData = orderSnap.exists ? orderSnap.data() : null;
 
       return res.status(200).json({
@@ -112,7 +110,7 @@ export default async function handler(
         });
 
         // Update order with confirmed price
-        const orderRef = adminDb.collection('orders').doc(confirmation.orderId);
+        const orderRef = db.collection('orders').doc(confirmation.orderId);
         
         // Get current pricing breakdown and update the TBC item
         const orderSnap = await orderRef.get();
@@ -163,7 +161,7 @@ export default async function handler(
         });
 
         // Update order status
-        const orderRef = adminDb.collection('orders').doc(confirmation.orderId);
+        const orderRef = db.collection('orders').doc(confirmation.orderId);
         await orderRef.update({
           embassyPriceDeclined: true,
           embassyPriceDeclinedAt: new Date().toISOString(),

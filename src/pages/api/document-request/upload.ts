@@ -6,7 +6,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb, adminStorage } from '@/lib/firebaseAdmin';
+import { getAdminDb, getAdminStorage } from '@/lib/firebaseAdmin';
 
 export const config = {
   api: {
@@ -40,6 +40,9 @@ export default async function handler(
   }
 
   try {
+    const db = getAdminDb();
+    const storage = getAdminStorage();
+    
     const { token, files } = req.body as { token: string; files: FileData[] };
 
     if (!token) {
@@ -51,7 +54,7 @@ export default async function handler(
     }
 
     // Find document request by token
-    const querySnap = await adminDb.collection('documentRequests')
+    const querySnap = await db.collection('documentRequests')
       .where('token', '==', token)
       .limit(1)
       .get();
@@ -75,7 +78,7 @@ export default async function handler(
 
     const orderId = docData.orderId;
     const orderNumber = docData.orderNumber;
-    const bucket = adminStorage.bucket();
+    const bucket = storage.bucket();
     const uploadedFileInfos: UploadedFile[] = [];
 
     // Upload each file to Firebase Storage
@@ -122,7 +125,7 @@ export default async function handler(
     });
 
     // Also add files to the order's supplementary files
-    const orderRef = adminDb.collection('orders').doc(orderId);
+    const orderRef = db.collection('orders').doc(orderId);
     const orderSnap = await orderRef.get();
     
     if (orderSnap.exists) {
@@ -137,7 +140,7 @@ export default async function handler(
     }
 
     // Add internal note about the upload
-    await adminDb.collection('orders').doc(orderId).collection('internalNotes').add({
+    await db.collection('orders').doc(orderId).collection('internalNotes').add({
       content: `📎 Kund har laddat upp ${uploadedFileInfos.length} kompletterande dokument:\n${uploadedFileInfos.map(f => `- ${f.name}`).join('\n')}`,
       createdAt: new Date(),
       createdBy: 'System',

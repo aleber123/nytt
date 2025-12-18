@@ -6,7 +6,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,19 +26,18 @@ export default async function handler(
     return res.status(400).json({ error: 'updates object is required' });
   }
 
-  if (!adminDb) {
-    return res.status(500).json({ error: 'Database not available' });
-  }
-
   try {
+    // Get Firestore instance lazily at runtime
+    const db = getAdminDb();
+
     // First try direct document ID
-    let docRef = adminDb.collection('orders').doc(orderId);
+    let docRef = db.collection('orders').doc(orderId);
     let docSnap = await docRef.get();
     let actualDocId = orderId;
 
     // If not found by ID, try searching by orderNumber
     if (!docSnap.exists) {
-      const querySnapshot = await adminDb.collection('orders')
+      const querySnapshot = await db.collection('orders')
         .where('orderNumber', '==', orderId)
         .limit(1)
         .get();
@@ -46,12 +45,11 @@ export default async function handler(
       if (!querySnapshot.empty) {
         const foundDoc = querySnapshot.docs[0];
         actualDocId = foundDoc.id;
-        docRef = adminDb.collection('orders').doc(actualDocId);
+        docRef = db.collection('orders').doc(actualDocId);
       } else {
         console.error('❌ Order not found by ID or orderNumber:', orderId);
         return res.status(404).json({ error: 'Order not found: ' + orderId });
       }
-    } else {
     }
 
     // Update the order
@@ -59,7 +57,6 @@ export default async function handler(
       ...updates,
       updatedAt: new Date().toISOString()
     });
-
 
     return res.status(200).json({
       success: true,
