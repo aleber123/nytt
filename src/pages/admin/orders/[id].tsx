@@ -6374,7 +6374,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
     i18n: {
       defaultLocale: 'sv',
       locales: ['sv', 'en'],
-      localeDetection: false,
+      localeDetection: false as const,
     },
   };
   return {

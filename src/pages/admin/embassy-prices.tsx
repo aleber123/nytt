@@ -415,7 +415,7 @@ function AddEmbassyForm({ onAdd, disabled }: { onAdd: (countryCode: string, coun
 export const getStaticProps: GetStaticProps = async () => {
   // Admin pages always use English
   const i18nConfig = {
-    i18n: { defaultLocale: 'sv', locales: ['sv', 'en'], localeDetection: false },
+    i18n: { defaultLocale: 'sv', locales: ['sv', 'en'], localeDetection: false as const },
   };
   return {
     props: {
