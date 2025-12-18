@@ -8,23 +8,23 @@
  */
 
 import * as admin from 'firebase-admin';
-import { getApps } from 'firebase-admin/app';
 
 // Lazy initialization - only initialize when first accessed
-let _app: admin.app.App | null = null;
 let _db: admin.firestore.Firestore | null = null;
 let _auth: admin.auth.Auth | null = null;
 let _storage: admin.storage.Storage | null = null;
+let _initialized = false;
 
-// Get or initialize Firebase Admin app
-function getAdminApp(): admin.app.App {
-  if (_app) {
-    return _app;
+// Initialize Firebase Admin app
+function initializeAdminApp(): void {
+  if (_initialized) {
+    return;
   }
 
-  if (getApps().length > 0) {
-    _app = admin.app();
-    return _app;
+  // Check if already initialized using admin.apps
+  if (admin.apps.length > 0) {
+    _initialized = true;
+    return;
   }
 
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'doxvl-51a30';
@@ -34,11 +34,12 @@ function getAdminApp(): admin.app.App {
   // K_SERVICE is set in Cloud Run, GOOGLE_CLOUD_PROJECT in other GCP environments
   if (process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT) {
     console.log('Firebase Admin: Using Google Cloud default credentials');
-    _app = admin.initializeApp({
+    admin.initializeApp({
       projectId,
       storageBucket,
     });
-    return _app;
+    _initialized = true;
+    return;
   }
 
   // Try to use environment variable (for custom deployments)
@@ -48,12 +49,13 @@ function getAdminApp(): admin.app.App {
     try {
       const serviceAccount = JSON.parse(serviceAccountJson);
       console.log('Firebase Admin: Using FIREBASE_SERVICE_ACCOUNT env var');
-      _app = admin.initializeApp({
+      admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id,
         storageBucket,
       });
-      return _app;
+      _initialized = true;
+      return;
     } catch (parseError) {
       console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', parseError);
     }
@@ -64,41 +66,45 @@ function getAdminApp(): admin.app.App {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const serviceAccount = require('../../service-account.json');
     console.log('Firebase Admin: Using local service-account.json');
-    _app = admin.initializeApp({
+    admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: serviceAccount.project_id,
       storageBucket,
     });
-    return _app;
+    _initialized = true;
+    return;
   } catch (e) {
     // Final fallback: Try default credentials (may work in some environments)
     console.warn('Firebase Admin: No service account found, trying default credentials');
-    _app = admin.initializeApp({
+    admin.initializeApp({
       projectId,
       storageBucket,
     });
-    return _app;
+    _initialized = true;
   }
 }
 
 // Lazy getters for Firebase services
 export function getAdminDb(): admin.firestore.Firestore {
+  initializeAdminApp();
   if (!_db) {
-    _db = admin.firestore(getAdminApp());
+    _db = admin.firestore();
   }
   return _db;
 }
 
 export function getAdminAuth(): admin.auth.Auth {
+  initializeAdminApp();
   if (!_auth) {
-    _auth = admin.auth(getAdminApp());
+    _auth = admin.auth();
   }
   return _auth;
 }
 
 export function getAdminStorage(): admin.storage.Storage {
+  initializeAdminApp();
   if (!_storage) {
-    _storage = admin.storage(getAdminApp());
+    _storage = admin.storage();
   }
   return _storage;
 }
