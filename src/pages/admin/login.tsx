@@ -123,9 +123,12 @@ export default function AdminLogin() {
 
 export const getStaticProps: GetStaticProps = async () => {
   // Admin pages always use English
+  const i18nConfig = {
+    i18n: { defaultLocale: 'sv', locales: ['sv', 'en'], localeDetection: false },
+  };
   return {
     props: {
-      ...(await serverSideTranslations('en', ['common'])),
+      ...(await serverSideTranslations('en', ['common'], i18nConfig)),
     },
   };
 };

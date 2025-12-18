@@ -6369,9 +6369,17 @@ export default dynamic(() => Promise.resolve(ClientOnlyAdminOrderDetail), { ssr:
 
 export const getServerSideProps: GetServerSideProps = async () => {
   // Admin pages always use English
+  // Pass config inline to avoid Firebase deployment issues with external config file
+  const i18nConfig = {
+    i18n: {
+      defaultLocale: 'sv',
+      locales: ['sv', 'en'],
+      localeDetection: false,
+    },
+  };
   return {
     props: {
-      ...(await serverSideTranslations('en', ['common'])),
+      ...(await serverSideTranslations('en', ['common'], i18nConfig)),
     },
   };
 };
