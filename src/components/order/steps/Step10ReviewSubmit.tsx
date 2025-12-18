@@ -1221,7 +1221,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <div class="row"><span class="label">Totalbelopp</span><span class="value">${pricingResult.totalPrice} kr</span></div>
           <div class="row"><span class="label">Dokumentkälla</span><span class="value">${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}</span></div>
           <div class="row"><span class="label">Upphämtning</span><span class="value" style="${hasPickup ? 'color:#D97706; font-weight:800;' : ''}">${hasPickup ? '✅ JA - BOKA UPPHÄMTNING' : '❌ Nej'}</span></div>
-          <div class="row"><span class="label">Returfrakt</span><span class="value">${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'Ej vald'}</span></div>
+          <div class="row"><span class="label">Returfrakt</span><span class="value">${(() => {
+            if (!answers.returnService) return 'Ej vald';
+            if (answers.returnService === 'own-delivery') return 'Egen returfrakt';
+            if (answers.returnService === 'office-pickup') return 'Hämtning på vårt kontor';
+            return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
+          })()}</span></div>
         </div>
 
         <div class="section">
@@ -1428,7 +1433,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <p style="font-size:13px; color:#5f6368;">Estimated processing time: 5-10 business days depending on services selected.</p>
         </div>`}
 
-      <p>You will receive your legalized documents via <strong>${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'the selected shipping method'}</strong>.</p>
+      <p>You will receive your legalized documents via <strong>${(() => {
+        if (!answers.returnService) return 'the selected shipping method';
+        if (answers.returnService === 'own-delivery') return 'your own return shipping';
+        if (answers.returnService === 'office-pickup') return 'office pickup';
+        return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
+      })()}</strong>.</p>
 
       <div class="contact-info">
         <h3>Questions?</h3>
@@ -1590,7 +1600,12 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           <p style="font-size:13px; color:#5f6368;">Uppskattad handläggningstid: 5-10 arbetsdagar beroende på valda tjänster.</p>
         </div>`}
 
-      <p>Du kommer att få dina legaliserade dokument returnerade via <strong>${answers.returnService ? returnServices.find(s => s.id === answers.returnService)?.name : 'vald fraktmetod'}</strong>.</p>
+      <p>Du kommer att få dina legaliserade dokument returnerade via <strong>${(() => {
+        if (!answers.returnService) return 'vald fraktmetod';
+        if (answers.returnService === 'own-delivery') return 'egen returfrakt';
+        if (answers.returnService === 'office-pickup') return 'hämtning på vårt kontor';
+        return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
+      })()}</strong>.</p>
 
       <div class="contact-info">
         <h3>Har du frågor?</h3>
