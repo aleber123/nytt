@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Timestamp as FbTimestamp } from 'firebase/firestore';
+import type { GetServerSideProps } from 'next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
@@ -986,7 +988,7 @@ function AdminOrderDetailPage() {
       }
 
       if (missingRequiredDate) {
-        toast.error('Du måste ange datum på detta steg innan du kan ändra status.');
+        toast.error('You must enter a date for this step before you can change the status.');
         return;
       }
     }
@@ -3705,6 +3707,67 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Function to translate Swedish pricing descriptions to English
+  const translatePricingDescription = (description: string): string => {
+    if (!description) return '-';
+    
+    const translations: { [key: string]: string } = {
+      // Service descriptions
+      'Ambassadlegalisering - Officiell avgift': 'Embassy Legalization - Official Fee',
+      'Ambassadlegalisering - officiell avgift': 'Embassy Legalization - Official Fee',
+      'DOX Visumpartner serviceavgift (Ambassadlegalisering)': 'DOX Visumpartner Service Fee (Embassy Legalization)',
+      'DOX Visumpartner serviceavgift (Apostille)': 'DOX Visumpartner Service Fee (Apostille)',
+      'DOX Visumpartner serviceavgift (Notarisering)': 'DOX Visumpartner Service Fee (Notarization)',
+      'DOX Visumpartner serviceavgift (Översättning)': 'DOX Visumpartner Service Fee (Translation)',
+      'DOX Visumpartner serviceavgift (Utrikesdepartementet)': 'DOX Visumpartner Service Fee (Ministry of Foreign Affairs)',
+      'DOX Visumpartner serviceavgift (Handelskammare)': 'DOX Visumpartner Service Fee (Chamber of Commerce)',
+      'Skannade kopior': 'Scanned Copies',
+      'Returfrakt': 'Return Shipping',
+      'Upphämtningstjänst': 'Pickup Service',
+      'Expresstillägg': 'Express Service',
+      'DHL Sweden': 'DHL Sweden',
+      'PostNord': 'PostNord',
+      'Apostille - Officiell avgift': 'Apostille - Official Fee',
+      'Apostille - officiell avgift': 'Apostille - Official Fee',
+      'Notarisering - Officiell avgift': 'Notarization - Official Fee',
+      'Notarisering - officiell avgift': 'Notarization - Official Fee',
+      'Översättning - Officiell avgift': 'Translation - Official Fee',
+      'Översättning - officiell avgift': 'Translation - Official Fee',
+      'Utrikesdepartementets legalisering': 'Ministry of Foreign Affairs Legalization',
+      'Utrikesdepartementet - Officiell avgift': 'Ministry of Foreign Affairs - Official Fee',
+      'Handelskammarintyg': 'Chamber of Commerce Certificate',
+      'Handelskammare - Officiell avgift': 'Chamber of Commerce - Official Fee',
+    };
+
+    // Check for exact match first
+    if (translations[description]) {
+      return translations[description];
+    }
+
+    // Check for partial matches (for dynamic descriptions)
+    for (const [swedish, english] of Object.entries(translations)) {
+      if (description.includes(swedish)) {
+        return description.replace(swedish, english);
+      }
+    }
+
+    // Handle pattern: "X - Serviceavgift" -> "DOX Visumpartner Service Fee (X)"
+    if (description.includes(' - Serviceavgift')) {
+      const serviceName = description.replace(' - Serviceavgift', '');
+      return `DOX Visumpartner Service Fee (${serviceName})`;
+    }
+
+    // Handle pattern: "X - Officiell avgift" -> "X - Official Fee"
+    if (description.includes(' - Officiell avgift')) {
+      return description.replace(' - Officiell avgift', ' - Official Fee');
+    }
+    if (description.includes(' - officiell avgift')) {
+      return description.replace(' - officiell avgift', ' - Official Fee');
+    }
+
+    return description;
+  };
+
   // Function to check if a step is an authority service
   const isAuthorityService = (stepId: string) => {
     return [
@@ -3950,7 +4013,7 @@ function AdminOrderDetailPage() {
                 onClick={() => fetchOrder()}
                 className="ml-4 underline text-red-700 hover:text-red-900"
               >
-                Försök igen
+                Try again
               </button>
             </div>
           )}
@@ -4655,7 +4718,7 @@ function AdminOrderDetailPage() {
                                         }}
                                       />
                                     </td>
-                                    <td className="px-3 py-2">{item.description || o.label || '-'}</td>
+                                    <td className="px-3 py-2">{translatePricingDescription(item.description || o.label || '-')}</td>
                                     <td className="px-3 py-2 text-right">{Number(base).toFixed(2)} kr</td>
                                     <td className="px-3 py-2 text-right">
                                       <input
@@ -6303,3 +6366,12 @@ const ClientOnlyAdminOrderDetail = () => (
 );
 
 export default dynamic(() => Promise.resolve(ClientOnlyAdminOrderDetail), { ssr: false });
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  // Admin pages always use English
+  return {
+    props: {
+      ...(await serverSideTranslations('en', ['common'])),
+    },
+  };
+};

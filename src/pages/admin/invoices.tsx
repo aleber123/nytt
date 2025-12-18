@@ -44,7 +44,7 @@ function AdminInvoicesPage() {
     lineItems: [],
     currency: 'SEK',
     status: 'draft',
-    paymentTerms: 'Betalning inom 30 dagar'
+    paymentTerms: 'Payment within 30 days'
   });
 
   useEffect(() => {
@@ -140,21 +140,21 @@ function AdminInvoicesPage() {
     }
   };
 
-  // Get status text in Swedish
+  // Get status text in English
   const getStatusText = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'Utkast';
+        return 'Draft';
       case 'sent':
-        return 'Skickad';
+        return 'Sent';
       case 'paid':
-        return 'Betald';
+        return 'Paid';
       case 'overdue':
-        return 'Förfallen';
+        return 'Overdue';
       case 'cancelled':
-        return 'Makulerad';
+        return 'Cancelled';
       case 'credit_note':
-        return 'Kreditfaktura';
+        return 'Credit Note';
       default:
         return status;
     }
@@ -184,10 +184,10 @@ function AdminInvoicesPage() {
   const generatePDF = (invoice: Invoice) => {
     try {
       generateInvoicePDF(invoice);
-      toast.success('Faktura nedladdad som PDF');
+      toast.success('Invoice downloaded as PDF');
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast.error('Kunde inte generera PDF');
+      toast.error('Could not generate PDF');
     }
   };
 
@@ -243,10 +243,10 @@ function AdminInvoicesPage() {
       setIsEditing(false);
       setEditingInvoice(null);
 
-      toast.success('Faktura uppdaterad');
+      toast.success('Invoice updated');
     } catch (error) {
       console.error('Error updating invoice:', error);
-      toast.error('Kunde inte uppdatera faktura');
+      toast.error('Could not update invoice');
     }
   };
 
@@ -280,11 +280,11 @@ function AdminInvoicesPage() {
       if (creditInvoice) {
         // Refresh the invoices list to show the new credit invoice
         await fetchInvoices();
-        toast.success(`Kreditfaktura ${creditInvoice.invoiceNumber} skapad`);
+        toast.success(`Credit note ${creditInvoice.invoiceNumber} created`);
       }
     } catch (error) {
       console.error('Error creating credit invoice:', error);
-      toast.error('Kunde inte skapa kreditfaktura');
+      toast.error('Could not create credit note');
     }
   };
 
@@ -305,13 +305,13 @@ function AdminInvoicesPage() {
           ));
         }
 
-        toast.success(`Faktura skickad till ${invoice.customerInfo.email}`);
+        toast.success(`Invoice sent to ${invoice.customerInfo.email}`);
       } else {
-        toast.error('Kunde inte skicka faktura via e-post');
+        toast.error('Could not send invoice via email');
       }
     } catch (error) {
       console.error('Error sending invoice:', error);
-      toast.error('Ett fel uppstod när fakturan skulle skickas');
+      toast.error('An error occurred while sending the invoice');
     } finally {
       setSendingInvoiceId(null);
     }
@@ -334,7 +334,7 @@ function AdminInvoicesPage() {
       lineItems: [],
       currency: 'SEK',
       status: 'draft',
-      paymentTerms: 'Betalning inom 30 dagar'
+      paymentTerms: 'Payment within 30 days'
     });
     setShowCreateModal(true);
   };
@@ -357,7 +357,7 @@ function AdminInvoicesPage() {
       lineItems: [],
       currency: 'SEK',
       status: 'draft',
-      paymentTerms: 'Betalning inom 30 dagar'
+      paymentTerms: 'Payment within 30 days'
     });
   };
 
@@ -452,12 +452,12 @@ function AdminInvoicesPage() {
       if (!newInvoice.customerInfo?.firstName || !newInvoice.customerInfo?.lastName ||
           !newInvoice.customerInfo?.email || !newInvoice.customerInfo?.address ||
           !newInvoice.customerInfo?.postalCode || !newInvoice.customerInfo?.city) {
-        toast.error('Vänligen fyll i alla obligatoriska kunduppgifter');
+        toast.error('Please fill in all required customer information');
         return;
       }
 
       if (!newInvoice.lineItems || newInvoice.lineItems.length === 0) {
-        toast.error('Vänligen lägg till minst en tjänst');
+        toast.error('Please add at least one service');
         return;
       }
 
@@ -487,12 +487,12 @@ function AdminInvoicesPage() {
         paymentReference: '',
         companyInfo: {
           name: 'DOX Visumpartner AB',
-          address: 'Sveavägen 100',
-          postalCode: '113 50',
-          city: 'Stockholm',
-          orgNumber: '556123-4567',
-          vatNumber: 'SE556123456701',
-          phone: '070-123 45 67',
+          address: 'Box 38',
+          postalCode: '121 25',
+          city: 'Stockholm-Globen',
+          orgNumber: '559015-4521',
+          vatNumber: 'SE559015452101',
+          phone: '08-40941900',
           email: 'info@doxvl.se'
         },
         createdAt: Timestamp.now(),
@@ -510,11 +510,11 @@ function AdminInvoicesPage() {
 
       // Close modal and show success
       closeCreateModal();
-      toast.success(`Faktura ${completeInvoice.invoiceNumber} skapad`);
+      toast.success(`Invoice ${completeInvoice.invoiceNumber} created`);
 
     } catch (error) {
       console.error('Error creating new invoice:', error);
-      toast.error('Kunde inte skapa faktura');
+      toast.error('Could not create invoice');
     } finally {
       setIsCreatingInvoice(false);
     }
@@ -523,8 +523,8 @@ function AdminInvoicesPage() {
   return (
     <>
       <Head>
-        <title>Admin - Fakturor | Legaliseringstjänst</title>
-        <meta name="description" content="Admin panel för hantering av fakturor" />
+        <title>Admin - Invoices</title>
+        <meta name="description" content="Admin panel for managing invoices" />
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -540,8 +540,8 @@ function AdminInvoicesPage() {
                   </svg>
                 </Link>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Fakturahantering</h1>
-                  <p className="text-sm text-gray-600 mt-1">Hantera och följ upp dina fakturor</p>
+                  <h1 className="text-3xl font-bold text-gray-900">Invoice Management</h1>
+                  <p className="text-sm text-gray-600 mt-1">Manage and track your invoices</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
@@ -552,13 +552,13 @@ function AdminInvoicesPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Skapa ny faktura
+                  Create new invoice
                 </button>
                 <button
                   onClick={() => signOut()}
                   className="text-gray-600 hover:text-gray-800 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors"
                 >
-                  Logga ut
+                  Sign Out
                 </button>
                 <Link href="/admin" className="text-primary-600 hover:text-primary-700 font-medium transition-colors">
                   Dashboard
@@ -580,7 +580,7 @@ function AdminInvoicesPage() {
                   onClick={fetchInvoices}
                   className="ml-4 underline text-red-700 hover:text-red-900 font-medium"
                 >
-                  Försök igen
+                  Try again
                 </button>
               </div>
             </div>
@@ -598,7 +598,7 @@ function AdminInvoicesPage() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Totala fakturor</p>
+                  <p className="text-sm font-medium text-gray-500">Total invoices</p>
                   <p className="text-3xl font-bold text-gray-900">{invoices.length}</p>
                 </div>
               </div>
@@ -630,7 +630,7 @@ function AdminInvoicesPage() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Skickade</p>
+                  <p className="text-sm font-medium text-gray-500">Sent</p>
                   <p className="text-3xl font-bold text-gray-900">{invoices.filter(i => i.status === 'sent').length}</p>
                 </div>
               </div>
@@ -662,7 +662,7 @@ function AdminInvoicesPage() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Förfallna</p>
+                  <p className="text-sm font-medium text-gray-500">Overdue</p>
                   <p className="text-3xl font-bold text-gray-900">{invoices.filter(i => i.status === 'overdue').length}</p>
                 </div>
               </div>
@@ -674,11 +674,11 @@ function AdminInvoicesPage() {
             <div className="p-6 border-b border-primary-100 bg-gradient-to-r from-primary-50 to-secondary-50">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Fakturahantering</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Invoice Management</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Visar {filteredInvoices.length} av {invoices.length} fakturor
-                    {statusFilter !== 'all' && ` med status "${getStatusText(statusFilter)}"`}
-                    {searchTerm && ` som matchar "${searchTerm}"`}
+                    Showing {filteredInvoices.length} of {invoices.length} invoices
+                    {statusFilter !== 'all' && ` with status "${getStatusText(statusFilter)}"`}
+                    {searchTerm && ` matching "${searchTerm}"`}
                   </p>
                 </div>
 
@@ -686,14 +686,14 @@ function AdminInvoicesPage() {
                   {/* Search */}
                   <div className="flex items-center min-w-0 flex-1 lg:flex-initial">
                     <label htmlFor="search" className="mr-3 text-sm text-gray-700 font-medium whitespace-nowrap">
-                      Sök:
+                      Search:
                     </label>
                     <input
                       id="search"
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Fakturanummer, namn, email..."
+                      placeholder="Invoice number, name, email..."
                       className="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-custom-button focus:border-custom-button transition-colors min-w-0 flex-1"
                     />
                   </div>
@@ -709,13 +709,13 @@ function AdminInvoicesPage() {
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-custom-button focus:border-custom-button transition-colors"
                     >
-                      <option value="all">Alla fakturor</option>
-                      <option value="draft">Utkast</option>
-                      <option value="sent">Skickade</option>
-                      <option value="paid">Betalda</option>
-                      <option value="overdue">Förfallna</option>
-                      <option value="cancelled">Makulerade</option>
-                      <option value="credit_note">Kreditfakturor</option>
+                      <option value="all">All invoices</option>
+                      <option value="draft">Draft</option>
+                      <option value="sent">Sent</option>
+                      <option value="paid">Paid</option>
+                      <option value="overdue">Overdue</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="credit_note">Credit notes</option>
                     </select>
                   </div>
 
@@ -726,7 +726,7 @@ function AdminInvoicesPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Uppdatera
+                    Refresh
                   </button>
                 </div>
               </div>
@@ -765,11 +765,11 @@ function AdminInvoicesPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Inga fakturor hittades</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No invoices found</h3>
                 <p className="text-gray-500">
                   {statusFilter === 'all' && !searchTerm
-                    ? 'Det finns inga fakturor att visa just nu.'
-                    : `Inga fakturor hittades med de valda filtren.`
+                    ? 'There are no invoices to display right now.'
+                    : `No invoices found with the selected filters.`
                   }
                 </p>
               </div>
@@ -797,7 +797,7 @@ function AdminInvoicesPage() {
                             </span>
                           </div>
                           <p className="text-sm text-gray-500">
-                            Skapad: {formatDate(invoice.createdAt)}
+                            Created: {formatDate(invoice.createdAt)}
                           </p>
                         </div>
                         <div className="text-right">
@@ -805,7 +805,7 @@ function AdminInvoicesPage() {
                             {invoice.totalAmount} kr
                           </div>
                           <div className="text-sm text-gray-600">
-                            Förfaller: {formatDate(invoice.dueDate)}
+                            Due: {formatDate(invoice.dueDate)}
                           </div>
                         </div>
                       </div>
@@ -813,7 +813,7 @@ function AdminInvoicesPage() {
                       {/* Customer Info */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Kund</h4>
+                          <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Customer</h4>
                           <div className="space-y-1">
                             <p className="text-base font-medium text-gray-900">
                               {invoice.customerInfo.firstName} {invoice.customerInfo.lastName}
@@ -824,16 +824,16 @@ function AdminInvoicesPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Fakturainformation</h4>
+                          <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Invoice Information</h4>
                           <div className="space-y-1">
                             <p className="text-sm text-gray-600">
-                              Antal tjänster: {invoice.lineItems.length}
+                              Number of services: {invoice.lineItems.length}
                             </p>
                             <p className="text-sm text-gray-600">
-                              Moms: {invoice.vatTotal} kr ({(invoice.vatTotal / invoice.totalAmount * 100).toFixed(1)}%)
+                              VAT: {invoice.vatTotal} kr ({(invoice.vatTotal / invoice.totalAmount * 100).toFixed(1)}%)
                             </p>
                             <p className="text-sm text-gray-600">
-                              Betalningsreferens: {invoice.paymentReference}
+                              Payment reference: {invoice.paymentReference}
                             </p>
                           </div>
                         </div>
@@ -849,17 +849,17 @@ function AdminInvoicesPage() {
                             value={invoice.status}
                             onChange={(e) => handleStatusChange(invoice.id!, e.target.value as Invoice['status'])}
                           >
-                            <option value="draft">Utkast</option>
-                            <option value="sent">Skickad</option>
-                            <option value="paid">Betald</option>
-                            <option value="overdue">Förfallen</option>
-                            <option value="cancelled">Makulerad</option>
-                            <option value="credit_note">Kreditfaktura</option>
+                            <option value="draft">Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="paid">Paid</option>
+                            <option value="overdue">Overdue</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="credit_note">Credit Note</option>
                           </select>
                           {updatingInvoiceId === invoice.id && (
                             <div className="flex items-center">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                              <span className="text-xs text-gray-500">Uppdaterar...</span>
+                              <span className="text-xs text-gray-500">Updating...</span>
                             </div>
                           )}
                         </div>
@@ -873,7 +873,7 @@ function AdminInvoicesPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                            Visa detaljer
+                            View details
                           </button>
 
                           <button
@@ -891,14 +891,14 @@ function AdminInvoicesPage() {
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Skickar...
+                                Sending...
                               </div>
                             ) : (
                               <>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
-                                Skicka faktura
+                                Send invoice
                               </>
                             )}
                           </button>
@@ -911,7 +911,7 @@ function AdminInvoicesPage() {
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
                             </svg>
-                            Skapa kreditfaktura
+                            Create credit note
                           </button>
 
                           <button
@@ -921,7 +921,7 @@ function AdminInvoicesPage() {
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            Ladda ner faktura
+                            Download invoice
                           </button>
                         </div>
                       </div>
@@ -951,7 +951,7 @@ function AdminInvoicesPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    Redigera
+                    Edit
                   </button>
                 )}
                 <button
@@ -969,12 +969,12 @@ function AdminInvoicesPage() {
               {/* Invoice Header */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Faktureras till</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Bill to</h4>
                   {isEditing && editingInvoice ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Förnamn</label>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">First name</label>
                           <input
                             type="text"
                             value={editingInvoice.customerInfo.firstName}
@@ -983,7 +983,7 @@ function AdminInvoicesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Efternamn</label>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Last name</label>
                           <input
                             type="text"
                             value={editingInvoice.customerInfo.lastName}
@@ -993,17 +993,17 @@ function AdminInvoicesPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Företag</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
                         <input
                           type="text"
                           value={editingInvoice.customerInfo.companyName || ''}
                           onChange={(e) => updateCustomerInfo('companyName', e.target.value)}
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                          placeholder="Företagsnamn (valfritt)"
+                          placeholder="Company name (optional)"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Adress</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Address</label>
                         <input
                           type="text"
                           value={editingInvoice.customerInfo.address}
@@ -1013,7 +1013,7 @@ function AdminInvoicesPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Postnummer</label>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Postal code</label>
                           <input
                             type="text"
                             value={editingInvoice.customerInfo.postalCode}
@@ -1022,7 +1022,7 @@ function AdminInvoicesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Stad</label>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
                           <input
                             type="text"
                             value={editingInvoice.customerInfo.city}
@@ -1032,7 +1032,7 @@ function AdminInvoicesPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">E-post</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
                         <input
                           type="email"
                           value={editingInvoice.customerInfo.email}
@@ -1041,7 +1041,7 @@ function AdminInvoicesPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Telefon</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
                         <input
                           type="tel"
                           value={editingInvoice.customerInfo.phone}
@@ -1050,13 +1050,13 @@ function AdminInvoicesPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Org.nummer</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Org. number</label>
                         <input
                           type="text"
                           value={editingInvoice.customerInfo.orgNumber || ''}
                           onChange={(e) => updateCustomerInfo('orgNumber', e.target.value)}
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                          placeholder="Organisationsnummer (valfritt)"
+                          placeholder="Organization number (optional)"
                         />
                       </div>
                     </div>
@@ -1068,36 +1068,36 @@ function AdminInvoicesPage() {
                       <p>{selectedInvoice.customerInfo.postalCode} {selectedInvoice.customerInfo.city}</p>
                       <p>{selectedInvoice.customerInfo.email}</p>
                       <p>{selectedInvoice.customerInfo.phone}</p>
-                      {selectedInvoice.customerInfo.orgNumber && <p>Org.nr: {selectedInvoice.customerInfo.orgNumber}</p>}
+                      {selectedInvoice.customerInfo.orgNumber && <p>Org. No: {selectedInvoice.customerInfo.orgNumber}</p>}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Fakturainformation</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Invoice Information</h4>
                   <div className="text-sm text-gray-600 space-y-1">
-                    <p><span className="font-medium">Fakturanummer:</span> {selectedInvoice.invoiceNumber}</p>
-                    <p><span className="font-medium">Fakturadatum:</span> {formatDate(selectedInvoice.issueDate)}</p>
-                    <p><span className="font-medium">Förfallodatum:</span> {formatDate(selectedInvoice.dueDate)}</p>
-                    {selectedInvoice.orderNumber && <p><span className="font-medium">Ordernummer:</span> {selectedInvoice.orderNumber}</p>}
+                    <p><span className="font-medium">Invoice number:</span> {selectedInvoice.invoiceNumber}</p>
+                    <p><span className="font-medium">Invoice date:</span> {formatDate(selectedInvoice.issueDate)}</p>
+                    <p><span className="font-medium">Due date:</span> {formatDate(selectedInvoice.dueDate)}</p>
+                    {selectedInvoice.orderNumber && <p><span className="font-medium">Order number:</span> {selectedInvoice.orderNumber}</p>}
                     <p><span className="font-medium">Status:</span> {getStatusText(selectedInvoice.status)}</p>
-                    <p><span className="font-medium">Betalningsvillkor:</span> {selectedInvoice.paymentTerms}</p>
+                    <p><span className="font-medium">Payment terms:</span> {selectedInvoice.paymentTerms}</p>
                   </div>
                 </div>
               </div>
 
               {/* Line Items */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Tjänster</h4>
+                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Services</h4>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beskrivning</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Antal</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">À-pris</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Moms %</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Totalt</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VAT %</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -1119,15 +1119,15 @@ function AdminInvoicesPage() {
               <div className="flex justify-end">
                 <div className="w-64 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Nettosumma:</span>
+                    <span>Net amount:</span>
                     <span>{(selectedInvoice.totalAmount - selectedInvoice.vatTotal).toFixed(2)} kr</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Moms (25%):</span>
+                    <span>VAT (25%):</span>
                     <span>{selectedInvoice.vatTotal.toFixed(2)} kr</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>Att betala:</span>
+                    <span>Total due:</span>
                     <span>{selectedInvoice.totalAmount} kr</span>
                   </div>
                 </div>
@@ -1141,13 +1141,13 @@ function AdminInvoicesPage() {
                       onClick={cancelEditing}
                       className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
-                      Avbryt
+                      Cancel
                     </button>
                     <button
                       onClick={saveEditedInvoice}
                       className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700"
                     >
-                      Spara ändringar
+                      Save changes
                     </button>
                   </>
                 ) : (
@@ -1156,7 +1156,7 @@ function AdminInvoicesPage() {
                       onClick={closeInvoiceModal}
                       className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
-                      Stäng
+                      Close
                     </button>
                     <button
                       onClick={() => {
@@ -1165,7 +1165,7 @@ function AdminInvoicesPage() {
                       }}
                       className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
                     >
-                      Ladda ner faktura
+                      Download invoice
                     </button>
                   </>
                 )}
@@ -1181,7 +1181,7 @@ function AdminInvoicesPage() {
           <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-medium text-gray-900">
-                Skapa ny faktura
+                Create new invoice
               </h3>
               <button
                 onClick={closeCreateModal}
@@ -1196,10 +1196,10 @@ function AdminInvoicesPage() {
             <div className="space-y-6">
               {/* Customer Information */}
               <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Kundinformation</h4>
+                <h4 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Förnamn *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First name *</label>
                     <input
                       type="text"
                       value={newInvoice.customerInfo?.firstName || ''}
@@ -1209,7 +1209,7 @@ function AdminInvoicesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Efternamn *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last name *</label>
                     <input
                       type="text"
                       value={newInvoice.customerInfo?.lastName || ''}
@@ -1220,7 +1220,7 @@ function AdminInvoicesPage() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Företag (valfritt)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Company (optional)</label>
                   <input
                     type="text"
                     value={newInvoice.customerInfo?.companyName || ''}
@@ -1230,7 +1230,7 @@ function AdminInvoicesPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Adress *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
                     <input
                       type="text"
                       value={newInvoice.customerInfo?.address || ''}
@@ -1240,7 +1240,7 @@ function AdminInvoicesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Postnummer *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Postal code *</label>
                     <input
                       type="text"
                       value={newInvoice.customerInfo?.postalCode || ''}
@@ -1251,7 +1251,7 @@ function AdminInvoicesPage() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stad *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
                   <input
                     type="text"
                     value={newInvoice.customerInfo?.city || ''}
@@ -1262,7 +1262,7 @@ function AdminInvoicesPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">E-post *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                     <input
                       type="email"
                       value={newInvoice.customerInfo?.email || ''}
@@ -1272,7 +1272,7 @@ function AdminInvoicesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                     <input
                       type="tel"
                       value={newInvoice.customerInfo?.phone || ''}
@@ -1282,7 +1282,7 @@ function AdminInvoicesPage() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Organisationsnummer (valfritt)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Organization number (optional)</label>
                   <input
                     type="text"
                     value={newInvoice.customerInfo?.orgNumber || ''}
@@ -1295,7 +1295,7 @@ function AdminInvoicesPage() {
               {/* Line Items */}
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-lg font-medium text-gray-900">Tjänster</h4>
+                  <h4 className="text-lg font-medium text-gray-900">Services</h4>
                   <button
                     onClick={addLineItem}
                     className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
@@ -1303,7 +1303,7 @@ function AdminInvoicesPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    Lägg till tjänst
+                    Add service
                   </button>
                 </div>
 
@@ -1313,17 +1313,17 @@ function AdminInvoicesPage() {
                       <div key={item.id} className="border border-gray-200 rounded-md p-4">
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                           <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Beskrivning</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                             <input
                               type="text"
                               value={item.description}
                               onChange={(e) => updateLineItem(index, 'description', e.target.value)}
                               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="Tjänstbeskrivning"
+                              placeholder="Service description"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Antal</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                             <input
                               type="number"
                               min="1"
@@ -1333,7 +1333,7 @@ function AdminInvoicesPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">À-pris (kr)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Unit price (kr)</label>
                             <input
                               type="number"
                               min="0"
@@ -1345,20 +1345,20 @@ function AdminInvoicesPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="flex-1">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Moms %</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">VAT %</label>
                               <select
                                 value={item.vatRate}
                                 onChange={(e) => updateLineItem(index, 'vatRate', parseFloat(e.target.value))}
                                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               >
-                                <option value="0.00">0% (Ambassad)</option>
+                                <option value="0.00">0% (Embassy)</option>
                                 <option value="0.25">25% (Standard)</option>
                               </select>
                             </div>
                             <button
                               onClick={() => removeLineItem(index)}
                               className="px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md"
-                              title="Ta bort tjänst"
+                              title="Remove service"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1367,7 +1367,7 @@ function AdminInvoicesPage() {
                           </div>
                         </div>
                         <div className="mt-2 text-sm text-gray-600">
-                          Totalt: {item.totalPrice.toFixed(2)} kr (inkl. {(item.vatAmount).toFixed(2)} kr moms)
+                          Total: {item.totalPrice.toFixed(2)} kr (incl. {(item.vatAmount).toFixed(2)} kr VAT)
                         </div>
                       </div>
                     ))}
@@ -1377,8 +1377,8 @@ function AdminInvoicesPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p>Inga tjänster tillagda än</p>
-                    <p className="text-sm">Klicka på "Lägg till tjänst" för att börja</p>
+                    <p>No services added yet</p>
+                    <p className="text-sm">Click "Add service" to get started</p>
                   </div>
                 )}
               </div>
@@ -1386,23 +1386,23 @@ function AdminInvoicesPage() {
               {/* Invoice Summary */}
               {newInvoice.lineItems && newInvoice.lineItems.length > 0 && (
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Fakturasammanfattning</h4>
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Invoice Summary</h4>
                   <div className="bg-gray-50 rounded-md p-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Antal tjänster:</span>
+                        <span>Number of services:</span>
                         <span>{newInvoice.lineItems.length}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>Nettosumma:</span>
+                        <span>Net amount:</span>
                         <span>{(newInvoice.lineItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)).toFixed(2)} kr</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>Moms:</span>
+                        <span>VAT:</span>
                         <span>{(newInvoice.lineItems.reduce((sum, item) => sum + item.vatAmount, 0)).toFixed(2)} kr</span>
                       </div>
                       <div className="flex justify-between text-lg font-bold border-t pt-2">
-                        <span>Att betala:</span>
+                        <span>Total due:</span>
                         <span>{((newInvoice.lineItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)) + (newInvoice.lineItems.reduce((sum, item) => sum + item.vatAmount, 0))).toFixed(2)} kr</span>
                       </div>
                     </div>
@@ -1416,7 +1416,7 @@ function AdminInvoicesPage() {
                   onClick={closeCreateModal}
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
-                  Avbryt
+                  Cancel
                 </button>
                 <button
                   onClick={createNewInvoice}
@@ -1433,10 +1433,10 @@ function AdminInvoicesPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Skapar faktura...
+                      Creating invoice...
                     </div>
                   ) : (
-                    'Skapa faktura'
+                    'Create invoice'
                   )}
                 </button>
               </div>
@@ -1456,10 +1456,11 @@ export default function ProtectedAdminInvoicesPage() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 }

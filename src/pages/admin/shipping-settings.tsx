@@ -46,7 +46,7 @@ function ShippingSettingsContent() {
         }
       } catch (error) {
         console.error('Error fetching shipping settings:', error);
-        toast.error('Kunde inte hämta inställningar');
+        toast.error('Could not fetch settings');
       } finally {
         setLoading(false);
       }
@@ -75,10 +75,10 @@ function ShippingSettingsContent() {
         throw new Error(data.error || 'Failed to save');
       }
       
-      toast.success('Inställningar sparade!');
+      toast.success('Settings saved!');
     } catch (error) {
       console.error('Error saving shipping settings:', error);
-      toast.error('Kunde inte spara inställningar');
+      toast.error('Could not save settings');
     } finally {
       setSaving(false);
     }
@@ -87,7 +87,7 @@ function ShippingSettingsContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Laddar...</div>
+        <div className="text-gray-600">Loading...</div>
       </div>
     );
   }
@@ -100,9 +100,9 @@ function ShippingSettingsContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/admin" className="text-gray-500 hover:text-gray-700">
-                ← Tillbaka
+                ← Back
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Fraktinställningar</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Shipping Settings</h1>
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ function ShippingSettingsContent() {
           {/* DHL Return Shipment Settings */}
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              📦 DHL Returfrakt (DOX → Kund)
+              📦 DHL Return Shipment (DOX → Customer)
             </h2>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -126,12 +126,12 @@ function ShippingSettingsContent() {
                     onChange={(e) => setSettings({ ...settings, dhlMaxPriceEnabled: e.target.checked })}
                     className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-gray-700">Aktivera maxprisgräns</span>
+                  <span className="text-gray-700">Enable max price limit</span>
                 </label>
               </div>
               
               <div className={`flex items-center gap-4 ${!settings.dhlMaxPriceEnabled ? 'opacity-50' : ''}`}>
-                <label className="text-gray-700 w-48">Maxpris för DHL-bokning:</label>
+                <label className="text-gray-700 w-48">Max price for DHL booking:</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -147,7 +147,7 @@ function ShippingSettingsContent() {
               </div>
               
               <p className="text-sm text-gray-500">
-                Om DHL-priset överstiger detta belopp blockeras automatisk bokning och personalen får ett meddelande om att göra en manuell bokning.
+                If the DHL price exceeds this amount, automatic booking is blocked and staff will receive a message to make a manual booking.
               </p>
             </div>
           </section>
@@ -157,7 +157,7 @@ function ShippingSettingsContent() {
           {/* DHL Pickup Shipment Settings */}
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              🚚 DHL Upphämtning (Kund → DOX)
+              🚚 DHL Pickup (Customer → DOX)
             </h2>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -168,12 +168,12 @@ function ShippingSettingsContent() {
                     onChange={(e) => setSettings({ ...settings, dhlPickupMaxPriceEnabled: e.target.checked })}
                     className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-gray-700">Aktivera maxprisgräns</span>
+                  <span className="text-gray-700">Enable max price limit</span>
                 </label>
               </div>
               
               <div className={`flex items-center gap-4 ${!settings.dhlPickupMaxPriceEnabled ? 'opacity-50' : ''}`}>
-                <label className="text-gray-700 w-48">Maxpris för DHL-upphämtning:</label>
+                <label className="text-gray-700 w-48">Max price for DHL pickup:</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -189,7 +189,7 @@ function ShippingSettingsContent() {
               </div>
               
               <p className="text-sm text-gray-500">
-                Om DHL-priset för upphämtning överstiger detta belopp blockeras automatisk bokning.
+                If the DHL pickup price exceeds this amount, automatic booking is blocked.
               </p>
             </div>
           </section>
@@ -198,12 +198,12 @@ function ShippingSettingsContent() {
 
           {/* Info Section */}
           <section className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-800 mb-2">ℹ️ Hur det fungerar</h3>
+            <h3 className="font-medium text-blue-800 mb-2">ℹ️ How it works</h3>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• När personal trycker på "Boka DHL" hämtas först priset från DHL API</li>
-              <li>• Om priset överstiger maxgränsen visas en varning och bokningen blockeras</li>
-              <li>• Personal kan då göra en manuell bokning via DHL:s webbplats</li>
-              <li>• Sandbox-läge: Priser i testmiljön kan skilja sig från produktion</li>
+              <li>• When staff clicks "Book DHL", the price is first fetched from the DHL API</li>
+              <li>• If the price exceeds the max limit, a warning is shown and booking is blocked</li>
+              <li>• Staff can then make a manual booking via DHL's website</li>
+              <li>• Sandbox mode: Prices in the test environment may differ from production</li>
             </ul>
           </section>
 
@@ -214,14 +214,14 @@ function ShippingSettingsContent() {
               disabled={saving}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Sparar...' : 'Spara inställningar'}
+              {saving ? 'Saving...' : 'Save settings'}
             </button>
           </div>
 
           {/* Last Updated */}
           {settings.updatedAt && (
             <p className="text-xs text-gray-400 text-right">
-              Senast uppdaterad: {new Date(settings.updatedAt).toLocaleString('sv-SE')} av {settings.updatedBy}
+              Last updated: {new Date(settings.updatedAt).toLocaleString('en-GB')} by {settings.updatedBy}
             </p>
           )}
         </div>

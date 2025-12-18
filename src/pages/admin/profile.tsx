@@ -30,7 +30,7 @@ export default function AdminProfilePage() {
         setPhone(profile.phone || '');
         setEmail(profile.email || currentUser.email || '');
       } catch (e) {
-        toast.error('Kunde inte ladda profilen');
+        toast.error('Could not load profile');
       } finally {
         setLoading(false);
       }
@@ -43,7 +43,7 @@ export default function AdminProfilePage() {
     setSaving(true);
     try {
       const db = getFirebaseDb();
-      if (!db) throw new Error('Ingen databas');
+      if (!db) throw new Error('No database');
       const ref = doc(db, 'adminProfiles', currentUser.uid);
       await setDoc(
         ref,
@@ -63,11 +63,11 @@ export default function AdminProfilePage() {
         }
       }
 
-      toast.success('Profil uppdaterad');
+      toast.success('Profile updated');
     } catch (e) {
       console.error('Profile save error:', e);
       const msg = (e as any)?.message || String(e);
-      toast.error(`Kunde inte spara profil: ${msg}`);
+      toast.error(`Could not save profile: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -76,48 +76,48 @@ export default function AdminProfilePage() {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Profil | Admin | Legaliseringstjänst</title>
+        <title>Profile | Admin</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
       <div className="bg-gray-100 min-h-screen">
         <div className="container mx-auto px-4 py-8">
           <div className="bg-white rounded-lg shadow p-6 max-w-xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-6">Profil</h1>
+            <h1 className="text-2xl font-semibold mb-6">Profile</h1>
             {loading ? (
-              <div className="text-gray-600">Laddar...</div>
+              <div className="text-gray-600">Loading...</div>
             ) : (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Namn</label>
+                  <label className="block text-sm text-gray-600 mb-1">Name</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full border rounded px-3 py-2"
-                    placeholder="Ditt namn"
+                    placeholder="Your name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Telefon</label>
+                  <label className="block text-sm text-gray-600 mb-1">Phone</label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full border rounded px-3 py-2"
-                    placeholder="Ditt telefonnummer"
+                    placeholder="Your phone number"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">E-post</label>
+                  <label className="block text-sm text-gray-600 mb-1">Email</label>
                   <input
                     type="email"
                     value={email}
                     readOnly
                     className="w-full border rounded px-3 py-2 bg-gray-50 text-gray-600 cursor-not-allowed"
-                    placeholder="din@epost.se"
+                    placeholder="your@email.com"
                   />
-                  <p className="text-xs text-gray-500 mt-1">E-post kan ändras i kontoinställningar (kräver ev. ny inloggning).</p>
+                  <p className="text-xs text-gray-500 mt-1">Email can be changed in account settings (may require re-login).</p>
                 </div>
                 <div className="pt-2">
                   <button
@@ -125,7 +125,7 @@ export default function AdminProfilePage() {
                     disabled={saving}
                     className={`px-4 py-2 rounded text-white ${saving ? 'bg-gray-400' : 'bg-primary-600 hover:bg-primary-700'}`}
                   >
-                    {saving ? 'Sparar…' : 'Spara'}
+                    {saving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </div>
@@ -137,10 +137,11 @@ export default function AdminProfilePage() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

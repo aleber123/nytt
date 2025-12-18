@@ -37,7 +37,7 @@ function StandardServicesPricesPage() {
     {
       code: 'apostille',
       name: 'Apostille',
-      description: 'För länder anslutna till Haagkonventionen. Internationell legalisering av dokument.',
+      description: 'For countries connected to the Hague Convention. International document legalization.',
       officialFee: 850,
       serviceFee: 100,
       totalPrice: 950,
@@ -45,8 +45,8 @@ function StandardServicesPricesPage() {
     },
     {
       code: 'notarization',
-      name: 'Notarisering',
-      description: 'Officiell notarisering av dokument. Juriidisk bekräftelse och giltighet.',
+      name: 'Notarization',
+      description: 'Official notarization of documents. Legal confirmation and validity.',
       officialFee: 1200,
       serviceFee: 100,
       totalPrice: 1300,
@@ -54,8 +54,8 @@ function StandardServicesPricesPage() {
     },
     {
       code: 'chamber',
-      name: 'Handelskammaren',
-      description: 'Legaliserng av handelsdokument genom Handelskammaren. Företagshandlingar.',
+      name: 'Chamber of Commerce',
+      description: 'Legalization of trade documents through the Chamber of Commerce. Business documents.',
       officialFee: 2300,
       serviceFee: 100,
       totalPrice: 2400,
@@ -63,8 +63,8 @@ function StandardServicesPricesPage() {
     },
     {
       code: 'translation',
-      name: 'Översättning',
-      description: 'Officiella översättningar av dokument. Certifierade översättare och stämpel.',
+      name: 'Translation',
+      description: 'Official document translations. Certified translators and stamp.',
       officialFee: 1350,
       serviceFee: 100,
       totalPrice: 1450,
@@ -72,8 +72,8 @@ function StandardServicesPricesPage() {
     },
     {
       code: 'ud',
-      name: 'Utrikesdepartementet',
-      description: 'UD:s legalisering för icke-Haagkonventionsländer.',
+      name: 'Ministry of Foreign Affairs',
+      description: 'MFA legalization for non-Hague Convention countries.',
       officialFee: 1650,
       serviceFee: 100,
       totalPrice: 1750,
@@ -140,7 +140,7 @@ function StandardServicesPricesPage() {
       console.error('❌ Error loading standard services:', error);
       // Use default values if Firebase fails
       setServices(defaultServices);
-      toast.error('Kunde inte ladda priser från Firebase - använder standardpriser');
+      toast.error('Could not load prices from Firebase - using default prices');
     } finally {
       setLoading(false);
     }
@@ -205,10 +205,10 @@ function StandardServicesPricesPage() {
         )
       );
 
-      toast.success(`${service.name} priser uppdaterade!`);
+      toast.success(`${service.name} prices updated!`);
     } catch (error) {
       console.error('❌ Admin: Error updating service fee:', error);
-      toast.error(`Kunde inte uppdatera ${serviceCode}: ${error instanceof Error ? error.message : String(error)}`);
+      toast.error(`Could not update ${serviceCode}: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setSaving(false);
     }
@@ -251,10 +251,10 @@ function StandardServicesPricesPage() {
         )
       );
 
-      toast.success(unconfirmed ? 'Pris markerat som obekräftat' : 'Pris markerat som bekräftat');
+      toast.success(unconfirmed ? 'Price marked as unconfirmed' : 'Price marked as confirmed');
     } catch (error) {
       console.error('Error toggling price unconfirmed:', error);
-      toast.error('Kunde inte uppdatera prisstatus');
+      toast.error('Could not update price status');
     } finally {
       setSaving(false);
     }
@@ -271,7 +271,7 @@ function StandardServicesPricesPage() {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Standardtjänster - Sverige - Admin</title>
+        <title>Standard Services - Sweden - Admin</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
@@ -279,10 +279,10 @@ function StandardServicesPricesPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              📋 Standardtjänster - Sverige
+              📋 Standard Services - Sweden
             </h1>
             <p className="text-gray-600">
-              Uppdatera priser för standardtjänster. Alla ändringar sparas automatiskt i Firebase.
+              Update prices for standard services. All changes are automatically saved to Firebase.
             </p>
           </div>
 
@@ -300,7 +300,7 @@ function StandardServicesPricesPage() {
                     </div>
                     {service.lastUpdated && (
                       <div className="text-right">
-                        <div className="text-xs text-gray-500">Senast uppdaterad</div>
+                        <div className="text-xs text-gray-500">Last updated</div>
                         <div className="text-xs font-medium text-gray-700">
                           {service.lastUpdated.toLocaleDateString('sv-SE')}
                         </div>
@@ -325,7 +325,7 @@ function StandardServicesPricesPage() {
                           {/* Official Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Officiell avgift
+                              Official fee
                             </label>
                             <div className="flex items-center">
                               <input
@@ -358,7 +358,7 @@ function StandardServicesPricesPage() {
                           {/* Service Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Serviceavgift
+                              Service fee
                             </label>
                             <div className="flex items-center">
                               <input
@@ -392,8 +392,8 @@ function StandardServicesPricesPage() {
                         {/* Total Price */}
                         <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-lg font-semibold text-green-900">Från-pris:</span>
-                            <span className="text-2xl font-bold text-green-600">Från {service.totalPrice || 1450} kr</span>
+                            <span className="text-lg font-semibold text-green-900">Starting price:</span>
+                            <span className="text-2xl font-bold text-green-600">From {service.totalPrice || 1450} kr</span>
                           </div>
                         </div>
                       </>
@@ -404,7 +404,7 @@ function StandardServicesPricesPage() {
                           {/* Official Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Officiell avgift
+                              Official fee
                             </label>
                             <div className="flex items-center">
                               <input
@@ -437,7 +437,7 @@ function StandardServicesPricesPage() {
                           {/* Service Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Serviceavgift
+                              Service fee
                             </label>
                             <div className="flex items-center">
                               <input
@@ -471,7 +471,7 @@ function StandardServicesPricesPage() {
                         {/* Total Price */}
                         <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-lg font-semibold text-green-900">Totalpris:</span>
+                            <span className="text-lg font-semibold text-green-900">Total price:</span>
                             <span className="text-2xl font-bold text-green-600">{service.totalPrice} kr</span>
                           </div>
                         </div>
@@ -491,12 +491,12 @@ function StandardServicesPricesPage() {
                       disabled={saving}
                     />
                     <span className={`ml-2 text-sm ${service.priceUnconfirmed ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
-                      ⚠️ Pris ej bekräftat
+                      ⚠️ Price not confirmed
                     </span>
                   </label>
                   {service.priceUnconfirmed && (
                     <p className="mt-1 text-xs text-orange-600 ml-6">
-                      Kunden ser "Bekräftas" istället för priset
+                      Customer sees "To be confirmed" instead of the price
                     </p>
                   )}
                 </div>
@@ -507,11 +507,11 @@ function StandardServicesPricesPage() {
                     <div className="flex items-center">
                       <div className={`w-2 h-2 rounded-full mr-2 ${service.priceUnconfirmed ? 'bg-orange-500' : saving ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></div>
                       <span className="text-xs font-medium text-gray-600">
-                        {saving ? 'Sparar ändringar...' : service.priceUnconfirmed ? 'Pris obekräftat' : 'Redo att uppdatera'}
+                        {saving ? 'Saving changes...' : service.priceUnconfirmed ? 'Price unconfirmed' : 'Ready to update'}
                       </span>
                     </div>
                     <div className="text-xs text-gray-500">
-                      Tryck Enter för att spara
+                      Press Enter to save
                     </div>
                   </div>
                 </div>
@@ -521,23 +521,23 @@ function StandardServicesPricesPage() {
 
           {/* Summary */}
           <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Sammanfattning - Sverige</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Summary - Sweden</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{services.length}</div>
-                <div className="text-sm text-gray-600">Standardtjänster</div>
+                <div className="text-sm text-gray-600">Standard services</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {services.reduce((sum, s) => sum + s.totalPrice, 0).toLocaleString('sv-SE')}
                 </div>
-                <div className="text-sm text-gray-600">kr totalt (medel)</div>
+                <div className="text-sm text-gray-600">kr total (sum)</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
                   {Math.round(services.reduce((sum, s) => sum + s.totalPrice, 0) / services.length).toLocaleString('sv-SE')}
                 </div>
-                <div className="text-sm text-gray-600">kr genomsnitt</div>
+                <div className="text-sm text-gray-600">kr average</div>
               </div>
             </div>
           </div>
@@ -547,10 +547,11 @@ function StandardServicesPricesPage() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

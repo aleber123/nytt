@@ -149,7 +149,7 @@ function AdminStatsPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-button mx-auto"></div>
-              <p className="mt-4 text-gray-600">Laddar statistik...</p>
+              <p className="mt-4 text-gray-600">Loading statistics...</p>
             </div>
           </div>
         </div>
@@ -168,12 +168,12 @@ function AdminStatsPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  {error || 'Kunde inte ladda statistik'}
+                  {error || 'Could not load statistics'}
                   <button
                     onClick={fetchStats}
                     className="ml-4 underline text-red-700 hover:text-red-900 font-medium"
                   >
-                    Försök igen
+                    Try again
                   </button>
                 </div>
               </div>
@@ -187,8 +187,8 @@ function AdminStatsPage() {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Statistik - Legaliseringstjänst</title>
-        <meta name="description" content="Statistik och analyser för legaliseringstjänst" />
+        <title>Statistics - Admin</title>
+        <meta name="description" content="Statistics and analytics for legalization service" />
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -196,8 +196,8 @@ function AdminStatsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Statistik & Analyser</h1>
-            <p className="text-gray-600">Översikt över din legaliseringstjänsts prestation</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Statistics & Analytics</h1>
+            <p className="text-gray-600">Overview of your legalization service performance</p>
           </div>
 
           {/* Key Metrics */}
@@ -210,7 +210,7 @@ function AdminStatsPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Totala ordrar</p>
+                  <p className="text-sm font-medium text-gray-500">Total orders</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
                 </div>
               </div>
@@ -224,7 +224,7 @@ function AdminStatsPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total intäkter</p>
+                  <p className="text-sm font-medium text-gray-500">Total revenue</p>
                   <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
                 </div>
               </div>
@@ -238,9 +238,9 @@ function AdminStatsPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Fakturor</p>
+                  <p className="text-sm font-medium text-gray-500">Invoices</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.totalInvoices}</p>
-                  <p className="text-xs text-gray-500">{stats.paidInvoices} betalda</p>
+                  <p className="text-xs text-gray-500">{stats.paidInvoices} paid</p>
                 </div>
               </div>
             </div>
@@ -253,7 +253,7 @@ function AdminStatsPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Snittvärde/order</p>
+                  <p className="text-sm font-medium text-gray-500">Avg. order value</p>
                   <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.averageOrderValue)}</p>
                 </div>
               </div>
@@ -264,26 +264,26 @@ function AdminStatsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Order Status Breakdown */}
             <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Orderstatus</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Order status</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-yellow-400 rounded-full mr-3"></div>
-                    <span className="text-sm text-gray-600">Väntande</span>
+                    <span className="text-sm text-gray-600">Pending</span>
                   </div>
                   <span className="text-sm font-medium text-gray-900">{stats.pendingOrders}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
-                    <span className="text-sm text-gray-600">Slutförda</span>
+                    <span className="text-sm text-gray-600">Completed</span>
                   </div>
                   <span className="text-sm font-medium text-gray-900">{stats.completedOrders}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-blue-400 rounded-full mr-3"></div>
-                    <span className="text-sm text-gray-600">Totalt</span>
+                    <span className="text-sm text-gray-600">Total</span>
                   </div>
                   <span className="text-sm font-medium text-gray-900">{stats.totalOrders}</span>
                 </div>
@@ -292,7 +292,7 @@ function AdminStatsPage() {
 
             {/* Top Countries */}
             <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Populäraste länder</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Top countries</h3>
               <div className="space-y-3">
                 {stats.topCountries.map((item, index) => (
                   <div key={item.country} className="flex items-center justify-between">
@@ -300,7 +300,7 @@ function AdminStatsPage() {
                       <span className="text-sm font-medium text-gray-900 mr-2">#{index + 1}</span>
                       <span className="text-sm text-gray-600">{item.country}</span>
                     </div>
-                    <span className="text-sm font-medium text-gray-900">{item.count} ordrar</span>
+                    <span className="text-sm font-medium text-gray-900">{item.count} orders</span>
                   </div>
                 ))}
               </div>
@@ -309,16 +309,16 @@ function AdminStatsPage() {
 
           {/* Recent Orders */}
           <div className="bg-white rounded-xl shadow-sm border border-primary-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Senaste ordrarna</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent orders</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ordernummer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kund</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Land</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order number</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -340,9 +340,9 @@ function AdminStatsPage() {
                           order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {order.status === 'delivered' ? 'Slutförd' :
-                           order.status === 'processing' ? 'Bearbetas' :
-                           order.status === 'pending' ? 'Väntande' : order.status}
+                          {order.status === 'delivered' ? 'Completed' :
+                           order.status === 'processing' ? 'Processing' :
+                           order.status === 'pending' ? 'Pending' : order.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -360,10 +360,11 @@ function AdminStatsPage() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

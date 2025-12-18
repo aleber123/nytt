@@ -37,7 +37,7 @@ export default function AdminLogin() {
   return (
     <>
       <Head>
-        <title>Admin Login | Legaliseringstjänst</title>
+        <title>Admin Login</title>
         <meta name="description" content="Admin login for Legaliseringstjänst" />
         <meta name="robots" content="noindex, nofollow" />
       </Head>
@@ -121,10 +121,11 @@ export default function AdminLogin() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

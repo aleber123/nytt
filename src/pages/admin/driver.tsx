@@ -86,10 +86,10 @@ function DriverDashboardPage() {
         notes: driverNotes,
       });
 
-      setSaveDailyMessage('Dagsrapport sparad.');
+      setSaveDailyMessage('Daily report saved.');
       await loadMonthlySummaryForSelectedDate();
     } catch (error) {
-      setSaveDailyMessage('Kunde inte spara dagsrapporten. Försök igen eller kontakta kontoret.');
+      setSaveDailyMessage('Could not save daily report. Try again or contact the office.');
     } finally {
       setIsSavingDailyReport(false);
     }
@@ -121,20 +121,20 @@ function DriverDashboardPage() {
 
   const handleOpenReportEmail = () => {
     const to = 'info@doxvl.se,info@visumpartner.se';
-    const subject = `Chaufförrapport ${selectedDate}`;
+    const subject = `Driver Report ${selectedDate}`;
 
     const bodyLines = [
-      `Datum: ${formatDate(selectedDate)} (${selectedDate})`,
-      `Antal timmar: ${hoursWorked || '-'}`,
-      `Parkering: ${parkingCost || '0'} kr`,
-      `Ambassadutlägg: ${embassyCost || '0'} kr`,
-      `Övriga utlägg: ${otherCost || '0'} kr`,
+      `Date: ${formatDate(selectedDate)} (${selectedDate})`,
+      `Hours worked: ${hoursWorked || '-'}`,
+      `Parking: ${parkingCost || '0'} kr`,
+      `Embassy expenses: ${embassyCost || '0'} kr`,
+      `Other expenses: ${otherCost || '0'} kr`,
       '',
-      'Kommentar:',
+      'Comment:',
       driverNotes || '-',
       '',
       '---',
-      'Skickad från DOX chaufförssidan'
+      'Sent from DOX driver page'
     ];
 
     const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
@@ -152,7 +152,7 @@ function DriverDashboardPage() {
 
       const dateObj = new Date(selectedDate + 'T00:00:00');
       if (Number.isNaN(dateObj.getTime())) {
-        setMonthlyMessage('Datumet är ogiltigt.');
+        setMonthlyMessage('The date is invalid.');
         return;
       }
 
@@ -173,32 +173,32 @@ function DriverDashboardPage() {
       const monthLabel = monthFormatter.format(someDateInMonth);
 
       const to = 'info@doxvl.se,info@visumpartner.se';
-      const subject = `Månadsrapport chaufför – ${monthLabel}`;
+      const subject = `Monthly Driver Report – ${monthLabel}`;
 
       const headerLines = [
-        `Månad: ${monthLabel} (${year}-${String(month).padStart(2, '0')})`,
+        `Month: ${monthLabel} (${year}-${String(month).padStart(2, '0')})`,
         '',
-        `Totalt antal timmar: ${summary.totalHours.toLocaleString('sv-SE')}`,
-        `Parkering: ${summary.totalParking} kr`,
-        `Ambassadutlägg: ${summary.totalEmbassy} kr`,
-        `Övriga utlägg: ${summary.totalOther} kr`,
+        `Total hours: ${summary.totalHours.toLocaleString('en-GB')}`,
+        `Parking: ${summary.totalParking} kr`,
+        `Embassy expenses: ${summary.totalEmbassy} kr`,
+        `Other expenses: ${summary.totalOther} kr`,
         '',
-        'Detaljer per dag:',
+        'Details per day:',
       ];
 
       const detailLines = summary.reports.length
         ? summary.reports.map((report) => {
             const notePart = report.notes ? ` – ${report.notes}` : '';
-            return `- ${report.date}: ${report.hoursWorked} h, parkering ${report.parkingCost} kr, ambassad ${report.embassyCost} kr, övrigt ${report.otherCost} kr${notePart}`;
+            return `- ${report.date}: ${report.hoursWorked} h, parking ${report.parkingCost} kr, embassy ${report.embassyCost} kr, other ${report.otherCost} kr${notePart}`;
           })
-        : ['(Inga sparade dagsrapporter för denna månad.)'];
+        : ['(No saved daily reports for this month.)'];
 
       const bodyLines = [
         ...headerLines,
         ...detailLines,
         '',
         '---',
-        'Skickad från DOX chaufförssidan',
+        'Sent from DOX driver page',
       ];
 
       if (typeof window !== 'undefined') {
@@ -206,7 +206,7 @@ function DriverDashboardPage() {
         window.location.href = mailto;
       }
     } catch (error) {
-      setMonthlyMessage('Kunde inte hämta månadsrapporten. Försök igen eller kontakta kontoret.');
+      setMonthlyMessage('Could not fetch monthly report. Try again or contact the office.');
     } finally {
       setIsOpeningMonthlyEmail(false);
     }
@@ -226,10 +226,10 @@ function DriverDashboardPage() {
     if (orderData.documentSource !== 'upload') {
       steps.push({
         id: 'document_receipt',
-        name: '📄 Dokument mottagna',
+        name: '📄 Documents received',
         description: orderData.pickupService
-          ? 'Originaldokument har hämtats och registrerats'
-          : 'Originaldokument har mottagits och registrerats',
+          ? 'Original documents have been picked up and registered'
+          : 'Original documents have been received and registered',
         status: 'completed', // Assume documents are received
         expectedCompletionDate: new Date() // Today
       });
@@ -239,8 +239,8 @@ function DriverDashboardPage() {
     if (orderData.pickupService) {
       steps.push({
         id: 'pickup_booking',
-        name: '📦 Upphämtning bokad',
-        description: `Upphämtning bokad från ${orderData.pickupAddress?.street || 'kundadress'}`,
+        name: '📦 Pickup booked',
+        description: `Pickup booked from ${orderData.pickupAddress?.street || 'customer address'}`,
         status: 'pending',
         expectedCompletionDate: new Date() // Today - ready for pickup
       });
@@ -252,8 +252,8 @@ function DriverDashboardPage() {
       const level = premium === 'stockholm-sameday' ? 'Urgent (2h)' : premium === 'stockholm-express' ? 'Express (4h)' : 'End of day';
       steps.push({
         id: 'stockholm_courier_pickup',
-        name: '🚚 Stockholm Courier - hämta',
-        description: `Hämta hos kund (${level})`,
+        name: '🚚 Stockholm Courier - pickup',
+        description: `Pick up from customer (${level})`,
         status: 'pending',
         expectedCompletionDate: toDateOrUndefined(orderData.pickupDate) || new Date(),
         submittedAt: toDateOrUndefined(orderData.pickupDate) || new Date(),
@@ -266,15 +266,15 @@ function DriverDashboardPage() {
       if (orderData.services.includes('notarization')) {
         steps.push({
           id: 'notarization_delivery',
-          name: '📤 Notarisering - lämna in',
-          description: 'Lämna in dokument för notarisering',
+          name: '📤 Notarization - drop off',
+          description: 'Drop off documents for notarization',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'notarization_pickup',
-          name: '📦 Notarisering - hämta',
-          description: 'Hämta notarierbara dokument',
+          name: '📦 Notarization - pick up',
+          description: 'Pick up notarized documents',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for pickup
         });
@@ -284,15 +284,15 @@ function DriverDashboardPage() {
       if (orderData.services.includes('translation')) {
         steps.push({
           id: 'translation_delivery',
-          name: '📤 Översättning - lämna in',
-          description: 'Lämna in dokument för översättning',
+          name: '📤 Translation - drop off',
+          description: 'Drop off documents for translation',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'translation_pickup',
-          name: '📦 Översättning - hämta',
-          description: 'Hämta översatta dokument',
+          name: '📦 Translation - pick up',
+          description: 'Pick up translated documents',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for pickup
         });
@@ -302,15 +302,15 @@ function DriverDashboardPage() {
       if (orderData.services.includes('chamber')) {
         steps.push({
           id: 'chamber_delivery',
-          name: '📤 Handelskammaren - lämna in',
-          description: 'Lämna in dokument för legalisering',
+          name: '📤 Chamber of Commerce - drop off',
+          description: 'Drop off documents for legalization',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'chamber_pickup',
-          name: '📦 Handelskammaren - hämta',
-          description: 'Hämta legaliserade dokument',
+          name: '📦 Chamber of Commerce - pick up',
+          description: 'Pick up legalized documents',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for pickup
         });
@@ -320,15 +320,15 @@ function DriverDashboardPage() {
       if (orderData.services.includes('ud')) {
         steps.push({
           id: 'ud_delivery',
-          name: '📤 Utrikesdepartementet - lämna in',
-          description: 'Lämna in dokument för legalisering',
+          name: '📤 Ministry of Foreign Affairs - drop off',
+          description: 'Drop off documents for legalization',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'ud_pickup',
-          name: '📦 Utrikesdepartementet - hämta',
-          description: 'Hämta legaliserade dokument',
+          name: '📦 Ministry of Foreign Affairs - pick up',
+          description: 'Pick up legalized documents',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for pickup
         });
@@ -338,15 +338,15 @@ function DriverDashboardPage() {
       if (orderData.services.includes('apostille')) {
         steps.push({
           id: 'apostille_delivery',
-          name: '📤 Apostille - lämna in',
-          description: 'Lämna in dokument för apostille',
+          name: '📤 Apostille - drop off',
+          description: 'Drop off documents for apostille',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'apostille_pickup',
-          name: '📦 Apostille - hämta',
-          description: 'Hämta dokument med apostille',
+          name: '📦 Apostille - pick up',
+          description: 'Pick up apostilled documents',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for pickup
         });
@@ -356,15 +356,15 @@ function DriverDashboardPage() {
       if (orderData.services.includes('embassy')) {
         steps.push({
           id: 'embassy_delivery',
-          name: '📤 Ambassad - lämna in',
-          description: `Lämna in dokument för konsulär legalisering`,
+          name: '📤 Embassy - drop off',
+          description: `Drop off documents for consular legalization`,
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'embassy_pickup',
-          name: '📦 Ambassad - hämta',
-          description: `Hämta konsulärt legaliserade dokument`,
+          name: '📦 Embassy - pick up',
+          description: `Pick up consular legalized documents`,
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for pickup
         });
@@ -374,8 +374,8 @@ function DriverDashboardPage() {
     // Return shipping - for completed orders
     steps.push({
       id: 'return_shipping',
-      name: '🚚 Retur skickad',
-      description: 'Dokument returnerade till kund',
+      name: '🚚 Return shipped',
+      description: 'Documents returned to customer',
       status: 'pending',
       expectedCompletionDate: new Date() // Today when ready
     });
@@ -386,8 +386,8 @@ function DriverDashboardPage() {
       const level = premium === 'stockholm-sameday' ? 'Urgent (2h)' : premium === 'stockholm-express' ? 'Express (4h)' : 'End of day';
       steps.push({
         id: 'stockholm_courier_delivery',
-        name: '🚚 Stockholm Courier - lämna',
-        description: `Leverera till kund (${level})`,
+        name: '🚚 Stockholm Courier - deliver',
+        description: `Deliver to customer (${level})`,
         status: 'pending',
         expectedCompletionDate: toDateOrUndefined(orderData.returnDeliveryDate) || new Date(),
         submittedAt: toDateOrUndefined(orderData.returnDeliveryDate) || new Date(),
@@ -441,8 +441,8 @@ function DriverDashboardPage() {
               if (notarizationStep?.completedAt) {
                 pickupStepsToAdd.push({
                   id: 'notarization_pickup',
-                  name: '📦 Notarisering - hämta',
-                  description: 'Hämta notarierbara dokument',
+                  name: '📦 Notarization - pick up',
+                  description: 'Pick up notarized documents',
                   status: 'pending',
                   expectedCompletionDate: notarizationStep.expectedCompletionDate,
                   submittedAt: notarizationStep.expectedCompletionDate
@@ -456,8 +456,8 @@ function DriverDashboardPage() {
               if (chamberStep?.completedAt) {
                 pickupStepsToAdd.push({
                   id: 'chamber_pickup',
-                  name: '📦 Handelskammaren - hämta',
-                  description: 'Hämta legaliserade dokument',
+                  name: '📦 Chamber of Commerce - pick up',
+                  description: 'Pick up legalized documents',
                   status: 'pending',
                   expectedCompletionDate: chamberStep.expectedCompletionDate,
                   submittedAt: chamberStep.expectedCompletionDate
@@ -471,8 +471,8 @@ function DriverDashboardPage() {
               if (apostilleStep?.completedAt) {
                 pickupStepsToAdd.push({
                   id: 'apostille_pickup',
-                  name: '📦 Apostille - hämta',
-                  description: 'Hämta dokument med apostille',
+                  name: '📦 Apostille - pick up',
+                  description: 'Pick up apostilled documents',
                   status: 'pending',
                   expectedCompletionDate: apostilleStep.expectedCompletionDate,
                   submittedAt: apostilleStep.expectedCompletionDate
@@ -486,8 +486,8 @@ function DriverDashboardPage() {
               if (udStep?.completedAt) {
                 pickupStepsToAdd.push({
                   id: 'ud_pickup',
-                  name: '📦 Utrikesdepartementet - hämta',
-                  description: 'Hämta legaliserade dokument',
+                  name: '📦 Ministry of Foreign Affairs - pick up',
+                  description: 'Pick up legalized documents',
                   status: 'pending',
                   expectedCompletionDate: udStep.expectedCompletionDate,
                   submittedAt: udStep.expectedCompletionDate
@@ -501,8 +501,8 @@ function DriverDashboardPage() {
               if (embassyStep?.completedAt) {
                 pickupStepsToAdd.push({
                   id: 'embassy_pickup',
-                  name: '📦 Ambassad - hämta',
-                  description: `Hämta konsulärt legaliserade dokument`,
+                  name: '📦 Embassy - pick up',
+                  description: `Pick up consular legalized documents`,
                   status: 'pending',
                   expectedCompletionDate: embassyStep.expectedCompletionDate,
                   submittedAt: embassyStep.expectedCompletionDate
@@ -544,52 +544,52 @@ function DriverDashboardPage() {
               address = 'Notarius Publicus kontor';
             } else if (step.id === 'translation_delivery' || step.id === 'translation') {
               taskType = 'delivery';
-              authority = 'Översättningsbyrå';
-              address = 'Auktoriserad översättningsbyrå';
+              authority = 'Translation Agency';
+              address = 'Authorized translation agency';
             } else if (step.id === 'translation_pickup') {
               taskType = 'pickup';
-              authority = 'Översättningsbyrå';
-              address = 'Auktoriserad översättningsbyrå';
+              authority = 'Translation Agency';
+              address = 'Authorized translation agency';
             } else if (step.id === 'chamber_delivery' || step.id === 'chamber_processing') {
               taskType = 'delivery';
-              authority = 'Handelskammaren';
-              address = 'Handelskammarens kontor';
+              authority = 'Chamber of Commerce';
+              address = 'Chamber of Commerce office';
             } else if (step.id === 'chamber_pickup') {
               taskType = 'pickup';
-              authority = 'Handelskammaren';
-              address = 'Handelskammarens kontor';
+              authority = 'Chamber of Commerce';
+              address = 'Chamber of Commerce office';
             } else if (step.id === 'ud_delivery' || step.id === 'ud_processing') {
               taskType = 'delivery';
-              authority = 'Utrikesdepartementet';
-              address = 'Utrikesdepartementets kontor';
+              authority = 'Ministry of Foreign Affairs';
+              address = 'Ministry of Foreign Affairs office';
             } else if (step.id === 'ud_pickup') {
               taskType = 'pickup';
-              authority = 'Utrikesdepartementet';
-              address = 'Utrikesdepartementets kontor';
+              authority = 'Ministry of Foreign Affairs';
+              address = 'Ministry of Foreign Affairs office';
             } else if (step.id === 'apostille_delivery' || step.id === 'apostille') {
               taskType = 'delivery';
-              authority = 'Utrikesdepartementet';
-              address = 'Utrikesdepartementets kontor';
+              authority = 'Ministry of Foreign Affairs';
+              address = 'Ministry of Foreign Affairs office';
             } else if (step.id === 'apostille_pickup') {
               taskType = 'pickup';
-              authority = 'Utrikesdepartementet';
-              address = 'Utrikesdepartementets kontor';
+              authority = 'Ministry of Foreign Affairs';
+              address = 'Ministry of Foreign Affairs office';
             } else if (step.id === 'embassy_delivery' || step.id === 'embassy_processing') {
               taskType = 'delivery';
               const c = getCountryInfo(order.country);
-              const embassyName = c.name || c.code || order.country || 'Okänt';
-              authority = `${embassyName} ambassad`;
-              address = `${embassyName} ambassad`;
+              const embassyName = c.name || c.code || order.country || 'Unknown';
+              authority = `${embassyName} Embassy`;
+              address = `${embassyName} Embassy`;
             } else if (step.id === 'embassy_pickup') {
               taskType = 'pickup';
               const c = getCountryInfo(order.country);
-              const embassyName = c.name || c.code || order.country || 'Okänt';
-              authority = `${embassyName} ambassad`;
-              address = `${embassyName} ambassad`;
+              const embassyName = c.name || c.code || order.country || 'Unknown';
+              authority = `${embassyName} Embassy`;
+              address = `${embassyName} Embassy`;
             } else if (step.id === 'return_shipping') {
               taskType = 'pickup';
-              authority = 'Fraktleverantör';
-              address = 'Fraktleverantörens terminal';
+              authority = 'Shipping Provider';
+              address = 'Shipping provider terminal';
             } else if (step.id === 'stockholm_courier_delivery') {
               taskType = 'delivery';
               authority = 'Stockholm City Courier';
@@ -604,7 +604,7 @@ function DriverDashboardPage() {
             // Only show tasks that have dates (submitted or expected) AND are relevant for today
             // Skip internal locations that driver doesn't deliver to
             if (taskType && (step.submittedAt || step.expectedCompletionDate) &&
-                authority !== 'Kontoret' && authority !== 'Fraktleverantör') {
+                authority !== 'Office' && authority !== 'Shipping Provider') {
               try {
                 const taskDate = step.submittedAt ?
                   new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] :
@@ -619,9 +619,9 @@ function DriverDashboardPage() {
                   driverTasks.push({
                     orderId: order.id || '',
                     orderNumber: order.orderNumber || order.id || '',
-                    customerName: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Okänd kund',
-                    stepName: step.name || 'Okänt steg',
-                    stepDescription: step.description || 'Ingen beskrivning',
+                    customerName: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Unknown customer',
+                    stepName: step.name || 'Unknown step',
+                    stepDescription: step.description || 'No description',
                     authority,
                     date: taskDate,
                     type: taskType,
@@ -1001,9 +1001,9 @@ function DriverDashboardPage() {
                     {/* Print-friendly layout - hidden on screen, shown on print */}
                     <div className="hidden print:block">
                       <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold mb-2">🚗 Chaufförs Uppgifter</h1>
+                        <h1 className="text-3xl font-bold mb-2">🚗 Driver Tasks</h1>
                         <p className="text-xl">{formatDate(selectedDate)}</p>
-                        <p className="text-sm text-gray-600 mt-2">Totalt: {tasks.length} uppgifter</p>
+                        <p className="text-sm text-gray-600 mt-2">Total: {tasks.length} tasks</p>
                       </div>
 
                       <div className="space-y-8">
@@ -1021,22 +1021,22 @@ function DriverDashboardPage() {
                               {deliveryTasks.length > 0 && (
                                 <div className="mb-6">
                                   <h3 className="text-xl font-bold text-orange-700 mb-4 border-b border-orange-300 pb-1">
-                                    📤 LÄMNAS IN ({deliveryTasks.length} uppgifter)
+                                    📤 DROP OFF ({deliveryTasks.length} tasks)
                                   </h3>
                                   <div className="space-y-4">
                                     {deliveryTasks.map((task, index) => (
                                       <div key={`print-delivery-${index}`} className="bg-gray-50 p-4 rounded border-l-4 border-orange-500">
                                         <div className="flex justify-between items-start mb-2">
                                           <span className="text-lg font-bold text-orange-700">
-                                            📤 INLÄMNING
+                                            📤 DROP OFF
                                           </span>
                                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                             task.status === 'completed' ? 'bg-green-100 text-green-800' :
                                             task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                                             'bg-yellow-100 text-yellow-800'
                                           }`}>
-                                            {task.status === 'completed' ? 'KLAR' :
-                                             task.status === 'in_progress' ? 'PÅGÅR' : 'VÄNTAR'}
+                                            {task.status === 'completed' ? 'DONE' :
+                                             task.status === 'in_progress' ? 'IN PROGRESS' : 'PENDING'}
                                           </span>
                                         </div>
 
@@ -1071,22 +1071,22 @@ function DriverDashboardPage() {
                               {pickupTasks.length > 0 && (
                                 <div>
                                   <h3 className="text-xl font-bold text-green-700 mb-4 border-b border-green-300 pb-1">
-                                    📦 HÄMTAS ({pickupTasks.length} uppgifter)
+                                    📦 PICK UP ({pickupTasks.length} tasks)
                                   </h3>
                                   <div className="space-y-4">
                                     {pickupTasks.map((task, index) => (
                                       <div key={`print-pickup-${index}`} className="bg-gray-50 p-4 rounded border-l-4 border-green-500">
                                         <div className="flex justify-between items-start mb-2">
                                           <span className="text-lg font-bold text-green-700">
-                                            📦 HÄMTNING
+                                            📦 PICK UP
                                           </span>
                                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                             task.status === 'completed' ? 'bg-green-100 text-green-800' :
                                             task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                                             'bg-yellow-100 text-yellow-800'
                                           }`}>
-                                            {task.status === 'completed' ? 'KLAR' :
-                                             task.status === 'in_progress' ? 'PÅGÅR' : 'VÄNTAR'}
+                                            {task.status === 'completed' ? 'DONE' :
+                                             task.status === 'in_progress' ? 'IN PROGRESS' : 'PENDING'}
                                           </span>
                                         </div>
 
@@ -1609,10 +1609,13 @@ function DriverDashboardPage() {
       </div>
     </ProtectedRoute>
   );
-}export const getStaticProps: GetStaticProps = async ({ locale }) => {
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

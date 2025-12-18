@@ -37,78 +37,78 @@ function ShippingServicesPage() {
     {
       code: 'postnord-rek',
       name: 'PostNord Rekommenderat',
-      description: 'Rekommenderat brev - spårbart och försäkrat',
+      description: 'Registered letter - trackable and insured',
       provider: 'PostNord',
       basePrice: 85,
-      estimatedDelivery: '2-5 arbetsdagar'
+      estimatedDelivery: '2-5 business days'
     },
 
     // DHL Services
     {
       code: 'dhl-sweden',
       name: 'DHL Sverige',
-      description: 'DHL leverans inom Sverige',
+      description: 'DHL delivery within Sweden',
       provider: 'DHL',
       basePrice: 180,
-      estimatedDelivery: '1-2 arbetsdagar'
+      estimatedDelivery: '1-2 business days'
     },
     {
       code: 'dhl-europe',
       name: 'DHL Europa',
-      description: 'DHL leverans inom Europa',
+      description: 'DHL delivery within Europe',
       provider: 'DHL',
       basePrice: 250,
-      estimatedDelivery: '2-4 arbetsdagar'
+      estimatedDelivery: '2-4 business days'
     },
     {
       code: 'dhl-worldwide',
       name: 'DHL Worldwide',
-      description: 'DHL internationell leverans',
+      description: 'DHL international delivery',
       provider: 'DHL',
       basePrice: 450,
-      estimatedDelivery: '3-7 arbetsdagar'
+      estimatedDelivery: '3-7 business days'
     },
     {
       code: 'dhl-pre-12',
       name: 'DHL Pre 12',
-      description: 'Leverans före klockan 12:00 nästa arbetsdag',
+      description: 'Delivery before 12:00 next business day',
       provider: 'DHL',
       basePrice: 350,
-      estimatedDelivery: 'Nästa arbetsdag före 12:00'
+      estimatedDelivery: 'Next business day before 12:00'
     },
     {
       code: 'dhl-pre-9',
       name: 'DHL Pre 9',
-      description: 'Leverans före klockan 09:00 nästa arbetsdag',
+      description: 'Delivery before 09:00 next business day',
       provider: 'DHL',
       basePrice: 450,
-      estimatedDelivery: 'Nästa arbetsdag före 09:00'
+      estimatedDelivery: 'Next business day before 09:00'
     },
 
     // Local Stockholm Couriers
     {
       code: 'stockholm-city',
       name: 'Stockholm City Courier',
-      description: 'Lokal budservice inom Stockholm',
+      description: 'Local courier service within Stockholm',
       provider: 'Lokal',
       basePrice: 120,
-      estimatedDelivery: 'Samma dag (före 16:00)'
+      estimatedDelivery: 'Same day (before 16:00)'
     },
     {
       code: 'stockholm-express',
       name: 'Stockholm Express',
-      description: 'Expressleverans inom Stockholm samma dag',
+      description: 'Express delivery within Stockholm same day',
       provider: 'Lokal',
       basePrice: 180,
-      estimatedDelivery: '2-4 timmar'
+      estimatedDelivery: '2-4 hours'
     },
     {
       code: 'stockholm-sameday',
       name: 'Stockholm Same Day',
-      description: 'Samma dags leverans inom Stockholm',
+      description: 'Same day delivery within Stockholm',
       provider: 'Lokal',
       basePrice: 250,
-      estimatedDelivery: 'Inom 2 timmar'
+      estimatedDelivery: 'Within 2 hours'
     }
   ];
 
@@ -145,7 +145,7 @@ function ShippingServicesPage() {
       console.error('Error loading shipping services:', error);
       // Use default values if Firebase fails
       setServices(defaultServices);
-      toast.error('Kunde inte ladda fraktpriser från Firebase - använder standardpriser');
+      toast.error('Could not load shipping prices from Firebase - using default prices');
     } finally {
       setLoading(false);
     }
@@ -194,10 +194,10 @@ function ShippingServicesPage() {
         )
       );
 
-      toast.success(`${service.name} pris uppdaterat!`);
+      toast.success(`${service.name} price updated!`);
     } catch (error) {
       console.error('Error updating shipping price:', error);
-      toast.error('Kunde inte uppdatera fraktpriset');
+      toast.error('Could not update shipping price');
     } finally {
       setSaving(false);
     }
@@ -223,7 +223,7 @@ function ShippingServicesPage() {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Frakt/Transporttjänster - Admin</title>
+        <title>Shipping/Transport Services - Admin</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
@@ -231,10 +231,10 @@ function ShippingServicesPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              🚚 Frakt/Transporttjänster
+              🚚 Shipping/Transport Services
             </h1>
             <p className="text-gray-600">
-              Hantera priser för olika frakt- och transporttjänster. Alla ändringar sparas automatiskt i Firebase.
+              Manage prices for various shipping and transport services. All changes are automatically saved to Firebase.
             </p>
           </div>
 
@@ -244,13 +244,13 @@ function ShippingServicesPage() {
               <div className="text-2xl mr-3">💡</div>
               <div>
                 <h3 className="text-sm font-medium text-blue-800 mb-1">
-                  Hur det fungerar:
+                  How it works:
                 </h3>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• <strong>Klicka på priset</strong> för att ändra fraktpriset</li>
-                  <li>• <strong>Skriv det nya priset</strong> och tryck Enter eller klicka utanför</li>
-                  <li>• <strong>Alla ändringar</strong> sparas direkt i Firebase</li>
-                  <li>• <strong>Lokala tjänster</strong> är endast tillgängliga inom Stockholm</li>
+                  <li>• <strong>Click on the price</strong> to change the shipping price</li>
+                  <li>• <strong>Enter the new price</strong> and press Enter or click outside</li>
+                  <li>• <strong>All changes</strong> are saved directly to Firebase</li>
+                  <li>• <strong>Local services</strong> are only available within Stockholm</li>
                 </ul>
               </div>
             </div>
@@ -284,7 +284,7 @@ function ShippingServicesPage() {
                         </div>
                         {service.lastUpdated && (
                           <span className="text-xs text-gray-400">
-                            Uppdaterad {service.lastUpdated.toLocaleDateString('sv-SE')}
+                            Updated {service.lastUpdated.toLocaleDateString('en-GB')}
                           </span>
                         )}
                       </div>
@@ -294,13 +294,13 @@ function ShippingServicesPage() {
 
                       {/* Delivery Time */}
                       <div className="mb-4">
-                        <span className="text-sm text-gray-600">Leveranstid:</span>
+                        <span className="text-sm text-gray-600">Delivery time:</span>
                         <span className="text-sm font-medium text-gray-900 ml-2">{service.estimatedDelivery}</span>
                       </div>
 
                       {/* Price */}
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-semibold text-gray-900">Pris:</span>
+                        <span className="text-lg font-semibold text-gray-900">Price:</span>
                         <div className="flex items-center">
                           <input
                             type="number"
@@ -337,7 +337,7 @@ function ShippingServicesPage() {
                         <div className="flex items-center">
                           <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                           <span className="text-xs text-gray-500">
-                            {saving ? 'Sparar...' : 'Redo att uppdatera'}
+                            {saving ? 'Saving...' : 'Ready to update'}
                           </span>
                         </div>
                       </div>
@@ -350,29 +350,29 @@ function ShippingServicesPage() {
 
           {/* Summary */}
           <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Sammanfattning - Fraktjänster</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Summary - Shipping Services</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{services.length}</div>
-                <div className="text-sm text-gray-600">Fraktjänster</div>
+                <div className="text-sm text-gray-600">Shipping services</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {services.reduce((sum, s) => sum + s.basePrice, 0).toLocaleString('sv-SE')}
+                  {services.reduce((sum, s) => sum + s.basePrice, 0).toLocaleString('en-GB')}
                 </div>
-                <div className="text-sm text-gray-600">kr totalt</div>
+                <div className="text-sm text-gray-600">kr total</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {Math.round(services.reduce((sum, s) => sum + s.basePrice, 0) / services.length).toLocaleString('sv-SE')}
+                  {Math.round(services.reduce((sum, s) => sum + s.basePrice, 0) / services.length).toLocaleString('en-GB')}
                 </div>
-                <div className="text-sm text-gray-600">kr genomsnitt</div>
+                <div className="text-sm text-gray-600">kr average</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
                   {services.filter(s => s.provider === 'Lokal').length}
                 </div>
-                <div className="text-sm text-gray-600">lokala tjänster</div>
+                <div className="text-sm text-gray-600">local services</div>
               </div>
             </div>
           </div>
@@ -382,10 +382,11 @@ function ShippingServicesPage() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

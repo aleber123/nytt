@@ -40,7 +40,7 @@ function PickupPricingPage() {
       }
     } catch (error) {
       console.error('Error loading pickup pricing:', error);
-      toast.error('Kunde inte ladda upphämtningspriser');
+      toast.error('Could not load pickup prices');
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ function PickupPricingPage() {
   const handleSave = async (method: 'dhl' | 'stockholm_courier' | 'dhl_express' | 'stockholm_sameday') => {
     try {
       if (!currentUser?.email) {
-        toast.error('Du måste vara inloggad');
+        toast.error('You must be logged in');
         return;
       }
 
@@ -67,12 +67,12 @@ function PickupPricingPage() {
         updatedBy: currentUser.email
       });
 
-      toast.success('Priser uppdaterade!');
+      toast.success('Prices updated!');
       setEditingMethod(null);
       await loadPickupPricing();
     } catch (error) {
       console.error('Error updating pickup pricing:', error);
-      toast.error('Kunde inte uppdatera priser');
+      toast.error('Could not update prices');
     }
   };
 
@@ -86,7 +86,7 @@ function PickupPricingPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Laddar upphämtningspriser...</p>
+          <p className="text-gray-600">Loading pickup prices...</p>
         </div>
       </div>
     );
@@ -96,21 +96,21 @@ function PickupPricingPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 py-8">
         <Head>
-          <title>Upphämtningspriser - Admin | Legaliseringstjänst</title>
+          <title>Pickup Pricing - Admin</title>
         </Head>
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Upphämtningspriser</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Pickup Pricing</h1>
             <p className="mt-2 text-gray-600">
-              Hantera priser för DHL och Stockholm lokalbud
+              Manage prices for DHL and Stockholm local courier
             </p>
           </div>
 
           {/* Base Options */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Bas-alternativ</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Base Options</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {pickupOptions.filter(o => !o.isPremium).map((option) => {
                 const isEditing = editingMethod === option.method;
@@ -156,7 +156,7 @@ function PickupPricingPage() {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Pris (SEK)
+                            Price (SEK)
                           </label>
                           <input
                             type="number"
@@ -170,7 +170,7 @@ function PickupPricingPage() {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Anteckningar
+                            Notes
                           </label>
                           <textarea
                             value={editValues.notes || ''}
@@ -196,7 +196,7 @@ function PickupPricingPage() {
                             htmlFor={`active-${option.method}`}
                             className="ml-2 block text-sm text-gray-700"
                           >
-                            Aktiv tjänst
+                            Active service
                           </label>
                         </div>
 
@@ -205,13 +205,13 @@ function PickupPricingPage() {
                             onClick={() => handleSave(option.method)}
                             className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
                           >
-                            Spara
+                            Save
                           </button>
                           <button
                             onClick={handleCancel}
                             className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                           >
-                            Avbryt
+                            Cancel
                           </button>
                         </div>
                       </div>
@@ -222,9 +222,9 @@ function PickupPricingPage() {
                             {option.price} kr
                           </div>
                           <div className="text-sm text-gray-500 mt-1">
-                            Senast uppdaterad:{' '}
-                            {option.lastUpdated?.toDate?.()?.toLocaleDateString('sv-SE') ||
-                              'Okänt datum'}
+                            Last updated:{' '}
+                            {option.lastUpdated?.toDate?.()?.toLocaleDateString('en-GB') ||
+                              'Unknown date'}
                           </div>
                         </div>
 
@@ -238,7 +238,7 @@ function PickupPricingPage() {
                           onClick={() => handleEdit(option)}
                           className="w-full px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                         >
-                          Redigera
+                          Edit
                         </button>
                       </>
                     )}
@@ -250,7 +250,7 @@ function PickupPricingPage() {
 
           {/* Premium Options */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Premium-alternativ</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Premium Options</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {pickupOptions.filter(o => o.isPremium).map((option) => {
               const isEditing = editingMethod === option.method;
@@ -296,7 +296,7 @@ function PickupPricingPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Pris (SEK)
+                          Price (SEK)
                         </label>
                         <input
                           type="number"
@@ -310,7 +310,7 @@ function PickupPricingPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Anteckningar
+                          Notes
                         </label>
                         <textarea
                           value={editValues.notes || ''}
@@ -336,7 +336,7 @@ function PickupPricingPage() {
                           htmlFor={`active-${option.method}`}
                           className="ml-2 block text-sm text-gray-700"
                         >
-                          Aktiv tjänst
+                          Active service
                         </label>
                       </div>
 
@@ -345,13 +345,13 @@ function PickupPricingPage() {
                           onClick={() => handleSave(option.method)}
                           className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
                         >
-                          Spara
+                          Save
                         </button>
                         <button
                           onClick={handleCancel}
                           className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                         >
-                          Avbryt
+                          Cancel
                         </button>
                       </div>
                     </div>
@@ -362,9 +362,9 @@ function PickupPricingPage() {
                           {option.price} kr
                         </div>
                         <div className="text-sm text-gray-500 mt-1">
-                          Senast uppdaterad:{' '}
-                          {option.lastUpdated?.toDate?.()?.toLocaleDateString('sv-SE') ||
-                            'Okänt datum'}
+                          Last updated:{' '}
+                          {option.lastUpdated?.toDate?.()?.toLocaleDateString('en-GB') ||
+                            'Unknown date'}
                         </div>
                       </div>
 
@@ -395,10 +395,10 @@ function PickupPricingPage() {
               <div>
                 <h3 className="font-medium text-blue-900 mb-2">Information</h3>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• DHL: Rikstäckande upphämtning över hela Sverige</li>
-                  <li>• Stockholm Lokalbud: Snabb upphämtning inom Stockholmsområdet</li>
-                  <li>• Priserna visas för kunden i beställningsflödet</li>
-                  <li>• Inaktiva tjänster visas inte för kunden</li>
+                  <li>• DHL: Nationwide pickup across Sweden</li>
+                  <li>• Stockholm Local Courier: Fast pickup within the Stockholm area</li>
+                  <li>• Prices are shown to the customer in the order flow</li>
+                  <li>• Inactive services are not shown to the customer</li>
                 </ul>
               </div>
             </div>
@@ -409,10 +409,11 @@ function PickupPricingPage() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale ?? 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

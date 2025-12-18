@@ -57,7 +57,7 @@ function EmbassyPricesAdminPage() {
       setEmbassyPrices(formattedPrices);
     } catch (error) {
       console.error('Error loading embassy prices:', error);
-      toast.error('Kunde inte ladda ambassadpriser');
+      toast.error('Could not load embassy prices');
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ function EmbassyPricesAdminPage() {
       // Find existing rule
       const existingRule = embassyPrices.find(p => p.countryCode === countryCode);
       if (!existingRule) {
-        toast.error('Kunde inte hitta landet');
+        toast.error('Could not find the country');
         return;
       }
 
@@ -97,10 +97,10 @@ function EmbassyPricesAdminPage() {
         )
       );
 
-      toast.success(`${existingRule.countryName} ambassadavgift uppdaterad!`);
+      toast.success(`${existingRule.countryName} embassy fee updated!`);
     } catch (error) {
       console.error('Error updating embassy fee:', error);
-      toast.error('Kunde inte uppdatera ambassadavgift');
+      toast.error('Could not update embassy fee');
     } finally {
       setSaving(false);
     }
@@ -113,7 +113,7 @@ function EmbassyPricesAdminPage() {
       // Find existing rule
       const existingRule = embassyPrices.find(p => p.countryCode === countryCode);
       if (!existingRule) {
-        toast.error('Kunde inte hitta landet');
+        toast.error('Could not find the country');
         return;
       }
 
@@ -140,10 +140,10 @@ function EmbassyPricesAdminPage() {
         )
       );
 
-      toast.success(`${existingRule.countryName} serviceavgift uppdaterad!`);
+      toast.success(`${existingRule.countryName} service fee updated!`);
     } catch (error) {
       console.error('Error updating service fee:', error);
-      toast.error('Kunde inte uppdatera serviceavgift');
+      toast.error('Could not update service fee');
     } finally {
       setSaving(false);
     }
@@ -181,10 +181,10 @@ function EmbassyPricesAdminPage() {
 
       setEmbassyPrices(prev => [...prev, newEmbassy].sort((a, b) => a.countryName.localeCompare(b.countryName)));
 
-      toast.success(`${countryName} ambassad tillagd!`);
+      toast.success(`${countryName} embassy added!`);
     } catch (error) {
       console.error('Error adding embassy:', error);
-      toast.error('Kunde inte lägga till ambassad');
+      toast.error('Could not add embassy');
     } finally {
       setSaving(false);
     }
@@ -201,16 +201,16 @@ function EmbassyPricesAdminPage() {
   return (
     <ProtectedRoute>
       <Head>
-        <title>Ambassadpriser - Admin | Legaliseringstjänst</title>
+        <title>Embassy Prices - Admin</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Ambassadpriser per land</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Embassy Prices by Country</h1>
             <p className="mt-2 text-gray-600">
-              Uppdatera officiella ambassadavgifter som skiljer sig åt beroende på vilket land det gäller.
-              Alla ändringar sparas direkt i Firebase och visas för kunder.
+              Update official embassy fees that vary depending on the country.
+              All changes are saved directly to Firebase and shown to customers.
             </p>
           </div>
 
@@ -224,13 +224,13 @@ function EmbassyPricesAdminPage() {
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-blue-800">
-                  Hur fungerar detta?
+                  How does this work?
                 </h3>
                 <div className="mt-2 text-sm text-blue-700">
-                  <p>• <strong>Officiell avgift</strong>: Vad ambassaden tar (skiljer sig per land)</p>
-                  <p>• <strong>Serviceavgift</strong>: Din hanteringsavgift (samma för alla)</p>
-                  <p>• <strong>Totalpris</strong>: Vad kunden betalar</p>
-                  <p>• <strong>Alla ändringar</strong> sparas direkt i Firebase</p>
+                  <p>• <strong>Official fee</strong>: What the embassy charges (varies by country)</p>
+                  <p>• <strong>Service fee</strong>: Your handling fee (same for all)</p>
+                  <p>• <strong>Total price</strong>: What the customer pays</p>
+                  <p>• <strong>All changes</strong> are saved directly to Firebase</p>
                 </div>
               </div>
             </div>
@@ -239,9 +239,9 @@ function EmbassyPricesAdminPage() {
           {/* Current Embassy Prices */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-8">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Nuvarande ambassadpriser</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Current Embassy Prices</h2>
               <p className="text-sm text-gray-600 mt-1">
-                {embassyPrices.length} länder med ambassadlegalisering
+                {embassyPrices.length} countries with embassy legalization
               </p>
             </div>
 
@@ -250,19 +250,19 @@ function EmbassyPricesAdminPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Land
+                      Country
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Officiell avgift
+                      Official fee
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Serviceavgift
+                      Service fee
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Totalpris
+                      Total price
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Senast uppdaterad
+                      Last updated
                     </th>
                   </tr>
                 </thead>
@@ -336,7 +336,7 @@ function EmbassyPricesAdminPage() {
 
           {/* Add New Embassy */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Lägg till nytt land</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Country</h3>
             <AddEmbassyForm onAdd={handleAddEmbassy} disabled={saving} />
           </div>
         </div>
@@ -388,7 +388,7 @@ function AddEmbassyForm({ onAdd, disabled }: { onAdd: (countryCode: string, coun
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Officiell avgift (kr)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Official fee (kr)</label>
         <input
           type="number"
           value={officialFee}
@@ -405,17 +405,18 @@ function AddEmbassyForm({ onAdd, disabled }: { onAdd: (countryCode: string, coun
           disabled={disabled || !countryCode || !countryName || !officialFee}
           className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {disabled ? 'Sparar...' : 'Lägg till'}
+          {disabled ? 'Saving...' : 'Add'}
         </button>
       </div>
     </form>
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };

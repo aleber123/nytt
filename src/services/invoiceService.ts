@@ -177,7 +177,7 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
 
             lineItems.push({
               id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              description: `${getServiceDescription(serviceId, order)} - Serviceavgift`,
+              description: `DOX Visumpartner Service Fee (${getServiceDescription(serviceId, order)})`,
               quantity: 1,
               unitPrice: pricingRule.serviceFee,
               totalPrice: serviceTotalWithVAT,
@@ -211,7 +211,7 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
 
             lineItems.push({
               id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              description: `${getServiceDescription(serviceId, order)} - Serviceavgift`,
+              description: `DOX Visumpartner Service Fee (${getServiceDescription(serviceId, order)})`,
               quantity: 1,
               unitPrice: pricingRule.serviceFee,
               totalPrice: serviceTotalWithVAT,
@@ -281,7 +281,7 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
 
       lineItems.push({
         id: `scanned_copies_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        description: 'Skannade kopior',
+        description: 'Scanned Copies',
         quantity: order.quantity,
         unitPrice: 200,
         totalPrice: scannedTotalWithVAT,
@@ -396,15 +396,15 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
 function getServiceDescription(serviceType: string, order: Order): string {
   const descriptions: { [key: string]: string } = {
     'apostille': 'Apostille',
-    'notarisering': 'Notarisering',
-    'ambassad': 'Ambassadlegalisering',
-    'oversattning': 'Översättning',
-    'utrikesdepartementet': 'Utrikesdepartementet',
-    'chamber': 'Handelskammarintyg',
-    'express': 'Expresstillägg',
-    'return_service': 'Returfrakt',
-    'scanned_copies': 'Skannade kopior',
-    'pickup_service': 'Upphämtningstjänst'
+    'notarisering': 'Notarization',
+    'ambassad': 'Embassy Legalization',
+    'oversattning': 'Translation',
+    'utrikesdepartementet': 'Ministry of Foreign Affairs',
+    'chamber': 'Chamber of Commerce Certificate',
+    'express': 'Express Service',
+    'return_service': 'Return Shipping',
+    'scanned_copies': 'Scanned Copies',
+    'pickup_service': 'Pickup Service'
   };
 
   return descriptions[serviceType] || serviceType;
@@ -466,7 +466,7 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Faktura - ${invoice.invoiceNumber}</title>
+      <title>Invoice - ${invoice.invoiceNumber}</title>
       <style>
         body {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -620,24 +620,24 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
               ${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}<br>
               ${invoice.companyInfo.email}<br>
               ${invoice.companyInfo.phone}<br>
-              Org.nr: ${invoice.companyInfo.orgNumber}<br>
-              Momsreg.nr: ${invoice.companyInfo.vatNumber}
+              Org. No: ${invoice.companyInfo.orgNumber}<br>
+              VAT No: ${invoice.companyInfo.vatNumber}
             </p>
           </div>
           <div class="invoice-info">
-            <h2>FAKTURA</h2>
+            <h2>INVOICE</h2>
             <p>
-              <strong>Fakturanummer:</strong> ${invoice.invoiceNumber}<br>
-              <strong>Fakturadatum:</strong> ${formatDate(invoice.issueDate)}<br>
-              <strong>Förfallodatum:</strong> ${formatDate(invoice.dueDate)}<br>
-              ${invoice.orderNumber ? `<strong>Ordernummer:</strong> ${invoice.orderNumber}<br>` : ''}
+              <strong>Invoice Number:</strong> ${invoice.invoiceNumber}<br>
+              <strong>Invoice Date:</strong> ${formatDate(invoice.issueDate)}<br>
+              <strong>Due Date:</strong> ${formatDate(invoice.dueDate)}<br>
+              ${invoice.orderNumber ? `<strong>Order Number:</strong> ${invoice.orderNumber}<br>` : ''}
               <strong>Status:</strong> ${getStatusText(invoice.status)}
             </p>
           </div>
         </div>
 
         <div class="customer-info">
-          <h3>Faktureras till:</h3>
+          <h3>Bill To:</h3>
           <p>
             ${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName}<br>
             ${invoice.customerInfo.companyName ? `${invoice.customerInfo.companyName}<br>` : ''}
@@ -645,19 +645,19 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
             ${invoice.customerInfo.postalCode} ${invoice.customerInfo.city}<br>
             ${invoice.customerInfo.email}<br>
             ${invoice.customerInfo.phone}
-            ${invoice.customerInfo.orgNumber ? `<br>Org.nr: ${invoice.customerInfo.orgNumber}` : ''}
+            ${invoice.customerInfo.orgNumber ? `<br>Org. No: ${invoice.customerInfo.orgNumber}` : ''}
           </p>
         </div>
 
-        <h3>Tjänster</h3>
+        <h3>Services</h3>
         <table>
           <thead>
             <tr>
-              <th>Beskrivning</th>
-              <th class="text-center">Antal</th>
-              <th class="text-right">À-pris</th>
-              <th class="text-right">Moms %</th>
-              <th class="text-right">Totalt</th>
+              <th>Description</th>
+              <th class="text-center">Qty</th>
+              <th class="text-right">Unit Price</th>
+              <th class="text-right">VAT %</th>
+              <th class="text-right">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -667,22 +667,22 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
 
         <table class="summary-table">
           <tr>
-            <td><strong>Nettosumma:</strong></td>
+            <td><strong>Net Amount:</strong></td>
             <td class="text-right">${formatCurrency(invoice.subtotal - invoice.vatTotal)}</td>
           </tr>
           <tr>
-            <td><strong>Moms:</strong></td>
+            <td><strong>VAT:</strong></td>
             <td class="text-right">${formatCurrency(invoice.vatTotal)}</td>
           </tr>
           <tr class="total-row">
-            <td><strong>Att betala:</strong></td>
+            <td><strong>Total Due:</strong></td>
             <td class="text-right"><strong>${formatCurrency(invoice.totalAmount)}</strong></td>
           </tr>
         </table>
 
         <div class="vat-breakdown">
-          <h4>Momsinformation</h4>
-          <p>Momsregistreringsnummer: ${invoice.companyInfo.vatNumber}</p>
+          <h4>VAT Information</h4>
+          <p>VAT Registration Number: ${invoice.companyInfo.vatNumber}</p>
           <ul>
             ${
               (() => {
@@ -699,9 +699,9 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
                 Object.keys(vatBreakdown).forEach(rate => {
                   const rateNum = parseFloat(rate);
                   if (rateNum === 0) {
-                    vatBreakdown[rateNum].description = 'Ambassadlegalisering - officiella avgifter (momsfri)';
+                    vatBreakdown[rateNum].description = 'Embassy Legalization - Official Fees (VAT exempt)';
                   } else if (rateNum === 0.25) {
-                    vatBreakdown[rateNum].description = 'Serviceavgifter och andra tjänster (25% moms)';
+                    vatBreakdown[rateNum].description = 'Service fees and other services (25% VAT)';
                   }
                 });
 
@@ -714,19 +714,19 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
         </div>
 
         <div class="payment-info">
-          <h3>Betalningsinformation</h3>
+          <h3>Payment Information</h3>
           <p>
-            <strong>Betalningsvillkor:</strong> ${invoice.paymentTerms}<br>
+            <strong>Payment Terms:</strong> ${invoice.paymentTerms}<br>
             <strong>Bankgiro:</strong> 123-4567<br>
-            <strong>OCR-referens:</strong> ${invoice.paymentReference}<br>
-            <strong>Förfallodatum:</strong> ${formatDate(invoice.dueDate)}<br>
-            <strong>Valuta:</strong> ${invoice.currency}
+            <strong>Payment Reference:</strong> ${invoice.paymentReference}<br>
+            <strong>Due Date:</strong> ${formatDate(invoice.dueDate)}<br>
+            <strong>Currency:</strong> ${invoice.currency}
           </p>
         </div>
 
         <div class="footer">
-          <p>${invoice.companyInfo.name} | Org.nr: ${invoice.companyInfo.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber}</p>
-          <p>Tack för att du valde Legaliseringstjänst! Vid frågor, kontakta oss på ${invoice.companyInfo.email}</p>
+          <p>${invoice.companyInfo.name} | Org. No: ${invoice.companyInfo.orgNumber} | VAT No: ${invoice.companyInfo.vatNumber}</p>
+          <p>Thank you for choosing DOX Visumpartner AB! For questions, contact us at ${invoice.companyInfo.email}</p>
         </div>
       </div>
     </body>
@@ -734,15 +734,15 @@ export const generateInvoiceHtml = (invoice: Invoice): string => {
   `;
 };
 
-// Helper function to get status text in Swedish
+// Helper function to get status text in English
 function getStatusText(status: Invoice['status']): string {
   const statusMap: { [key in Invoice['status']]: string } = {
-    'draft': 'Utkast',
-    'sent': 'Skickad',
-    'paid': 'Betald',
-    'overdue': 'Förfallen',
-    'cancelled': 'Makulerad',
-    'credit_note': 'Kreditfaktura'
+    'draft': 'Draft',
+    'sent': 'Sent',
+    'paid': 'Paid',
+    'overdue': 'Overdue',
+    'cancelled': 'Cancelled',
+    'credit_note': 'Credit Note'
   };
   return statusMap[status] || status;
 }
@@ -824,14 +824,14 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     // Invoice title and number - right aligned
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(invoice.status === 'credit_note' ? 'KREDITFAKTURA' : 'FAKTURA', 190, 20, { align: 'right' });
+    doc.text(invoice.status === 'credit_note' ? 'CREDIT NOTE' : 'INVOICE', 190, 20, { align: 'right' });
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
-    doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
-    doc.text(`Ordernummer: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
-    doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
+    doc.text(`Invoice No: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
+    doc.text(`Invoice Date: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
+    doc.text(`Order No: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
+    doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
 
     yPosition = 50;
 
@@ -839,7 +839,7 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('Faktureras till:', 20, yPosition);
+    doc.text('Bill To:', 20, yPosition);
     yPosition += 8;
 
     doc.setFontSize(9);
@@ -879,7 +879,7 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     if (invoice.customerInfo.orgNumber) {
       yPosition += 4;
       doc.setFontSize(8);
-      doc.text(`Org.nr: ${invoice.customerInfo.orgNumber}`, 20, yPosition);
+      doc.text(`Org. No: ${invoice.customerInfo.orgNumber}`, 20, yPosition);
     }
 
     yPosition += 15;
@@ -887,7 +887,7 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     // Services table header
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('Specifikation', 20, yPosition);
+    doc.text('Specification', 20, yPosition);
     yPosition += 10;
 
     // Table headers with borders - fixed column widths
@@ -910,11 +910,11 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setFont('helvetica', 'bold');
 
     // Column headers - properly aligned
-    doc.text('Beskrivning', colPositions[0], yPosition + 2);
-    doc.text('Antal', colPositions[1], yPosition + 2, { align: 'center' });
-    doc.text('À-pris', colPositions[2], yPosition + 2, { align: 'right' });
-    doc.text('Moms %', colPositions[3], yPosition + 2, { align: 'center' });
-    doc.text('Belopp', colPositions[4], yPosition + 2, { align: 'right' });
+    doc.text('Description', colPositions[0], yPosition + 2);
+    doc.text('Qty', colPositions[1], yPosition + 2, { align: 'center' });
+    doc.text('Unit Price', colPositions[2], yPosition + 2, { align: 'right' });
+    doc.text('VAT %', colPositions[3], yPosition + 2, { align: 'center' });
+    doc.text('Amount', colPositions[4], yPosition + 2, { align: 'right' });
 
     yPosition += 10;
 
@@ -940,11 +940,11 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
 
-        doc.text('Beskrivning', colPositions[0], currentY + 2);
-        doc.text('Antal', colPositions[1], currentY + 2, { align: 'center' });
-        doc.text('À-pris', colPositions[2], currentY + 2, { align: 'right' });
-        doc.text('Moms %', colPositions[3], currentY + 2, { align: 'center' });
-        doc.text('Belopp', colPositions[4], currentY + 2, { align: 'right' });
+        doc.text('Description', colPositions[0], currentY + 2);
+        doc.text('Qty', colPositions[1], currentY + 2, { align: 'center' });
+        doc.text('Unit Price', colPositions[2], currentY + 2, { align: 'right' });
+        doc.text('VAT %', colPositions[3], currentY + 2, { align: 'center' });
+        doc.text('Amount', colPositions[4], currentY + 2, { align: 'right' });
 
         currentY += 10;
       }
@@ -1029,12 +1029,12 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     // Calculate and display totals
     const netAmount = invoice.subtotal - invoice.vatTotal;
 
-    doc.text('Nettosumma:', totalsStartX, yPosition + 2);
+    doc.text('Net Amount:', totalsStartX, yPosition + 2);
     doc.text(formatCurrency(netAmount), 185, yPosition + 2, { align: 'right' });
 
     if (invoice.vatTotal > 0) {
       yPosition += 6;
-      doc.text(`Moms (${VAT_RATES.STANDARD * 100}%):`, totalsStartX, yPosition + 2);
+      doc.text(`VAT (${VAT_RATES.STANDARD * 100}%):`, totalsStartX, yPosition + 2);
       doc.text(formatCurrency(invoice.vatTotal), 185, yPosition + 2, { align: 'right' });
     }
 
@@ -1050,7 +1050,7 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('ATT BETALA:', totalsStartX, highlightY + 4);
+    doc.text('TOTAL DUE:', totalsStartX, highlightY + 4);
     doc.text(formatCurrency(invoice.totalAmount), 185, highlightY + 4, { align: 'right' });
 
     yPosition = totalsBoxY + totalsBoxH + 12;
@@ -1060,7 +1060,7 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
 
-    doc.text(`Momsregistreringsnummer: ${invoice.companyInfo.vatNumber}`, 20, yPosition);
+    doc.text(`VAT Registration Number: ${invoice.companyInfo.vatNumber}`, 20, yPosition);
     yPosition += 8;
 
     // VAT breakdown based on services
@@ -1068,11 +1068,11 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     const hasStandardVat = invoice.lineItems.some(item => item.vatRate > 0);
 
     if (hasZeroVat && hasStandardVat) {
-      doc.text('Momssats: 25% på serviceavgifter, 0% på officiella avgifter (ambassadlegalisering)', 20, yPosition);
+      doc.text('VAT Rate: 25% on service fees, 0% on official fees (embassy legalization)', 20, yPosition);
     } else if (hasZeroVat) {
-      doc.text('Momssats: 0% (ambassadlegalisering är momsfri)', 20, yPosition);
+      doc.text('VAT Rate: 0% (embassy legalization is VAT exempt)', 20, yPosition);
     } else {
-      doc.text('Momssats: 25% på samtliga tjänster', 20, yPosition);
+      doc.text('VAT Rate: 25% on all services', 20, yPosition);
     }
 
     yPosition += 12;
@@ -1080,20 +1080,20 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     // Payment information
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Betalningsinformation', 20, yPosition);
+    doc.text('Payment Information', 20, yPosition);
     yPosition += 6;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(`Betalningsvillkor: ${invoice.paymentTerms}`, 20, yPosition);
+    doc.text(`Payment Terms: ${invoice.paymentTerms}`, 20, yPosition);
     yPosition += 4;
     doc.text('Bankgiro: 0896-8869', 20, yPosition);
     yPosition += 4;
-    doc.text(`OCR-referens: ${invoice.paymentReference}`, 20, yPosition);
+    doc.text(`Payment Reference: ${invoice.paymentReference}`, 20, yPosition);
     yPosition += 4;
-    doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 20, yPosition);
+    doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 20, yPosition);
     yPosition += 4;
-    doc.text(`Valuta: ${invoice.currency}`, 20, yPosition);
+    doc.text(`Currency: ${invoice.currency}`, 20, yPosition);
     yPosition += 4;
     doc.text('Swish: 123 100 7764', 20, yPosition);
 
@@ -1110,14 +1110,14 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
 
-    const footerText1 = `DOX Visumpartner AB | Org.nr: ${invoice.companyInfo.orgNumber || COMPANY_INFO.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber || COMPANY_INFO.vatNumber}`;
+    const footerText1 = `DOX Visumpartner AB | Org. No: ${invoice.companyInfo.orgNumber || COMPANY_INFO.orgNumber} | VAT No: ${invoice.companyInfo.vatNumber || COMPANY_INFO.vatNumber}`;
     doc.text(footerText1, 105, footerStartY + 8, { align: 'center' });
 
     const footerText2 = `Box 38, 121 25 Stockholm-Globen | ${invoice.companyInfo.email || COMPANY_INFO.email} | ${invoice.companyInfo.phone || COMPANY_INFO.phone}`;
     doc.text(footerText2, 105, footerStartY + 13, { align: 'center' });
 
     doc.setFontSize(8);
-    doc.text('Tack för att du valde DOX Visumpartner AB för dina legaliseringstjänster!', 105, footerStartY + 20, { align: 'center' });
+    doc.text('Thank you for choosing DOX Visumpartner AB for your legalization services!', 105, footerStartY + 20, { align: 'center' });
 
     // Save the PDF with requested naming
     const fileName = `Invoice ${invoice.orderNumber || invoice.invoiceNumber}.pdf`;
@@ -1366,12 +1366,12 @@ export const createCreditInvoice = async (originalInvoiceId: string, creditAmoun
       issueDate: Timestamp.now(),
       dueDate: Timestamp.now(), // Credit notes are typically due immediately
       status: 'credit_note',
-      paymentTerms: 'Kreditfaktura - ingen betalning krävs',
+      paymentTerms: 'Credit Note - no payment required',
       paymentReference: invoiceNumber,
       companyInfo: originalInvoice.companyInfo,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-      notes: `Kreditfaktura för faktura ${originalInvoice.invoiceNumber}`
+      notes: `Credit Note for invoice ${originalInvoice.invoiceNumber}`
     };
 
     // Store the credit invoice
@@ -1396,34 +1396,34 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
     // Create email data for Firestore (will be processed by external service)
     const emailData = {
       to: invoice.customerInfo.email,
-      subject: `Faktura ${invoice.invoiceNumber} från DOX Visumpartner AB`,
+      subject: `Invoice ${invoice.invoiceNumber} from DOX Visumpartner AB`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2a67aa;">Faktura från DOX Visumpartner AB</h2>
+          <h2 style="color: #2a67aa;">Invoice from DOX Visumpartner AB</h2>
 
-          <p>Hej ${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName},</p>
+          <p>Hello ${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName},</p>
 
-          <p>Tack för att du valde DOX Visumpartner AB för dina legaliseringstjänster.</p>
+          <p>Thank you for choosing DOX Visumpartner AB for your legalization services.</p>
 
           <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 5px;">
-            <h3 style="margin-top: 0; color: #2a67aa;">Fakturainformation</h3>
-            <p><strong>Fakturanummer:</strong> ${invoice.invoiceNumber}</p>
-            <p><strong>Fakturadatum:</strong> ${invoice.issueDate.toDate().toLocaleDateString('sv-SE')}</p>
-            <p><strong>Förfallodatum:</strong> ${invoice.dueDate.toDate().toLocaleDateString('sv-SE')}</p>
-            <p><strong>Belopp att betala:</strong> ${invoice.totalAmount} SEK</p>
-            <p><strong>Betalningsreferens:</strong> ${invoice.paymentReference}</p>
+            <h3 style="margin-top: 0; color: #2a67aa;">Invoice Information</h3>
+            <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+            <p><strong>Invoice Date:</strong> ${invoice.issueDate.toDate().toLocaleDateString('en-GB')}</p>
+            <p><strong>Due Date:</strong> ${invoice.dueDate.toDate().toLocaleDateString('en-GB')}</p>
+            <p><strong>Amount Due:</strong> ${invoice.totalAmount} SEK</p>
+            <p><strong>Payment Reference:</strong> ${invoice.paymentReference}</p>
           </div>
 
-          <p>Fakturan är bifogad som PDF. Vänligen betala enligt betalningsvillkoren.</p>
+          <p>The invoice is attached as a PDF. Please pay according to the payment terms.</p>
 
-          <p>Vid frågor, kontakta oss gärna på info@doxvl.se eller 070-123 45 67.</p>
+          <p>If you have any questions, please contact us at info@doxvl.se or 070-123 45 67.</p>
 
-          <p>Med vänliga hälsningar,<br/>
+          <p>Best regards,<br/>
           DOX Visumpartner AB<br/>
-          Sveavägen 100<br/>
-          113 50 Stockholm<br/>
-          Org.nr: 556123-4567<br/>
-          Momsreg.nr: SE556123456701</p>
+          Box 38<br/>
+          121 25 Stockholm-Globen<br/>
+          Org. No: 559351-8658<br/>
+          VAT No: SE559351865801</p>
         </div>
       `,
       attachments: [{
@@ -1509,19 +1509,19 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       doc.setFont('helvetica', 'normal');
       doc.text(invoice.companyInfo.address, 20, 26);
       doc.text(`${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}`, 20, 30);
-      doc.text(`Org.nr: ${invoice.companyInfo.orgNumber}`, 20, 34);
+      doc.text(`Org. No: ${invoice.companyInfo.orgNumber}`, 20, 34);
 
       // Invoice title and number - right aligned
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(invoice.status === 'credit_note' ? 'KREDITFAKTURA' : 'FAKTURA', 190, 20, { align: 'right' });
+      doc.text(invoice.status === 'credit_note' ? 'CREDIT NOTE' : 'INVOICE', 190, 20, { align: 'right' });
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Fakturanummer: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
-      doc.text(`Fakturadatum: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
-      doc.text(`Ordernummer: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
-      doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
+      doc.text(`Invoice No: ${invoice.invoiceNumber}`, 190, 26, { align: 'right' });
+      doc.text(`Invoice Date: ${formatDate(invoice.issueDate)}`, 190, 30, { align: 'right' });
+      doc.text(`Order No: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
+      doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
 
       yPosition = 50;
 
@@ -1529,7 +1529,7 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       doc.setTextColor(textColor[0], textColor[1], textColor[2]);
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('Faktureras till:', 20, yPosition);
+      doc.text('Bill To:', 20, yPosition);
       yPosition += 8;
 
       doc.setFontSize(9);
@@ -1571,7 +1571,7 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       if (invoice.customerInfo.orgNumber) {
         yPosition += 4;
         doc.setFontSize(8);
-        doc.text(`Org.nr: ${invoice.customerInfo.orgNumber}`, 20, yPosition);
+        doc.text(`Org. No: ${invoice.customerInfo.orgNumber}`, 20, yPosition);
       }
 
       yPosition += 15;
@@ -1579,7 +1579,7 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       // Services table header
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.text('Specifikation', 20, yPosition);
+      doc.text('Specification', 20, yPosition);
       yPosition += 10;
 
       // Table headers with borders - fixed column widths
@@ -1717,12 +1717,12 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       // Calculate and display totals
       const netAmount = invoice.subtotal - invoice.vatTotal;
 
-      doc.text('Nettosumma:', totalsStartX, yPosition + 2);
+      doc.text('Net Amount:', totalsStartX, yPosition + 2);
       doc.text(formatCurrency(netAmount), 185, yPosition + 2, { align: 'right' });
 
       if (invoice.vatTotal > 0) {
         yPosition += 6;
-        doc.text(`Moms (${VAT_RATES.STANDARD * 100}%):`, totalsStartX, yPosition + 2);
+        doc.text(`VAT (${VAT_RATES.STANDARD * 100}%):`, totalsStartX, yPosition + 2);
         doc.text(formatCurrency(invoice.vatTotal), 185, yPosition + 2, { align: 'right' });
       }
 
@@ -1744,7 +1744,7 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
 
-      doc.text(`Momsregistreringsnummer: ${invoice.companyInfo.vatNumber}`, 20, yPosition);
+      doc.text(`VAT Registration Number: ${invoice.companyInfo.vatNumber}`, 20, yPosition);
       yPosition += 8;
 
       // VAT breakdown based on services
@@ -1752,11 +1752,11 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       const hasStandardVat = invoice.lineItems.some(item => item.vatRate > 0);
 
       if (hasZeroVat && hasStandardVat) {
-        doc.text('Momssats: 25% på serviceavgifter, 0% på officiella avgifter (ambassadlegalisering)', 20, yPosition);
+        doc.text('VAT Rate: 25% on service fees, 0% on official fees (embassy legalization)', 20, yPosition);
       } else if (hasZeroVat) {
-        doc.text('Momssats: 0% (ambassadlegalisering är momsfri)', 20, yPosition);
+        doc.text('VAT Rate: 0% (embassy legalization is VAT exempt)', 20, yPosition);
       } else {
-        doc.text('Momssats: 25% på samtliga tjänster', 20, yPosition);
+        doc.text('VAT Rate: 25% on all services', 20, yPosition);
       }
 
       yPosition += 12;
@@ -1764,20 +1764,20 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       // Payment information
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text('Betalningsinformation', 20, yPosition);
+      doc.text('Payment Information', 20, yPosition);
       yPosition += 6;
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text(`Betalningsvillkor: ${invoice.paymentTerms}`, 20, yPosition);
+      doc.text(`Payment Terms: ${invoice.paymentTerms}`, 20, yPosition);
       yPosition += 4;
       doc.text('Bankgiro: 123-4567', 20, yPosition);
       yPosition += 4;
-      doc.text(`OCR-referens: ${invoice.paymentReference}`, 20, yPosition);
+      doc.text(`Payment Reference: ${invoice.paymentReference}`, 20, yPosition);
       yPosition += 4;
-      doc.text(`Förfallodatum: ${formatDate(invoice.dueDate)}`, 20, yPosition);
+      doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 20, yPosition);
       yPosition += 4;
-      doc.text(`Valuta: ${invoice.currency}`, 20, yPosition);
+      doc.text(`Currency: ${invoice.currency}`, 20, yPosition);
 
       yPosition += 15;
 
@@ -1792,14 +1792,14 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
 
-      const footerText1 = `${invoice.companyInfo.name} | Org.nr: ${invoice.companyInfo.orgNumber} | Momsreg.nr: ${invoice.companyInfo.vatNumber}`;
+      const footerText1 = `${invoice.companyInfo.name} | Org. No: ${invoice.companyInfo.orgNumber} | VAT No: ${invoice.companyInfo.vatNumber}`;
       doc.text(footerText1, 105, footerY + 3, { align: 'center' });
 
       const footerText2 = `${invoice.companyInfo.address}, ${invoice.companyInfo.postalCode} ${invoice.companyInfo.city} | ${invoice.companyInfo.email} | ${invoice.companyInfo.phone}`;
       doc.text(footerText2, 105, footerY + 8, { align: 'center' });
 
       doc.setFontSize(8);
-      doc.text('Tack för att du valde DOX Visumpartner AB för dina legaliseringstjänster!', 105, footerY + 15, { align: 'center' });
+      doc.text('Thank you for choosing DOX Visumpartner AB for your legalization services!', 105, footerY + 15, { align: 'center' });
 
       // Get PDF as Uint8Array
       const pdfOutput = doc.output('arraybuffer');

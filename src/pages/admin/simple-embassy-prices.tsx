@@ -151,7 +151,7 @@ function SimpleEmbassyPricesPage() {
       console.error('Error loading embassy prices:', error);
       // Use default countries if Firebase fails
       setCountries(defaultCountries);
-      toast.error('Kunde inte ladda priser från Firebase - använder standardpriser');
+      toast.error('Could not load prices from Firebase - using default prices');
     } finally {
       setLoading(false);
     }
@@ -716,10 +716,11 @@ function SimpleEmbassyPricesPage() {
   );
 }
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps = async () => {
+  // Admin pages always use English
   return {
     props: {
-      ...(await serverSideTranslations(locale || 'sv', ['common'])),
+      ...(await serverSideTranslations('en', ['common'])),
     },
   };
 };
