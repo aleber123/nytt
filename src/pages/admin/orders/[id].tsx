@@ -4038,7 +4038,7 @@ function AdminOrderDetailPage() {
                     </span>
                     <span className="text-lg font-semibold text-gray-900">{getComputedTotal()} kr</span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={editedStatus}
                       onChange={(e) => setEditedStatus(e.target.value as Order['status'])}
@@ -4063,38 +4063,38 @@ function AdminOrderDetailPage() {
                       className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
                       title="Download packing slip as PDF"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Packing slip PDF
+                      <span className="hidden sm:inline">Packing slip PDF</span>
                     </button>
                     <button
                       onClick={handleDownloadOrderConfirmation}
                       className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
                       title="Download order confirmation as PDF"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Order confirmation PDF
+                      <span className="hidden sm:inline">Order PDF</span>
                     </button>
                     <button
                       onClick={handlePrintCover}
                       className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
                       title="Print packing slip"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-3a2 2 0 00-2-2h-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v3H5a2 2 0 00-2 2v3a2 2 0 002 2h2m2 0h6v4H7v-4h6z" />
                       </svg>
-                      Print
+                      <span className="hidden sm:inline">Print</span>
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Tab Navigation */}
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
-                <nav className="flex">
+              <div className="p-4 border-b border-gray-200 bg-gray-50 overflow-x-auto">
+                <nav className="flex min-w-max">
                   {[
                     { id: 'overview', label: 'Overview', icon: '📋' },
                     { id: 'processing', label: 'Processing', icon: '⚙️' },
