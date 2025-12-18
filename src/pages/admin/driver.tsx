@@ -912,27 +912,29 @@ function DriverDashboardPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">🚗 Driver Dashboard</h1>
-                <p className="text-gray-600 mt-2">Overview of pickups and deliveries - {formatDate(selectedDate)}</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">🚗 Driver Dashboard</h1>
+                <p className="text-gray-600 mt-2 text-sm sm:text-base">Overview of pickups and deliveries - {formatDate(selectedDate)}</p>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={generatePDF}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center"
+                  className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center text-sm"
                   title="Download PDF"
                 >
-                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Download PDF
+                  <span className="hidden sm:inline">Download PDF</span>
+                  <span className="sm:hidden">PDF</span>
                 </button>
                 <Link
                   href="/admin"
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                  className="px-3 sm:px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm"
                 >
-                  Back to Admin
+                  <span className="hidden sm:inline">Back to Admin</span>
+                  <span className="sm:hidden">Admin</span>
                 </Link>
               </div>
             </div>
