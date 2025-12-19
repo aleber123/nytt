@@ -1,6 +1,7 @@
 import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import { appWithTranslation } from 'next-i18next';
+import type { UserConfig } from 'next-i18next';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -10,6 +11,15 @@ import { ErrorBoundary } from '@/components/error';
 import CookieBanner from '@/components/CookieBanner';
 import Layout from '@/components/layout/Layout';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Inline i18n config to avoid Firebase deployment issues with external config file
+const i18nConfig: UserConfig = {
+  i18n: {
+    defaultLocale: 'sv',
+    locales: ['sv', 'en'],
+    localeDetection: false,
+  },
+};
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -71,4 +81,4 @@ function MyApp({ Component, pageProps }: AppProps) {
   );
 }
 
-export default appWithTranslation(MyApp);
+export default appWithTranslation(MyApp, i18nConfig);

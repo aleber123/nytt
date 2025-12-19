@@ -90,7 +90,7 @@ export const OrderSEO: React.FC<OrderSEOProps> = ({ step, totalSteps = 10 }) => 
               "logo": `${baseUrl}/logo.png`,
               "contactPoint": {
                 "@type": "ContactPoint",
-                "telephone": "+46-XX-XXX-XX-XX",
+                "telephone": "+46-8-40941900",
                 "contactType": "Customer Service",
                 "areaServed": "SE",
                 "availableLanguage": ["Swedish", "English"]

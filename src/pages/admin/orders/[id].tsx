@@ -2420,7 +2420,6 @@ function AdminOrderDetailPage() {
           const shippingSettings = responseData.settings || responseData;
           maxPriceEnabled = shippingSettings.dhlMaxPriceEnabled !== false;
           maxPrice = shippingSettings.dhlMaxPrice || 300;
-          console.log('Shipping settings loaded:', { maxPriceEnabled, maxPrice, shippingSettings });
         }
       } catch (settingsErr) {
         console.error('Failed to load shipping settings:', settingsErr);
@@ -2914,7 +2913,6 @@ function AdminOrderDetailPage() {
           const pickupShippingSettings = responseData.settings || responseData;
           maxPriceEnabled = pickupShippingSettings.dhlPickupMaxPriceEnabled !== false;
           maxPrice = pickupShippingSettings.dhlPickupMaxPrice || 300;
-          console.log('Pickup shipping settings loaded:', { maxPriceEnabled, maxPrice, pickupShippingSettings });
         }
       } catch (settingsErr) {
         console.error('Failed to load pickup shipping settings:', settingsErr);

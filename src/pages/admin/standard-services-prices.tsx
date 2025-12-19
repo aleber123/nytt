@@ -89,19 +89,12 @@ function StandardServicesPricesPage() {
     try {
       setLoading(true);
       const allRules = await getAllActivePricingRules();
-      console.log('🔄 Admin page - loaded all rules:', allRules.length);
 
       // Filter to only standard services for Sweden
       const standardRules = allRules.filter(rule =>
         ['apostille', 'notarization', 'chamber', 'translation', 'ud'].includes(rule.serviceType) &&
         rule.countryCode === 'SE'
       );
-      console.log('🇸🇪 Admin page - Swedish standard rules:', standardRules.length);
-      console.log('📋 Admin page - Swedish rules details:', standardRules.map(r => ({
-        serviceType: r.serviceType,
-        processingTime: r.processingTime,
-        basePrice: r.basePrice
-      })));
 
       // Merge with default services
       const mergedServices = defaultServices.map(defaultService => {
@@ -113,8 +106,6 @@ function StandardServicesPricesPage() {
             ? processingTime
             : defaultService.processingTime;
 
-          console.log(`✅ Admin page - loaded ${defaultService.code}: processingTime=${processingTime} → valid=${validProcessingTime}`);
-
           return {
             ...defaultService,
             officialFee: existingRule.officialFee,
@@ -125,15 +116,8 @@ function StandardServicesPricesPage() {
             priceUnconfirmed: existingRule.priceUnconfirmed || false
           };
         }
-        console.log(`⚠️ Admin page - no Firebase record for ${defaultService.code}, using default processingTime=${defaultService.processingTime}`);
         return defaultService;
       });
-
-      console.log('📊 Admin page - final merged services:', mergedServices.map(s => ({
-        code: s.code,
-        processingTime: s.processingTime,
-        lastUpdated: s.lastUpdated
-      })));
 
       setServices(mergedServices);
     } catch (error) {
@@ -149,7 +133,6 @@ function StandardServicesPricesPage() {
   const updateServiceFee = async (serviceCode: string, newOfficialFee: number, newServiceFee?: number, newProcessingTime?: number) => {
     try {
       setSaving(true);
-      console.log(`🔄 Admin: Starting update for ${serviceCode}, processingTime=${newProcessingTime}`);
 
       const service = services.find(s => s.code === serviceCode);
       if (!service) {
@@ -161,8 +144,6 @@ function StandardServicesPricesPage() {
       const processingTime = newProcessingTime !== undefined ? newProcessingTime : service.processingTime;
       const ruleId = `SE_${serviceCode}`;
       const newTotalPrice = newOfficialFee + serviceFee;
-
-      console.log(`📋 Admin: Updating ${serviceCode} - officialFee: ${newOfficialFee}, serviceFee: ${serviceFee}, processingTime: ${processingTime}, totalPrice: ${newTotalPrice}`);
 
       // Use the new updateOrCreatePricingRule function
       await updateOrCreatePricingRule(
@@ -186,8 +167,6 @@ function StandardServicesPricesPage() {
           isActive: true
         }
       );
-
-      console.log(`✅ Admin: Successfully saved ${serviceCode} to Firebase`);
 
       // Update local state
       setServices(prev =>

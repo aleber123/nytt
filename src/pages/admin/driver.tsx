@@ -146,7 +146,6 @@ function DriverDashboardPage() {
 
   const handleOpenMonthlyReportEmail = async () => {
     try {
-      console.log('📅 handleOpenMonthlyReportEmail called', { selectedDate });
       setIsOpeningMonthlyEmail(true);
       setMonthlyMessage(null);
 
@@ -159,11 +158,7 @@ function DriverDashboardPage() {
       const year = dateObj.getFullYear();
       const month = dateObj.getMonth() + 1;
 
-      console.log('📆 Monthly report parameters', { year, month });
-
       const summary = await getDriverMonthlySummary('default-driver', year, month);
-
-      console.log('📊 Monthly driver summary loaded', summary);
 
       const monthFormatter = new Intl.DateTimeFormat('sv-SE', {
         year: 'numeric',
