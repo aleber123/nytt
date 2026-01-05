@@ -38,8 +38,9 @@ export const Step5DocumentSource: React.FC<StepProps & {
   };
   
   // Determine which support documents are needed
-  const needsIdDocument = hasNotarization && (notarizationDetails.signature || notarizationDetails.unknown);
-  const needsSigningAuthority = hasNotarization && (notarizationDetails.signingAuthority || notarizationDetails.unknown);
+  // Note: "unknown" (not sure) does NOT require document upload - same flow as "certify copy"
+  const needsIdDocument = hasNotarization && notarizationDetails.signature;
+  const needsSigningAuthority = hasNotarization && notarizationDetails.signingAuthority;
 
   const handleSourceSelect = (source: string) => {
     if (source === 'original') {
