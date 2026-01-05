@@ -23,7 +23,7 @@ const Seo: React.FC<SeoProps> = ({ title, description, noindex, image }) => {
     "name": siteConfig.name,
     "description": siteConfig.description,
     "url": baseUrl,
-    "telephone": "+46-732-449-433",
+    "telephone": "+46-8-40941900",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Box 38",

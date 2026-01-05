@@ -28,11 +28,73 @@ export default function HandelskammarenPage() {
           "name": "Legalisering hos Handelskammaren",
           "provider": {
             "@type": "Organization",
-            "name": "DOX Visumpartner AB"
+            "name": "DOX Visumpartner AB",
+            "telephone": "+46-8-40941900",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Box 38",
+              "postalCode": "121 25",
+              "addressLocality": "Stockholm-Globen",
+              "addressCountry": "SE"
+            }
           },
-          "description": "Certifiering av kommersiella dokument för internationell handel",
+          "description": "Certifiering av kommersiella dokument för internationell handel hos Handelskammaren. Ursprungsintyg, fakturor och exportdokument.",
           "areaServed": "SE",
-          "serviceType": "Document Certification"
+          "serviceType": "Document Certification",
+          "offers": {
+            "@type": "Offer",
+            "price": "2250",
+            "priceCurrency": "SEK",
+            "priceValidUntil": "2026-12-31"
+          }
+        })}} />
+        
+        {/* FAQ Schema for SEO */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Vad är Handelskammaren?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Handelskammaren (Chamber of Commerce) är en organisation som certifierar och legaliserar kommersiella dokument för internationell handel. Deras stämpel bekräftar att dokumenten är äkta och utfärdade av ett svenskt företag."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vilka dokument kan Handelskammaren certifiera?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Handelskammaren certifierar ursprungsintyg (Certificate of Origin), kommersiella fakturor, fraktdokument, packlista, försäkringscertifikat, hälso- och kvalitetsintyg samt agentavtal och distributörsavtal."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vilka länder kräver Handelskammar-certifiering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Många länder i Mellanöstern kräver Handelskammar-certifiering, inklusive Saudiarabien, Förenade Arabemiraten (UAE), Qatar, Kuwait, Bahrain, Oman, Egypten och Jordanien."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad kostar legalisering hos Handelskammaren?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Legalisering hos Handelskammaren kostar från 2250 kr per dokument. Priset kan variera beroende på dokumenttyp och antal dokument."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar Handelskammar-certifiering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Handelskammar-certifiering tar normalt 2-5 arbetsdagar. Vi erbjuder även expresstjänster för brådskande ärenden."
+              }
+            }
+          ]
         })}} />
       </Head>
 
@@ -139,6 +201,85 @@ export default function HandelskammarenPage() {
                   <span className="font-medium">{country.name}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
+              Vanliga frågor om Handelskammaren
+            </h2>
+            <div className="space-y-6 max-w-3xl mx-auto">
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">Vad är Handelskammaren?</h3>
+                <p className="text-gray-700">
+                  Handelskammaren (Chamber of Commerce) är en organisation som certifierar och legaliserar 
+                  kommersiella dokument för internationell handel. Deras stämpel bekräftar att dokumenten 
+                  är äkta och utfärdade av ett svenskt företag.
+                </p>
+              </div>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">Vilka dokument kan Handelskammaren certifiera?</h3>
+                <p className="text-gray-700">
+                  Handelskammaren certifierar ursprungsintyg (Certificate of Origin), kommersiella fakturor, 
+                  fraktdokument, packlista, försäkringscertifikat, hälso- och kvalitetsintyg samt agentavtal 
+                  och distributörsavtal.
+                </p>
+              </div>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">Vilka länder kräver Handelskammar-certifiering?</h3>
+                <p className="text-gray-700">
+                  Många länder i Mellanöstern kräver Handelskammar-certifiering, inklusive Saudiarabien, 
+                  Förenade Arabemiraten (UAE), Qatar, Kuwait, Bahrain, Oman, Egypten och Jordanien.
+                </p>
+              </div>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">Vad kostar legalisering hos Handelskammaren?</h3>
+                <p className="text-gray-700">
+                  Legalisering hos Handelskammaren kostar från 2250 kr per dokument. Priset kan variera 
+                  beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert.
+                </p>
+              </div>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">Hur lång tid tar Handelskammar-certifiering?</h3>
+                <p className="text-gray-700">
+                  Handelskammar-certifiering tar normalt 2-5 arbetsdagar. Vi erbjuder även expresstjänster 
+                  för brådskande ärenden.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Process Section */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
+              Så fungerar processen
+            </h2>
+            <div className="grid md:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-[#D4AF37] text-black rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-xl">1</div>
+                <h3 className="font-semibold mb-2">Beställ online</h3>
+                <p className="text-gray-600 text-sm">Fyll i vårt beställningsformulär och ladda upp dina dokument</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-[#D4AF37] text-black rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-xl">2</div>
+                <h3 className="font-semibold mb-2">Vi granskar</h3>
+                <p className="text-gray-600 text-sm">Vi kontrollerar att dokumenten uppfyller kraven</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-[#D4AF37] text-black rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-xl">3</div>
+                <h3 className="font-semibold mb-2">Handelskammaren</h3>
+                <p className="text-gray-600 text-sm">Vi lämnar in dokumenten för certifiering</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-[#D4AF37] text-black rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-xl">4</div>
+                <h3 className="font-semibold mb-2">Leverans</h3>
+                <p className="text-gray-600 text-sm">Vi skickar tillbaka dina certifierade dokument</p>
+              </div>
             </div>
           </div>
         </section>
