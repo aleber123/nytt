@@ -604,6 +604,14 @@ function AdminOrderDetailPage() {
       });
     }
 
+    // STEP 3b: Print packing slip - Always after documents are received/verified
+    steps.push({
+      id: 'print_packing_slip',
+      name: '🖨️ Print packing slip',
+      description: 'Print the packing slip PDF and attach it to the documents',
+      status: 'pending'
+    });
+
     // STEP 4: Quality control - Check documents
     steps.push({
       id: 'quality_control',
