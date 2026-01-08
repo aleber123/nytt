@@ -8,6 +8,8 @@
 
 import React from 'react';
 import { useTranslation } from 'next-i18next';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
@@ -543,16 +545,31 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('orderFlow.pickupAddress.date', 'Önskat upphämtningsdatum')} {t('orderFlow.pickupAddress.requiredField')}
               </label>
-              <input
-                type="date"
-                value={answers.pickupDate || ''}
-                min={earliestPickupDate}
-                onChange={(e) =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    pickupDate: e.target.value,
-                  }))
-                }
+              <DatePicker
+                selected={answers.pickupDate ? new Date(answers.pickupDate + 'T12:00:00') : null}
+                onChange={(date: Date | null) => {
+                  if (date) {
+                    const y = date.getFullYear();
+                    const m = String(date.getMonth() + 1).padStart(2, '0');
+                    const d = String(date.getDate()).padStart(2, '0');
+                    setAnswers((prev) => ({
+                      ...prev,
+                      pickupDate: `${y}-${m}-${d}`,
+                    }));
+                  } else {
+                    setAnswers((prev) => ({
+                      ...prev,
+                      pickupDate: '',
+                    }));
+                  }
+                }}
+                minDate={new Date(earliestPickupDate + 'T12:00:00')}
+                filterDate={(date: Date) => {
+                  const day = date.getDay();
+                  return day !== 0 && day !== 6; // Disable weekends
+                }}
+                dateFormat="yyyy-MM-dd"
+                placeholderText={t('orderFlow.pickupAddress.datePlaceholder', 'Välj datum')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button"
               />
               <p className="mt-1 text-xs text-gray-500">

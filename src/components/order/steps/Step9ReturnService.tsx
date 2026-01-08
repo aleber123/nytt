@@ -6,6 +6,8 @@
 
 import React from 'react';
 import { useTranslation } from 'next-i18next';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 
@@ -291,17 +293,32 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                     <label htmlFor="return-delivery-date" className="block text-sm font-medium text-green-900 mb-1">
                       {t('orderFlow.step9.stockholmDeliveryDateLabel', 'Önskat leveransdatum')}
                     </label>
-                    <input
+                    <DatePicker
                       id="return-delivery-date"
-                      type="date"
-                      value={answers.returnDeliveryDate || ''}
-                      min={getEarliestStockholmDeliveryDate()}
-                      onChange={(e) =>
-                        setAnswers((prev) => ({
-                          ...prev,
-                          returnDeliveryDate: e.target.value
-                        }))
-                      }
+                      selected={answers.returnDeliveryDate ? new Date(answers.returnDeliveryDate + 'T12:00:00') : null}
+                      onChange={(date: Date | null) => {
+                        if (date) {
+                          const y = date.getFullYear();
+                          const m = String(date.getMonth() + 1).padStart(2, '0');
+                          const d = String(date.getDate()).padStart(2, '0');
+                          setAnswers((prev) => ({
+                            ...prev,
+                            returnDeliveryDate: `${y}-${m}-${d}`
+                          }));
+                        } else {
+                          setAnswers((prev) => ({
+                            ...prev,
+                            returnDeliveryDate: ''
+                          }));
+                        }
+                      }}
+                      minDate={new Date(getEarliestStockholmDeliveryDate() + 'T12:00:00')}
+                      filterDate={(date: Date) => {
+                        const day = date.getDay();
+                        return day !== 0 && day !== 6; // Disable weekends
+                      }}
+                      dateFormat="yyyy-MM-dd"
+                      placeholderText={t('orderFlow.step9.stockholmDeliveryDatePlaceholder', 'Välj datum')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button bg-white"
                     />
                   </div>
