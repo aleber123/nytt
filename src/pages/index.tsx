@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GetStaticProps } from 'next';
+import { useRouter } from 'next/router';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
@@ -25,6 +26,7 @@ interface ServiceOverview {
 
 export default function Home() {
   const { t } = useTranslation('common');
+  const router = useRouter();
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [services, setServices] = useState<ServiceOverview[]>([]);
@@ -51,7 +53,7 @@ export default function Home() {
         // Create services from pricing data
         const pricingData = getPricingData(rules);
         setServices(pricingData.map(service => ({
-          id: service.service.toLowerCase().replace(/\s+/g, ''),
+          id: service.serviceType, // Use serviceType as ID (not translated name)
           serviceType: service.serviceType,
           title: t(`services.${service.serviceType}.title`),
           shortDescription: t(`services.${service.serviceType}.description`),
@@ -69,7 +71,7 @@ export default function Home() {
         // On Firebase error, show services without prices
         const fallbackData = getFallbackPricingData();
         setServices(fallbackData.map(service => ({
-          id: service.service.toLowerCase().replace(/\s+/g, ''),
+          id: service.serviceType, // Use serviceType as ID (not translated name)
           serviceType: service.serviceType,
           title: t(`services.${service.serviceType}.title`),
           shortDescription: t(`services.${service.serviceType}.description`),
@@ -85,7 +87,7 @@ export default function Home() {
     };
 
     fetchPricingData();
-  }, []);
+  }, [router.locale]); // Re-run when language changes
 
   // Helper functions
   const getPricingData = (rules: PricingRule[]) => {
@@ -137,60 +139,60 @@ export default function Home() {
       serviceType: 'apostille',
       service: 'Apostille',
       description: t('services.apostille.description'),
-      officialFee: '850 kr',
-      serviceFee: '100 kr',
-      totalPrice: '950 kr',
-      timeframe: 'Kontakta oss',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
+      timeframe: '',
       features: ['Officiell legalisering', 'Giltig i Haag-länder', 'Snabb handläggning', 'Digital leverans']
     },
     {
       serviceType: 'notarization',
       service: 'Notarisering',
       description: t('services.notarization.description'),
-      officialFee: '1,200 kr',
-      serviceFee: '100 kr',
-      totalPrice: '1,300 kr',
-      timeframe: 'Kontakta oss',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
+      timeframe: '',
       features: ['Notarius publicus', 'Juridisk giltighet', 'Digital leverans', 'Snabb handläggning']
     },
     {
       serviceType: 'embassy',
       service: 'Ambassadlegalisering',
       description: t('services.embassy.description'),
-      officialFee: 'Från 1,500 kr (exkl. moms)',
-      serviceFee: '150 kr (inkl. moms)',
-      totalPrice: 'Från 1,650 kr',
-      timeframe: 'Kontakta oss',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
+      timeframe: '',
       features: ['Ambassad/konsulat', 'Internationell giltighet', 'Komplex process', 'Hög säkerhet']
     },
     {
       serviceType: 'translation',
       service: 'Auktoriserad översättning',
       description: t('services.translation.description'),
-      officialFee: 'Från 1,350 kr',
-      serviceFee: '100 kr',
-      totalPrice: 'Från 1,450 kr',
-      timeframe: 'Kontakta oss',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
+      timeframe: '',
       features: ['Certifierade översättare', 'Alla språk', 'Officiell stämpel']
     },
     {
       serviceType: 'chamber',
       service: 'Handelskammaren',
       description: t('services.chamber.description'),
-      officialFee: '2,300 kr',
-      serviceFee: '100 kr',
-      totalPrice: '2,400 kr',
-      timeframe: 'Kontakta oss',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
+      timeframe: '',
       features: ['Handelskammarens stämpel', 'Internationell giltighet', 'Företagshandlingar', 'Officiell legalisering']
     },
     {
       serviceType: 'ud',
       service: 'Utrikesdepartementet',
       description: t('services.ud.description'),
-      officialFee: '1,650 kr',
-      serviceFee: '100 kr',
-      totalPrice: '1,750 kr',
-      timeframe: 'Kontakta oss',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
+      timeframe: '',
       features: ['Utrikesdepartementets stämpel', 'Högsta myndighet', 'Internationell giltighet', 'Officiell legalisering']
     }
   ];
@@ -211,6 +213,26 @@ export default function Home() {
         return 'landmark';
       default:
         return 'document-check';
+    }
+  };
+
+  // Map serviceType to URL slug (always Swedish slugs since pages are in Swedish)
+  const getServiceSlug = (serviceType: string): string => {
+    switch (serviceType) {
+      case 'apostille':
+        return 'apostille';
+      case 'notarization':
+        return 'notarius-publicus';
+      case 'embassy':
+        return 'ambassadlegalisering';
+      case 'translation':
+        return 'oversattning';
+      case 'chamber':
+        return 'handelskammaren';
+      case 'ud':
+        return 'utrikesdepartementet';
+      default:
+        return serviceType;
     }
   };
 
@@ -373,7 +395,7 @@ export default function Home() {
                         {t('home.chooseService')}
                       </Link>
                       <Link
-                        href={`/tjanster/${service.id === 'auktoriseradöversättning' ? 'oversattning' : service.id}`}
+                        href={`/tjanster/${getServiceSlug(service.serviceType)}`}
                         className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
                       >
                         {t('home.learnMore')}

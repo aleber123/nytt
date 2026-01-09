@@ -1248,7 +1248,7 @@
     "contactUs": "Kontakta oss",
     "handelskammaren": {
       "title": "Legalisering hos Handelskammaren",
-      "metaDescription": "Handelskammaren certifierar kommersiella dokument för internationell handel. Vi hjälper dig med ursprungsintyg, fakturor och exportdokument. Från 2250 kr.",
+      "metaDescription": "Handelskammaren certifierar kommersiella dokument för internationell handel. Vi hjälper dig med ursprungsintyg, fakturor och exportdokument.",
       "heroText": "Handelskammaren certifierar kommersiella dokument för internationell handel. Vi hanterar ursprungsintyg, fakturor och andra exportdokument åt dig.",
       "whatTitle": "Vad gör Handelskammaren?",
       "whatText1": "Handelskammaren (Chamber of Commerce) är en organisation som certifierar och legaliserar kommersiella dokument för internationell handel. Deras stämpel bekräftar att dokumenten är äkta och utfärdade av ett svenskt företag.",
@@ -1271,7 +1271,7 @@
         {"q": "Vad är Handelskammaren?", "a": "Handelskammaren (Chamber of Commerce) är en organisation som certifierar och legaliserar kommersiella dokument för internationell handel. Deras stämpel bekräftar att dokumenten är äkta och utfärdade av ett svenskt företag."},
         {"q": "Vilka dokument kan Handelskammaren certifiera?", "a": "Handelskammaren certifierar ursprungsintyg (Certificate of Origin), kommersiella fakturor, fraktdokument, packlista, försäkringscertifikat, hälso- och kvalitetsintyg samt agentavtal och distributörsavtal."},
         {"q": "Vilka länder kräver Handelskammar-certifiering?", "a": "Många länder i Mellanöstern kräver Handelskammar-certifiering, inklusive Saudiarabien, Förenade Arabemiraten (UAE), Qatar, Kuwait, Bahrain, Oman, Egypten och Jordanien."},
-        {"q": "Vad kostar legalisering hos Handelskammaren?", "a": "Legalisering hos Handelskammaren kostar från 2250 kr per dokument. Priset kan variera beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert."},
+        {"q": "Vad kostar legalisering hos Handelskammaren?", "a": "Priset varierar beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert."},
         {"q": "Hur lång tid tar Handelskammar-certifiering?", "a": "Handelskammar-certifiering tar normalt 2-5 arbetsdagar. Vi erbjuder även expresstjänster för brådskande ärenden."}
       ],
       "countries": [
@@ -1287,7 +1287,7 @@
     },
     "apostille": {
       "title": "Apostille",
-      "metaDescription": "Apostille-legalisering för dokument som ska användas i länder anslutna till Haagkonventionen. Snabb och pålitlig service. Från 950 kr.",
+      "metaDescription": "Apostille-legalisering för dokument som ska användas i länder anslutna till Haagkonventionen. Snabb och pålitlig service.",
       "heroText": "Apostille är en internationell certifiering som gör dina svenska dokument giltiga i över 120 länder som är anslutna till Haagkonventionen.",
       "whatTitle": "Vad är Apostille?",
       "whatText1": "Apostille är en internationell certifiering enligt Haagkonventionen från 1961. Den bekräftar att ett dokument är äkta och utfärdat av en behörig myndighet i Sverige.",
@@ -1312,7 +1312,7 @@
         {"q": "Vad är skillnaden mellan Apostille och legalisering?", "a": "Apostille är en förenklad form av legalisering som gäller i Haagkonventionsländer. Traditionell legalisering kräver flera steg via ambassader."},
         {"q": "Hur lång tid tar det att få Apostille?", "a": "Normalt 3-5 arbetsdagar. Vi erbjuder även expresstjänster för brådskande ärenden."},
         {"q": "Vilka dokument kan få Apostille?", "a": "De flesta offentliga dokument kan få Apostille, inklusive födelsebevis, vigselbevis, examensbevis, domstolshandlingar och notarierade dokument."},
-        {"q": "Vad kostar Apostille?", "a": "Apostille kostar från 950 kr per dokument. Priset inkluderar vår serviceavgift och den officiella avgiften."}
+        {"q": "Vad kostar Apostille?", "a": "Priset beror på dokumenttyp och antal. Kontakta oss för en exakt offert."}
       ],
       "processTitle": "Så fungerar processen",
       "processSteps": [
@@ -1353,7 +1353,7 @@
     },
     "ambassadlegalisering": {
       "title": "Ambassadlegalisering",
-      "metaDescription": "Ambassadlegalisering för länder utanför Haagkonventionen. Komplett legaliseringskedja via UD och ambassad. Från 1650 kr.",
+      "metaDescription": "Ambassadlegalisering för länder utanför Haagkonventionen. Komplett legaliseringskedja via UD och ambassad.",
       "heroText": "För länder som inte är anslutna till Haagkonventionen krävs ambassadlegalisering. Vi hanterar hela processen från notarisering till ambassadstämpel.",
       "whatTitle": "Vad är ambassadlegalisering?",
       "whatText1": "Ambassadlegalisering är en process där dokument verifieras i flera steg för att bli giltiga i länder utanför Haagkonventionen.",
@@ -1376,7 +1376,7 @@
         {"q": "Vilka länder kräver ambassadlegalisering?", "a": "Länder utanför Haagkonventionen, inklusive UAE, Saudiarabien, Qatar, Kuwait och många afrikanska länder."},
         {"q": "Hur lång tid tar ambassadlegalisering?", "a": "Normalt 10-20 arbetsdagar beroende på ambassad. Vissa ambassader har längre handläggningstider."},
         {"q": "Vad ingår i processen?", "a": "Processen inkluderar notarisering, UD-legalisering och ambassadstämpling. Vi hanterar alla steg åt dig."},
-        {"q": "Vad kostar ambassadlegalisering?", "a": "Priset varierar beroende på land och dokumenttyp. Från 1650 kr exklusive ambassadens avgifter."}
+        {"q": "Vad kostar ambassadlegalisering?", "a": "Priset varierar beroende på land och dokumenttyp. Kontakta oss för en exakt offert."}
       ],
       "processTitle": "Så fungerar processen",
       "processSteps": [

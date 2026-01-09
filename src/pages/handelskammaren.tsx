@@ -11,7 +11,7 @@ export default function HandelskammarenLandingPage() {
     <>
       <Head>
         <title>Handelskammaren Legalisering | Certifiering av Exportdokument | DOX Visumpartner</title>
-        <meta name="description" content="Professionell hjälp med legalisering hos Handelskammaren. Vi hanterar ursprungsintyg, Certificate of Origin, fakturor och exportdokument för internationell handel. Från 2250 kr." />
+        <meta name="description" content="Professionell hjälp med legalisering hos Handelskammaren. Vi hanterar ursprungsintyg, Certificate of Origin, fakturor och exportdokument för internationell handel." />
         <meta name="keywords" content="handelskammaren, handelskammaren legalisering, ursprungsintyg, certificate of origin, exportdokument, legalisering dokument, internationell handel, chamber of commerce" />
         <link rel="canonical" href="https://www.doxvl.se/handelskammaren" />
         
@@ -66,7 +66,7 @@ export default function HandelskammarenLandingPage() {
               "name": "Vad kostar legalisering hos Handelskammaren?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Legalisering hos Handelskammaren kostar från 2250 kr per dokument. Priset kan variera beroende på dokumenttyp och antal dokument."
+                "text": "Priset varierar beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert."
               }
             },
             {
@@ -105,7 +105,7 @@ export default function HandelskammarenLandingPage() {
                 från ursprungsintyg till kommersiella fakturor och exportdokument.
               </p>
               <p className="text-lg text-gray-400 mb-8">
-                ✓ Snabb handläggning &nbsp; ✓ Från 2250 kr &nbsp; ✓ Experthjälp
+                ✓ Snabb handläggning &nbsp; ✓ Experthjälp &nbsp; ✓ Kontakta oss för pris
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/bestall" className="bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold px-8 py-4 rounded-lg transition-colors">
@@ -261,7 +261,7 @@ export default function HandelskammarenLandingPage() {
                       <p className="text-gray-600 text-sm">Per dokument</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-bold text-[#2E2D2C]">från 2 250 kr</span>
+                      <span className="text-2xl font-bold text-[#2E2D2C]">Kontakta oss</span>
                     </div>
                   </div>
                 </div>
@@ -325,8 +325,7 @@ export default function HandelskammarenLandingPage() {
               <div className="bg-gray-50 p-6 rounded-lg">
                 <h3 className="font-semibold text-lg mb-2">Vad kostar legalisering hos Handelskammaren?</h3>
                 <p className="text-gray-700">
-                  Legalisering hos Handelskammaren kostar från 2250 kr per dokument. Priset kan variera 
-                  beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert.
+                  Priset varierar beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert.
                 </p>
               </div>
             </div>

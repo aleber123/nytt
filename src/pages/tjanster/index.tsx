@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GetStaticProps } from 'next';
+import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Link from 'next/link';
@@ -20,6 +21,7 @@ interface ServiceOverview {
 
 const ServicesPage: React.FC = () => {
   const { t } = useTranslation('common');
+  const router = useRouter();
   const safeT = (key: string, fallback: string) => {
     const value = t(key);
     return value === key ? fallback : value;
@@ -43,13 +45,13 @@ const ServicesPage: React.FC = () => {
         // Create services from pricing data
         const pricingData = getPricingData(rules);
         setServices(pricingData.map(service => ({
-          id: service.service.toLowerCase().replace(/\s+/g, ''),
+          id: service.serviceType || service.service.toLowerCase().replace(/\s+/g, ''),
           title: service.service,
           shortDescription: service.description,
-          icon: getServiceIcon(service.service.toLowerCase()),
+          icon: getServiceIcon(service.serviceType || service.service.toLowerCase()),
           price: service.totalPrice,
           timeframe: service.timeframe,
-          popular: service.service === 'Apostille',
+          popular: service.serviceType === 'apostille' || service.service === 'Apostille',
           features: service.features
         })));
 
@@ -58,13 +60,13 @@ const ServicesPage: React.FC = () => {
         setPricingError(true);
         const fallbackData = getFallbackPricingData();
         setServices(fallbackData.map(service => ({
-          id: service.service.toLowerCase().replace(/\s+/g, ''),
+          id: service.serviceType,
           title: service.service,
           shortDescription: service.description,
-          icon: getServiceIcon(service.service.toLowerCase()),
+          icon: getServiceIcon(service.serviceType),
           price: '', // No price shown on error
           timeframe: service.timeframe,
-          popular: service.service === 'Apostille',
+          popular: service.serviceType === 'apostille',
           features: service.features
         })));
       } finally {
@@ -73,7 +75,7 @@ const ServicesPage: React.FC = () => {
     };
 
     fetchPricingData();
-  }, []);
+  }, [router.locale]); // Re-run when language changes
 
   // Helper functions
   const getPricingData = (rules: PricingRule[]) => {
@@ -137,11 +139,12 @@ const ServicesPage: React.FC = () => {
 
   const getFallbackPricingData = () => [
     {
+      serviceType: 'apostille',
       service: t('services.apostille.title', { defaultValue: 'Apostille' }),
       description: t('services.apostille.shortDesc', { defaultValue: 'För länder anslutna till Haagkonventionen' }),
-      officialFee: '850 kr',
-      serviceFee: '100 kr',
-      totalPrice: '1550 kr',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
       timeframe: t('services.apostille.timeframe', { defaultValue: '5 arbetsdagar' }),
       features: [
         t('services.apostille.feature1', { defaultValue: 'Officiell legalisering' }),
@@ -151,11 +154,12 @@ const ServicesPage: React.FC = () => {
       ]
     },
     {
+      serviceType: 'notarization',
       service: t('services.notarization.title', { defaultValue: 'Notarisering' }),
       description: t('services.notarization.shortDesc', { defaultValue: 'Juridisk bekräftelse av dokument' }),
-      officialFee: '1,200 kr',
-      serviceFee: '100 kr',
-      totalPrice: '1500 kr',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
       timeframe: t('services.notarization.timeframe', { defaultValue: '8 arbetsdagar' }),
       features: [
         t('services.notarization.feature1', { defaultValue: 'Notarius publicus' }),
@@ -165,11 +169,12 @@ const ServicesPage: React.FC = () => {
       ]
     },
     {
+      serviceType: 'embassy',
       service: t('services.embassy.title', { defaultValue: 'Ambassadlegalisering' }),
       description: t('services.embassy.shortDesc', { defaultValue: 'För länder utanför Haagkonventionen' }),
-      officialFee: 'Från 1,500 kr (exkl. moms)',
-      serviceFee: '150 kr (inkl. moms)',
-      totalPrice: 'Från 1,650 kr',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
       timeframe: t('services.embassy.timeframe', { defaultValue: '15 arbetsdagar' }),
       features: [
         t('services.embassy.feature1', { defaultValue: 'Ambassad/konsulat' }),
@@ -179,11 +184,12 @@ const ServicesPage: React.FC = () => {
       ]
     },
     {
+      serviceType: 'translation',
       service: t('services.translation.title', { defaultValue: 'Auktoriserad översättning' }),
       description: t('services.translation.shortDesc', { defaultValue: 'Officiella översättningar' }),
-      officialFee: 'Från 1,350 kr',
-      serviceFee: '100 kr',
-      totalPrice: 'Från 1,450 kr',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
       timeframe: t('services.translation.timeframe', { defaultValue: '10 arbetsdagar' }),
       features: [
         t('services.translation.feature1', { defaultValue: 'Certifierade översättare' }),
@@ -192,11 +198,12 @@ const ServicesPage: React.FC = () => {
       ]
     },
     {
+      serviceType: 'chamber',
       service: t('services.chamber.title', { defaultValue: 'Handelskammaren' }),
       description: t('services.chamber.shortDesc', { defaultValue: 'Handelskammarens legalisering' }),
-      officialFee: '2,300 kr',
-      serviceFee: '100 kr',
-      totalPrice: '1900 kr',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
       timeframe: t('services.chamber.timeframe', { defaultValue: '7 arbetsdagar' }),
       features: [
         t('services.chamber.feature1', { defaultValue: 'Handelskammarens stämpel' }),
@@ -206,11 +213,12 @@ const ServicesPage: React.FC = () => {
       ]
     },
     {
+      serviceType: 'ud',
       service: t('services.ud.title', { defaultValue: 'Utrikesdepartementet' }),
       description: t('services.ud.shortDesc', { defaultValue: 'UD:s legalisering' }),
-      officialFee: '1,650 kr',
-      serviceFee: '100 kr',
-      totalPrice: '1355 kr',
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
       timeframe: t('services.ud.timeframe', { defaultValue: '10 arbetsdagar' }),
       features: [
         t('services.ud.feature1', { defaultValue: 'Utrikesdepartementets stämpel' }),
@@ -221,15 +229,16 @@ const ServicesPage: React.FC = () => {
     }
   ];
 
-  // Map service IDs to their actual page URLs
+  // Map service IDs/types to their actual page URLs
   const getServiceUrl = (serviceId: string): string => {
     const urlMap: { [key: string]: string } = {
+      // serviceType values (from Firebase/fallback data)
       'apostille': '/tjanster/apostille',
-      'notarisering': '/tjanster/notarius-publicus',
-      'ambassadlegalisering': '/tjanster/ambassadlegalisering',
-      'auktoriseradöversättning': '/tjanster/oversattning',
-      'handelskammaren': '/tjanster/handelskammaren',
-      'utrikesdepartementet': '/tjanster/utrikesdepartementet'
+      'notarization': '/tjanster/notarius-publicus',
+      'embassy': '/tjanster/ambassadlegalisering',
+      'translation': '/tjanster/oversattning',
+      'chamber': '/tjanster/handelskammaren',
+      'ud': '/tjanster/utrikesdepartementet'
     };
     return urlMap[serviceId] || `/tjanster/${serviceId}`;
   };

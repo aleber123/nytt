@@ -1246,7 +1246,7 @@
     "contactUs": "Contact us",
     "handelskammaren": {
       "title": "Chamber of Commerce Legalization",
-      "metaDescription": "Chamber of Commerce certifies commercial documents for international trade. We help you with certificates of origin, invoices and export documents. From 2250 SEK.",
+      "metaDescription": "Chamber of Commerce certifies commercial documents for international trade. We help you with certificates of origin, invoices and export documents.",
       "heroText": "The Chamber of Commerce certifies commercial documents for international trade. We handle certificates of origin, invoices and other export documents for you.",
       "whatTitle": "What does the Chamber of Commerce do?",
       "whatText1": "The Chamber of Commerce is an organization that certifies and legalizes commercial documents for international trade. Their stamp confirms that the documents are authentic and issued by a Swedish company.",
@@ -1269,7 +1269,7 @@
         {"q": "What is the Chamber of Commerce?", "a": "The Chamber of Commerce is an organization that certifies and legalizes commercial documents for international trade. Their stamp confirms that the documents are authentic and issued by a Swedish company."},
         {"q": "Which documents can the Chamber of Commerce certify?", "a": "The Chamber of Commerce certifies certificates of origin, commercial invoices, shipping documents, packing lists, insurance certificates, health and quality certificates, and agent and distributor agreements."},
         {"q": "Which countries require Chamber of Commerce certification?", "a": "Many countries in the Middle East require Chamber of Commerce certification, including Saudi Arabia, United Arab Emirates (UAE), Qatar, Kuwait, Bahrain, Oman, Egypt and Jordan."},
-        {"q": "How much does Chamber of Commerce legalization cost?", "a": "Chamber of Commerce legalization costs from 2250 SEK per document. The price may vary depending on document type and number of documents. Contact us for an exact quote."},
+        {"q": "How much does Chamber of Commerce legalization cost?", "a": "The price varies depending on document type and number of documents. Contact us for an exact quote."},
         {"q": "How long does Chamber of Commerce certification take?", "a": "Chamber of Commerce certification normally takes 2-5 business days. We also offer express services for urgent matters."}
       ],
       "countries": [
@@ -1285,7 +1285,7 @@
     },
     "apostille": {
       "title": "Apostille",
-      "metaDescription": "Apostille legalization for documents to be used in countries party to the Hague Convention. Fast and reliable service. From 950 SEK.",
+      "metaDescription": "Apostille legalization for documents to be used in countries party to the Hague Convention. Fast and reliable service.",
       "heroText": "Apostille is an international certification that makes your Swedish documents valid in over 120 countries that are party to the Hague Convention.",
       "whatTitle": "What is Apostille?",
       "whatText1": "Apostille is an international certification according to the Hague Convention of 1961. It confirms that a document is authentic and issued by a competent authority in Sweden.",
@@ -1310,7 +1310,7 @@
         {"q": "What is the difference between Apostille and legalization?", "a": "Apostille is a simplified form of legalization valid in Hague Convention countries. Traditional legalization requires multiple steps via embassies."},
         {"q": "How long does it take to get Apostille?", "a": "Normally 3-5 business days. We also offer express services for urgent matters."},
         {"q": "Which documents can get Apostille?", "a": "Most public documents can get Apostille, including birth certificates, marriage certificates, diplomas, court documents and notarized documents."},
-        {"q": "How much does Apostille cost?", "a": "Apostille costs from 950 SEK per document. The price includes our service fee and the official fee."}
+        {"q": "How much does Apostille cost?", "a": "The price depends on document type and quantity. Contact us for an exact quote."}
       ],
       "processTitle": "How the process works",
       "processSteps": [
@@ -1324,7 +1324,7 @@
     },
     "notarisering": {
       "title": "Notarius Publicus",
-      "metaDescription": "Notarization of documents by Notarius Publicus. Legal confirmation for use in Sweden and abroad. From 1300 SEK.",
+      "metaDescription": "Notarization of documents by Notarius Publicus. Legal confirmation for use in Sweden and abroad.",
       "heroText": "Notarius Publicus certifies signatures and confirms that documents are authentic. This is often the first step for using documents abroad.",
       "whatTitle": "What does Notarius Publicus do?",
       "whatText1": "Notarius Publicus is a public official appointed by the County Administrative Board. Their task is to certify signatures, confirm that copies match originals, and perform other notarial acts.",
@@ -1351,7 +1351,7 @@
     },
     "ambassadlegalisering": {
       "title": "Embassy Legalization",
-      "metaDescription": "Embassy legalization for countries outside the Hague Convention. Complete legalization chain via Ministry and embassy. From 1650 SEK.",
+      "metaDescription": "Embassy legalization for countries outside the Hague Convention. Complete legalization chain via Ministry and embassy.",
       "heroText": "For countries not party to the Hague Convention, embassy legalization is required. We handle the entire process from notarization to embassy stamp.",
       "whatTitle": "What is embassy legalization?",
       "whatText1": "Embassy legalization is a process where documents are verified in multiple steps to become valid in countries outside the Hague Convention.",
@@ -1374,7 +1374,7 @@
         {"q": "Which countries require embassy legalization?", "a": "Countries outside the Hague Convention, including UAE, Saudi Arabia, Qatar, Kuwait and many African countries."},
         {"q": "How long does embassy legalization take?", "a": "Normally 10-20 business days depending on the embassy. Some embassies have longer processing times."},
         {"q": "What is included in the process?", "a": "The process includes notarization, Ministry legalization and embassy stamping. We handle all steps for you."},
-        {"q": "How much does embassy legalization cost?", "a": "The price varies depending on country and document type. From 1650 SEK excluding embassy fees."}
+        {"q": "How much does embassy legalization cost?", "a": "The price varies depending on country and document type. Contact us for an exact quote."}
       ],
       "processTitle": "How the process works",
       "processSteps": [
@@ -1388,7 +1388,7 @@
     },
     "oversattning": {
       "title": "Authorized Translation",
-      "metaDescription": "Authorized translation of documents for use abroad. Certified translators, all languages, official stamp. From 1450 SEK.",
+      "metaDescription": "Authorized translation of documents for use abroad. Certified translators, all languages, official stamp.",
       "heroText": "Authorized translations are performed by translators approved by Kammarkollegiet and are legally valid for use with authorities in Sweden and abroad.",
       "whatTitle": "What is authorized translation?",
       "whatText1": "An authorized translation is a translation performed by a translator authorized by Kammarkollegiet. The translator certifies that the translation is correct and complete, and places their official stamp on the document.",

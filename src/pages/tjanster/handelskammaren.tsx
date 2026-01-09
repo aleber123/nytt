@@ -84,7 +84,7 @@ export default function HandelskammarenPage() {
               "name": "Vad kostar legalisering hos Handelskammaren?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Legalisering hos Handelskammaren kostar från 2250 kr per dokument. Priset kan variera beroende på dokumenttyp och antal dokument."
+                "text": "Priset varierar beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert."
               }
             },
             {
