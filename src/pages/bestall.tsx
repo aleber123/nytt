@@ -15,7 +15,7 @@ import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import ReCAPTCHA from 'react-google-recaptcha';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { printShippingLabel } from '@/services/shippingLabelService';
 import { useOrderPersistence } from '@/hooks/useOrderPersistence';
 import type { OrderAnswers } from '@/components/order/types';
@@ -143,7 +143,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const submissionInProgressRef = useRef(false);
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // Progress persistence - auto-save and restore order data
   const { clearProgress, getSavedProgressInfo } = useOrderPersistence(
@@ -1375,8 +1375,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       setIsSubmitting(true);
       submissionInProgressRef.current = true;
 
-      // Verify reCAPTCHA
-      const recaptchaToken = await recaptchaRef.current?.executeAsync();
+      // Verify reCAPTCHA v3
+      if (!executeRecaptcha) {
+        toast.error('reCAPTCHA är inte redo, vänligen försök igen');
+        return;
+      }
+      const recaptchaToken = await executeRecaptcha('submit_order');
       if (!recaptchaToken) {
         toast.error('Vänligen verifiera att du inte är en robot');
         return;
@@ -1404,7 +1408,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     } finally {
       setIsSubmitting(false);
       submissionInProgressRef.current = false;
-      recaptchaRef.current?.reset();
     }
   };
 
@@ -1669,7 +1672,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   pricingBreakdown={pricingBreakdown}
                   loadingPricing={loadingPricing}
                   totalPrice={totalPrice}
-                  recaptchaRef={recaptchaRef}
+                  executeRecaptcha={executeRecaptcha}
                   isSubmitting={isSubmitting}
                   onSubmit={handleSubmit}
                   currentLocale={currentLocale}

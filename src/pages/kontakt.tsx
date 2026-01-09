@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -7,7 +7,7 @@ import Seo from '@/components/Seo';
 import { useForm } from 'react-hook-form';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import ReCAPTCHA from 'react-google-recaptcha';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 interface ContactFormData {
   name: string;
@@ -22,22 +22,22 @@ const ContactPage: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const { register, handleSubmit, formState: { errors } } = useForm<ContactFormData>();
-
-  // reCAPTCHA callback
-  const onRecaptchaChange = (token: string | null) => {
-    // Token is handled automatically by the component
-  };
 
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    // Check reCAPTCHA
-    const recaptchaToken = recaptchaRef.current?.getValue();
+    // Check reCAPTCHA v3
+    if (!executeRecaptcha) {
+      setSubmitError('reCAPTCHA är inte redo, vänligen försök igen.');
+      setIsSubmitting(false);
+      return;
+    }
+    const recaptchaToken = await executeRecaptcha('contact_form');
     if (!recaptchaToken) {
-      setSubmitError('Vänligen verifiera att du inte är en robot genom att slutföra reCAPTCHA.');
+      setSubmitError('Vänligen verifiera att du inte är en robot.');
       setIsSubmitting(false);
       return;
     }
@@ -53,9 +53,6 @@ const ContactPage: React.FC = () => {
 
       await addDoc(collection(db, 'contactMessages'), contactMessage);
       setIsSubmitted(true);
-
-      // Reset reCAPTCHA
-      recaptchaRef.current?.reset();
     } catch (error) {
       console.error('Error saving contact message:', error);
       setSubmitError('Ett fel uppstod när meddelandet skulle skickas. Försök igen senare.');
@@ -341,14 +338,7 @@ const ContactPage: React.FC = () => {
                   </div>
 
                   <div className="pt-4">
-                    {/* reCAPTCHA Widget */}
-                    <div className="mb-4">
-                      <ReCAPTCHA
-                        ref={recaptchaRef}
-                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
-                        onChange={onRecaptchaChange}
-                      />
-                    </div>
+                    {/* reCAPTCHA v3 - invisible, handled by provider */}
 
                     <button
                       type="submit"

@@ -9,7 +9,6 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
-import ReCAPTCHA from 'react-google-recaptcha';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { createOrderWithFiles } from '@/services/hybridOrderService';
@@ -29,7 +28,7 @@ interface Step10Props extends Omit<StepProps, 'currentLocale'> {
   pricingBreakdown: any[];
   loadingPricing: boolean;
   totalPrice: number;
-  recaptchaRef: React.RefObject<ReCAPTCHA>;
+  executeRecaptcha: ((action?: string) => Promise<string>) | undefined;
   isSubmitting: boolean;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   currentLocale?: string;
@@ -45,7 +44,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   pricingBreakdown,
   loadingPricing,
   totalPrice,
-  recaptchaRef,
+  executeRecaptcha,
   isSubmitting,
   onSubmit,
   currentLocale
@@ -627,13 +626,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             showValidation={showValidation}
           />
 
-          {/* reCAPTCHA */}
-          <div className="pt-4">
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
-            />
-          </div>
+          {/* reCAPTCHA v3 - invisible, handled by provider */}
 
           {/* Validation Summary */}
           {renderValidationSummary()}
@@ -653,13 +646,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 if (missing.length > 0) {
                   setShowValidation(true);
                   scrollToFirstError();
-                  return;
-                }
-
-                // Check reCAPTCHA
-                const recaptchaToken = recaptchaRef.current?.getValue();
-                if (!recaptchaToken) {
-                  toast.error('Vänligen verifiera att du inte är en robot genom att slutföra reCAPTCHA.');
                   return;
                 }
 
@@ -805,9 +791,6 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                   } catch (emailError) {
                     // Don't block the order flow if email notification fails
                   }
-
-                  // Reset reCAPTCHA
-                  recaptchaRef.current?.reset();
 
                   // Redirect to confirmation page after a short delay
                   setTimeout(() => {
@@ -960,13 +943,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
           {/* Terms and Conditions Acceptance */}
           <TermsAcceptance locale={locale} id="terms-acceptance-original" />
 
-          {/* reCAPTCHA */}
-          <div className="pt-4">
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
-            />
-          </div>
+          {/* reCAPTCHA v3 - invisible, handled by provider */}
 
           {/* Validation Summary */}
           {renderValidationSummary()}
@@ -986,13 +963,6 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                 if (missing.length > 0) {
                   setShowValidation(true);
                   scrollToFirstError();
-                  return;
-                }
-
-                // Check reCAPTCHA
-                const recaptchaToken = recaptchaRef.current?.getValue();
-                if (!recaptchaToken) {
-                  toast.error('Vänligen verifiera att du inte är en robot genom att slutföra reCAPTCHA.');
                   return;
                 }
 
