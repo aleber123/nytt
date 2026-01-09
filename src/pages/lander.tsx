@@ -382,7 +382,7 @@ const countries = [
     documentTypes: ['Birth Certificate', 'Marriage Certificate', 'Diploma', 'Commercial Documents']
   },
   { 
-    name: 'Kina (Endast Hongkong och Macao)', 
+    name: 'Kina', 
     region: 'asia',
     isHagueConvention: true,
     process: 'Notarization + Apostille',

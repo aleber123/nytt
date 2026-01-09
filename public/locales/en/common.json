@@ -83,7 +83,7 @@
       "addressLine2": "121 25 Stockholm-Globen",
       "country": "Sweden",
       "email": "info@doxvl.se",
-      "phone": "+46 8 123 456 78"
+      "phone": "08-409 419 00"
     },
     "backToContact": "Back to contact"
   },
@@ -262,44 +262,78 @@
   "services": {
     "pageTitle": "Our Services",
     "pageIntro": "We offer a range of document legalization services to meet your needs",
+    "pageSubtitle": "We simplify the legalization process with clear services tailored for different situations",
+    "popular": "Popular",
+    "from": "From",
+    "chooseService": "Choose service",
     "apostille": {
       "title": "Apostille",
       "description": "Legalization of documents for use in countries that are part of the Hague Convention",
+      "shortDesc": "For countries party to the Hague Convention",
       "longDescription": "Apostille is a simplified certification process for documents that will be used in countries that are part of the 1961 Hague Convention. This certification verifies the authenticity of the signature, the capacity in which the person signing the document acted, and the identity of any stamp or seal on the document.",
       "price": "From 895 kr",
-      "timeframe": "5-7 business days"
+      "timeframe": "5 business days",
+      "feature1": "Official legalization",
+      "feature2": "Valid in Hague countries",
+      "feature3": "Fast processing",
+      "feature4": "Digital delivery"
     },
     "notarization": {
       "title": "Notarization",
       "description": "Notarization of documents by a notary public for legal validity",
+      "shortDesc": "Legal certification of documents",
       "longDescription": "Notarization is the process where a notary public certifies and attests to the authenticity of signatures on documents. This service is often required for legal documents, affidavits, and other important papers to verify their legitimacy and prevent fraud.",
       "price": "From 695 kr",
-      "timeframe": "3-5 business days"
+      "timeframe": "8 business days",
+      "feature1": "Notary public",
+      "feature2": "Legal validity",
+      "feature3": "Original documents required",
+      "feature4": "Fast processing"
     },
     "embassy": {
       "title": "Embassy Legalization",
       "description": "Legalization of documents through embassy or consulate for use in specific countries",
+      "shortDesc": "For countries outside the Hague Convention",
       "longDescription": "Embassy legalization is required for documents that will be used in countries that are not part of the Hague Convention. This process involves getting your documents certified by the embassy or consulate of the country where they will be used, after they have been authenticated by the appropriate authorities in your home country.",
       "price": "From 1295 kr",
-      "timeframe": "7-14 business days"
+      "timeframe": "15 business days",
+      "feature1": "Embassy/consulate",
+      "feature2": "International validity",
+      "feature3": "Complex process",
+      "feature4": "High security"
     },
     "translation": {
       "title": "Authorized Translation",
       "description": "Translation of documents by authorized translators for official use",
+      "shortDesc": "Official translations",
       "longDescription": "Our authorized translation service provides official translations of your documents by certified translators. These translations are legally recognized and can be used for official purposes such as immigration, education, business, and legal matters in foreign countries.",
       "price": "From 995 kr",
-      "timeframe": "5-10 business days"
+      "timeframe": "10 business days",
+      "feature1": "Certified translators",
+      "feature2": "All languages",
+      "feature3": "Official stamp"
     },
     "ud": {
-      "title": "Foreign Ministry Legalization",
+      "title": "Foreign Ministry",
       "description": "Legalization of documents by the Swedish Ministry for Foreign Affairs",
+      "shortDesc": "Ministry legalization",
       "longDescription": "This service involves the legalization of documents by the Swedish Ministry for Foreign Affairs (UD). This is often required as a step before embassy legalization or for documents that need official government verification for use abroad.",
       "price": "From 1095 kr",
-      "timeframe": "5-7 business days"
+      "timeframe": "10 business days",
+      "feature1": "Ministry stamp",
+      "feature2": "Highest authority",
+      "feature3": "International validity",
+      "feature4": "Official legalization"
     },
     "chamber": {
       "title": "Chamber of Commerce",
-      "description": "Legalization of commercial documents through the Chamber of Commerce"
+      "description": "Legalization of commercial documents through the Chamber of Commerce",
+      "shortDesc": "Chamber of Commerce legalization",
+      "timeframe": "7 business days",
+      "feature1": "Chamber stamp",
+      "feature2": "International validity",
+      "feature3": "Business documents",
+      "feature4": "Official legalization"
     },
     "details": {
       "process": "Process",
@@ -482,6 +516,9 @@
       "terms": "Terms",
       "accessibility": "Accessibility",
       "cookies": "Cookies"
+    },
+    "countries": {
+      "title": "Countries"
     }
   },
   "confirmation": {
@@ -517,7 +554,7 @@
     "person1": {
       "name": "Anna Johansson",
       "role": "Business Owner",
-      "content": "Amazing service! I needed to get my documents legalized quickly for a business trip to China and everything went smoothly and professionally."
+      "content": "Amazing service! I needed to get my documents legalized quickly for a business trip to Dubai and everything went smoothly and professionally."
     },
     "person2": {
       "name": "Erik Svensson",
@@ -1202,6 +1239,335 @@
       "title": "❌ An error occurred",
       "description": "Could not submit order.",
       "suggestion": "Try again or contact support"
+    }
+  },
+  "servicePages": {
+    "orderNow": "Order now",
+    "contactUs": "Contact us",
+    "handelskammaren": {
+      "title": "Chamber of Commerce Legalization",
+      "metaDescription": "Chamber of Commerce certifies commercial documents for international trade. We help you with certificates of origin, invoices and export documents. From 2250 SEK.",
+      "heroText": "The Chamber of Commerce certifies commercial documents for international trade. We handle certificates of origin, invoices and other export documents for you.",
+      "whatTitle": "What does the Chamber of Commerce do?",
+      "whatText1": "The Chamber of Commerce is an organization that certifies and legalizes commercial documents for international trade. Their stamp confirms that the documents are authentic and issued by a Swedish company.",
+      "whatText2": "Many countries, especially in the Middle East and Asia, require trade documents to be certified by the Chamber of Commerce before they can be used for import/export.",
+      "whatText3": "After Chamber of Commerce certification, documents often also need to be legalized by the Ministry for Foreign Affairs and the destination country's embassy.",
+      "documentsTitle": "Documents we handle:",
+      "documents": ["Certificate of Origin", "Commercial invoices", "Shipping documents and packing lists", "Insurance certificates", "Health and quality certificates", "Agent and distributor agreements"],
+      "countriesTitle": "Countries requiring Chamber of Commerce certification",
+      "faqTitle": "Frequently asked questions about Chamber of Commerce",
+      "processTitle": "How the process works",
+      "processSteps": [
+        {"title": "Order online", "desc": "Fill in our order form and upload your documents"},
+        {"title": "We review", "desc": "We check that the documents meet the requirements"},
+        {"title": "Chamber of Commerce", "desc": "We submit the documents for certification"},
+        {"title": "Delivery", "desc": "We send back your certified documents"}
+      ],
+      "ctaTitle": "Need help with trade documents?",
+      "ctaText": "We have extensive experience handling export documents for companies. Contact us for a quote.",
+      "faqs": [
+        {"q": "What is the Chamber of Commerce?", "a": "The Chamber of Commerce is an organization that certifies and legalizes commercial documents for international trade. Their stamp confirms that the documents are authentic and issued by a Swedish company."},
+        {"q": "Which documents can the Chamber of Commerce certify?", "a": "The Chamber of Commerce certifies certificates of origin, commercial invoices, shipping documents, packing lists, insurance certificates, health and quality certificates, and agent and distributor agreements."},
+        {"q": "Which countries require Chamber of Commerce certification?", "a": "Many countries in the Middle East require Chamber of Commerce certification, including Saudi Arabia, United Arab Emirates (UAE), Qatar, Kuwait, Bahrain, Oman, Egypt and Jordan."},
+        {"q": "How much does Chamber of Commerce legalization cost?", "a": "Chamber of Commerce legalization costs from 2250 SEK per document. The price may vary depending on document type and number of documents. Contact us for an exact quote."},
+        {"q": "How long does Chamber of Commerce certification take?", "a": "Chamber of Commerce certification normally takes 2-5 business days. We also offer express services for urgent matters."}
+      ],
+      "countries": [
+        {"flag": "🇸🇦", "name": "Saudi Arabia"},
+        {"flag": "🇦🇪", "name": "United Arab Emirates"},
+        {"flag": "🇶🇦", "name": "Qatar"},
+        {"flag": "🇰🇼", "name": "Kuwait"},
+        {"flag": "🇧🇭", "name": "Bahrain"},
+        {"flag": "🇴🇲", "name": "Oman"},
+        {"flag": "🇪🇬", "name": "Egypt"},
+        {"flag": "🇯🇴", "name": "Jordan"}
+      ]
+    },
+    "apostille": {
+      "title": "Apostille",
+      "metaDescription": "Apostille legalization for documents to be used in countries party to the Hague Convention. Fast and reliable service. From 950 SEK.",
+      "heroText": "Apostille is an international certification that makes your Swedish documents valid in over 120 countries that are party to the Hague Convention.",
+      "whatTitle": "What is Apostille?",
+      "whatText1": "Apostille is an international certification according to the Hague Convention of 1961. It confirms that a document is authentic and issued by a competent authority in Sweden.",
+      "whatText2": "With an Apostille stamp, your document does not need any further legalization at embassies or consulates in the receiving country.",
+      "whatText3": "In Sweden, Apostille is issued by Notarius Publicus for most documents.",
+      "documentsTitle": "Common documents for Apostille:",
+      "documents": ["Birth certificates and personal certificates", "Marriage certificates and divorce documents", "Diplomas and transcripts", "Powers of attorney and contracts", "Company documents and registration certificates", "Court documents"],
+      "countriesTitle": "Countries that accept Apostille",
+      "countriesText": "Over 120 countries are party to the Hague Convention, including:",
+      "countries": [
+        {"flag": "🇺🇸", "name": "USA"},
+        {"flag": "🇬🇧", "name": "United Kingdom"},
+        {"flag": "🇩🇪", "name": "Germany"},
+        {"flag": "🇫🇷", "name": "France"},
+        {"flag": "🇪🇸", "name": "Spain"},
+        {"flag": "🇮🇹", "name": "Italy"},
+        {"flag": "🇳🇱", "name": "Netherlands"},
+        {"flag": "🇦🇺", "name": "Australia"}
+      ],
+      "faqTitle": "Frequently asked questions about Apostille",
+      "faqs": [
+        {"q": "What is the difference between Apostille and legalization?", "a": "Apostille is a simplified form of legalization valid in Hague Convention countries. Traditional legalization requires multiple steps via embassies."},
+        {"q": "How long does it take to get Apostille?", "a": "Normally 3-5 business days. We also offer express services for urgent matters."},
+        {"q": "Which documents can get Apostille?", "a": "Most public documents can get Apostille, including birth certificates, marriage certificates, diplomas, court documents and notarized documents."},
+        {"q": "How much does Apostille cost?", "a": "Apostille costs from 950 SEK per document. The price includes our service fee and the official fee."}
+      ],
+      "processTitle": "How the process works",
+      "processSteps": [
+        {"title": "Order online", "desc": "Fill in our order form and upload your documents"},
+        {"title": "We review", "desc": "We check that the documents meet the requirements"},
+        {"title": "Apostille", "desc": "We submit the documents to Notarius Publicus"},
+        {"title": "Delivery", "desc": "We send back your apostilled documents"}
+      ],
+      "ctaTitle": "Need Apostille on your documents?",
+      "ctaText": "We help you quickly and easily. Order online or contact us for more information."
+    },
+    "notarisering": {
+      "title": "Notarius Publicus",
+      "metaDescription": "Notarization of documents by Notarius Publicus. Legal confirmation for use in Sweden and abroad. From 1300 SEK.",
+      "heroText": "Notarius Publicus certifies signatures and confirms that documents are authentic. This is often the first step for using documents abroad.",
+      "whatTitle": "What does Notarius Publicus do?",
+      "whatText1": "Notarius Publicus is a public official appointed by the County Administrative Board. Their task is to certify signatures, confirm that copies match originals, and perform other notarial acts.",
+      "whatText2": "When using private documents (such as powers of attorney, contracts, or certificates) abroad, many countries require that documents first be notarized by Notarius Publicus.",
+      "whatText3": "After notarization, the document can then be legalized by the Ministry for Foreign Affairs and possibly the embassy of the country where it will be used.",
+      "documentsTitle": "Common notarizations:",
+      "documents": ["Certification of signatures", "Powers of attorney and contracts", "Copies of passports and ID documents", "Company documents and minutes", "Marriage certificates and consents", "Translations (certificate of correctness)"],
+      "chainTitle": "The legalization chain",
+      "chainSteps": [
+        {"title": "Notarius Publicus", "desc": "Certifies the signature and document authenticity."},
+        {"title": "Ministry for Foreign Affairs", "desc": "Verifies the Notarius Publicus stamp."},
+        {"title": "Embassy", "desc": "Final legalization for the destination country."}
+      ],
+      "chainNote": "We help you through the entire chain – from notarization to completed legalization.",
+      "faqTitle": "Frequently asked questions",
+      "faqs": [
+        {"q": "Do I need to be present at the notarization?", "a": "It depends on the document type. For certifying your own signature, you must be present. For copies and other documents, we can handle it for you."},
+        {"q": "How long does notarization take?", "a": "Processing time varies depending on document type. Contact us for more information about your specific case."},
+        {"q": "Which documents need to be notarized?", "a": "Private documents such as powers of attorney, contracts, and certificates often need to be notarized. Public documents (from authorities) go directly to the Ministry."},
+        {"q": "Can you help with documents in other languages?", "a": "Yes, we can handle documents in most languages. If needed, we can also arrange authorized translation."}
+      ],
+      "ctaTitle": "Need notarization?",
+      "ctaText": "We help you with notarization and the entire legalization process. Order online or contact us."
+    },
+    "ambassadlegalisering": {
+      "title": "Embassy Legalization",
+      "metaDescription": "Embassy legalization for countries outside the Hague Convention. Complete legalization chain via Ministry and embassy. From 1650 SEK.",
+      "heroText": "For countries not party to the Hague Convention, embassy legalization is required. We handle the entire process from notarization to embassy stamp.",
+      "whatTitle": "What is embassy legalization?",
+      "whatText1": "Embassy legalization is a process where documents are verified in multiple steps to become valid in countries outside the Hague Convention.",
+      "whatText2": "The process usually includes notarization, legalization by the Ministry for Foreign Affairs, and finally stamping by the destination country's embassy or consulate.",
+      "whatText3": "This type of legalization is required for countries such as United Arab Emirates, Saudi Arabia, Qatar and many others.",
+      "documentsTitle": "Common documents for embassy legalization:",
+      "documents": ["Trade agreements and contracts", "Company documents and powers of attorney", "Diplomas and certificates", "Personal certificates and civil status documents", "Medical certificates", "Technical certificates"],
+      "countriesTitle": "Countries requiring embassy legalization",
+      "countries": [
+        {"flag": "🇦🇪", "name": "United Arab Emirates"},
+        {"flag": "🇸🇦", "name": "Saudi Arabia"},
+        {"flag": "🇶🇦", "name": "Qatar"},
+        {"flag": "🇰🇼", "name": "Kuwait"},
+        {"flag": "🇪🇬", "name": "Egypt"},
+        {"flag": "🇻🇳", "name": "Vietnam"},
+        {"flag": "🇮🇷", "name": "Iran"}
+      ],
+      "faqTitle": "Frequently asked questions about embassy legalization",
+      "faqs": [
+        {"q": "Which countries require embassy legalization?", "a": "Countries outside the Hague Convention, including UAE, Saudi Arabia, Qatar, Kuwait and many African countries."},
+        {"q": "How long does embassy legalization take?", "a": "Normally 10-20 business days depending on the embassy. Some embassies have longer processing times."},
+        {"q": "What is included in the process?", "a": "The process includes notarization, Ministry legalization and embassy stamping. We handle all steps for you."},
+        {"q": "How much does embassy legalization cost?", "a": "The price varies depending on country and document type. From 1650 SEK excluding embassy fees."}
+      ],
+      "processTitle": "How the process works",
+      "processSteps": [
+        {"title": "Order online", "desc": "Fill in our order form and upload your documents"},
+        {"title": "Notarization & Ministry", "desc": "We handle notarization and Ministry legalization"},
+        {"title": "Embassy", "desc": "We submit the documents to the correct embassy"},
+        {"title": "Delivery", "desc": "We send back your legalized documents"}
+      ],
+      "ctaTitle": "Need embassy legalization?",
+      "ctaText": "We handle the entire process for you. Order online or contact us for a quote."
+    },
+    "oversattning": {
+      "title": "Authorized Translation",
+      "metaDescription": "Authorized translation of documents for use abroad. Certified translators, all languages, official stamp. From 1450 SEK.",
+      "heroText": "Authorized translations are performed by translators approved by Kammarkollegiet and are legally valid for use with authorities in Sweden and abroad.",
+      "whatTitle": "What is authorized translation?",
+      "whatText1": "An authorized translation is a translation performed by a translator authorized by Kammarkollegiet. The translator certifies that the translation is correct and complete, and places their official stamp on the document.",
+      "whatText2": "Authorized translations are often required when documents are to be used with authorities, courts, universities, or other official bodies - both in Sweden and abroad.",
+      "whatText3": "After translation, the document can be legalized by Notarius Publicus, the Ministry for Foreign Affairs and the embassy of the country where it will be used.",
+      "documentsTitle": "Common documents we translate:",
+      "documents": ["Personal certificates and population register extracts", "Marriage certificates and prenuptial agreements", "Diplomas and transcripts", "Birth and death certificates", "Powers of attorney and contracts", "Company documents and registration certificates", "Medical records and certificates", "Court documents"],
+      "languagesTitle": "Languages we translate",
+      "languagesText": "We offer authorized translation to and from most languages, including:",
+      "languages": ["English", "German", "French", "Spanish", "Italian", "Portuguese", "Arabic", "Persian", "Turkish", "Russian", "Polish", "Chinese", "Japanese", "Korean", "Hindi", "Urdu", "Thai", "Vietnamese"],
+      "languagesNote": "Missing a language? Contact us and we will help you.",
+      "faqTitle": "Frequently asked questions",
+      "faqs": [
+        {"q": "What is the difference between authorized and regular translation?", "a": "An authorized translation is performed by a translator approved by Kammarkollegiet and has legal validity. A regular translation lacks this official status."},
+        {"q": "How long does an authorized translation take?", "a": "Normally 5-10 business days depending on document length and language combination. Express options are available."},
+        {"q": "Do I need to send the original document?", "a": "No, in most cases a clear copy or scan is sufficient. For certain matters, originals may be required."},
+        {"q": "Can the translation be legalized afterwards?", "a": "Yes, we can help with the entire chain - translation, notarization, Ministry legalization, and embassy legalization."}
+      ],
+      "processTitle": "How it works",
+      "processSteps": [
+        {"title": "Send document", "desc": "Upload or send your document to us."},
+        {"title": "Translation", "desc": "Authorized translator translates and stamps."},
+        {"title": "Delivery", "desc": "You receive the translation digitally and/or by mail."}
+      ],
+      "ctaTitle": "Need authorized translation?",
+      "ctaText": "We help you with professional translation of all types of documents. Order online or contact us for a quote."
+    },
+    "utrikesdepartementet": {
+      "title": "Legalization at the Ministry for Foreign Affairs",
+      "metaDescription": "We help you with legalization of documents at the Ministry for Foreign Affairs. Professional handling of apostille and legalization for documents to be used abroad.",
+      "heroText": "The Ministry for Foreign Affairs verifies that Swedish documents are authentic before they can be used abroad. We handle the entire process for you – quickly and professionally.",
+      "whatTitle": "What is legalization at the Ministry for Foreign Affairs?",
+      "whatText1": "The Ministry for Foreign Affairs is the Swedish authority that verifies the authenticity of Swedish public documents to be used in other countries. This is called legalization.",
+      "whatText2": "The Ministry stamp confirms that the document is issued by a competent Swedish authority and that the signature is authentic. This is often a requirement for the document to be accepted abroad.",
+      "whatText3": "For countries that are party to the Hague Convention, the Ministry instead issues an Apostille, which is an internationally recognized stamp.",
+      "documentsTitle": "Common documents that are legalized:",
+      "documents": ["Personal certificates and extracts from the Tax Agency", "Diplomas and education certificates", "Register extracts from the Companies Registration Office", "Court judgments and legal documents", "Marriage and birth certificates", "Powers of attorney and contracts"],
+      "faqTitle": "Frequently asked questions",
+      "faqs": [
+        {"q": "How long does legalization at the Ministry take?", "a": "Processing time varies depending on document type and current workload at the Ministry. Contact us for more information."},
+        {"q": "Which documents can be legalized?", "a": "Most Swedish public documents can be legalized, e.g. personal certificates, diplomas, register extracts and legal documents."},
+        {"q": "What is the difference between legalization and apostille?", "a": "Apostille is used for countries party to the Hague Convention. For other countries, traditional legalization via the Ministry and then the embassy is required."},
+        {"q": "Do I need notarization first?", "a": "It depends on the document type. Private documents (e.g. powers of attorney) often need to be notarized by Notarius Publicus before the Ministry can legalize them."}
+      ],
+      "processTitle": "How it works",
+      "processSteps": [
+        {"title": "Order online", "desc": "Fill in our simple order form and upload your documents."},
+        {"title": "Send documents", "desc": "Send the original documents to us or book a pickup."},
+        {"title": "We handle the Ministry", "desc": "We submit your documents to the Ministry for Foreign Affairs."},
+        {"title": "Delivery", "desc": "You receive your legalized documents back."}
+      ],
+      "ctaTitle": "Ready to get started?",
+      "ctaText": "We help you with the entire legalization process. Order online or contact us for advice."
+    }
+  },
+  "countryPages": {
+    "orderLegalization": "Order legalization",
+    "contactUs": "Contact us",
+    "documentsFor": "Documents for {{country}}",
+    "documentsIntro": "{{country}} requires foreign documents to be legalized. We handle the entire process for you.",
+    "commonDocuments": "Common documents:",
+    "contactInfo": "Contact information",
+    "address": "Address",
+    "phone": "Phone",
+    "website": "Website",
+    "weHandleEverything": "We handle everything for you",
+    "orderNow": "Order now",
+    "readyToLegalize": "Ready to legalize?",
+    "egypten": {
+      "title": "Legalization for Egypt",
+      "metaDescription": "We help you with legalization of documents for Egypt. Complete service via the Egyptian Embassy in Stockholm. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Egypt.",
+      "embassyName": "Embassy of Egypt in Stockholm",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents and certificates of origin"]
+    },
+    "qatar": {
+      "title": "Legalization for Qatar",
+      "metaDescription": "We help you with legalization of documents for Qatar. Complete service via the Qatar Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Qatar.",
+      "embassyName": "Embassy of Qatar",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents and certificates of origin"]
+    },
+    "kuwait": {
+      "title": "Legalization for Kuwait",
+      "metaDescription": "We help you with legalization of documents for Kuwait. Complete service via the Kuwait Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Kuwait.",
+      "embassyName": "Embassy of Kuwait",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents and certificates of origin"]
+    },
+    "thailand": {
+      "title": "Legalization for Thailand",
+      "metaDescription": "We help you with legalization of documents for Thailand. Complete service via the Thai Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Thailand.",
+      "embassyName": "Royal Thai Embassy in Stockholm",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "nigeria": {
+      "title": "Legalization for Nigeria",
+      "metaDescription": "We help you with legalization of documents for Nigeria. Complete service via the Nigerian Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Nigeria.",
+      "embassyName": "Embassy of Nigeria",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "irak": {
+      "title": "Legalization for Iraq",
+      "metaDescription": "We help you with legalization of documents for Iraq. Complete service via the Iraqi Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Iraq.",
+      "embassyName": "Embassy of Iraq",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "libanon": {
+      "title": "Legalization for Lebanon",
+      "metaDescription": "We help you with legalization of documents for Lebanon. Complete service via the Lebanese Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Lebanon.",
+      "embassyName": "Embassy of Lebanon",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "syrien": {
+      "title": "Legalization for Syria",
+      "metaDescription": "We help you with legalization of documents for Syria. Complete service. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Syria.",
+      "embassyName": "Embassy of Syria",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "palestina": {
+      "title": "Legalization for Palestine",
+      "metaDescription": "We help you with legalization of documents for Palestine. Complete service. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Palestine.",
+      "embassyName": "Palestinian Representation",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "angola": {
+      "title": "Legalization for Angola",
+      "metaDescription": "We help you with legalization of documents for Angola. Complete service via the Angolan Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Angola.",
+      "embassyName": "Embassy of Angola",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "etiopien": {
+      "title": "Legalization for Ethiopia",
+      "metaDescription": "We help you with legalization of documents for Ethiopia. Complete service via the Ethiopian Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Ethiopia.",
+      "embassyName": "Embassy of Ethiopia",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "libyen": {
+      "title": "Legalization for Libya",
+      "metaDescription": "We help you with legalization of documents for Libya. Complete service. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Libya.",
+      "embassyName": "Embassy of Libya",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "mocambique": {
+      "title": "Legalization for Mozambique",
+      "metaDescription": "We help you with legalization of documents for Mozambique. Complete service. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Mozambique.",
+      "embassyName": "Embassy of Mozambique",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "sri-lanka": {
+      "title": "Legalization for Sri Lanka",
+      "metaDescription": "We help you with legalization of documents for Sri Lanka. Complete service via the Sri Lankan Embassy. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Sri Lanka.",
+      "embassyName": "Embassy of Sri Lanka",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "taiwan": {
+      "title": "Legalization for Taiwan",
+      "metaDescription": "We help you with legalization of documents for Taiwan. Complete service. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Taiwan.",
+      "embassyName": "Taipei Mission in Sweden",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
+    },
+    "spanien": {
+      "title": "Legalization for Spain",
+      "metaDescription": "We help you with legalization of documents for Spain. Apostille legalization. Fast handling.",
+      "heroText": "We help you with complete legalization of documents for Spain.",
+      "embassyName": "Embassy of Spain in Stockholm",
+      "documents": ["Personal certificates and birth certificates", "Marriage certificates", "Diplomas", "Powers of attorney", "Company documents", "Trade documents"]
     }
   }
 }

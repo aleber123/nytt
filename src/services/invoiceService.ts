@@ -92,7 +92,7 @@ export const COMPANY_INFO = {
   city: 'Stockholm-Globen',
   orgNumber: '559015-4521',
   vatNumber: 'SE556123456701',
-  phone: '08-123 45 67',
+  phone: '08-409 419 00',
   email: 'info@doxvl.se'
 };
 

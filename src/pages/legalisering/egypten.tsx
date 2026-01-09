@@ -1,29 +1,27 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 
-
-
 export default function EgyptenLegaliseringPage() {
-  const country = { name: 'Egypten', flag: '🇪🇬', color: '#C8102E', colorDark: '#9a0c23' };
+  const { t } = useTranslation('common');
+  const countryKey = 'egypten';
+  const cp = `countryPages.${countryKey}`;
+  
+  const country = { name: 'Egypten', nameEn: 'Egypt', flag: '🇪🇬', color: '#C8102E', colorDark: '#9a0c23' };
   const embassy = {
-    name: 'Egyptens ambassad i Stockholm',
     address: 'Strandvägen 35',
     postalCode: '114 56 Stockholm',
     phone: '+46 8 679 57 50',
-    email: 'embassy.stockholm@mfa.gov.eg',
-    website: 'https://embassyofegypt.se',
-    openingHours: 'Måndag-Fredag 09:00-15:00'
+    website: 'https://embassyofegypt.se'
   };
-
-  const documents = ['Personbevis och födelsebevis', 'Vigselbevis och äktenskapsintyg', 'Examensbevis', 'Fullmakter', 'Bolagshandlingar', 'Handelsdokument och ursprungsintyg'];
 
   return (
     <>
       <Head>
-        <title>Legalisering för {country.name} - Ambassad Stockholm | DOX Visumpartner</title>
-        <meta name="description" content={`Vi hjälper dig med legalisering av dokument för ${country.name}. Komplett service via Egyptens ambassad i Stockholm. Snabb hantering.`} />
+        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <meta name="description" content={t(`${cp}.metaDescription`)} />
         <link rel="canonical" href="https://www.doxvl.se/legalisering/egypten" />
       </Head>
       
@@ -32,46 +30,55 @@ export default function EgyptenLegaliseringPage() {
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center gap-4 mb-6">
               <span className="text-6xl">{country.flag}</span>
-              <div><h1 className="text-3xl md:text-5xl font-bold">Legalisering för {country.name}</h1><p className="text-xl text-white/80">{embassy.name}</p></div>
+              <div>
+                <h1 className="text-3xl md:text-5xl font-bold">{t(`${cp}.title`)}</h1>
+                <p className="text-xl text-white/80">{t(`${cp}.embassyName`)}</p>
+              </div>
             </div>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl">Vi hjälper dig med komplett legalisering av dokument för {country.name}.</p>
+            <p className="text-xl text-white/90 mb-8 max-w-2xl">{t(`${cp}.heroText`)}</p>
             <div className="flex flex-wrap gap-4">
-              <Link href="/bestall" className="bg-white hover:bg-gray-100 font-semibold px-8 py-4 rounded-lg" style={{ color: country.color }}>Beställ legalisering</Link>
-              <Link href="/kontakt" className="border-2 border-white hover:bg-white text-white hover:text-gray-900 font-semibold px-8 py-4 rounded-lg">Kontakta oss</Link>
+              <Link href="/bestall" className="bg-white hover:bg-gray-100 font-semibold px-8 py-4 rounded-lg" style={{ color: country.color }}>{t('countryPages.orderLegalization')}</Link>
+              <Link href="/kontakt" className="border-2 border-white hover:bg-white text-white hover:text-gray-900 font-semibold px-8 py-4 rounded-lg">{t('countryPages.contactUs')}</Link>
             </div>
           </div>
         </section>
         <section className="py-16 bg-white">
           <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8">
-            <div><h2 className="text-2xl font-bold mb-4">Dokument för {country.name}</h2><p className="text-gray-700">{country.name} kräver att utländska dokument legaliseras. Vi hanterar hela processen åt dig.</p></div>
+            <div>
+              <h2 className="text-2xl font-bold mb-4">{t('countryPages.documentsFor', { country: country.name })}</h2>
+              <p className="text-gray-700">{t('countryPages.documentsIntro', { country: country.name })}</p>
+            </div>
             <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="font-semibold mb-4">Vanliga dokument:</h3>
-              <ul className="space-y-2">{documents.map((d, i) => <li key={i} className="flex items-start"><span className="mr-2" style={{ color: country.color }}>✓</span>{d}</li>)}</ul>
+              <h3 className="font-semibold mb-4">{t('countryPages.commonDocuments')}</h3>
+              <ul className="space-y-2">
+                {(t(`${cp}.documents`, { returnObjects: true }) as string[]).map((doc, i) => (
+                  <li key={i} className="flex items-start"><span className="mr-2" style={{ color: country.color }}>✓</span>{doc}</li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
         <section className="py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-lg mb-4">Kontaktuppgifter</h3>
-              <p className="text-gray-700"><strong>Adress:</strong> {embassy.address}, {embassy.postalCode}</p>
-              <p className="text-gray-700"><strong>Telefon:</strong> {embassy.phone}</p>
-              <p className="text-gray-700"><strong>Webbplats:</strong> <a href={embassy.website} className="text-blue-600 hover:underline">{embassy.website}</a></p>
+              <h3 className="font-semibold text-lg mb-4">{t('countryPages.contactInfo')}</h3>
+              <p className="text-gray-700"><strong>{t('countryPages.address')}:</strong> {embassy.address}, {embassy.postalCode}</p>
+              <p className="text-gray-700"><strong>{t('countryPages.phone')}:</strong> {embassy.phone}</p>
+              <p className="text-gray-700"><strong>{t('countryPages.website')}:</strong> <a href={embassy.website} className="text-blue-600 hover:underline">{embassy.website}</a></p>
             </div>
             <div className="p-6 rounded-lg" style={{ backgroundColor: `${country.color}10` }}>
-              <h3 className="font-semibold mb-4">Vi sköter allt åt dig</h3>
-              <Link href="/bestall" className="block w-full text-white font-semibold py-3 rounded-lg text-center" style={{ backgroundColor: country.color }}>Beställ nu</Link>
+              <h3 className="font-semibold mb-4">{t('countryPages.weHandleEverything')}</h3>
+              <Link href="/bestall" className="block w-full text-white font-semibold py-3 rounded-lg text-center" style={{ backgroundColor: country.color }}>{t('countryPages.orderNow')}</Link>
             </div>
           </div>
         </section>
         <section className="py-16 text-white" style={{ backgroundColor: country.color }}>
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-2xl font-bold mb-4">Redo att legalisera?</h2>
-            <Link href="/bestall" className="bg-white font-semibold px-8 py-4 rounded-lg inline-block" style={{ color: country.color }}>Beställ nu</Link>
+            <h2 className="text-2xl font-bold mb-4">{t('countryPages.readyToLegalize')}</h2>
+            <Link href="/bestall" className="bg-white font-semibold px-8 py-4 rounded-lg inline-block" style={{ color: country.color }}>{t('countryPages.orderNow')}</Link>
           </div>
         </section>
       </main>
-      
     </>
   );
 }

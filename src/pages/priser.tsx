@@ -37,93 +37,8 @@ const PricesPage: React.FC = () => {
   // Group pricing rules by service type and get representative prices
   const getPricingData = () => {
     if (pricingRules.length === 0) {
-      // Fallback to hardcoded data if no Firebase data - with REAL prices instead of "kontakta oss"
-      return [
-        {
-          service: 'Apostille',
-          description: 'För länder anslutna till Haagkonventionen',
-          officialFee: '850 kr',
-          serviceFee: '100 kr',
-          totalPrice: '950 kr',
-          timeframe: '5-7 arbetsdagar',
-          features: [
-            'Officiell legalisering',
-            'Giltig i Haag-länder',
-            'Snabb handläggning',
-            'Digital leverans'
-          ]
-        },
-        {
-          service: 'Notarisering',
-          description: 'Juridisk bekräftelse av dokument',
-          officialFee: '1,200 kr',
-          serviceFee: '100 kr',
-          totalPrice: '1,300 kr',
-          timeframe: '8 arbetsdagar',
-          features: [
-            'Notarius publicus',
-            'Juridisk giltighet',
-            'Originaldokument krävs',
-            'Snabb handläggning'
-          ]
-        },
-        {
-          service: 'Ambassadlegalisering',
-          description: 'För länder utanför Haagkonventionen',
-          officialFee: 'Från 1,500 kr',
-          serviceFee: '150 kr',
-          totalPrice: 'Från 1,650 kr',
-          timeframe: '15 arbetsdagar',
-          features: [
-            'Ambassad/konsulat',
-            'Internationell giltighet',
-            'Komplex process',
-            'Hög säkerhet'
-          ]
-        },
-        {
-          service: 'Auktoriserad översättning',
-          description: 'Officiella översättningar',
-          officialFee: 'Från 1,350 kr',
-          serviceFee: '100 kr',
-          totalPrice: 'Från 1,450 kr',
-          timeframe: '10 arbetsdagar',
-          features: [
-            'Certifierade översättare',
-            'Officiell stämpel',
-            'Alla språk',
-            'Kvalitetsgaranti'
-          ]
-        },
-        {
-          service: 'Handelskammaren',
-          description: 'Handelskammarens legalisering',
-          officialFee: '2,300 kr',
-          serviceFee: '100 kr',
-          totalPrice: '2,400 kr',
-          timeframe: '12 arbetsdagar',
-          features: [
-            'Handelskammarens stämpel',
-            'Internationell giltighet',
-            'Företagshandlingar',
-            'Officiell legalisering'
-          ]
-        },
-        {
-          service: 'Utrikesdepartementet',
-          description: 'UD:s legalisering',
-          officialFee: '1,650 kr',
-          serviceFee: '100 kr',
-          totalPrice: '1,750 kr',
-          timeframe: '10 arbetsdagar',
-          features: [
-            'Utrikesdepartementets stämpel',
-            'Högsta myndighet',
-            'Internationell giltighet',
-            'Officiell legalisering'
-          ]
-        }
-      ];
+      // No Firebase data - return empty array (error state will be shown)
+      return [];
     }
 
     // Group by service type and get average prices
@@ -233,8 +148,8 @@ const PricesPage: React.FC = () => {
     );
   }
 
-  // Show error state
-  if (error) {
+  // Show error state or no pricing data
+  if (error || pricingData.length === 0) {
     return (
       <>
         <Head>
@@ -242,15 +157,23 @@ const PricesPage: React.FC = () => {
         </Head>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center max-w-md mx-auto p-6">
-            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Kunde inte ladda priser</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-custom-button text-white px-4 py-2 rounded-md hover:bg-custom-button/90"
-            >
-              Försök igen
-            </button>
+            <div className="text-amber-500 text-6xl mb-4">📋</div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('prices.contactForPricing', { defaultValue: 'Kontakta oss för priser' })}</h2>
+            <p className="text-gray-600 mb-4">{t('prices.contactForPricingText', { defaultValue: 'Vi ger dig gärna en offert baserad på dina specifika behov.' })}</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/kontakt"
+                className="bg-custom-button text-white px-6 py-2 rounded-md hover:bg-custom-button/90"
+              >
+                {t('prices.contactButton', { defaultValue: 'Kontakta oss' })}
+              </Link>
+              <Link
+                href="/bestall"
+                className="border border-custom-button text-custom-button px-6 py-2 rounded-md hover:bg-custom-button/10"
+              >
+                {t('prices.orderButton', { defaultValue: 'Beställ' })}
+              </Link>
+            </div>
           </div>
         </div>
       </>

@@ -29,12 +29,14 @@ const ServicesPage: React.FC = () => {
   const [services, setServices] = useState<ServiceOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
+  const [pricingError, setPricingError] = useState(false);
 
   // Fetch pricing data from Firebase
   useEffect(() => {
     const fetchPricingData = async () => {
       try {
         setLoading(true);
+        setPricingError(false);
         const rules = await getAllActivePricingRules();
         setPricingRules(rules);
 
@@ -52,15 +54,15 @@ const ServicesPage: React.FC = () => {
         })));
 
       } catch (err) {
-        console.error('Error fetching pricing data:', err);
-        // Fallback to hardcoded data
+        // On Firebase error, show services without prices
+        setPricingError(true);
         const fallbackData = getFallbackPricingData();
         setServices(fallbackData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
           title: service.service,
           shortDescription: service.description,
           icon: getServiceIcon(service.service.toLowerCase()),
-          price: service.totalPrice,
+          price: '', // No price shown on error
           timeframe: service.timeframe,
           popular: service.service === 'Apostille',
           features: service.features
@@ -135,60 +137,102 @@ const ServicesPage: React.FC = () => {
 
   const getFallbackPricingData = () => [
     {
-      service: 'Apostille',
-      description: 'För länder anslutna till Haagkonventionen',
+      service: t('services.apostille.title', { defaultValue: 'Apostille' }),
+      description: t('services.apostille.shortDesc', { defaultValue: 'För länder anslutna till Haagkonventionen' }),
       officialFee: '850 kr',
       serviceFee: '100 kr',
-      totalPrice: '950 kr',
-      timeframe: '5 arbetsdagar',
-      features: ['Officiell legalisering', 'Giltig i Haag-länder', 'Snabb handläggning', 'Digital leverans']
+      totalPrice: '1550 kr',
+      timeframe: t('services.apostille.timeframe', { defaultValue: '5 arbetsdagar' }),
+      features: [
+        t('services.apostille.feature1', { defaultValue: 'Officiell legalisering' }),
+        t('services.apostille.feature2', { defaultValue: 'Giltig i Haag-länder' }),
+        t('services.apostille.feature3', { defaultValue: 'Snabb handläggning' }),
+        t('services.apostille.feature4', { defaultValue: 'Digital leverans' })
+      ]
     },
     {
-      service: 'Notarisering',
-      description: 'Juridisk bekräftelse av dokument',
+      service: t('services.notarization.title', { defaultValue: 'Notarisering' }),
+      description: t('services.notarization.shortDesc', { defaultValue: 'Juridisk bekräftelse av dokument' }),
       officialFee: '1,200 kr',
       serviceFee: '100 kr',
-      totalPrice: '1,300 kr',
-      timeframe: '8 arbetsdagar',
-      features: ['Notarius publicus', 'Juridisk giltighet', 'Originaldokument krävs', 'Snabb handläggning']
+      totalPrice: '1500 kr',
+      timeframe: t('services.notarization.timeframe', { defaultValue: '8 arbetsdagar' }),
+      features: [
+        t('services.notarization.feature1', { defaultValue: 'Notarius publicus' }),
+        t('services.notarization.feature2', { defaultValue: 'Juridisk giltighet' }),
+        t('services.notarization.feature3', { defaultValue: 'Originaldokument krävs' }),
+        t('services.notarization.feature4', { defaultValue: 'Snabb handläggning' })
+      ]
     },
     {
-      service: 'Ambassadlegalisering',
-      description: 'För länder utanför Haagkonventionen',
+      service: t('services.embassy.title', { defaultValue: 'Ambassadlegalisering' }),
+      description: t('services.embassy.shortDesc', { defaultValue: 'För länder utanför Haagkonventionen' }),
       officialFee: 'Från 1,500 kr (exkl. moms)',
       serviceFee: '150 kr (inkl. moms)',
       totalPrice: 'Från 1,650 kr',
-      timeframe: '15 arbetsdagar',
-      features: ['Ambassad/konsulat', 'Internationell giltighet', 'Komplex process', 'Hög säkerhet']
+      timeframe: t('services.embassy.timeframe', { defaultValue: '15 arbetsdagar' }),
+      features: [
+        t('services.embassy.feature1', { defaultValue: 'Ambassad/konsulat' }),
+        t('services.embassy.feature2', { defaultValue: 'Internationell giltighet' }),
+        t('services.embassy.feature3', { defaultValue: 'Komplex process' }),
+        t('services.embassy.feature4', { defaultValue: 'Hög säkerhet' })
+      ]
     },
     {
-      service: 'Auktoriserad översättning',
-      description: 'Officiella översättningar',
+      service: t('services.translation.title', { defaultValue: 'Auktoriserad översättning' }),
+      description: t('services.translation.shortDesc', { defaultValue: 'Officiella översättningar' }),
       officialFee: 'Från 1,350 kr',
       serviceFee: '100 kr',
       totalPrice: 'Från 1,450 kr',
-      timeframe: '10 arbetsdagar',
-      features: ['Certifierade översättare', 'Alla språk', 'Officiell stämpel']
+      timeframe: t('services.translation.timeframe', { defaultValue: '10 arbetsdagar' }),
+      features: [
+        t('services.translation.feature1', { defaultValue: 'Certifierade översättare' }),
+        t('services.translation.feature2', { defaultValue: 'Alla språk' }),
+        t('services.translation.feature3', { defaultValue: 'Officiell stämpel' })
+      ]
     },
     {
-      service: 'Handelskammaren',
-      description: 'Handelskammarens legalisering',
+      service: t('services.chamber.title', { defaultValue: 'Handelskammaren' }),
+      description: t('services.chamber.shortDesc', { defaultValue: 'Handelskammarens legalisering' }),
       officialFee: '2,300 kr',
       serviceFee: '100 kr',
-      totalPrice: '2,400 kr',
-      timeframe: '7 arbetsdagar',
-      features: ['Handelskammarens stämpel', 'Internationell giltighet', 'Företagshandlingar', 'Officiell legalisering']
+      totalPrice: '1900 kr',
+      timeframe: t('services.chamber.timeframe', { defaultValue: '7 arbetsdagar' }),
+      features: [
+        t('services.chamber.feature1', { defaultValue: 'Handelskammarens stämpel' }),
+        t('services.chamber.feature2', { defaultValue: 'Internationell giltighet' }),
+        t('services.chamber.feature3', { defaultValue: 'Företagshandlingar' }),
+        t('services.chamber.feature4', { defaultValue: 'Officiell legalisering' })
+      ]
     },
     {
-      service: 'Utrikesdepartementet',
-      description: 'UD:s legalisering',
+      service: t('services.ud.title', { defaultValue: 'Utrikesdepartementet' }),
+      description: t('services.ud.shortDesc', { defaultValue: 'UD:s legalisering' }),
       officialFee: '1,650 kr',
       serviceFee: '100 kr',
-      totalPrice: '1,750 kr',
-      timeframe: '10 arbetsdagar',
-      features: ['Utrikesdepartementets stämpel', 'Högsta myndighet', 'Internationell giltighet', 'Officiell legalisering']
+      totalPrice: '1355 kr',
+      timeframe: t('services.ud.timeframe', { defaultValue: '10 arbetsdagar' }),
+      features: [
+        t('services.ud.feature1', { defaultValue: 'Utrikesdepartementets stämpel' }),
+        t('services.ud.feature2', { defaultValue: 'Högsta myndighet' }),
+        t('services.ud.feature3', { defaultValue: 'Internationell giltighet' }),
+        t('services.ud.feature4', { defaultValue: 'Officiell legalisering' })
+      ]
     }
   ];
+
+  // Map service IDs to their actual page URLs
+  const getServiceUrl = (serviceId: string): string => {
+    const urlMap: { [key: string]: string } = {
+      'apostille': '/tjanster/apostille',
+      'notarisering': '/tjanster/notarius-publicus',
+      'ambassadlegalisering': '/tjanster/ambassadlegalisering',
+      'auktoriseradöversättning': '/tjanster/oversattning',
+      'handelskammaren': '/tjanster/handelskammaren',
+      'utrikesdepartementet': '/tjanster/utrikesdepartementet'
+    };
+    return urlMap[serviceId] || `/tjanster/${serviceId}`;
+  };
 
   const getServiceIcon = (serviceType: string): string => {
     switch (serviceType) {
@@ -221,7 +265,7 @@ const ServicesPage: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-button mx-auto mb-4"></div>
-          <p className="text-gray-600">Laddar tjänster...</p>
+          <p className="text-gray-600">{t('common.loading', { defaultValue: 'Laddar...' })}</p>
         </div>
       </div>
     );
@@ -299,7 +343,7 @@ const ServicesPage: React.FC = () => {
             {t('services.pageIntro', { defaultValue: 'Välj rätt tjänst för dina behov' })}
           </h2>
           <p className="text-lg text-gray-600">
-            Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer
+            {t('services.pageSubtitle', { defaultValue: 'Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer' })}
           </p>
         </div>
 
@@ -316,7 +360,7 @@ const ServicesPage: React.FC = () => {
                 </div>
                 {service.popular && (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-custom-button/10 text-custom-button">
-                    Populär
+                    {t('services.popular', { defaultValue: 'Populär' })}
                   </span>
                 )}
               </div>
@@ -337,10 +381,16 @@ const ServicesPage: React.FC = () => {
               </div>
 
               <div className="border-t pt-4">
-                <div className="mb-4">
-                  <p className="text-sm text-gray-500">Från</p>
-                  <p className="text-lg font-bold text-custom-button">{service.price}</p>
-                </div>
+                {service.price ? (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-500">{t('services.from', { defaultValue: 'Från' })}</p>
+                    <p className="text-lg font-bold text-custom-button">{service.price}</p>
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-500">{t('services.contactForPrice', { defaultValue: 'Kontakta oss för pris' })}</p>
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <Link
@@ -350,7 +400,7 @@ const ServicesPage: React.FC = () => {
                     {t('services.chooseService', { defaultValue: 'Välj tjänst' })}
                   </Link>
                   <Link
-                    href={`/tjanster/${service.id}`}
+                    href={getServiceUrl(service.id)}
                     className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
                   >
                     {t('servicesList.readMore', { defaultValue: 'Läs mer' })}

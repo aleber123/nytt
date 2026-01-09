@@ -8,17 +8,18 @@ import Link from 'next/link';
 
 export default function NotariusPublicusPage() {
   const { t } = useTranslation('common');
+  const sp = 'servicePages.notarisering';
 
   return (
     <>
       <Head>
-        <title>Notarius Publicus - Notarisering av dokument | DOX Visumpartner</title>
-        <meta name="description" content="Notarius Publicus bestyrker underskrifter och dokument. Vi hjälper dig med notarisering för användning utomlands. Snabb service från 499 kr per dokument." />
+        <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
+        <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="notarius publicus, notarisering, bestyrka underskrift, legalisering, dokument, Sverige" />
         <link rel="canonical" href="https://www.doxvl.se/tjanster/notarius-publicus" />
         
-        <meta property="og:title" content="Notarius Publicus - Notarisering av dokument | DOX Visumpartner" />
-        <meta property="og:description" content="Professionell notarisering av dokument för användning utomlands. Fast pris, snabb service." />
+        <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
+        <meta property="og:description" content={t(`${sp}.metaDescription`)} />
         <meta property="og:url" content="https://www.doxvl.se/tjanster/notarius-publicus" />
         <meta property="og:type" content="website" />
         
@@ -44,18 +45,17 @@ export default function NotariusPublicusPage() {
           <div className="max-w-6xl mx-auto px-4">
             <div className="max-w-3xl">
               <h1 className="text-3xl md:text-5xl font-bold mb-6">
-                Notarius Publicus
+                {t(`${sp}.title`)}
               </h1>
               <p className="text-xl text-gray-300 mb-8">
-                Notarius Publicus bestyrker underskrifter och intygar att dokument är äkta. 
-                Detta är ofta första steget för att kunna använda dokument utomlands.
+                {t(`${sp}.heroText`)}
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/bestall" className="bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold px-8 py-4 rounded-lg transition-colors">
-                  Beställ nu
+                <Link href="/bestall" className="bg-custom-button hover:bg-custom-button/90 text-white font-semibold px-8 py-4 rounded-lg transition-colors">
+                  {t('servicePages.orderNow')}
                 </Link>
                 <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
-                  Kontakta oss
+                  {t('servicePages.contactUs')}
                 </Link>
               </div>
             </div>
@@ -66,51 +66,29 @@ export default function NotariusPublicusPage() {
         <section className="py-16 bg-white">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-              Vad gör Notarius Publicus?
+              {t(`${sp}.whatTitle`)}
             </h2>
             <div className="grid md:grid-cols-2 gap-8">
               <div>
                 <p className="text-gray-700 mb-4">
-                  Notarius Publicus är en offentlig tjänsteman som utses av Länsstyrelsen. 
-                  Deras uppgift är att bestyrka underskrifter, intyga att kopior stämmer överens 
-                  med original, och utföra andra notariella förrättningar.
+                  {t(`${sp}.whatText1`)}
                 </p>
                 <p className="text-gray-700 mb-4">
-                  När du ska använda privata dokument (som fullmakter, avtal eller intyg) utomlands, 
-                  kräver många länder att dokumenten först notariseras av Notarius Publicus.
+                  {t(`${sp}.whatText2`)}
                 </p>
                 <p className="text-gray-700">
-                  Efter notariseringen kan dokumentet sedan legaliseras hos Utrikesdepartementet 
-                  och eventuellt ambassaden för det land där det ska användas.
+                  {t(`${sp}.whatText3`)}
                 </p>
               </div>
               <div className="bg-blue-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-4">Vanliga notariseringar:</h3>
+                <h3 className="font-semibold text-lg mb-4">{t(`${sp}.documentsTitle`)}</h3>
                 <ul className="space-y-2 text-gray-700">
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2">✓</span>
-                    Bestyrkande av underskrifter
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2">✓</span>
-                    Fullmakter och avtal
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2">✓</span>
-                    Kopior av pass och ID-handlingar
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2">✓</span>
-                    Bolagshandlingar och protokoll
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2">✓</span>
-                    Äktenskapsintyg och samtycken
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2">✓</span>
-                    Översättningar (intyg om korrekthet)
-                  </li>
+                  {(t(`${sp}.documents`, { returnObjects: true }) as string[]).map((doc, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <span className="text-green-500 mr-2">✓</span>
+                      {doc}
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -121,25 +99,21 @@ export default function NotariusPublicusPage() {
         <section className="py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
-              Legaliseringskedjan
+              {t(`${sp}.chainTitle`)}
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { step: '1', title: 'Notarius Publicus', desc: 'Bestyrker underskriften och dokumentets äkthet.', active: true },
-                { step: '2', title: 'Utrikesdepartementet', desc: 'Verifierar Notarius Publicus stämpel.' },
-                { step: '3', title: 'Ambassaden', desc: 'Slutlig legalisering för destinationslandet.' },
-              ].map((item) => (
-                <div key={item.step} className={`p-6 rounded-lg text-center ${item.active ? 'bg-[#D4AF37] text-black' : 'bg-white shadow-sm'}`}>
-                  <div className={`w-12 h-12 ${item.active ? 'bg-black text-white' : 'bg-gray-200 text-gray-700'} font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4`}>
-                    {item.step}
+              {(t(`${sp}.chainSteps`, { returnObjects: true }) as Array<{title: string; desc: string}>).map((item, idx) => (
+                <div key={idx} className={`p-6 rounded-lg text-center ${idx === 0 ? 'bg-custom-button text-white' : 'bg-white shadow-sm'}`}>
+                  <div className={`w-12 h-12 ${idx === 0 ? 'bg-black text-white' : 'bg-gray-200 text-gray-700'} font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    {idx + 1}
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className={`text-sm ${item.active ? 'text-black/80' : 'text-gray-600'}`}>{item.desc}</p>
+                  <p className={`text-sm ${idx === 0 ? 'text-black/80' : 'text-gray-600'}`}>{item.desc}</p>
                 </div>
               ))}
             </div>
             <p className="text-center text-gray-600 mt-8">
-              Vi hjälper dig genom hela kedjan – från notarisering till färdig legalisering.
+              {t(`${sp}.chainNote`)}
             </p>
           </div>
         </section>
@@ -148,16 +122,11 @@ export default function NotariusPublicusPage() {
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
-              Vanliga frågor
+              {t(`${sp}.faqTitle`)}
             </h2>
             <div className="space-y-4">
-              {[
-                { q: 'Måste jag vara närvarande vid notariseringen?', a: 'Det beror på dokumenttypen. För bestyrkande av din egen underskrift måste du vara närvarande. För kopior och andra dokument kan vi hantera det åt dig.' },
-                { q: 'Hur lång tid tar notarisering?', a: 'Handläggningstiden varierar beroende på dokumenttyp. Kontakta oss för mer information om ditt specifika ärende.' },
-                { q: 'Vilka dokument behöver notariseras?', a: 'Privata dokument som fullmakter, avtal, och intyg behöver ofta notariseras. Offentliga dokument (från myndigheter) går direkt till UD.' },
-                { q: 'Kan ni hjälpa med dokument på andra språk?', a: 'Ja, vi kan hantera dokument på de flesta språk. Vid behov kan vi även ordna auktoriserad översättning.' },
-              ].map((faq, index) => (
-                <div key={index} className="bg-white p-6 rounded-lg shadow-sm">
+              {(t(`${sp}.faqs`, { returnObjects: true }) as Array<{q: string; a: string}>).map((faq, idx) => (
+                <div key={idx} className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
                   <p className="text-gray-600">{faq.a}</p>
                 </div>
@@ -170,17 +139,17 @@ export default function NotariusPublicusPage() {
         <section className="py-16 bg-[#2E2D2C] text-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">
-              Behöver du notarisering?
+              {t(`${sp}.ctaTitle`)}
             </h2>
             <p className="text-gray-300 mb-8">
-              Vi hjälper dig med notarisering och hela legaliseringsprocessen. Beställ online eller kontakta oss.
+              {t(`${sp}.ctaText`)}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/bestall" className="bg-[#D4AF37] hover:bg-[#C4A030] text-black font-semibold px-8 py-4 rounded-lg transition-colors">
-                Beställ nu
+              <Link href="/bestall" className="bg-custom-button hover:bg-custom-button/90 text-white font-semibold px-8 py-4 rounded-lg transition-colors">
+                {t('servicePages.orderNow')}
               </Link>
               <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
-                Kontakta oss
+                {t('servicePages.contactUs')}
               </Link>
             </div>
           </div>

@@ -4,40 +4,36 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 
-
-
-export default function UtrikesdepartementetPage() {
+export default function OversattningPage() {
   const { t } = useTranslation('common');
-  const sp = 'servicePages.utrikesdepartementet';
+  const sp = 'servicePages.oversattning';
 
   return (
     <>
       <Head>
         <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
-        <meta name="keywords" content="utrikesdepartementet, UD, legalisering, dokument, Sverige, apostille, stämpel" />
-        <link rel="canonical" href="https://www.doxvl.se/tjanster/utrikesdepartementet" />
+        <meta name="keywords" content="auktoriserad översättning, certified translation, officiell översättning, Kammarkollegiet, translator, dokument översättning" />
+        <link rel="canonical" href="https://www.doxvl.se/tjanster/oversattning" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
-        <meta property="og:url" content="https://www.doxvl.se/tjanster/utrikesdepartementet" />
+        <meta property="og:url" content="https://www.doxvl.se/tjanster/oversattning" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Legalisering hos Utrikesdepartementet",
+          "name": t(`${sp}.title`),
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB"
           },
-          "description": "Legalisering av dokument hos Utrikesdepartementet för användning utomlands",
+          "description": t(`${sp}.metaDescription`),
           "areaServed": "SE",
-          "serviceType": "Document Legalization"
+          "serviceType": "Translation"
         })}} />
       </Head>
-
-      
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}
@@ -62,7 +58,7 @@ export default function UtrikesdepartementetPage() {
           </div>
         </section>
 
-        {/* What is UD Section */}
+        {/* What is Section */}
         <section className="py-16 bg-white">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
@@ -101,17 +97,39 @@ export default function UtrikesdepartementetPage() {
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
               {t(`${sp}.processTitle`)}
             </h2>
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               {(t(`${sp}.processSteps`, { returnObjects: true }) as Array<{title: string; desc: string}>).map((item, idx) => (
-                <div key={idx} className="bg-white p-6 rounded-lg shadow-sm text-center">
-                  <div className="w-12 h-12 bg-custom-button text-white font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">
+                <div key={idx} className={`p-6 rounded-lg text-center ${idx === 1 ? 'bg-custom-button text-white' : 'bg-white shadow-sm'}`}>
+                  <div className={`w-12 h-12 ${idx === 1 ? 'bg-black text-white' : 'bg-gray-200 text-gray-700'} font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4`}>
                     {idx + 1}
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-gray-600 text-sm">{item.desc}</p>
+                  <p className={`text-sm ${idx === 1 ? 'text-black/80' : 'text-gray-600'}`}>{item.desc}</p>
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Languages Section */}
+        <section className="py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 text-center">
+              {t(`${sp}.languagesTitle`)}
+            </h2>
+            <p className="text-gray-600 text-center mb-8">
+              {t(`${sp}.languagesText`)}
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+              {(t(`${sp}.languages`, { returnObjects: true }) as string[]).map((lang, idx) => (
+                <div key={idx} className="bg-gray-50 p-3 rounded-lg text-center text-gray-700">
+                  {lang}
+                </div>
+              ))}
+            </div>
+            <p className="text-gray-500 text-center text-sm">
+              {t(`${sp}.languagesNote`)}
+            </p>
           </div>
         </section>
 
@@ -152,8 +170,6 @@ export default function UtrikesdepartementetPage() {
           </div>
         </section>
       </main>
-
-      
     </>
   );
 }

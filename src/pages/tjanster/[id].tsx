@@ -178,7 +178,7 @@ const getServices = (t: any, pricingRules: PricingRule[] = []): ServiceDetail[] 
       price: getServicePrice('embassy'),
       timeframe: t('services.embassy.timeframe') || '5-15 arbetsdagar',
       countries: [
-        'Kina (Huvudstaden och provinser)', 'Ryssland', 'Förenade Arabemiraten', 'Saudiarabien',
+        'Förenade Arabemiraten', 'Saudiarabien', 'Ryssland',
         'Egypten', 'Indien', 'Vietnam', 'Thailand', 'Indonesien', 'Malaysia', 'Singapore',
         'Filippinerna', 'Japan (vissa regioner)', 'Sydkorea (vissa regioner)', 'Pakistan',
         'Bangladesh', 'Sri Lanka', 'Nepal', 'Bhutan', 'Mongoliet', 'Kazakstan', 'Uzbekistan',
@@ -281,7 +281,7 @@ const getServices = (t: any, pricingRules: PricingRule[] = []): ServiceDetail[] 
       countries: [
         'Alla länder - särskilt viktigt för internationell handel',
         'EU-länder (för vissa dokumenttyper)',
-        'Asien (Kina, Indien, Japan, Sydkorea)',
+        'Asien (Indien, Japan, Sydkorea)',
         'Mellanöstern (Saudiarabien, UAE, Qatar)',
         'Nordamerika (USA, Kanada)',
         'Latinamerika (Brasilien, Mexiko, Argentina)',
@@ -324,7 +324,7 @@ const getServices = (t: any, pricingRules: PricingRule[] = []): ServiceDetail[] 
       timeframe: '3-5 arbetsdagar',
       countries: [
         'Alla länder utanför EU och EES',
-        'Asien (Kina, Indien, Japan, Sydkorea, Vietnam)',
+        'Asien (Indien, Japan, Sydkorea, Vietnam)',
         'Mellanöstern (Saudiarabien, UAE, Qatar, Kuwait)',
         'Afrika (Egypten, Marocko, Algeriet, Tunisien)',
         'Latinamerika (Brasilien, Mexiko, Argentina, Chile)',
@@ -543,14 +543,15 @@ const ServiceDetailPage: React.FC = () => {
 };
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  // Definiera de sökvägar som ska förrenderas vid byggtid
-  // OBS: handelskammaren, utrikesdepartementet och notarius-publicus har egna filer
-  const paths = [
-    { params: { id: 'apostille' } },
-    { params: { id: 'notarisering' } },
-    { params: { id: 'ambassadlegalisering' } },
-    { params: { id: 'oversattning' } }
-  ];
+  // Alla tjänstesidor har nu egna filer:
+  // - apostille.tsx
+  // - ambassadlegalisering.tsx
+  // - handelskammaren.tsx
+  // - notarius-publicus.tsx
+  // - oversattning.tsx
+  // - utrikesdepartementet.tsx
+  // Denna dynamiska route används endast som fallback
+  const paths: { params: { id: string } }[] = [];
   
   return {
     paths,

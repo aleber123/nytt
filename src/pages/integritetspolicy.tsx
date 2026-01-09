@@ -93,7 +93,7 @@ const PrivacyPolicyPage: React.FC = () => {
                   Sverige<br />
                   <br />
                   E-post: info@doxvl.se<br />
-                  Telefon: 08-123 45 67
+                  Telefon: 08-409 419 00
                 </p>
               </div>
 

@@ -18,12 +18,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return value === key ? fallback : value;
   };
   const router = useRouter();
+  const { locale, asPath: routerAsPath } = router;
   const baseUrl = siteConfig.url;
-  const asPath = router.asPath || '/';
-  const canonicalUrl = `${baseUrl}${asPath}`;
-  const pathNoLocale = asPath.replace(/^\/(sv|en)/, '');
-  const altSv = `${baseUrl}${pathNoLocale.startsWith('/') ? pathNoLocale : '/' + pathNoLocale}`;
-  const altEn = `${baseUrl}/en${pathNoLocale.startsWith('/') ? pathNoLocale : '/' + pathNoLocale}`;
+  const asPath = routerAsPath || '/';
+  
+  // Remove any existing locale prefix and query string for clean path
+  const cleanPath = asPath.split('?')[0].replace(/^\/(sv|en)/, '') || '/';
+  const pathWithSlash = cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath;
+  
+  // Canonical should point to current page with current locale
+  const canonicalUrl = locale === 'en' 
+    ? `${baseUrl}/en${pathWithSlash === '/' ? '' : pathWithSlash}`
+    : `${baseUrl}${pathWithSlash}`;
+  
+  // hreflang alternates - Swedish is default (no prefix), English has /en prefix
+  const altSv = `${baseUrl}${pathWithSlash}`;
+  const altEn = `${baseUrl}/en${pathWithSlash === '/' ? '' : pathWithSlash}`;
   
   return (
     <div className="flex flex-col min-h-screen">

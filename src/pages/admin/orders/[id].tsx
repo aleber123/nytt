@@ -1883,8 +1883,8 @@ function AdminOrderDetailPage() {
               ? 'DOX Visumpartner AB<br/>Livdjursgatan 4<br/>121 62 Johanneshov<br/>Sweden'
               : 'DOX Visumpartner AB<br/>Livdjursgatan 4<br/>121 62 Johanneshov<br/>Sverige';
             const openingHours = emailLocale === 'en'
-              ? 'Mon–Fri 09:00–15:00'
-              : 'Mån–Fre 09:00–15:00';
+              ? 'Mon–Thu 09:00–16:00, Fri 09:00–15:00'
+              : 'Mån–Tor 09:00–16:00, Fre 09:00–15:00';
 
             const messageHtml = emailLocale === 'en'
               ? `

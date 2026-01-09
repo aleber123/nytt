@@ -15,9 +15,19 @@ const Footer: React.FC = () => {
   const footerNavigation = {
     services: [
       { name: safeT('footer.services.apostille', 'Apostille'), href: '/tjanster/apostille' },
-      { name: safeT('footer.services.notarization', 'Notarisering'), href: '/tjanster/notarisering' },
+      { name: safeT('footer.services.notarization', 'Notarisering'), href: '/tjanster/notarius-publicus' },
       { name: safeT('footer.services.embassy', 'Ambassadlegalisering'), href: '/tjanster/ambassadlegalisering' },
       { name: safeT('footer.services.translation', 'Auktoriserad översättning'), href: '/tjanster/oversattning' },
+    ],
+    countries: [
+      { name: '🇪🇬 Egypten', href: '/legalisering/egypten' },
+      { name: '🇶🇦 Qatar', href: '/legalisering/qatar' },
+      { name: '🇰🇼 Kuwait', href: '/legalisering/kuwait' },
+      { name: '🇹🇭 Thailand', href: '/legalisering/thailand' },
+      { name: '🇳🇬 Nigeria', href: '/legalisering/nigeria' },
+      { name: '🇮🇶 Irak', href: '/legalisering/irak' },
+      { name: '🇱🇧 Libanon', href: '/legalisering/libanon' },
+      { name: '🇪🇸 Spanien', href: '/legalisering/spanien' },
     ],
     support: [
       { name: safeT('footer.support.faq', 'Vanliga frågor'), href: '/faq' },
@@ -153,6 +163,20 @@ const Footer: React.FC = () => {
                 </ul>
               </div>
             </div>
+          </div>
+          <div className="mt-8 xl:mt-0">
+            <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
+              {safeT('footer.countries.title', 'Länder')}
+            </h3>
+            <ul role="list" className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {footerNavigation.countries.map((item) => (
+                <li key={item.name}>
+                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white">
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
         <div className="mt-12 border-t border-gray-700 pt-8">

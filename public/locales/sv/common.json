@@ -73,7 +73,7 @@
       "addressLine2": "121 25 Stockholm-Globen",
       "country": "Sverige",
       "email": "info@doxvl.se",
-      "phone": "08-123 45 67"
+      "phone": "08-409 419 00"
     },
     "backToContact": "Tillbaka till kontakt"
   },
@@ -259,47 +259,79 @@
     "chooseService": "Välj tjänst",
     "fromPrice": "Från",
     "deliveryTime": "Leveranstid",
+    "pageSubtitle": "Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer",
+    "popular": "Populär",
+    "from": "Från",
     "apostille": {
       "title": "Apostille",
       "description": "Legalisering av dokument för användning i länder som är anslutna till Haagkonventionen",
+      "shortDesc": "För länder anslutna till Haagkonventionen",
       "longDescription": "Apostille är en förenklad certifieringsprocess för dokument som kommer att användas i länder som är anslutna till 1961 års Haagkonvention. Denna certifiering verifierar äktheten av underskriften, den kapacitet i vilken personen som undertecknade dokumentet agerade, och identiteten på alla stämplar eller sigill på dokumentet.",
       "price": "Från 645 kr",
-      "timeframe": "5-7 arbetsdagar"
+      "timeframe": "5 arbetsdagar",
+      "feature1": "Officiell legalisering",
+      "feature2": "Giltig i Haag-länder",
+      "feature3": "Snabb handläggning",
+      "feature4": "Digital leverans"
     },
     "notarization": {
       "title": "Notarisering",
       "description": "Notarisering av dokument av notarius publicus för juridisk giltighet",
+      "shortDesc": "Juridisk bekräftelse av dokument",
       "longDescription": "Notarisering är processen där en notarius publicus certifierar och intygar äktheten av underskrifter på dokument. Denna tjänst krävs ofta för juridiska dokument, tillägg, och andra viktiga papper för att verifiera deras legitimitet och förhindra bedrägeri.",
       "price": "Från 695 kr",
-      "timeframe": "3-5 arbetsdagar"
+      "timeframe": "8 arbetsdagar",
+      "feature1": "Notarius publicus",
+      "feature2": "Juridisk giltighet",
+      "feature3": "Originaldokument krävs",
+      "feature4": "Snabb handläggning"
     },
     "embassy": {
       "title": "Ambassadlegalisering",
       "description": "Legalisering av dokument via ambassad eller konsulat för användning i specifika länder",
+      "shortDesc": "För länder utanför Haagkonventionen",
       "longDescription": "Ambassadlegalisering krävs för dokument som kommer att användas i länder som inte är anslutna till Haagkonventionen. Denna process innebär att få dina dokument certifierade av ambassaden eller konsulatet för det land där de kommer att användas, efter att de har autentiserats av behöriga myndigheter i ditt hemland.",
       "price": "Från 1295 kr",
-      "timeframe": "7-14 arbetsdagar"
+      "timeframe": "15 arbetsdagar",
+      "feature1": "Ambassad/konsulat",
+      "feature2": "Internationell giltighet",
+      "feature3": "Komplex process",
+      "feature4": "Hög säkerhet"
     },
     "translation": {
       "title": "Auktoriserad översättning",
       "description": "Översättning av dokument av auktoriserade översättare för officiellt bruk",
+      "shortDesc": "Officiella översättningar",
       "longDescription": "Vår auktoriserade översättningstjänst tillhandahåller officiella översättningar av dina dokument av certifierade översättare. Dessa översättningar är juridiskt erkända och kan användas för officiella ändamål såsom immigration, utbildning, affärer och juridiska frågor i utländska länder.",
       "price": "Från 995 kr",
-      "timeframe": "5-10 arbetsdagar"
+      "timeframe": "10 arbetsdagar",
+      "feature1": "Certifierade översättare",
+      "feature2": "Alla språk",
+      "feature3": "Officiell stämpel"
     },
     "ud": {
-      "title": "Utrikesdepartementets legalisering",
+      "title": "Utrikesdepartementet",
       "description": "Legalisering av dokument av Sveriges Utrikesdepartement",
+      "shortDesc": "UD:s legalisering",
       "longDescription": "Denna tjänst innebär legalisering av dokument av Sveriges Utrikesdepartement (UD). Detta krävs ofta som ett steg före ambassadlegalisering eller för dokument som behöver officiell myndighetsverifiering för användning utomlands.",
       "price": "Från 795 kr",
-      "timeframe": "5-7 arbetsdagar"
+      "timeframe": "10 arbetsdagar",
+      "feature1": "Utrikesdepartementets stämpel",
+      "feature2": "Högsta myndighet",
+      "feature3": "Internationell giltighet",
+      "feature4": "Officiell legalisering"
     },
     "chamber": {
-      "title": "Handelskammare",
-      "description": "Legaliserng av handelsdokument genom Handelskammaren",
+      "title": "Handelskammaren",
+      "description": "Legalisering av handelsdokument genom Handelskammaren",
+      "shortDesc": "Handelskammarens legalisering",
       "longDescription": "Handelskammarens legalisering är en viktig tjänst för företag och organisationer som behöver få sina handelsdokument giltiga för internationell användning. Denna process verifierar äktheten av företagsdokument och kommersiella papper.",
       "price": "Från 2400 kr",
-      "timeframe": "5-7 arbetsdagar"
+      "timeframe": "7 arbetsdagar",
+      "feature1": "Handelskammarens stämpel",
+      "feature2": "Internationell giltighet",
+      "feature3": "Företagshandlingar",
+      "feature4": "Officiell legalisering"
     },
     "details": {
       "process": "Process",
@@ -482,6 +514,9 @@
       "terms": "Villkor",
       "accessibility": "Tillgänglighet",
       "cookies": "Cookies"
+    },
+    "countries": {
+      "title": "Länder"
     }
   },
   "confirmation": {
@@ -589,7 +624,7 @@
     "person1": {
       "name": "Anna Johansson",
       "role": "Företagare",
-      "content": "Fantastisk service! Jag behövde få mina dokument legaliserade snabbt för en affärsresa till Kina och allt gick smidigt och professionellt."
+      "content": "Fantastisk service! Jag behövde få mina dokument legaliserade snabbt för en affärsresa till Dubai och allt gick smidigt och professionellt."
     },
     "person2": {
       "name": "Erik Svensson",
@@ -1206,6 +1241,335 @@
       "title": "❌ Ett fel uppstod",
       "description": "Kunde inte skicka beställning.",
       "suggestion": "Försök igen eller kontakta support"
+    }
+  },
+  "servicePages": {
+    "orderNow": "Beställ nu",
+    "contactUs": "Kontakta oss",
+    "handelskammaren": {
+      "title": "Legalisering hos Handelskammaren",
+      "metaDescription": "Handelskammaren certifierar kommersiella dokument för internationell handel. Vi hjälper dig med ursprungsintyg, fakturor och exportdokument. Från 2250 kr.",
+      "heroText": "Handelskammaren certifierar kommersiella dokument för internationell handel. Vi hanterar ursprungsintyg, fakturor och andra exportdokument åt dig.",
+      "whatTitle": "Vad gör Handelskammaren?",
+      "whatText1": "Handelskammaren (Chamber of Commerce) är en organisation som certifierar och legaliserar kommersiella dokument för internationell handel. Deras stämpel bekräftar att dokumenten är äkta och utfärdade av ett svenskt företag.",
+      "whatText2": "Många länder, särskilt i Mellanöstern och Asien, kräver att handelsdokument är certifierade av Handelskammaren innan de kan användas för import/export.",
+      "whatText3": "Efter Handelskammarens certifiering behöver dokumenten ofta också legaliseras hos Utrikesdepartementet och destinationslandets ambassad.",
+      "documentsTitle": "Dokument vi hanterar:",
+      "documents": ["Ursprungsintyg (Certificate of Origin)", "Kommersiella fakturor", "Fraktdokument och packlista", "Försäkringscertifikat", "Hälso- och kvalitetsintyg", "Agentavtal och distributörsavtal"],
+      "countriesTitle": "Länder som kräver Handelskammar-certifiering",
+      "faqTitle": "Vanliga frågor om Handelskammaren",
+      "processTitle": "Så fungerar processen",
+      "processSteps": [
+        {"title": "Beställ online", "desc": "Fyll i vårt beställningsformulär och ladda upp dina dokument"},
+        {"title": "Vi granskar", "desc": "Vi kontrollerar att dokumenten uppfyller kraven"},
+        {"title": "Handelskammaren", "desc": "Vi lämnar in dokumenten för certifiering"},
+        {"title": "Leverans", "desc": "Vi skickar tillbaka dina certifierade dokument"}
+      ],
+      "ctaTitle": "Behöver du hjälp med handelsdokument?",
+      "ctaText": "Vi har lång erfarenhet av att hantera exportdokument för företag. Kontakta oss för en offert.",
+      "faqs": [
+        {"q": "Vad är Handelskammaren?", "a": "Handelskammaren (Chamber of Commerce) är en organisation som certifierar och legaliserar kommersiella dokument för internationell handel. Deras stämpel bekräftar att dokumenten är äkta och utfärdade av ett svenskt företag."},
+        {"q": "Vilka dokument kan Handelskammaren certifiera?", "a": "Handelskammaren certifierar ursprungsintyg (Certificate of Origin), kommersiella fakturor, fraktdokument, packlista, försäkringscertifikat, hälso- och kvalitetsintyg samt agentavtal och distributörsavtal."},
+        {"q": "Vilka länder kräver Handelskammar-certifiering?", "a": "Många länder i Mellanöstern kräver Handelskammar-certifiering, inklusive Saudiarabien, Förenade Arabemiraten (UAE), Qatar, Kuwait, Bahrain, Oman, Egypten och Jordanien."},
+        {"q": "Vad kostar legalisering hos Handelskammaren?", "a": "Legalisering hos Handelskammaren kostar från 2250 kr per dokument. Priset kan variera beroende på dokumenttyp och antal dokument. Kontakta oss för en exakt offert."},
+        {"q": "Hur lång tid tar Handelskammar-certifiering?", "a": "Handelskammar-certifiering tar normalt 2-5 arbetsdagar. Vi erbjuder även expresstjänster för brådskande ärenden."}
+      ],
+      "countries": [
+        {"flag": "🇸🇦", "name": "Saudiarabien"},
+        {"flag": "🇦🇪", "name": "Förenade Arabemiraten"},
+        {"flag": "🇶🇦", "name": "Qatar"},
+        {"flag": "🇰🇼", "name": "Kuwait"},
+        {"flag": "🇧🇭", "name": "Bahrain"},
+        {"flag": "🇴🇲", "name": "Oman"},
+        {"flag": "🇪🇬", "name": "Egypten"},
+        {"flag": "🇯🇴", "name": "Jordanien"}
+      ]
+    },
+    "apostille": {
+      "title": "Apostille",
+      "metaDescription": "Apostille-legalisering för dokument som ska användas i länder anslutna till Haagkonventionen. Snabb och pålitlig service. Från 950 kr.",
+      "heroText": "Apostille är en internationell certifiering som gör dina svenska dokument giltiga i över 120 länder som är anslutna till Haagkonventionen.",
+      "whatTitle": "Vad är Apostille?",
+      "whatText1": "Apostille är en internationell certifiering enligt Haagkonventionen från 1961. Den bekräftar att ett dokument är äkta och utfärdat av en behörig myndighet i Sverige.",
+      "whatText2": "Med en Apostille-stämpel behöver ditt dokument ingen ytterligare legalisering hos ambassader eller konsulat i mottagarlandet.",
+      "whatText3": "I Sverige utfärdas Apostille av Notarius Publicus för de flesta dokument.",
+      "documentsTitle": "Vanliga dokument för Apostille:",
+      "documents": ["Födelsebevis och personbevis", "Vigselbevis och skilsmässohandlingar", "Examensbevis och betyg", "Fullmakter och avtal", "Bolagshandlingar och registreringsbevis", "Domstolshandlingar"],
+      "countriesTitle": "Länder som accepterar Apostille",
+      "countriesText": "Över 120 länder är anslutna till Haagkonventionen, inklusive:",
+      "countries": [
+        {"flag": "🇺🇸", "name": "USA"},
+        {"flag": "🇬🇧", "name": "Storbritannien"},
+        {"flag": "🇩🇪", "name": "Tyskland"},
+        {"flag": "🇫🇷", "name": "Frankrike"},
+        {"flag": "🇪🇸", "name": "Spanien"},
+        {"flag": "🇮🇹", "name": "Italien"},
+        {"flag": "🇳🇱", "name": "Nederländerna"},
+        {"flag": "🇦🇺", "name": "Australien"}
+      ],
+      "faqTitle": "Vanliga frågor om Apostille",
+      "faqs": [
+        {"q": "Vad är skillnaden mellan Apostille och legalisering?", "a": "Apostille är en förenklad form av legalisering som gäller i Haagkonventionsländer. Traditionell legalisering kräver flera steg via ambassader."},
+        {"q": "Hur lång tid tar det att få Apostille?", "a": "Normalt 3-5 arbetsdagar. Vi erbjuder även expresstjänster för brådskande ärenden."},
+        {"q": "Vilka dokument kan få Apostille?", "a": "De flesta offentliga dokument kan få Apostille, inklusive födelsebevis, vigselbevis, examensbevis, domstolshandlingar och notarierade dokument."},
+        {"q": "Vad kostar Apostille?", "a": "Apostille kostar från 950 kr per dokument. Priset inkluderar vår serviceavgift och den officiella avgiften."}
+      ],
+      "processTitle": "Så fungerar processen",
+      "processSteps": [
+        {"title": "Beställ online", "desc": "Fyll i vårt beställningsformulär och ladda upp dina dokument"},
+        {"title": "Vi granskar", "desc": "Vi kontrollerar att dokumenten uppfyller kraven"},
+        {"title": "Apostille", "desc": "Vi lämnar in dokumenten hos Notarius Publicus"},
+        {"title": "Leverans", "desc": "Vi skickar tillbaka dina apostillerade dokument"}
+      ],
+      "ctaTitle": "Behöver du Apostille på dina dokument?",
+      "ctaText": "Vi hjälper dig snabbt och enkelt. Beställ online eller kontakta oss för mer information."
+    },
+    "notarisering": {
+      "title": "Notarius Publicus",
+      "metaDescription": "Notarisering av dokument hos Notarius Publicus. Juridisk bekräftelse för användning i Sverige och utomlands. Från 1300 kr.",
+      "heroText": "Notarius Publicus bestyrker underskrifter och intygar att dokument är äkta. Detta är ofta första steget för att kunna använda dokument utomlands.",
+      "whatTitle": "Vad gör Notarius Publicus?",
+      "whatText1": "Notarius Publicus är en offentlig tjänsteman som utses av Länsstyrelsen. Deras uppgift är att bestyrka underskrifter, intyga att kopior stämmer överens med original, och utföra andra notariella förrättningar.",
+      "whatText2": "När du ska använda privata dokument (som fullmakter, avtal eller intyg) utomlands, kräver många länder att dokumenten först notariseras av Notarius Publicus.",
+      "whatText3": "Efter notariseringen kan dokumentet sedan legaliseras hos Utrikesdepartementet och eventuellt ambassaden för det land där det ska användas.",
+      "documentsTitle": "Vanliga notariseringar:",
+      "documents": ["Bestyrkande av underskrifter", "Fullmakter och avtal", "Kopior av pass och ID-handlingar", "Bolagshandlingar och protokoll", "Äktenskapsintyg och samtycken", "Översättningar (intyg om korrekthet)"],
+      "chainTitle": "Legaliseringskedjan",
+      "chainSteps": [
+        {"title": "Notarius Publicus", "desc": "Bestyrker underskriften och dokumentets äkthet."},
+        {"title": "Utrikesdepartementet", "desc": "Verifierar Notarius Publicus stämpel."},
+        {"title": "Ambassaden", "desc": "Slutlig legalisering för destinationslandet."}
+      ],
+      "chainNote": "Vi hjälper dig genom hela kedjan – från notarisering till färdig legalisering.",
+      "faqTitle": "Vanliga frågor",
+      "faqs": [
+        {"q": "Måste jag vara närvarande vid notariseringen?", "a": "Det beror på dokumenttypen. För bestyrkande av din egen underskrift måste du vara närvarande. För kopior och andra dokument kan vi hantera det åt dig."},
+        {"q": "Hur lång tid tar notarisering?", "a": "Handläggningstiden varierar beroende på dokumenttyp. Kontakta oss för mer information om ditt specifika ärende."},
+        {"q": "Vilka dokument behöver notariseras?", "a": "Privata dokument som fullmakter, avtal, och intyg behöver ofta notariseras. Offentliga dokument (från myndigheter) går direkt till UD."},
+        {"q": "Kan ni hjälpa med dokument på andra språk?", "a": "Ja, vi kan hantera dokument på de flesta språk. Vid behov kan vi även ordna auktoriserad översättning."}
+      ],
+      "ctaTitle": "Behöver du notarisering?",
+      "ctaText": "Vi hjälper dig med notarisering och hela legaliseringsprocessen. Beställ online eller kontakta oss."
+    },
+    "ambassadlegalisering": {
+      "title": "Ambassadlegalisering",
+      "metaDescription": "Ambassadlegalisering för länder utanför Haagkonventionen. Komplett legaliseringskedja via UD och ambassad. Från 1650 kr.",
+      "heroText": "För länder som inte är anslutna till Haagkonventionen krävs ambassadlegalisering. Vi hanterar hela processen från notarisering till ambassadstämpel.",
+      "whatTitle": "Vad är ambassadlegalisering?",
+      "whatText1": "Ambassadlegalisering är en process där dokument verifieras i flera steg för att bli giltiga i länder utanför Haagkonventionen.",
+      "whatText2": "Processen inkluderar vanligtvis notarisering, legalisering hos Utrikesdepartementet (UD), och slutligen stämpling hos destinationslandets ambassad eller konsulat.",
+      "whatText3": "Denna typ av legalisering krävs för länder som Förenade Arabemiraten, Saudiarabien, Qatar och många andra.",
+      "documentsTitle": "Vanliga dokument för ambassadlegalisering:",
+      "documents": ["Handelsavtal och kontrakt", "Bolagshandlingar och fullmakter", "Examensbevis och intyg", "Personbevis och civilståndshandlingar", "Medicinska intyg", "Tekniska certifikat"],
+      "countriesTitle": "Länder som kräver ambassadlegalisering",
+      "countries": [
+        {"flag": "🇦🇪", "name": "Förenade Arabemiraten"},
+        {"flag": "🇸🇦", "name": "Saudiarabien"},
+        {"flag": "🇶🇦", "name": "Qatar"},
+        {"flag": "🇰🇼", "name": "Kuwait"},
+        {"flag": "🇪🇬", "name": "Egypten"},
+        {"flag": "🇻🇳", "name": "Vietnam"},
+        {"flag": "🇮🇷", "name": "Iran"}
+      ],
+      "faqTitle": "Vanliga frågor om ambassadlegalisering",
+      "faqs": [
+        {"q": "Vilka länder kräver ambassadlegalisering?", "a": "Länder utanför Haagkonventionen, inklusive UAE, Saudiarabien, Qatar, Kuwait och många afrikanska länder."},
+        {"q": "Hur lång tid tar ambassadlegalisering?", "a": "Normalt 10-20 arbetsdagar beroende på ambassad. Vissa ambassader har längre handläggningstider."},
+        {"q": "Vad ingår i processen?", "a": "Processen inkluderar notarisering, UD-legalisering och ambassadstämpling. Vi hanterar alla steg åt dig."},
+        {"q": "Vad kostar ambassadlegalisering?", "a": "Priset varierar beroende på land och dokumenttyp. Från 1650 kr exklusive ambassadens avgifter."}
+      ],
+      "processTitle": "Så fungerar processen",
+      "processSteps": [
+        {"title": "Beställ online", "desc": "Fyll i vårt beställningsformulär och ladda upp dina dokument"},
+        {"title": "Notarisering & UD", "desc": "Vi hanterar notarisering och UD-legalisering"},
+        {"title": "Ambassad", "desc": "Vi lämnar in dokumenten hos rätt ambassad"},
+        {"title": "Leverans", "desc": "Vi skickar tillbaka dina legaliserade dokument"}
+      ],
+      "ctaTitle": "Behöver du ambassadlegalisering?",
+      "ctaText": "Vi hanterar hela processen åt dig. Beställ online eller kontakta oss för en offert."
+    },
+    "oversattning": {
+      "title": "Auktoriserad översättning",
+      "metaDescription": "Auktoriserad översättning av dokument för användning utomlands. Certifierade översättare, alla språk, officiell stämpel. Från 1450 kr.",
+      "heroText": "Auktoriserade översättningar utförs av Kammarkollegiets godkända översättare och är juridiskt giltiga för användning hos myndigheter i Sverige och utomlands.",
+      "whatTitle": "Vad är auktoriserad översättning?",
+      "whatText1": "En auktoriserad översättning är en översättning som utförs av en translator som är auktoriserad av Kammarkollegiet. Översättaren intygar att översättningen är korrekt och fullständig, och sätter sin officiella stämpel på dokumentet.",
+      "whatText2": "Auktoriserade översättningar krävs ofta när dokument ska användas hos myndigheter, domstolar, universitet eller andra officiella instanser - både i Sverige och utomlands.",
+      "whatText3": "Efter översättningen kan dokumentet vid behov legaliseras hos Notarius Publicus, Utrikesdepartementet och ambassaden för det land där det ska användas.",
+      "documentsTitle": "Vanliga dokument som översätts:",
+      "documents": ["Personbevis och folkbokföringsutdrag", "Vigselbevis och äktenskapsförord", "Examensbevis och betyg", "Födelseattester och dödsbevis", "Fullmakter och avtal", "Bolagshandlingar och registreringsbevis", "Medicinska journaler och intyg", "Domstolshandlingar"],
+      "languagesTitle": "Språk vi översätter",
+      "languagesText": "Vi erbjuder auktoriserad översättning till och från de flesta språk, inklusive:",
+      "languages": ["Engelska", "Tyska", "Franska", "Spanska", "Italienska", "Portugisiska", "Arabiska", "Persiska", "Turkiska", "Ryska", "Polska", "Kinesiska", "Japanska", "Koreanska", "Hindi", "Urdu", "Thai", "Vietnamesiska"],
+      "languagesNote": "Saknar du ett språk? Kontakta oss så hjälper vi dig.",
+      "faqTitle": "Vanliga frågor",
+      "faqs": [
+        {"q": "Vad är skillnaden mellan auktoriserad och vanlig översättning?", "a": "En auktoriserad översättning utförs av en translator godkänd av Kammarkollegiet och har juridisk giltighet. En vanlig översättning saknar denna officiella status."},
+        {"q": "Hur lång tid tar en auktoriserad översättning?", "a": "Normalt 5-10 arbetsdagar beroende på dokumentets längd och språkkombination. Expressalternativ finns tillgängligt."},
+        {"q": "Behöver jag skicka originaldokumentet?", "a": "Nej, i de flesta fall räcker det med en tydlig kopia eller scan. För vissa ärenden kan original krävas."},
+        {"q": "Kan översättningen legaliseras efteråt?", "a": "Ja, vi kan hjälpa till med hela kedjan - översättning, notarisering, UD-legalisering och ambassadlegalisering."}
+      ],
+      "processTitle": "Så fungerar det",
+      "processSteps": [
+        {"title": "Skicka dokument", "desc": "Ladda upp eller skicka ditt dokument till oss."},
+        {"title": "Översättning", "desc": "Auktoriserad översättare översätter och stämplar."},
+        {"title": "Leverans", "desc": "Du får översättningen digitalt och/eller per post."}
+      ],
+      "ctaTitle": "Behöver du auktoriserad översättning?",
+      "ctaText": "Vi hjälper dig med professionell översättning av alla typer av dokument. Beställ online eller kontakta oss för offert."
+    },
+    "utrikesdepartementet": {
+      "title": "Legalisering hos Utrikesdepartementet",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument hos Utrikesdepartementet (UD). Professionell hantering av apostille och legalisering för dokument som ska användas utomlands.",
+      "heroText": "Utrikesdepartementet (UD) verifierar att svenska dokument är äkta innan de kan användas utomlands. Vi hanterar hela processen åt dig – snabbt och professionellt.",
+      "whatTitle": "Vad är legalisering hos Utrikesdepartementet?",
+      "whatText1": "Utrikesdepartementet (UD) är den svenska myndighet som verifierar äktheten av svenska offentliga dokument som ska användas i andra länder. Detta kallas för legalisering.",
+      "whatText2": "UD-stämpeln bekräftar att dokumentet är utfärdat av en behörig svensk myndighet och att underskriften är äkta. Detta är ofta ett krav för att dokumentet ska accepteras utomlands.",
+      "whatText3": "För länder som är anslutna till Haagkonventionen utfärdar UD istället en Apostille, som är en internationellt erkänd stämpel.",
+      "documentsTitle": "Vanliga dokument som legaliseras:",
+      "documents": ["Personbevis och utdrag från Skatteverket", "Examensbevis och utbildningsintyg", "Registerutdrag från Bolagsverket", "Domar och juridiska dokument", "Vigselbevis och födelsebevis", "Fullmakter och avtal"],
+      "faqTitle": "Vanliga frågor",
+      "faqs": [
+        {"q": "Hur lång tid tar legalisering hos UD?", "a": "Handläggningstiden varierar beroende på dokumenttyp och aktuell belastning hos UD. Kontakta oss för mer information."},
+        {"q": "Vilka dokument kan legaliseras?", "a": "De flesta svenska offentliga dokument kan legaliseras, t.ex. personbevis, examensbevis, registerutdrag och juridiska dokument."},
+        {"q": "Vad är skillnaden mellan legalisering och apostille?", "a": "Apostille används för länder som är anslutna till Haagkonventionen. För andra länder krävs traditionell legalisering via UD och sedan ambassaden."},
+        {"q": "Behöver jag notarisering först?", "a": "Det beror på dokumenttypen. Privata dokument (t.ex. fullmakter) behöver ofta notariseras av Notarius Publicus innan UD kan legalisera dem."}
+      ],
+      "processTitle": "Så fungerar det",
+      "processSteps": [
+        {"title": "Beställ online", "desc": "Fyll i vårt enkla beställningsformulär och ladda upp dina dokument."},
+        {"title": "Skicka dokument", "desc": "Skicka originaldokumenten till oss eller boka upphämtning."},
+        {"title": "Vi hanterar UD", "desc": "Vi lämnar in dina dokument till Utrikesdepartementet."},
+        {"title": "Leverans", "desc": "Du får tillbaka dina legaliserade dokument."}
+      ],
+      "ctaTitle": "Redo att komma igång?",
+      "ctaText": "Vi hjälper dig med hela legaliseringsprocessen. Beställ online eller kontakta oss för rådgivning."
+    }
+  },
+  "countryPages": {
+    "orderLegalization": "Beställ legalisering",
+    "contactUs": "Kontakta oss",
+    "documentsFor": "Dokument för {{country}}",
+    "documentsIntro": "{{country}} kräver att utländska dokument legaliseras. Vi hanterar hela processen åt dig.",
+    "commonDocuments": "Vanliga dokument:",
+    "contactInfo": "Kontaktuppgifter",
+    "address": "Adress",
+    "phone": "Telefon",
+    "website": "Webbplats",
+    "weHandleEverything": "Vi sköter allt åt dig",
+    "orderNow": "Beställ nu",
+    "readyToLegalize": "Redo att legalisera?",
+    "egypten": {
+      "title": "Legalisering för Egypten",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Egypten. Komplett service via Egyptens ambassad i Stockholm. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Egypten.",
+      "embassyName": "Egyptens ambassad i Stockholm",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument och ursprungsintyg"]
+    },
+    "qatar": {
+      "title": "Legalisering för Qatar",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Qatar. Komplett service via Qatars ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Qatar.",
+      "embassyName": "Qatars ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument och ursprungsintyg"]
+    },
+    "kuwait": {
+      "title": "Legalisering för Kuwait",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Kuwait. Komplett service via Kuwaits ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Kuwait.",
+      "embassyName": "Kuwaits ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument och ursprungsintyg"]
+    },
+    "thailand": {
+      "title": "Legalisering för Thailand",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Thailand. Komplett service via Thailands ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Thailand.",
+      "embassyName": "Thailands ambassad i Stockholm",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "nigeria": {
+      "title": "Legalisering för Nigeria",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Nigeria. Komplett service via Nigerias ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Nigeria.",
+      "embassyName": "Nigerias ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "irak": {
+      "title": "Legalisering för Irak",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Irak. Komplett service via Iraks ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Irak.",
+      "embassyName": "Iraks ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "libanon": {
+      "title": "Legalisering för Libanon",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Libanon. Komplett service via Libanons ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Libanon.",
+      "embassyName": "Libanons ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "syrien": {
+      "title": "Legalisering för Syrien",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Syrien. Komplett service. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Syrien.",
+      "embassyName": "Syriens ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "palestina": {
+      "title": "Legalisering för Palestina",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Palestina. Komplett service. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Palestina.",
+      "embassyName": "Palestinas representation",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "angola": {
+      "title": "Legalisering för Angola",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Angola. Komplett service via Angolas ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Angola.",
+      "embassyName": "Angolas ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "etiopien": {
+      "title": "Legalisering för Etiopien",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Etiopien. Komplett service via Etiopiens ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Etiopien.",
+      "embassyName": "Etiopiens ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "libyen": {
+      "title": "Legalisering för Libyen",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Libyen. Komplett service. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Libyen.",
+      "embassyName": "Libyens ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "mocambique": {
+      "title": "Legalisering för Moçambique",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Moçambique. Komplett service. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Moçambique.",
+      "embassyName": "Moçambiques ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "sri-lanka": {
+      "title": "Legalisering för Sri Lanka",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Sri Lanka. Komplett service via Sri Lankas ambassad. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Sri Lanka.",
+      "embassyName": "Sri Lankas ambassad",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "taiwan": {
+      "title": "Legalisering för Taiwan",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Taiwan. Komplett service. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Taiwan.",
+      "embassyName": "Taipei Mission i Sverige",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
+    },
+    "spanien": {
+      "title": "Legalisering för Spanien",
+      "metaDescription": "Vi hjälper dig med legalisering av dokument för Spanien. Apostille-legalisering. Snabb hantering.",
+      "heroText": "Vi hjälper dig med komplett legalisering av dokument för Spanien.",
+      "embassyName": "Spaniens ambassad i Stockholm",
+      "documents": ["Personbevis och födelsebevis", "Vigselbevis och äktenskapsintyg", "Examensbevis", "Fullmakter", "Bolagshandlingar", "Handelsdokument"]
     }
   }
 }

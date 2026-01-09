@@ -107,7 +107,7 @@ const TermsAndConditionsPage: React.FC = () => {
                   Sweden<br />
                   <br />
                   Email: info@doxvl.se<br />
-                  Phone: 08-123 45 67
+                  Phone: 08-409 419 00
                 </p>
               </div>
             </div>

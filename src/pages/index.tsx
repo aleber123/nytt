@@ -66,8 +66,7 @@ export default function Home() {
         })));
 
       } catch (err) {
-        console.error('Error fetching pricing data:', err);
-        // Fallback to hardcoded data
+        // On Firebase error, show services without prices
         const fallbackData = getFallbackPricingData();
         setServices(fallbackData.map(service => ({
           id: service.service.toLowerCase().replace(/\s+/g, ''),
@@ -75,11 +74,8 @@ export default function Home() {
           title: t(`services.${service.serviceType}.title`),
           shortDescription: t(`services.${service.serviceType}.description`),
           icon: getServiceIcon(service.serviceType),
-          price:
-            service.serviceType === 'translation'
-              ? t('home.translationPriceLabel', 'Offert')
-              : service.totalPrice,
-          timeframe: service.timeframe,
+          price: '', // No price shown on error
+          timeframe: '',
           popular: service.serviceType === 'apostille',
           features: getServiceFeatures(service.serviceType, service.features || [])
         })));
@@ -358,10 +354,16 @@ export default function Home() {
                   </div>
 
                   <div className="border-t pt-4 mt-auto">
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500">{t('home.from')}</p>
-                      <p className="text-lg font-bold text-custom-button">{service.price}</p>
-                    </div>
+                    {service.price ? (
+                      <div className="mb-4">
+                        <p className="text-sm text-gray-500">{t('home.from')}</p>
+                        <p className="text-lg font-bold text-custom-button">{service.price}</p>
+                      </div>
+                    ) : (
+                      <div className="mb-4">
+                        <p className="text-sm text-gray-500">{t('services.contactForPrice', { defaultValue: 'Kontakta oss för pris' })}</p>
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       <Link

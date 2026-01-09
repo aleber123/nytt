@@ -120,7 +120,7 @@ const ContactPage: React.FC = () => {
                       {t('contact.contactTitle') || 'Kontakt'}
                     </h3>
                     <p className="text-gray-600">
-                      <strong>Telefon:</strong> 08-123 45 67<br />
+                      <strong>Telefon:</strong> 08-409 419 00<br />
                       <strong>E-post:</strong> info@doxvl.se
                     </p>
                   </div>
@@ -137,7 +137,8 @@ const ContactPage: React.FC = () => {
                       {t('contact.hoursTitle') || 'Öppettider'}
                     </h3>
                     <p className="text-gray-600">
-                      <strong>Måndag-fredag:</strong> 09:00-17:00<br />
+                      <strong>Måndag-torsdag:</strong> 09:00-16:00<br />
+                      <strong>Fredag:</strong> 09:00-15:00<br />
                       <strong>Lördag-söndag:</strong> Stängt
                     </p>
                   </div>

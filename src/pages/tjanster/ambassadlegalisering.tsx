@@ -4,40 +4,36 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 
-
-
-export default function UtrikesdepartementetPage() {
+export default function AmbassadlegaliseringPage() {
   const { t } = useTranslation('common');
-  const sp = 'servicePages.utrikesdepartementet';
+  const sp = 'servicePages.ambassadlegalisering';
 
   return (
     <>
       <Head>
         <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
-        <meta name="keywords" content="utrikesdepartementet, UD, legalisering, dokument, Sverige, apostille, stämpel" />
-        <link rel="canonical" href="https://www.doxvl.se/tjanster/utrikesdepartementet" />
+        <meta name="keywords" content="ambassadlegalisering, legalisering, dokument, ambassad, konsulat, internationell" />
+        <link rel="canonical" href="https://www.doxvl.se/tjanster/ambassadlegalisering" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
-        <meta property="og:url" content="https://www.doxvl.se/tjanster/utrikesdepartementet" />
+        <meta property="og:url" content="https://www.doxvl.se/tjanster/ambassadlegalisering" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Legalisering hos Utrikesdepartementet",
+          "name": "Ambassadlegalisering",
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB"
           },
-          "description": "Legalisering av dokument hos Utrikesdepartementet för användning utomlands",
+          "description": "Ambassadlegalisering för länder utanför Haagkonventionen",
           "areaServed": "SE",
           "serviceType": "Document Legalization"
         })}} />
       </Head>
-
-      
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}
@@ -62,7 +58,7 @@ export default function UtrikesdepartementetPage() {
           </div>
         </section>
 
-        {/* What is UD Section */}
+        {/* What is Embassy Legalization Section */}
         <section className="py-16 bg-white">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
@@ -95,20 +91,17 @@ export default function UtrikesdepartementetPage() {
           </div>
         </section>
 
-        {/* Process Section */}
+        {/* Countries Section */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
-              {t(`${sp}.processTitle`)}
+              {t(`${sp}.countriesTitle`)}
             </h2>
-            <div className="grid md:grid-cols-4 gap-6">
-              {(t(`${sp}.processSteps`, { returnObjects: true }) as Array<{title: string; desc: string}>).map((item, idx) => (
-                <div key={idx} className="bg-white p-6 rounded-lg shadow-sm text-center">
-                  <div className="w-12 h-12 bg-custom-button text-white font-bold text-xl rounded-full flex items-center justify-center mx-auto mb-4">
-                    {idx + 1}
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-gray-600 text-sm">{item.desc}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {(t(`${sp}.countries`, { returnObjects: true }) as Array<{flag: string; name: string}>).map((country, idx) => (
+                <div key={idx} className="bg-white p-4 rounded-lg shadow-sm text-center">
+                  <span className="text-3xl mb-2 block">{country.flag}</span>
+                  <span className="font-medium">{country.name}</span>
                 </div>
               ))}
             </div>
@@ -116,16 +109,34 @@ export default function UtrikesdepartementetPage() {
         </section>
 
         {/* FAQ Section */}
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-4xl mx-auto px-4">
+        <section className="py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
               {t(`${sp}.faqTitle`)}
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-6 max-w-3xl mx-auto">
               {(t(`${sp}.faqs`, { returnObjects: true }) as Array<{q: string; a: string}>).map((faq, idx) => (
-                <div key={idx} className="bg-white p-6 rounded-lg shadow-sm">
+                <div key={idx} className="bg-gray-50 p-6 rounded-lg">
                   <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                  <p className="text-gray-600">{faq.a}</p>
+                  <p className="text-gray-700">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Process Section */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
+              {t(`${sp}.processTitle`)}
+            </h2>
+            <div className="grid md:grid-cols-4 gap-6">
+              {(t(`${sp}.processSteps`, { returnObjects: true }) as Array<{title: string; desc: string}>).map((step, idx) => (
+                <div key={idx} className="text-center">
+                  <div className="w-12 h-12 bg-custom-button text-white rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-xl">{idx + 1}</div>
+                  <h3 className="font-semibold mb-2">{step.title}</h3>
+                  <p className="text-gray-600 text-sm">{step.desc}</p>
                 </div>
               ))}
             </div>
@@ -152,8 +163,6 @@ export default function UtrikesdepartementetPage() {
           </div>
         </section>
       </main>
-
-      
     </>
   );
 }
