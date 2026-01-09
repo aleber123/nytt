@@ -87,14 +87,14 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
 
   const getDocumentTypeName = () => {
     const typeMap: { [key: string]: string } = {
-      birthCertificate: t('orderFlow.step2.birthCertificate', 'Födelsebevis'),
-      marriageCertificate: t('orderFlow.step2.marriageCertificate', 'Vigselbevis'),
-      certificateOfOrigin: t('orderFlow.step2.certificateOfOrigin', 'Ursprungscertifikat (COO)'),
-      diploma: t('orderFlow.step2.diploma', 'Examensbevis'),
-      passport: t('orderFlow.step2.passport', 'Pass'),
-      commercial: t('orderFlow.step2.commercial', 'Handelsdokument'),
-      powerOfAttorney: t('orderFlow.step2.powerOfAttorney', 'Fullmakt'),
-      other: t('orderFlow.step2.other', 'Annat dokument')
+      birthCertificate: t('orderFlow.step2.birthCertificate', { defaultValue: 'Birth Certificate' }),
+      marriageCertificate: t('orderFlow.step2.marriageCertificate', { defaultValue: 'Marriage Certificate' }),
+      certificateOfOrigin: t('orderFlow.step2.certificateOfOrigin', { defaultValue: 'Certificate of Origin (COO)' }),
+      diploma: t('orderFlow.step2.diploma', { defaultValue: 'Diploma' }),
+      passport: t('orderFlow.step2.passport', { defaultValue: 'Passport' }),
+      commercial: t('orderFlow.step2.commercial', { defaultValue: 'Commercial Documents' }),
+      powerOfAttorney: t('orderFlow.step2.powerOfAttorney', { defaultValue: 'Power of Attorney' }),
+      other: t('orderFlow.step2.other', { defaultValue: 'Other document' })
     };
     if (Array.isArray(answers.documentTypes) && answers.documentTypes.length > 0) {
       const names = answers.documentTypes.map((type) => typeMap[type] || type);

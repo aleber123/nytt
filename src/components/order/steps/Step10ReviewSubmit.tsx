@@ -49,10 +49,10 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   onSubmit,
   currentLocale
 }) => {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const router = useRouter();
 
-  const locale = currentLocale || router.locale || 'sv';
+  const locale = i18n.language || router.locale || currentLocale || 'sv';
 
   // Local state for Step 10
   const submitButtonRef = useRef<HTMLButtonElement>(null);
@@ -240,6 +240,17 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   const translatePricingDescription = (description: string) => {
     if (!description) return '';
     if (locale === 'en') {
+      // DOX Visumpartner service fees
+      if (description.includes('DOX Visumpartner serviceavgift')) {
+        return description
+          .replace('DOX Visumpartner serviceavgift', 'DOX Visumpartner service fee')
+          .replace('Handelskammarens legalisering', 'Chamber of Commerce legalization')
+          .replace('Ambassadlegalisering', 'Embassy legalization')
+          .replace('Notarisering', 'Notarization')
+          .replace('Översättning', 'Translation')
+          .replace('Utrikesdepartementet', 'Ministry of Foreign Affairs')
+          .replace('Apostille', 'Apostille');
+      }
       if (description.startsWith('Handelskammarens legalisering - Officiell avgift')) {
         return description.replace(
           'Handelskammarens legalisering - Officiell avgift',
@@ -266,6 +277,10 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       }
       if (description.startsWith('Skannade kopior')) {
         return description.replace('Skannade kopior', 'Scanned copies');
+      }
+      // Country name
+      if (description === 'Sverige') {
+        return 'Sweden';
       }
     }
     return description;
@@ -431,7 +446,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             <span className="font-medium text-gray-900 break-words">
               {(() => {
                 const country = allCountries.find(c => c.code === answers.country);
-                const name = country?.name || answers.country;
+                const name = locale === 'en' ? (country?.nameEn || country?.name || answers.country) : (country?.name || answers.country);
                 return (
                   <span className="inline-flex items-center space-x-1">
                     <CountryFlag code={answers.country} size={20} />
@@ -891,7 +906,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     <div className="text-gray-700">{t('orderFlow.step7.country')}</div>
                   </div>
                   <div className="text-sm text-red-700">
-                    <strong>Viktigt:</strong> Skriv tydligt ordernumret på kuvertet eller skriv ut en fraktsedel nedan.
+                    <strong>{locale === 'en' ? 'Important:' : 'Viktigt:'}</strong> {locale === 'en' ? 'Write the order number clearly on the envelope or print a shipping label below.' : 'Skriv tydligt ordernumret på kuvertet eller skriv ut en fraktsedel nedan.'}
                   </div>
                 </div>
                 <div className="sm:ml-4">

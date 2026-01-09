@@ -530,11 +530,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     }
   }, [answers.country]);
 
-  // Load return and pickup services on component mount
+  // Load return and pickup services on component mount and when locale changes
   useEffect(() => {
     loadReturnServices();
     loadPickupServices();
-  }, []);
+  }, [currentLocale]);
 
   // Calculate pricing breakdown when services change
   useEffect(() => {
@@ -558,7 +558,9 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     answers.helpMeChooseServices,
     answers.customerInfo.email,
     answers.returnAddress.email,
-    answers.billingInfo.email
+    answers.billingInfo.email,
+    returnServices,
+    currentLocale
   ]);
 
   // Scroll to top when moving between steps
@@ -904,7 +906,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         id: rule.serviceType,
         name: getShippingServiceName(rule.serviceType),
         description: getShippingServiceDescription(rule.serviceType),
-        price: `Från ${rule.basePrice} kr`,
+        price: `${currentLocale === 'en' ? 'From' : 'Från'} ${rule.basePrice} kr`,
         provider: getShippingProvider(rule.serviceType),
         estimatedDelivery: getShippingDeliveryTime(rule.serviceType),
         available: true
@@ -912,95 +914,96 @@ export default function TestOrderPage({}: TestOrderPageProps) {
 
       // Merge with default services (like admin page does)
       // priceValue is the numeric value used for calculations
+      const fromText = currentLocale === 'en' ? 'From' : 'Från';
       const defaultReturnServices = [
         {
           id: 'postnord-rek',
           name: 'PostNord REK',
-          description: 'Rekommenderat brev - spårbart och försäkrat',
-          price: 'Från 85 kr',
+          description: getShippingServiceDescription('postnord-rek'),
+          price: `${fromText} 85 kr`,
           priceValue: 85,
           provider: 'PostNord',
-          estimatedDelivery: '2-5 arbetsdagar',
+          estimatedDelivery: getShippingDeliveryTime('postnord-rek'),
           available: true
         },
         {
           id: 'dhl-sweden',
           name: 'DHL Sweden',
-          description: 'DHL leverans inom Sverige',
-          price: 'Från 180 kr',
+          description: getShippingServiceDescription('dhl-sweden'),
+          price: `${fromText} 180 kr`,
           priceValue: 180,
           provider: 'DHL',
-          estimatedDelivery: '1-2 arbetsdagar',
+          estimatedDelivery: getShippingDeliveryTime('dhl-sweden'),
           available: true
         },
         {
           id: 'dhl-europe',
           name: 'DHL Europe',
-          description: 'DHL leverans inom Europa',
-          price: 'Från 250 kr',
+          description: getShippingServiceDescription('dhl-europe'),
+          price: `${fromText} 250 kr`,
           priceValue: 250,
           provider: 'DHL',
-          estimatedDelivery: '2-4 arbetsdagar',
+          estimatedDelivery: getShippingDeliveryTime('dhl-europe'),
           available: true
         },
         {
           id: 'dhl-worldwide',
           name: 'DHL Worldwide',
-          description: 'DHL internationell leverans',
-          price: 'Från 450 kr',
+          description: getShippingServiceDescription('dhl-worldwide'),
+          price: `${fromText} 450 kr`,
           priceValue: 450,
           provider: 'DHL',
-          estimatedDelivery: '3-7 arbetsdagar',
+          estimatedDelivery: getShippingDeliveryTime('dhl-worldwide'),
           available: true
         },
         {
           id: 'dhl-pre-12',
           name: 'DHL Pre 12',
-          description: 'Leverans före klockan 12:00 nästa arbetsdag',
-          price: 'Från 350 kr',
+          description: getShippingServiceDescription('dhl-pre-12'),
+          price: `${fromText} 350 kr`,
           priceValue: 350,
           provider: 'DHL',
-          estimatedDelivery: 'Nästa arbetsdag före 12:00',
+          estimatedDelivery: getShippingDeliveryTime('dhl-pre-12'),
           available: true
         },
         {
           id: 'dhl-pre-9',
           name: 'DHL Pre 9',
-          description: 'Leverans före klockan 09:00 nästa arbetsdag',
-          price: 'Från 450 kr',
+          description: getShippingServiceDescription('dhl-pre-9'),
+          price: `${fromText} 450 kr`,
           priceValue: 450,
           provider: 'DHL',
-          estimatedDelivery: 'Nästa arbetsdag före 09:00',
+          estimatedDelivery: getShippingDeliveryTime('dhl-pre-9'),
           available: true
         },
         {
           id: 'stockholm-city',
           name: 'Stockholm City Courier',
-          description: 'Lokal budservice inom Stockholm',
-          price: 'Från 120 kr',
+          description: getShippingServiceDescription('stockholm-city'),
+          price: `${fromText} 120 kr`,
           priceValue: 120,
-          provider: 'Lokal',
-          estimatedDelivery: 'Samma dag (före 16:00)',
+          provider: currentLocale === 'en' ? 'Local' : 'Lokal',
+          estimatedDelivery: getShippingDeliveryTime('stockholm-city'),
           available: true
         },
         {
           id: 'stockholm-express',
           name: 'Stockholm Express',
-          description: 'Expressleverans inom Stockholm samma dag',
-          price: 'Från 180 kr',
+          description: getShippingServiceDescription('stockholm-express'),
+          price: `${fromText} 180 kr`,
           priceValue: 180,
-          provider: 'Lokal',
-          estimatedDelivery: '2-4 timmar',
+          provider: currentLocale === 'en' ? 'Local' : 'Lokal',
+          estimatedDelivery: getShippingDeliveryTime('stockholm-express'),
           available: true
         },
         {
           id: 'stockholm-sameday',
           name: 'Stockholm Same Day',
-          description: 'Samma dags leverans inom Stockholm',
-          price: 'Från 250 kr',
+          description: getShippingServiceDescription('stockholm-sameday'),
+          price: `${fromText} 250 kr`,
           priceValue: 250,
-          provider: 'Lokal',
-          estimatedDelivery: 'Inom 2 timmar',
+          provider: currentLocale === 'en' ? 'Local' : 'Lokal',
+          estimatedDelivery: getShippingDeliveryTime('stockholm-sameday'),
           available: true
         }
       ];
@@ -1017,25 +1020,26 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       setReturnServices(mergedServices);
     } catch (error) {
       // Use default services if Firebase fails
+      const fallbackFromText = currentLocale === 'en' ? 'From' : 'Från';
       const defaultReturnServices = [
         {
           id: 'postnord-rek',
           name: 'PostNord REK',
-          description: 'Rekommenderat brev - spårbart och försäkrat',
-          price: 'Från 85 kr',
+          description: getShippingServiceDescription('postnord-rek'),
+          price: `${fallbackFromText} 85 kr`,
           priceValue: 85,
           provider: 'PostNord',
-          estimatedDelivery: '2-5 arbetsdagar',
+          estimatedDelivery: getShippingDeliveryTime('postnord-rek'),
           available: true
         },
         {
           id: 'dhl-sweden',
           name: 'DHL Sweden',
-          description: 'DHL leverans inom Sverige',
-          price: 'Från 180 kr',
+          description: getShippingServiceDescription('dhl-sweden'),
+          price: `${fallbackFromText} 180 kr`,
           priceValue: 180,
           provider: 'DHL',
-          estimatedDelivery: '1-2 arbetsdagar',
+          estimatedDelivery: getShippingDeliveryTime('dhl-sweden'),
           available: true
         }
       ];
@@ -1050,11 +1054,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       setLoadingPickupServices(true);
 
       // Default pickup services (fallback om Firebase inte ger regler)
+      const isEnglish = currentLocale === 'en';
       const defaultPickupServices = [
         {
           id: 'dhl-sweden',
           name: 'DHL Sweden',
-          description: 'DHL upphämtning inom Sverige',
+          description: isEnglish ? 'DHL pickup within Sweden' : 'DHL upphämtning inom Sverige',
           price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
@@ -1063,7 +1068,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         {
           id: 'dhl-pre-12',
           name: 'DHL Pre 12',
-          description: 'Upphämtning före klockan 12:00 nästa arbetsdag',
+          description: isEnglish ? 'Pickup before 12:00 next business day' : 'Upphämtning före klockan 12:00 nästa arbetsdag',
           price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
@@ -1072,7 +1077,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         {
           id: 'dhl-pre-9',
           name: 'DHL Pre 9',
-          description: 'Upphämtning före klockan 09:00 nästa arbetsdag',
+          description: isEnglish ? 'Pickup before 09:00 next business day' : 'Upphämtning före klockan 09:00 nästa arbetsdag',
           price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
@@ -1081,7 +1086,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         {
           id: 'dhl-europe',
           name: 'DHL Europe',
-          description: 'DHL upphämtning inom Europa',
+          description: isEnglish ? 'DHL pickup within Europe' : 'DHL upphämtning inom Europa',
           price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
@@ -1090,7 +1095,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         {
           id: 'dhl-worldwide',
           name: 'DHL Worldwide',
-          description: 'DHL internationell upphämtning',
+          description: isEnglish ? 'DHL international pickup' : 'DHL internationell upphämtning',
           price: '0 kr',
           provider: 'DHL',
           estimatedPickup: '',
@@ -1099,27 +1104,27 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         {
           id: 'stockholm-city',
           name: 'Stockholm City Courier',
-          description: 'Lokal budservice inom Stockholm',
+          description: isEnglish ? 'Local courier service within Stockholm' : 'Lokal budservice inom Stockholm',
           price: '0 kr',
-          provider: 'Lokal',
+          provider: isEnglish ? 'Local' : 'Lokal',
           estimatedPickup: '',
           available: true
         },
         {
           id: 'stockholm-express',
           name: 'Stockholm Express',
-          description: 'Expressupphämtning inom Stockholm samma dag',
+          description: isEnglish ? 'Express pickup within Stockholm same day' : 'Expressupphämtning inom Stockholm samma dag',
           price: '0 kr',
-          provider: 'Lokal',
+          provider: isEnglish ? 'Local' : 'Lokal',
           estimatedPickup: '',
           available: true
         },
         {
           id: 'stockholm-sameday',
           name: 'Stockholm Same Day',
-          description: 'Samma dags upphämtning inom Stockholm',
+          description: isEnglish ? 'Same day pickup within Stockholm' : 'Samma dags upphämtning inom Stockholm',
           price: '0 kr',
-          provider: 'Lokal',
+          provider: isEnglish ? 'Local' : 'Lokal',
           estimatedPickup: '',
           available: true
         }
@@ -1149,7 +1154,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
           id: rule.serviceType,
           name: getShippingServiceName(rule.serviceType),
           description: getShippingServiceDescription(rule.serviceType),
-          price: `Från ${rule.basePrice} kr`,
+          price: `${currentLocale === 'en' ? 'From' : 'Från'} ${rule.basePrice} kr`,
           provider: getShippingProvider(rule.serviceType),
           estimatedPickup: getShippingDeliveryTime(rule.serviceType),
           available: true
@@ -1282,16 +1287,17 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   };
 
   const getShippingServiceDescription = (serviceType: string) => {
+    const isEnglish = currentLocale === 'en';
     const descriptions: { [key: string]: string } = {
-      'postnord-rek': 'Rekommenderat brev - spårbart och försäkrat',
-      'dhl-sweden': 'DHL leverans inom Sverige',
-      'dhl-europe': 'DHL leverans inom Europa',
-      'dhl-worldwide': 'DHL internationell leverans',
-      'dhl-pre-12': 'Leverans före klockan 12:00 nästa arbetsdag',
-      'dhl-pre-9': 'Leverans före klockan 09:00 nästa arbetsdag',
-      'stockholm-city': 'Lokal budservice inom Stockholm',
-      'stockholm-express': 'Expressleverans inom Stockholm samma dag',
-      'stockholm-sameday': 'Samma dags leverans inom Stockholm'
+      'postnord-rek': isEnglish ? 'Registered mail - trackable and insured' : 'Rekommenderat brev - spårbart och försäkrat',
+      'dhl-sweden': isEnglish ? 'DHL delivery within Sweden' : 'DHL leverans inom Sverige',
+      'dhl-europe': isEnglish ? 'DHL delivery within Europe' : 'DHL leverans inom Europa',
+      'dhl-worldwide': isEnglish ? 'DHL international delivery' : 'DHL internationell leverans',
+      'dhl-pre-12': isEnglish ? 'Delivery before 12:00 next business day' : 'Leverans före klockan 12:00 nästa arbetsdag',
+      'dhl-pre-9': isEnglish ? 'Delivery before 09:00 next business day' : 'Leverans före klockan 09:00 nästa arbetsdag',
+      'stockholm-city': isEnglish ? 'Local courier service within Stockholm' : 'Lokal budservice inom Stockholm',
+      'stockholm-express': isEnglish ? 'Express delivery within Stockholm same day' : 'Expressleverans inom Stockholm samma dag',
+      'stockholm-sameday': isEnglish ? 'Same day delivery within Stockholm' : 'Samma dags leverans inom Stockholm'
     };
     return descriptions[serviceType] || '';
   };
@@ -1312,16 +1318,17 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   };
 
   const getShippingDeliveryTime = (serviceType: string) => {
+    const isEnglish = currentLocale === 'en';
     const deliveryTimes: { [key: string]: string } = {
-      'postnord-rek': '2-5 arbetsdagar',
-      'dhl-sweden': '1-2 arbetsdagar',
-      'dhl-europe': '2-4 arbetsdagar',
-      'dhl-worldwide': '3-7 arbetsdagar',
-      'dhl-pre-12': 'Nästa arbetsdag före 12:00',
-      'dhl-pre-9': 'Nästa arbetsdag före 09:00',
-      'stockholm-city': 'Samma dag (före 16:00)',
-      'stockholm-express': '2-4 timmar',
-      'stockholm-sameday': 'Inom 2 timmar'
+      'postnord-rek': isEnglish ? '2-5 business days' : '2-5 arbetsdagar',
+      'dhl-sweden': isEnglish ? '1-2 business days' : '1-2 arbetsdagar',
+      'dhl-europe': isEnglish ? '2-4 business days' : '2-4 arbetsdagar',
+      'dhl-worldwide': isEnglish ? '3-7 business days' : '3-7 arbetsdagar',
+      'dhl-pre-12': isEnglish ? 'Next business day before 12:00' : 'Nästa arbetsdag före 12:00',
+      'dhl-pre-9': isEnglish ? 'Next business day before 09:00' : 'Nästa arbetsdag före 09:00',
+      'stockholm-city': isEnglish ? 'Same day (before 16:00)' : 'Samma dag (före 16:00)',
+      'stockholm-express': isEnglish ? '2-4 hours' : '2-4 timmar',
+      'stockholm-sameday': isEnglish ? 'Within 2 hours' : 'Inom 2 timmar'
     };
     return deliveryTimes[serviceType] || '';
   };

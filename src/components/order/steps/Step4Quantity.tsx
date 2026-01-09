@@ -28,12 +28,14 @@ export const Step4Quantity: React.FC<StepProps> = ({
 
   const getDocumentTypeName = (typeId: string) => {
     const names: { [key: string]: string } = {
-      birthCertificate: t('orderFlow.step2.birthCertificate', 'Födelsebevis'),
-      marriageCertificate: t('orderFlow.step2.marriageCertificate', 'Vigselbevis'),
-      diploma: t('orderFlow.step2.diploma', 'Examensbevis'),
-      commercial: t('orderFlow.step2.commercial', 'Handelsdokument'),
-      powerOfAttorney: t('orderFlow.step2.powerOfAttorney', 'Fullmakt'),
-      other: t('orderFlow.step2.other', 'Annat dokument')
+      birthCertificate: t('orderFlow.step2.birthCertificate', { defaultValue: 'Birth Certificate' }),
+      marriageCertificate: t('orderFlow.step2.marriageCertificate', { defaultValue: 'Marriage Certificate' }),
+      certificateOfOrigin: t('orderFlow.step2.certificateOfOrigin', { defaultValue: 'Certificate of Origin (COO)' }),
+      diploma: t('orderFlow.step2.diploma', { defaultValue: 'Diploma' }),
+      passport: t('orderFlow.step2.passport', { defaultValue: 'Passport' }),
+      commercial: t('orderFlow.step2.commercial', { defaultValue: 'Commercial Documents' }),
+      powerOfAttorney: t('orderFlow.step2.powerOfAttorney', { defaultValue: 'Power of Attorney' }),
+      other: t('orderFlow.step2.other', { defaultValue: 'Other document' })
     };
     return names[typeId] || typeId;
   };

@@ -39,9 +39,12 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
       return translated;
     }
     
-    // Fallback to allCountries array
+    // Fallback to allCountries array with locale support
     const country = allCountries.find(c => c.code === code);
-    return country ? country.name : code;
+    if (country) {
+      return currentLocale === 'en' ? (country.nameEn || country.name) : country.name;
+    }
+    return code;
   };
 
   // Get service names using translations
