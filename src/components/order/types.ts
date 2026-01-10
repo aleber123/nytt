@@ -46,6 +46,7 @@ export interface OrderAnswers {
   scannedCopies: boolean;
   returnService: string;
   ownReturnTrackingNumber: string;
+  ownReturnLabelFile?: File | null; // Optional shipping label file for own return
   premiumDelivery: string;
   returnDeliveryDate?: string; // Desired delivery date (YYYY-MM-DD) for Stockholm courier return
   deliveryAddressType: 'business' | 'residential'; // Whether delivery is to business or home address

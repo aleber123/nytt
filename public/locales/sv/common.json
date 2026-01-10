@@ -1141,6 +1141,13 @@
       "ownReturnDescription": "Du har själv bokat returfrakt för dina dokument. Ange spårningsnumret så att vi kan koppla returen till din beställning.",
       "ownReturnTrackingLabel": "Spårningsnummer",
       "ownReturnTrackingPlaceholder": "Ange spårningsnummer för din retur...",
+      "ownReturnLabelTitle": "Fraktsedel",
+      "optional": "valfritt",
+      "ownReturnLabelDescription": "Ladda upp din fraktsedel så skriver vi ut den och fäster på paketet.",
+      "uploadLabel": "Välj fil eller dra och släpp",
+      "acceptedFormats": "PDF, JPG, PNG (max 5MB)",
+      "fileTooLarge": "Filen är för stor. Max 5MB.",
+      "removeFile": "Ta bort fil",
       "officePickupTitle": "Hämtning på vårt kontor",
       "officePickupDescription": "Du hämtar själv dina färdiga dokument på vårt kontor i Stockholm.",
       "services": {

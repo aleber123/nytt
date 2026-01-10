@@ -251,6 +251,20 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           .replace('Utrikesdepartementet', 'Ministry of Foreign Affairs')
           .replace('Apostille', 'Apostille');
       }
+      // Apostille fees
+      if (description.startsWith('Apostille - Officiell avgift')) {
+        return description.replace(
+          'Apostille - Officiell avgift',
+          'Apostille - Official fee'
+        );
+      }
+      if (description.startsWith('Apostille - Serviceavgift')) {
+        return description.replace(
+          'Apostille - Serviceavgift',
+          'Apostille - Service fee'
+        );
+      }
+      // Chamber of Commerce fees
       if (description.startsWith('Handelskammarens legalisering - Officiell avgift')) {
         return description.replace(
           'Handelskammarens legalisering - Officiell avgift',
@@ -263,6 +277,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           'Chamber of Commerce legalization - Service fee'
         );
       }
+      // Notarization fees
       if (description.startsWith('Notarisering - Officiell avgift')) {
         return description.replace(
           'Notarisering - Officiell avgift',
@@ -275,8 +290,58 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           'Notarization - Service fee'
         );
       }
+      // Embassy legalization fees
+      if (description.startsWith('Ambassadlegalisering - Officiell avgift')) {
+        return description.replace(
+          'Ambassadlegalisering - Officiell avgift',
+          'Embassy legalization - Official fee'
+        );
+      }
+      if (description.startsWith('Ambassadlegalisering - Serviceavgift')) {
+        return description.replace(
+          'Ambassadlegalisering - Serviceavgift',
+          'Embassy legalization - Service fee'
+        );
+      }
+      // Ministry of Foreign Affairs fees
+      if (description.startsWith('Utrikesdepartementet - Officiell avgift')) {
+        return description.replace(
+          'Utrikesdepartementet - Officiell avgift',
+          'Ministry of Foreign Affairs - Official fee'
+        );
+      }
+      if (description.startsWith('Utrikesdepartementet - Serviceavgift')) {
+        return description.replace(
+          'Utrikesdepartementet - Serviceavgift',
+          'Ministry of Foreign Affairs - Service fee'
+        );
+      }
+      // Translation fees
+      if (description.startsWith('Översättning - Officiell avgift')) {
+        return description.replace(
+          'Översättning - Officiell avgift',
+          'Translation - Official fee'
+        );
+      }
+      if (description.startsWith('Översättning - Serviceavgift')) {
+        return description.replace(
+          'Översättning - Serviceavgift',
+          'Translation - Service fee'
+        );
+      }
+      // Scanned copies
       if (description.startsWith('Skannade kopior')) {
         return description.replace('Skannade kopior', 'Scanned copies');
+      }
+      // Shipping services
+      if (description.startsWith('PostNord REK')) {
+        return description.replace('PostNord REK', 'PostNord Registered Mail');
+      }
+      if (description.startsWith('DHL Express')) {
+        return description; // Already in English
+      }
+      if (description.startsWith('Upphämtning Stockholm')) {
+        return description.replace('Upphämtning Stockholm', 'Stockholm Pickup');
       }
       // Country name
       if (description === 'Sverige') {
@@ -317,9 +382,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
     const idDoc = (answers as any).idDocumentFile;
     const signingAuth = (answers as any).signingAuthorityFile;
+    const returnLabel = answers.ownReturnLabelFile;
 
     if (idDoc) extraFiles.push(idDoc);
     if (signingAuth) extraFiles.push(signingAuth);
+    if (returnLabel) extraFiles.push(returnLabel);
 
     return [...baseFiles, ...extraFiles];
   };
@@ -729,6 +796,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                       answers.returnService === 'own-delivery'
                         ? (answers.ownReturnTrackingNumber || '')
                         : '',
+                    hasReturnLabel: answers.returnService === 'own-delivery' && !!answers.ownReturnLabelFile,
+                    returnLabelFileName: answers.ownReturnLabelFile?.name || null,
                     premiumDelivery: answers.premiumDelivery,
                     returnDeliveryDate: answers.returnDeliveryDate,
                     returnAddress: answers.returnAddress,
@@ -741,7 +810,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     locale: locale
                   };
 
-                  // Submit order (include main documents + any notarization support files)
+                  // Submit order (include main documents + any notarization support files + return label)
                   const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
 
                   // Send email notification (save to Firestore for external processing, same as contact form)
@@ -1044,6 +1113,8 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                       answers.returnService === 'own-delivery'
                         ? (answers.ownReturnTrackingNumber || '')
                         : '',
+                    hasReturnLabel: answers.returnService === 'own-delivery' && !!answers.ownReturnLabelFile,
+                    returnLabelFileName: answers.ownReturnLabelFile?.name || null,
                     premiumDelivery: answers.premiumDelivery,
                     returnDeliveryDate: answers.returnDeliveryDate,
                     returnAddress: answers.returnAddress,
@@ -1056,7 +1127,7 @@ ${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : 
                     locale: locale
                   };
 
-                  // Submit order (include any notarization support files)
+                  // Submit order (include any notarization support files + return label)
                   const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
 
                   // Clear saved progress since order is complete

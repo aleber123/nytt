@@ -1149,6 +1149,13 @@
       "ownReturnDescription": "You have booked return shipping yourself. Enter the tracking number so we can link the return to your order.",
       "ownReturnTrackingLabel": "Tracking number",
       "ownReturnTrackingPlaceholder": "Enter your return tracking number...",
+      "ownReturnLabelTitle": "Shipping label",
+      "optional": "optional",
+      "ownReturnLabelDescription": "Upload your shipping label and we will print it and attach it to the package.",
+      "uploadLabel": "Choose file or drag and drop",
+      "acceptedFormats": "PDF, JPG, PNG (max 5MB)",
+      "fileTooLarge": "File is too large. Max 5MB.",
+      "removeFile": "Remove file",
       "officePickupTitle": "Pickup at our office",
       "officePickupDescription": "You pick up your completed documents at our office in Stockholm.",
       "services": {

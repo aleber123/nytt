@@ -289,81 +289,27 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
               {/* Stockholm Premium Options */}
               {answers.returnService === service.id && showStockholmPremium && (
                 <div className="mt-4 ml-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="mb-4">
-                    <label htmlFor="return-delivery-date" className="block text-sm font-medium text-green-900 mb-1">
-                      {t('orderFlow.step9.stockholmDeliveryDateLabel', 'Önskat leveransdatum')}
-                    </label>
-                    <DatePicker
-                      id="return-delivery-date"
-                      selected={answers.returnDeliveryDate ? new Date(answers.returnDeliveryDate + 'T12:00:00') : null}
-                      onChange={(date: Date | null) => {
-                        if (date) {
-                          const y = date.getFullYear();
-                          const m = String(date.getMonth() + 1).padStart(2, '0');
-                          const d = String(date.getDate()).padStart(2, '0');
-                          setAnswers((prev) => ({
-                            ...prev,
-                            returnDeliveryDate: `${y}-${m}-${d}`
-                          }));
-                        } else {
-                          setAnswers((prev) => ({
-                            ...prev,
-                            returnDeliveryDate: ''
-                          }));
-                        }
-                      }}
-                      minDate={new Date(getEarliestStockholmDeliveryDate() + 'T12:00:00')}
-                      filterDate={(date: Date) => {
-                        const day = date.getDay();
-                        return day !== 0 && day !== 6; // Disable weekends
-                      }}
-                      dateFormat="yyyy-MM-dd"
-                      placeholderText={t('orderFlow.step9.stockholmDeliveryDatePlaceholder', 'Välj datum')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button bg-white"
-                    />
-                  </div>
-
                   <h4 className="text-sm font-medium text-green-900 mb-3">
                     ⚡ {t('orderFlow.step9.deliveryTimeOptionsStockholm', 'Välj leveranstid')}
                   </h4>
                   <div className="space-y-3" role="radiogroup" aria-label={t('orderFlow.step9.deliveryTimeOptionsStockholm', 'Välj leveranstid')}>
                     {stockholmTimeOptions.map((premium) => (
-                      (() => {
-                        const leadHours = !premium.id
-                          ? 0
-                          : premium.id === 'stockholm-sameday'
-                            ? 2
-                            : premium.id === 'stockholm-express'
-                              ? 4
-                              : 0;
-                        const isAvailable = isStockholmOptionAvailableToday(leadHours);
-
-                        return (
                       <label
                         key={premium.id}
-                        className={`flex items-center space-x-3 p-2 rounded transition-colors ${
-                          isAvailable ? 'cursor-pointer hover:bg-green-100' : 'opacity-50 cursor-not-allowed'
-                        }`}
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
                         role="radio"
                         aria-checked={answers.premiumDelivery === premium.id}
                         tabIndex={0}
-                        onKeyDown={(event) => {
-                          if (!isAvailable) return;
-                          handlePremiumOptionKeyDown(event, premium.id);
-                        }}
+                        onKeyDown={(event) => handlePremiumOptionKeyDown(event, premium.id)}
                       >
                         <input
                           type="radio"
                           name="premium-delivery"
                           value={premium.id}
                           checked={answers.premiumDelivery === premium.id}
-                          onChange={(e) => {
-                            if (!isAvailable) return;
-                            handlePremiumSelect(e.target.value);
-                          }}
+                          onChange={(e) => handlePremiumSelect(e.target.value)}
                           className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300"
                           tabIndex={-1}
-                          disabled={!isAvailable}
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-gray-900">
@@ -376,11 +322,6 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                               ? t(`orderFlow.step9.services.${premium.id}.description`, premium.description)
                               : premium.description}
                           </div>
-                          {!isAvailable && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {t('orderFlow.step9.stockholmNotAvailableToday', 'Inte tillgänglig idag – välj annat alternativ eller en senare dag.')}
-                            </div>
-                          )}
                         </div>
                         <div className="text-sm font-semibold text-custom-button">
                           {!premium.id
@@ -388,8 +329,6 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                             : t(`orderFlow.step9.services.${premium.id}.price`, premium.price)}
                         </div>
                       </label>
-                        );
-                      })()
                     ))}
                   </div>
                 </div>
@@ -433,25 +372,104 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
 
             {answers.returnService === 'own-delivery' && (
               <div className="mt-4 ml-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium text-blue-900">
-                    {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}
-                  </label>
-                  <input
-                    type="text"
-                    value={answers.ownReturnTrackingNumber || ''}
-                    onChange={(e) =>
-                      setAnswers(prev => ({
-                        ...prev,
-                        ownReturnTrackingNumber: e.target.value
-                      }))
-                    }
-                    placeholder={t(
-                      'orderFlow.step9.ownReturnTrackingPlaceholder',
-                      'Ange spårningsnummer för din retur...'
+                <div className="space-y-4">
+                  {/* Tracking number input */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-blue-900">
+                      {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}
+                    </label>
+                    <input
+                      type="text"
+                      value={answers.ownReturnTrackingNumber || ''}
+                      onChange={(e) =>
+                        setAnswers(prev => ({
+                          ...prev,
+                          ownReturnTrackingNumber: e.target.value
+                        }))
+                      }
+                      placeholder={t(
+                        'orderFlow.step9.ownReturnTrackingPlaceholder',
+                        'Ange spårningsnummer för din retur...'
+                      )}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button bg-white"
+                    />
+                  </div>
+
+                  {/* Shipping label upload (optional) */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-blue-900">
+                      {t('orderFlow.step9.ownReturnLabelTitle', 'Fraktsedel')}
+                      <span className="text-gray-500 font-normal ml-1">
+                        ({t('orderFlow.step9.optional', 'valfritt')})
+                      </span>
+                    </label>
+                    <p className="text-xs text-blue-700 mb-2">
+                      {t('orderFlow.step9.ownReturnLabelDescription', 'Ladda upp din fraktsedel så skriver vi ut den och fäster på paketet.')}
+                    </p>
+                    
+                    {!answers.ownReturnLabelFile ? (
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="return-label-upload"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              // Check file size (max 5MB)
+                              if (file.size > 5 * 1024 * 1024) {
+                                alert(t('orderFlow.step9.fileTooLarge', 'Filen är för stor. Max 5MB.'));
+                                return;
+                              }
+                              setAnswers(prev => ({
+                                ...prev,
+                                ownReturnLabelFile: file
+                              }));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="return-label-upload"
+                          className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-100 transition-colors"
+                        >
+                          <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <span className="text-sm text-blue-700">
+                            {t('orderFlow.step9.uploadLabel', 'Välj fil eller dra och släpp')}
+                          </span>
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {t('orderFlow.step9.acceptedFormats', 'PDF, JPG, PNG (max 5MB)')}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-lg">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-700 truncate max-w-[200px]">
+                            {answers.ownReturnLabelFile.name}
+                          </span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({(answers.ownReturnLabelFile.size / 1024).toFixed(0)} KB)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAnswers(prev => ({ ...prev, ownReturnLabelFile: null }))}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title={t('orderFlow.step9.removeFile', 'Ta bort fil')}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     )}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button bg-white"
-                  />
+                  </div>
                 </div>
               </div>
             )}

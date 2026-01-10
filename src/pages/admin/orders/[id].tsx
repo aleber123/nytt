@@ -749,6 +749,16 @@ function AdminOrderDetailPage() {
       status: 'pending'
     });
 
+    // STEP: Print customer's return label - If customer uploaded their own shipping label
+    if (orderData.returnService === 'own-delivery' && (orderData as any).hasReturnLabel) {
+      steps.push({
+        id: 'print_customer_return_label',
+        name: '🏷️ Print customer return label',
+        description: 'Print the customer\'s uploaded shipping label and attach to package',
+        status: 'pending'
+      });
+    }
+
     // STEP: Prepare return shipment
     steps.push({
       id: 'prepare_return',
@@ -4084,16 +4094,6 @@ function AdminOrderDetailPage() {
                       </svg>
                       <span className="hidden sm:inline">Order PDF</span>
                     </button>
-                    <button
-                      onClick={handlePrintCover}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"
-                      title="Print packing slip"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-3a2 2 0 00-2-2h-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v3H5a2 2 0 00-2 2v3a2 2 0 002 2h2m2 0h6v4H7v-4h6z" />
-                      </svg>
-                      <span className="hidden sm:inline">Print</span>
-                    </button>
                   </div>
                 </div>
               </div>
@@ -5614,19 +5614,71 @@ function AdminOrderDetailPage() {
                 {/* Files Tab */}
                 {activeTab === 'files' && (
                   <div className="space-y-6">
+                    {/* Return Shipping Label Section */}
+                    {(order as any).hasReturnLabel && (order as any).returnLabelFileName && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center mb-3">
+                          <span className="text-2xl mr-2">📦</span>
+                          <h3 className="text-lg font-medium text-blue-900">Return Shipping Label</h3>
+                        </div>
+                        <p className="text-sm text-blue-700 mb-3">
+                          Customer uploaded their own return shipping label. Print and attach to package.
+                        </p>
+                        {order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName) && (
+                          <div className="flex space-x-2">
+                            <a
+                              href={order.uploadedFiles.find((f: any) => f.originalName === (order as any).returnLabelFileName)?.downloadURL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
+                            >
+                              📥 Download Label
+                            </a>
+                            <button
+                              onClick={() => {
+                                const labelFile = order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName);
+                                if (labelFile?.downloadURL) {
+                                  const printWindow = window.open(labelFile.downloadURL, '_blank');
+                                  if (printWindow) {
+                                    printWindow.onload = () => printWindow.print();
+                                  }
+                                }
+                              }}
+                              className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm font-medium"
+                            >
+                              🖨️ Print Label
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div>
                       <h3 className="text-lg font-medium mb-4">Uploaded files</h3>
                       {order.uploadedFiles && order.uploadedFiles.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {order.uploadedFiles.map((file: any, index: number) => (
-                            <div key={index} className="border border-gray-200 rounded-lg p-4">
+                          {order.uploadedFiles.map((file: any, index: number) => {
+                            const isReturnLabel = (order as any).returnLabelFileName && file.originalName === (order as any).returnLabelFileName;
+                            return (
+                            <div key={index} className={`border rounded-lg p-4 ${isReturnLabel ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center">
+                                  {isReturnLabel ? (
+                                    <span className="text-2xl mr-3">📦</span>
+                                  ) : (
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
+                                  )}
                                   <div>
-                                    <p className="font-medium text-gray-900">{file.originalName}</p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium text-gray-900">{file.originalName}</p>
+                                      {isReturnLabel && (
+                                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                          Return Label
+                                        </span>
+                                      )}
+                                    </div>
                                     <p className="text-sm text-gray-500">
                                       {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type}
                                     </p>
@@ -5650,7 +5702,8 @@ function AdminOrderDetailPage() {
                                 </button>
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="text-center py-8 text-gray-500">
