@@ -669,6 +669,7 @@ function AdminOrdersPage() {
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.orderNumber', 'Order number')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.status', 'Status')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.services', 'Services')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.country', 'Country')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.contact', 'Contact')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.return', 'Return')}</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.actions', 'Actions')}</th>
@@ -731,6 +732,11 @@ function AdminOrdersPage() {
                               </span>
                             )}
                           </div>
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-100 text-blue-800">
+                            {order.country || '—'}
+                          </span>
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
                           {(order.customerInfo?.firstName || '') + ' ' + (order.customerInfo?.lastName || '')}

@@ -595,6 +595,14 @@ function AdminOrderDetailPage() {
           : 'Original documents have been received and registered',
         status: 'pending'
       });
+    } else if (orderData.willSendMainDocsLater) {
+      // Customer will send documents via email
+      steps.push({
+        id: 'email_documents_received',
+        name: '📧 Documents received via email',
+        description: `Check mailbox for ${orderData.quantity} document(s) from customer. Print and attach to order.`,
+        status: 'pending'
+      });
     } else {
       steps.push({
         id: 'file_upload_verification',
