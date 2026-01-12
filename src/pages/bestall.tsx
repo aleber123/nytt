@@ -1194,12 +1194,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         hasUnconfirmedPrices
       });
 
-      if (result.success) {
+      if (result?.success) {
         toast.success('Beställning mottagen!');
         clearProgress();
         router.push(`/order-confirmation?id=${result.orderId}`);
       } else {
-        toast.error(result.error || 'Något gick fel');
+        toast.error(result?.error || 'Något gick fel');
       }
     } catch (error) {
       console.error('Order submission error:', error);
