@@ -838,7 +838,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                     const emailData = {
                       name: `Ny beställning - Order #${orderId}`,
-                      email: 'noreply@legaliseringstjanst.se',
+                      email: 'noreply@doxvl.se',
                       phone: '',
                       subject: `Ny beställning mottagen - Order #${orderId}`,
                       message: `

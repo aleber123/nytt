@@ -11,7 +11,7 @@ import { Timestamp } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 // Admin email check (temporary solution until custom claims work)
-const ADMIN_EMAILS = ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+const ADMIN_EMAILS = ['admin@doxvl.se', 'sofia@sofia.se'];
 
 function AdminInvoicesPage() {
   const { t } = useTranslation('common');

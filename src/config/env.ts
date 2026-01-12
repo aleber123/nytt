@@ -5,7 +5,7 @@
 
 // Admin configuration
 export const ADMIN_EMAILS = [
-  'admin@legaliseringstjanst.se',
+  'admin@doxvl.se',
   'sofia@sofia.se'
 ];
 

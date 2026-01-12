@@ -11,7 +11,7 @@ import { getAllOrders } from '@/services/hybridOrderService';
 import { getInvoicesByOrderId, convertOrderToInvoice, storeInvoice } from '@/services/invoiceService';
 
 // Admin email check (temporary solution until custom claims work)
-const ADMIN_EMAILS = ['admin@legaliseringstjanst.se', 'sofia@sofia.se'];
+const ADMIN_EMAILS = ['admin@doxvl.se', 'sofia@sofia.se'];
 
 // Define Order interface locally to match the updated interface
 interface Order {

@@ -63,7 +63,7 @@ exports.sendContactEmail = functions.firestore
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
 
           <p style="color: #6b7280; font-size: 14px;">
-            Detta meddelande skickades från kontaktformuläret på Legaliseringstjanst.se
+            Detta meddelande skickades från kontaktformuläret på doxvl.se
           </p>
         </div>
       `;
