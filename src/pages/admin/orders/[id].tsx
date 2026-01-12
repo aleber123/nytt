@@ -34,6 +34,7 @@ interface ExtendedOrder extends Order {
   confirmedEmbassyPrice?: number;
   pendingEmbassyPrice?: number;
   pendingTotalPrice?: number;
+  willSendMainDocsLater?: boolean;
 }
 
 interface ProcessingStep {
