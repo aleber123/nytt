@@ -32,11 +32,22 @@ export const useOrderPersistence = (
 
   /**
    * Save current progress to sessionStorage
+   * Note: File objects cannot be serialized to JSON, so we exclude them
    */
   const saveProgress = useCallback(() => {
     try {
+      // Create a copy of answers without File objects (they can't be serialized)
+      const serializableAnswers = {
+        ...answers,
+        uploadedFiles: [], // File objects can't be serialized - user must re-upload after page refresh
+        idDocumentFile: null,
+        registrationCertFile: null,
+        signingAuthorityIdFile: null,
+        ownReturnLabelFile: null,
+      };
+
       const draft: OrderDraft = {
-        answers,
+        answers: serializableAnswers,
         currentStep: currentQuestion,
         timestamp: Date.now()
       };
@@ -81,7 +92,14 @@ export const useOrderPersistence = (
       hasRestoredRef.current = true;
       
       // Restore the saved data
-      setAnswers(draft.answers);
+      // Ensure uploadedFiles array is properly initialized based on quantity
+      const restoredAnswers = {
+        ...draft.answers,
+        uploadedFiles: draft.answers.documentSource === 'upload' && !draft.answers.willSendMainDocsLater
+          ? new Array(draft.answers.quantity || 1).fill(null)
+          : [],
+      };
+      setAnswers(restoredAnswers);
       setCurrentQuestion(draft.currentStep);
       
       logger.log('✅ Order progress restored:', { 

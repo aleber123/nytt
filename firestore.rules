@@ -49,8 +49,12 @@ service cloud.firestore {
       // The admin panel is protected by Firebase Auth at the UI level
       allow read: if true;
 
-      // Update: Admin or DOX staff only
-      allow update: if isAdmin() || isDoxStaff();
+      // Update: Admin/staff can update anything
+      // Anonymous users can only update file-related fields (for upload after order creation)
+      allow update: if isAdmin() || isDoxStaff() || 
+        // Allow anonymous updates only for file upload fields
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['uploadedFiles', 'filesUploaded', 'filesUploadedAt', 'uploadError', 'updatedAt']));
 
       // Never allow client-side delete
       allow delete: if false;

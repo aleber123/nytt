@@ -469,6 +469,12 @@ const uploadFiles = async (files, orderId) => {
 // Check for duplicate orders (within last 5 minutes)
 const checkForDuplicateOrder = async (orderData) => {
   ensureFirebaseInitialized();
+  
+  // Safety check - if customerInfo or email is missing, skip duplicate check
+  if (!orderData?.customerInfo?.email) {
+    return { isDuplicate: false };
+  }
+  
   try {
     const fiveMinutesAgo = new Date(Date.now() - 300000); // 5 minutes ago
 
@@ -495,29 +501,13 @@ const checkForDuplicateOrder = async (orderData) => {
           };
         }
       } catch (firebaseError) {
+        // Silently continue - duplicate check is not critical
       }
     }
 
-    // Check mock storage for duplicates
-    const mockOrders = await mockFirebase.getAllOrders();
-    const recentMockOrder = mockOrders
-      .filter(order =>
-        order.customerInfo.email === orderData.customerInfo.email &&
-        JSON.stringify(order.services) === JSON.stringify(orderData.services) &&
-        new Date(order.createdAt) > fiveMinutesAgo
-      )
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
-    if (recentMockOrder) {
-      return {
-        isDuplicate: true,
-        existingOrderId: recentMockOrder.id
-      };
-    }
-
+    // Skip mock storage check in production (it's not used)
     return { isDuplicate: false };
   } catch (error) {
-    console.error('❌ Error checking for duplicate orders:', error);
     return { isDuplicate: false }; // Allow order creation if check fails
   }
 };

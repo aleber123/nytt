@@ -147,8 +147,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       }
     }
     
-    // For upload flow, check if files are uploaded
-    if (answers.documentSource === 'upload') {
+    // For upload flow, check if files are uploaded (skip if customer will send later via email)
+    if (answers.documentSource === 'upload' && !answers.willSendMainDocsLater) {
       if (answers.uploadedFiles.length !== answers.quantity || answers.uploadedFiles.some(file => !file)) {
         missing.push({ field: 'files', label: isEn ? 'Document files' : 'Dokumentfiler', id: 'file-upload-0' });
       }
