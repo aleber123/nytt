@@ -1186,7 +1186,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       }
 
       // Create order with files
-      const result = await createOrderWithFiles({
+      const orderId = await createOrderWithFiles({
         ...answers,
         recaptchaToken,
         totalPrice,
@@ -1194,12 +1194,12 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         hasUnconfirmedPrices
       });
 
-      if (result?.success) {
+      if (orderId) {
         toast.success('Beställning mottagen!');
         clearProgress();
-        router.push(`/order-confirmation?id=${result.orderId}`);
+        router.push(`/order-confirmation?id=${orderId}`);
       } else {
-        toast.error(result?.error || 'Något gick fel');
+        toast.error('Något gick fel');
       }
     } catch (error) {
       console.error('Order submission error:', error);
