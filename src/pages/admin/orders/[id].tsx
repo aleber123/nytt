@@ -683,13 +683,13 @@ function AdminOrderDetailPage() {
       if (orderData.services.includes('ud')) {
         steps.push({
           id: 'ud_delivery',
-          name: '🇸🇪 Ministry for Foreign Affairs – drop off',
+          name: '🏛️ Ministry for Foreign Affairs – drop off',
           description: 'Submit documents for legalization at the Swedish Ministry for Foreign Affairs',
           status: 'pending'
         });
         steps.push({
           id: 'ud_pickup',
-          name: '🇸🇪 Ministry for Foreign Affairs – pick up',
+          name: '🏛️ Ministry for Foreign Affairs – pick up',
           description: 'Pick up legalized documents from the Swedish Ministry for Foreign Affairs',
           status: 'pending'
         });

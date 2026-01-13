@@ -102,24 +102,41 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
 
   // Sync to legacy customerInfo whenever billing info changes
   // All customer info comes from billingInfo (the invoice/contact section)
+  // For company customers, use contactPerson as the name
   useEffect(() => {
-    setAnswers(prev => ({
-      ...prev,
-      customerInfo: {
-        ...prev.customerInfo,
-        firstName: prev.billingInfo.firstName || prev.returnAddress.firstName,
-        lastName: prev.billingInfo.lastName || prev.returnAddress.lastName,
-        companyName: prev.billingInfo.companyName || prev.returnAddress.companyName,
-        email: prev.billingInfo.email || prev.returnAddress.email,
-        phone: prev.billingInfo.phone || prev.returnAddress.phone,
-        address: prev.billingInfo.street || prev.returnAddress.street,
-        postalCode: prev.billingInfo.postalCode || prev.returnAddress.postalCode,
-        city: prev.billingInfo.city || prev.returnAddress.city,
-        country: prev.billingInfo.country || prev.returnAddress.country,
-        countryCode: prev.billingInfo.countryCode || prev.returnAddress.countryCode
+    setAnswers(prev => {
+      // For company customers, split contactPerson into firstName/lastName
+      let firstName: string;
+      let lastName: string;
+      
+      if (prev.customerType === 'company' && prev.billingInfo.contactPerson) {
+        const nameParts = prev.billingInfo.contactPerson.trim().split(/\s+/);
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+      } else {
+        firstName = prev.billingInfo.firstName || prev.returnAddress.firstName;
+        lastName = prev.billingInfo.lastName || prev.returnAddress.lastName;
       }
-    }));
-  }, [answers.billingInfo, answers.returnAddress, setAnswers]);
+      
+      return {
+        ...prev,
+        customerInfo: {
+          ...prev.customerInfo,
+          firstName: firstName,
+          lastName: lastName,
+          companyName: prev.billingInfo.companyName || prev.returnAddress.companyName,
+          contactPerson: prev.billingInfo.contactPerson,
+          email: prev.billingInfo.email || prev.returnAddress.email,
+          phone: prev.billingInfo.phone || prev.returnAddress.phone,
+          address: prev.billingInfo.street || prev.returnAddress.street,
+          postalCode: prev.billingInfo.postalCode || prev.returnAddress.postalCode,
+          city: prev.billingInfo.city || prev.returnAddress.city,
+          country: prev.billingInfo.country || prev.returnAddress.country,
+          countryCode: prev.billingInfo.countryCode || prev.returnAddress.countryCode
+        }
+      };
+    });
+  }, [answers.billingInfo, answers.returnAddress, answers.customerType, setAnswers]);
 
   // Email validation helper
   const isValidEmail = (email: string) => {

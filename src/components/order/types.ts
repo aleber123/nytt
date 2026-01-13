@@ -99,6 +99,7 @@ export interface OrderAnswers {
     firstName: string;
     lastName: string;
     companyName?: string;
+    contactPerson?: string;
     email: string;
     phone: string;
     address: string;
