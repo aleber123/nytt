@@ -12,6 +12,21 @@ import {
   updatePricingRule,
   PricingRule
 } from '@/firebase/pricingService';
+import { ALL_COUNTRIES } from '@/components/order/data/countries';
+
+// Get English country name by looking up in ALL_COUNTRIES (by Swedish name or code)
+const getEnglishCountryName = (swedishName: string, countryCode?: string): string => {
+  // First try to find by country code (most reliable)
+  if (countryCode) {
+    const byCode = ALL_COUNTRIES.find(c => c.code === countryCode);
+    if (byCode?.nameEn) return byCode.nameEn;
+  }
+  // Fallback: try to find by Swedish name
+  const byName = ALL_COUNTRIES.find(c => c.name === swedishName);
+  if (byName?.nameEn) return byName.nameEn;
+  // Last resort: return original name
+  return swedishName;
+};
 
 interface EmbassyPrice {
   countryCode: string;
@@ -271,7 +286,7 @@ function EmbassyPricesAdminPage() {
                     <tr key={price.countryCode}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {price.countryName}
+                          {getEnglishCountryName(price.countryName, price.countryCode)}
                         </div>
                         <div className="text-sm text-gray-500">
                           {price.countryCode}
@@ -293,7 +308,7 @@ function EmbassyPricesAdminPage() {
                             );
                           }}
                           onBlur={(e) => handleUpdateOfficialFee(price.countryCode, parseInt(e.target.value) || 0)}
-                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                           disabled={saving}
                         />
                         <span className="text-sm text-gray-500 ml-1">kr</span>
@@ -314,7 +329,7 @@ function EmbassyPricesAdminPage() {
                             );
                           }}
                           onBlur={(e) => handleUpdateServiceFee(price.countryCode, parseInt(e.target.value) || 0)}
-                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                           disabled={saving}
                         />
                         <span className="text-sm text-gray-500 ml-1">kr</span>
@@ -325,7 +340,7 @@ function EmbassyPricesAdminPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {price.lastUpdated ? price.lastUpdated.toLocaleDateString('sv-SE') : 'Aldrig'}
+                        {price.lastUpdated ? price.lastUpdated.toLocaleDateString('en-GB') : 'Never'}
                       </td>
                     </tr>
                   ))}
@@ -364,24 +379,24 @@ function AddEmbassyForm({ onAdd, disabled }: { onAdd: (countryCode: string, coun
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Landskod</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Country code</label>
         <input
           type="text"
           value={countryCode}
           onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           placeholder="AO"
           required
           disabled={disabled}
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Land</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Country name</label>
         <input
           type="text"
           value={countryName}
           onChange={(e) => setCountryName(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           placeholder="Angola"
           required
           disabled={disabled}
@@ -393,7 +408,7 @@ function AddEmbassyForm({ onAdd, disabled }: { onAdd: (countryCode: string, coun
           type="number"
           value={officialFee}
           onChange={(e) => setOfficialFee(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           placeholder="5000"
           required
           disabled={disabled}
@@ -403,7 +418,7 @@ function AddEmbassyForm({ onAdd, disabled }: { onAdd: (countryCode: string, coun
         <button
           type="submit"
           disabled={disabled || !countryCode || !countryName || !officialFee}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {disabled ? 'Saving...' : 'Add'}
         </button>

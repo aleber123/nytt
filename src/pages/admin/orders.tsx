@@ -372,7 +372,7 @@ function AdminOrdersPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryPending', 'Pending')}</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryPending', 'Waiting for processing')}</p>
                   <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'pending').length}</p>
                 </div>
               </div>
@@ -386,8 +386,8 @@ function AdminOrdersPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryShipped', 'Shipped')}</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'shipped').length}</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryProcessing', 'Being processed')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'processing').length}</p>
                 </div>
               </div>
             </div>

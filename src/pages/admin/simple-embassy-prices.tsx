@@ -13,6 +13,13 @@ import {
   updateOrCreatePricingRule
 } from '@/firebase/pricingService';
 import CountryFlag from '@/components/ui/CountryFlag';
+import { ALL_COUNTRIES } from '@/components/order/data/countries';
+
+// Get English country name by country code
+const getEnglishCountryName = (countryCode: string): string => {
+  const country = ALL_COUNTRIES.find(c => c.code === countryCode);
+  return country?.nameEn || countryCode;
+};
 
 interface EmbassyCountry {
   code: string;
@@ -25,6 +32,10 @@ interface EmbassyCountry {
   priceUnconfirmed?: boolean; // When true, show "Price on request" to customer
 }
 
+type SortField = 'name' | 'officialFee' | 'serviceFee' | 'totalPrice' | 'status' | 'lastUpdated';
+type SortDirection = 'asc' | 'desc';
+type StatusFilter = 'all' | 'confirmed' | 'unconfirmed';
+
 function SimpleEmbassyPricesPage() {
   const { t } = useTranslation('common');
   const { currentUser } = useAuth();
@@ -34,6 +45,20 @@ function SimpleEmbassyPricesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [bulkServiceFee, setBulkServiceFee] = useState(1200);
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  
+  // Selection state
+  const [selectedCountryCodes, setSelectedCountryCodes] = useState<Set<string>>(new Set());
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  
+  // Bulk edit for selected
+  const [bulkOfficialFee, setBulkOfficialFee] = useState<number>(0);
+  const [bulkSelectedServiceFee, setBulkSelectedServiceFee] = useState<number>(1200);
 
   // Predefined countries with embassy services (Non-Hague Convention countries with embassies in Stockholm)
   const defaultCountries: EmbassyCountry[] = [
@@ -130,23 +155,27 @@ function SimpleEmbassyPricesPage() {
       const allRules = await getAllActivePricingRules();
       const embassyRules = allRules.filter(rule => rule.serviceType === 'embassy');
 
-      // Merge with default countries
-      const mergedCountries = defaultCountries.map(defaultCountry => {
-        const existingRule = embassyRules.find(rule => rule.countryCode === defaultCountry.code);
-        if (existingRule) {
-          return {
-            ...defaultCountry,
-            officialFee: existingRule.officialFee,
-            serviceFee: existingRule.serviceFee,
-            totalPrice: existingRule.basePrice,
-            lastUpdated: existingRule.lastUpdated?.toDate(),
-            priceUnconfirmed: existingRule.priceUnconfirmed || false
-          };
-        }
-        return defaultCountry;
+      // Load ALL countries from Firebase (not just hardcoded ones)
+      const allCountriesFromFirebase: EmbassyCountry[] = embassyRules.map(rule => {
+        const countryData = ALL_COUNTRIES.find(c => c.code === rule.countryCode);
+        return {
+          code: rule.countryCode,
+          name: countryData?.name || rule.countryName || rule.countryCode,
+          flag: countryData?.flag || '🏳️',
+          officialFee: rule.officialFee,
+          serviceFee: rule.serviceFee,
+          totalPrice: rule.basePrice,
+          lastUpdated: rule.lastUpdated?.toDate(),
+          priceUnconfirmed: rule.priceUnconfirmed || false
+        };
       });
 
-      setCountries(mergedCountries);
+      // Sort by English name
+      allCountriesFromFirebase.sort((a, b) => 
+        getEnglishCountryName(a.code).localeCompare(getEnglishCountryName(b.code))
+      );
+
+      setCountries(allCountriesFromFirebase);
     } catch (error) {
       console.error('Error loading embassy prices:', error);
       // Use default countries if Firebase fails
@@ -157,17 +186,149 @@ function SimpleEmbassyPricesPage() {
     }
   };
 
-  // Filter countries based on search term
-  const filteredCountries = countries.filter(country => {
-    if (!searchTerm.trim()) return true;
+  // Filter countries based on search term and status
+  const filteredCountries = countries
+    .filter(country => {
+      // Status filter
+      if (statusFilter === 'confirmed' && country.priceUnconfirmed) return false;
+      if (statusFilter === 'unconfirmed' && !country.priceUnconfirmed) return false;
+      
+      // Search filter
+      if (!searchTerm.trim()) return true;
+      const searchLower = searchTerm.toLowerCase().trim();
+      const englishName = getEnglishCountryName(country.code).toLowerCase();
+      const codeLower = country.code.toLowerCase();
+      return englishName.includes(searchLower) || codeLower.includes(searchLower);
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'name':
+          comparison = getEnglishCountryName(a.code).localeCompare(getEnglishCountryName(b.code));
+          break;
+        case 'officialFee':
+          comparison = a.officialFee - b.officialFee;
+          break;
+        case 'serviceFee':
+          comparison = a.serviceFee - b.serviceFee;
+          break;
+        case 'totalPrice':
+          comparison = a.totalPrice - b.totalPrice;
+          break;
+        case 'status':
+          comparison = (a.priceUnconfirmed ? 1 : 0) - (b.priceUnconfirmed ? 1 : 0);
+          break;
+        case 'lastUpdated':
+          const aTime = a.lastUpdated?.getTime() || 0;
+          const bTime = b.lastUpdated?.getTime() || 0;
+          comparison = aTime - bTime;
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
 
-    const searchLower = searchTerm.toLowerCase().trim();
-    const nameLower = country.name.toLowerCase();
-    const codeLower = country.code.toLowerCase();
+  // Selection helpers
+  const isAllSelected = filteredCountries.length > 0 && filteredCountries.every(c => selectedCountryCodes.has(c.code));
+  const selectedCount = selectedCountryCodes.size;
 
-    // Search by country name or code
-    return nameLower.includes(searchLower) || codeLower.includes(searchLower);
-  });
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedCountryCodes(new Set());
+    } else {
+      setSelectedCountryCodes(new Set(filteredCountries.map(c => c.code)));
+    }
+  };
+
+  const toggleSelectCountry = (code: string) => {
+    const newSet = new Set(selectedCountryCodes);
+    if (newSet.has(code)) {
+      newSet.delete(code);
+    } else {
+      newSet.add(code);
+    }
+    setSelectedCountryCodes(newSet);
+  };
+
+  const clearSelection = () => {
+    setSelectedCountryCodes(new Set());
+  };
+
+  // Sort handler
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Bulk update selected countries
+  const bulkUpdateSelected = async (updates: { officialFee?: number; serviceFee?: number; priceUnconfirmed?: boolean }) => {
+    if (selectedCountryCodes.size === 0) return;
+    
+    setBulkUpdating(true);
+    try {
+      const updatePromises = Array.from(selectedCountryCodes).map(async (code) => {
+        const country = countries.find(c => c.code === code);
+        if (!country) return;
+
+        const newOfficialFee = updates.officialFee !== undefined ? updates.officialFee : country.officialFee;
+        const newServiceFee = updates.serviceFee !== undefined ? updates.serviceFee : country.serviceFee;
+        const ruleId = `${code}_embassy`;
+
+        await updateOrCreatePricingRule(
+          ruleId,
+          {
+            officialFee: newOfficialFee,
+            serviceFee: newServiceFee,
+            basePrice: newOfficialFee + newServiceFee,
+            ...(updates.priceUnconfirmed !== undefined && { priceUnconfirmed: updates.priceUnconfirmed }),
+            updatedBy: currentUser?.email || 'admin'
+          },
+          {
+            countryCode: code,
+            countryName: country.name,
+            serviceType: 'embassy',
+            officialFee: newOfficialFee,
+            serviceFee: newServiceFee,
+            basePrice: newOfficialFee + newServiceFee,
+            processingTime: { standard: 15 },
+            currency: 'SEK',
+            updatedBy: currentUser?.email || 'admin',
+            isActive: true,
+            priceUnconfirmed: updates.priceUnconfirmed !== undefined ? updates.priceUnconfirmed : country.priceUnconfirmed
+          }
+        );
+      });
+
+      await Promise.all(updatePromises);
+
+      // Update local state
+      setCountries(prev =>
+        prev.map(c => {
+          if (!selectedCountryCodes.has(c.code)) return c;
+          return {
+            ...c,
+            officialFee: updates.officialFee !== undefined ? updates.officialFee : c.officialFee,
+            serviceFee: updates.serviceFee !== undefined ? updates.serviceFee : c.serviceFee,
+            totalPrice: (updates.officialFee !== undefined ? updates.officialFee : c.officialFee) + 
+                       (updates.serviceFee !== undefined ? updates.serviceFee : c.serviceFee),
+            priceUnconfirmed: updates.priceUnconfirmed !== undefined ? updates.priceUnconfirmed : c.priceUnconfirmed,
+            lastUpdated: new Date()
+          };
+        })
+      );
+
+      toast.success(`Updated ${selectedCountryCodes.size} countries`);
+      clearSelection();
+    } catch (error) {
+      console.error('Error bulk updating:', error);
+      toast.error('Could not update selected countries');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
 
   const updateEmbassyFee = async (countryCode: string, newOfficialFee: number, newServiceFee?: number) => {
     try {
@@ -403,313 +564,391 @@ function SimpleEmbassyPricesPage() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              🏛️ Embassy Prices by Country
-            </h1>
-            <p className="text-gray-600">
-              Update official embassy fees. All changes are saved automatically.
-            </p>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">🏛️ Embassy Prices</h1>
           </div>
 
-          {/* Search Box */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">🔍 Search for Country</h3>
-              {searchTerm && (
+          {/* Summary Stats - Like Orders page */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Total countries</p>
+                  <p className="text-2xl font-bold text-gray-900">{countries.length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Confirmed</p>
+                  <p className="text-2xl font-bold text-gray-900">{countries.filter(c => !c.priceUnconfirmed).length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Unconfirmed</p>
+                  <p className="text-2xl font-bold text-gray-900">{countries.filter(c => c.priceUnconfirmed).length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Avg. price</p>
+                  <p className="text-2xl font-bold text-gray-900">{Math.round(countries.reduce((sum, c) => sum + c.totalPrice, 0) / countries.length || 0)} kr</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search and Filter Bar - Like Orders page */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex flex-col gap-4">
+              {/* Search Row */}
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by country name or code..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
                 <button
-                  onClick={() => setSearchTerm('')}
-                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                  onClick={() => loadEmbassyPrices()}
+                  className="px-4 py-2 text-primary-600 hover:text-primary-800 font-medium"
                 >
-                  Clear search
+                  Refresh
                 </button>
-              )}
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by country name or code (e.g. 'Sweden' or 'SE')..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-                />
               </div>
-              <div className="text-sm text-gray-500 whitespace-nowrap">
+              
+              {/* Quick Filters Row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-gray-600 mr-2">Quick filters:</span>
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+                    statusFilter === 'all'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All ({countries.length})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('confirmed')}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+                    statusFilter === 'confirmed'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  ✓ Confirmed ({countries.filter(c => !c.priceUnconfirmed).length})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('unconfirmed')}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+                    statusFilter === 'unconfirmed'
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  ⚠ Unconfirmed ({countries.filter(c => c.priceUnconfirmed).length})
+                </button>
+                
+                {/* Show count */}
+                <span className="ml-auto text-sm text-gray-500">
+                  Showing {filteredCountries.length} countries
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bulk Actions Bar - Shows when items are selected */}
+          {selectedCount > 0 && (
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-6">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-primary-800">
+                    {selectedCount} {selectedCount === 1 ? 'country' : 'countries'} selected
+                  </span>
+                  <button
+                    onClick={clearSelection}
+                    className="text-sm text-primary-600 hover:text-primary-800 underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Set Official Fee */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={bulkOfficialFee}
+                      onChange={(e) => setBulkOfficialFee(parseInt(e.target.value) || 0)}
+                      className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                      placeholder="0"
+                    />
+                    <button
+                      onClick={() => bulkUpdateSelected({ officialFee: bulkOfficialFee })}
+                      disabled={bulkUpdating}
+                      className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      Set Official Fee
+                    </button>
+                  </div>
+                  
+                  {/* Set Service Fee */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={bulkSelectedServiceFee}
+                      onChange={(e) => setBulkSelectedServiceFee(parseInt(e.target.value) || 0)}
+                      className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                      placeholder="1200"
+                    />
+                    <button
+                      onClick={() => bulkUpdateSelected({ serviceFee: bulkSelectedServiceFee })}
+                      disabled={bulkUpdating}
+                      className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      Set Service Fee
+                    </button>
+                  </div>
+                  
+                  {/* Confirm/Unconfirm */}
+                  <button
+                    onClick={() => bulkUpdateSelected({ priceUnconfirmed: false })}
+                    disabled={bulkUpdating}
+                    className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+                  >
+                    ✓ Confirm
+                  </button>
+                  <button
+                    onClick={() => bulkUpdateSelected({ priceUnconfirmed: true })}
+                    disabled={bulkUpdating}
+                    className="px-3 py-1 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 disabled:opacity-50"
+                  >
+                    ⚠ Unconfirm
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Countries Table */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Embassy Prices</h2>
+              <p className="text-sm text-gray-600 mt-1">
                 {filteredCountries.length} of {countries.length} countries
-              </div>
+              </p>
             </div>
-            {searchTerm && (
-              <div className="mt-3 text-sm text-gray-600">
-                Searching for: <strong>"{searchTerm}"</strong>
-              </div>
-            )}
-          </div>
 
-          {/* Bulk Update Service Fee */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="text-2xl mr-3">🔄</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-green-800 mb-1">
-                    Bulk Update Service Fee
-                  </h3>
-                  <p className="text-sm text-green-700">
-                    Update the service fee for all countries at once
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center space-x-4">
-              <div className="flex items-center">
-                <label className="text-sm font-medium text-green-800 mr-3">
-                  New service fee:
-                </label>
-                <input
-                  type="number"
-                  value={bulkServiceFee}
-                  onChange={(e) => setBulkServiceFee(parseInt(e.target.value) || 0)}
-                  className="w-24 px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm font-medium"
-                  disabled={bulkUpdating}
-                />
-                <span className="text-sm text-green-700 ml-2">kr</span>
-              </div>
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to update the service fee for all countries?')) {
-                    bulkUpdateServiceFee(bulkServiceFee);
-                  }
-                }}
-                disabled={bulkUpdating}
-                className={`px-4 py-2 rounded-md font-medium text-white ${
-                  bulkUpdating
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500'
-                }`}
-              >
-                {bulkUpdating ? 'Updating...' : 'Update all countries'}
-              </button>
-            </div>
-            <div className="mt-3 text-xs text-green-600">
-              ⚠️ This will update the service fee for all {countries.length} countries
-            </div>
-          </div>
-
-          {/* Bulk Confirm Prices */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="text-2xl mr-3">✅</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-orange-800 mb-1">
-                    Bulk Price Confirmation
-                  </h3>
-                  <p className="text-sm text-orange-700">
-                    Confirm or unconfirm prices for all countries at once
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center space-x-4">
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to CONFIRM prices for all countries?\n\nThis will remove "Price unconfirmed" from all countries.')) {
-                    bulkConfirmPrices(true);
-                  }
-                }}
-                disabled={bulkUpdating}
-                className={`px-4 py-2 rounded-md font-medium text-white ${
-                  bulkUpdating
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500'
-                }`}
-              >
-                {bulkUpdating ? 'Updating...' : '✅ Confirm all prices'}
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to UNCONFIRM prices for all countries?\n\nThis will mark all countries as "Price unconfirmed".')) {
-                    bulkConfirmPrices(false);
-                  }
-                }}
-                disabled={bulkUpdating}
-                className={`px-4 py-2 rounded-md font-medium text-white ${
-                  bulkUpdating
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-orange-600 hover:bg-orange-700 focus:ring-2 focus:ring-orange-500'
-                }`}
-              >
-                {bulkUpdating ? 'Updating...' : '⚠️ Unconfirm all prices'}
-              </button>
-            </div>
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className="text-orange-600">
-                📊 {countries.filter(c => c.priceUnconfirmed).length} of {countries.length} countries have unconfirmed prices
-              </span>
-            </div>
-          </div>
-
-          {/* Countries Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCountries.map((country) => (
-              <div key={country.code} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                {/* Country Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <span className="mr-3"><CountryFlag code={country.code} size={32} /></span>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{country.name}</h3>
-                      <p className="text-sm text-gray-500">{country.code}</p>
-                    </div>
-                  </div>
-                  {country.lastUpdated && (
-                    <span className="text-xs text-gray-400">
-                      Updated {country.lastUpdated.toLocaleDateString('en-US')}
-                    </span>
-                  )}
-                </div>
-
-                {/* Price Breakdown */}
-                <div className="space-y-3">
-                  {/* Official Fee - Editable */}
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-sm text-gray-600 flex-shrink-0 w-32">Embassy fee:</span>
-                    <div className="flex items-center">
-                      <input
-                        type="number"
-                        value={country.officialFee}
-                        onChange={(e) => {
-                          const newValue = parseInt(e.target.value) || 0;
-                          setCountries(prev =>
-                            prev.map(c =>
-                              c.code === country.code
-                                ? { ...c, officialFee: newValue, totalPrice: newValue + c.serviceFee }
-                                : c
-                            )
-                          );
-                        }}
-                        onFocus={(e) => {
-                          // Select all text when focused for better UX
-                          e.target.select();
-                        }}
-                        onBlur={(e) => updateEmbassyFee(country.code, parseInt((e.target as HTMLInputElement).value) || 0)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            updateEmbassyFee(country.code, parseInt((e.target as HTMLInputElement).value) || 0);
-                          }
-                        }}
-                        className="w-24 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                        disabled={saving}
-                      />
-                      <span className="text-sm text-gray-500 ml-2">kr</span>
-                    </div>
-                  </div>
-
-                  {/* Service Fee - Editable */}
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-sm text-gray-600 flex-shrink-0 w-32">Service fee:</span>
-                    <div className="flex items-center">
-                      <input
-                        type="number"
-                        value={country.serviceFee}
-                        onChange={(e) => {
-                          const newServiceFee = parseInt(e.target.value) || 0;
-                          setCountries(prev =>
-                            prev.map(c =>
-                              c.code === country.code
-                                ? { ...c, serviceFee: newServiceFee, totalPrice: c.officialFee + newServiceFee }
-                                : c
-                            )
-                          );
-                        }}
-                        onFocus={(e) => {
-                          // Select all text when focused for better UX
-                          e.target.select();
-                        }}
-                        onBlur={(e) => updateEmbassyFee(country.code, country.officialFee, parseInt((e.target as HTMLInputElement).value) || 0)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            updateEmbassyFee(country.code, country.officialFee, parseInt((e.target as HTMLInputElement).value) || 0);
-                          }
-                        }}
-                        className="w-24 px-3 py-2 text-right border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                        disabled={saving}
-                      />
-                      <span className="text-sm text-gray-500 ml-2">kr</span>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-gray-200"></div>
-
-                  {/* Total Price */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-semibold text-gray-900">Total price:</span>
-                    {country.priceUnconfirmed ? (
-                      <span className="text-lg font-bold text-orange-500">Price on request</span>
-                    ) : (
-                      <span className="text-xl font-bold text-green-600">{country.totalPrice} kr</span>
-                    )}
-                  </div>
-
-                  {/* Price Unconfirmed Checkbox */}
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <label className="flex items-center cursor-pointer">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left">
                       <input
                         type="checkbox"
-                        checked={country.priceUnconfirmed || false}
-                        onChange={(e) => togglePriceUnconfirmed(country.code, e.target.checked)}
-                        className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
-                        disabled={saving}
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                       />
-                      <span className={`ml-2 text-sm ${country.priceUnconfirmed ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
-                        ⚠️ Price unconfirmed
-                      </span>
-                    </label>
-                    {country.priceUnconfirmed && (
-                      <p className="mt-1 text-xs text-orange-600">
-                        Customer sees "Price on request" instead of the price
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status Indicator */}
-                <div className="mt-4 pt-3 border-t border-gray-100">
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${country.priceUnconfirmed ? 'bg-orange-500' : 'bg-green-500'}`}></div>
-                    <span className="text-xs text-gray-500">
-                      {saving ? 'Saving...' : country.priceUnconfirmed ? 'Price unconfirmed' : 'Ready to update'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Summary */}
-          <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Summary</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{countries.length}</div>
-                <div className="text-sm text-gray-600">Countries</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {countries.reduce((sum, c) => sum + c.totalPrice, 0).toLocaleString('sv-SE')}
-                </div>
-                <div className="text-sm text-gray-600">SEK total (sum)</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {Math.round(countries.reduce((sum, c) => sum + c.totalPrice, 0) / countries.length).toLocaleString('sv-SE')}
-                </div>
-                <div className="text-sm text-gray-600">SEK average</div>
-              </div>
+                    </th>
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Country
+                        {sortField === 'name' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('officialFee')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Official fee
+                        {sortField === 'officialFee' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('serviceFee')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Service fee
+                        {sortField === 'serviceFee' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('totalPrice')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Total price
+                        {sortField === 'totalPrice' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Status
+                        {sortField === 'status' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('lastUpdated')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Last updated
+                        {sortField === 'lastUpdated' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredCountries.map((country) => (
+                    <tr 
+                      key={country.code} 
+                      className={`${country.priceUnconfirmed ? 'bg-orange-50' : ''} ${selectedCountryCodes.has(country.code) ? 'bg-primary-50' : ''}`}
+                    >
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedCountryCodes.has(country.code)}
+                          onChange={() => toggleSelectCountry(country.code)}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="mr-3"><CountryFlag code={country.code} size={24} /></span>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {getEnglishCountryName(country.code)}
+                            </div>
+                            <div className="text-sm text-gray-500">{country.code}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="number"
+                          value={country.officialFee}
+                          onChange={(e) => {
+                            const newValue = parseInt(e.target.value) || 0;
+                            setCountries(prev =>
+                              prev.map(c =>
+                                c.code === country.code
+                                  ? { ...c, officialFee: newValue, totalPrice: newValue + c.serviceFee }
+                                  : c
+                              )
+                            );
+                          }}
+                          onBlur={(e) => updateEmbassyFee(country.code, parseInt(e.target.value) || 0)}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          disabled={saving}
+                        />
+                        <span className="text-sm text-gray-500 ml-1">kr</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="number"
+                          value={country.serviceFee}
+                          onChange={(e) => {
+                            const newServiceFee = parseInt(e.target.value) || 0;
+                            setCountries(prev =>
+                              prev.map(c =>
+                                c.code === country.code
+                                  ? { ...c, serviceFee: newServiceFee, totalPrice: c.officialFee + newServiceFee }
+                                  : c
+                              )
+                            );
+                          }}
+                          onBlur={(e) => updateEmbassyFee(country.code, country.officialFee, parseInt(e.target.value) || 0)}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          disabled={saving}
+                        />
+                        <span className="text-sm text-gray-500 ml-1">kr</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {country.priceUnconfirmed ? (
+                          <span className="text-lg font-semibold text-orange-500">TBC</span>
+                        ) : (
+                          <span className="text-lg font-semibold text-green-600">{country.totalPrice} kr</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={country.priceUnconfirmed || false}
+                            onChange={(e) => togglePriceUnconfirmed(country.code, e.target.checked)}
+                            className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
+                            disabled={saving}
+                          />
+                          <span className={`ml-2 text-xs ${country.priceUnconfirmed ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>
+                            {country.priceUnconfirmed ? 'Unconfirmed' : 'Confirmed'}
+                          </span>
+                        </label>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {country.lastUpdated ? country.lastUpdated.toLocaleDateString('en-GB') : 'Never'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+
         </div>
       </div>
     </ProtectedRoute>
