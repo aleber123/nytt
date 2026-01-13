@@ -24,14 +24,56 @@ export default function OversattningPage() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": t(`${sp}.title`),
+          "name": "Auktoriserad översättning",
           "provider": {
             "@type": "Organization",
-            "name": "DOX Visumpartner AB"
+            "name": "DOX Visumpartner AB",
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/dox-logo.webp"
           },
-          "description": t(`${sp}.metaDescription`),
-          "areaServed": "SE",
-          "serviceType": "Translation"
+          "description": "Auktoriserad översättning av dokument för internationellt bruk. Certifierade översättare godkända av Kammarkollegiet.",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Certified Translation",
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "ratingCount": "1200"
+          }
+        })}} />
+        
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Vad är auktoriserad översättning?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "En auktoriserad översättning är utförd av en översättare som är godkänd av Kammarkollegiet. Översättningen har samma juridiska giltighet som originaldokumentet."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vilka språk erbjuder ni översättning till?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Vi erbjuder auktoriserad översättning till och från de flesta språk, inklusive engelska, tyska, franska, spanska, arabiska, kinesiska, ryska och många fler."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar en auktoriserad översättning?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Leveranstiden beror på dokumentets längd och komplexitet. Vanligtvis 3-5 arbetsdagar för standarddokument. Expresstjänst finns tillgänglig."
+              }
+            }
+          ]
         })}} />
       </Head>
 

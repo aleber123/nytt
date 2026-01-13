@@ -381,6 +381,7 @@ interface CustomerPricingData {
     stockholmCourierFee?: number;
     stockholmSamedayFee?: number;
     // DHL Return delivery options
+    dhlEndOfDayFee?: number;
     dhlPre12Fee?: number;
     dhlPre9Fee?: number;
     // Stockholm Courier return delivery options
@@ -557,8 +558,10 @@ export const calculateOrderPrice = async (orderData: {
           customReturnFee = orderData.customerPricing?.customPricing?.dhlPre12Fee;
         } else if (serviceId.includes('pre9') || serviceId.includes('pre-9')) {
           customReturnFee = orderData.customerPricing?.customPricing?.dhlPre9Fee;
+        } else if (serviceId.includes('endofday') || serviceId.includes('end-of-day') || serviceId.includes('end_of_day')) {
+          customReturnFee = orderData.customerPricing?.customPricing?.dhlEndOfDayFee;
         } else if (serviceId.includes('dhl')) {
-          customReturnFee = orderData.customerPricing?.customPricing?.returnDhlFee;
+          customReturnFee = orderData.customerPricing?.customPricing?.returnDhlFee ?? orderData.customerPricing?.customPricing?.dhlEndOfDayFee;
         // Stockholm Courier options
         } else if (serviceId.includes('stockholm-city') || serviceId.includes('stockholm_city')) {
           customReturnFee = orderData.customerPricing?.customPricing?.stockholmCityFee;

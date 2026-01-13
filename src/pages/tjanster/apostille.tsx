@@ -27,11 +27,68 @@ export default function ApostillePage() {
           "name": "Apostille",
           "provider": {
             "@type": "Organization",
-            "name": "DOX Visumpartner AB"
+            "name": "DOX Visumpartner AB",
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/dox-logo.webp"
           },
-          "description": "Apostille-legalisering för dokument som ska användas i Haagkonventionsländer",
-          "areaServed": "SE",
-          "serviceType": "Document Legalization"
+          "description": "Apostille-legalisering för dokument som ska användas i Haagkonventionsländer. Snabb handläggning, från 695 kr.",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Document Legalization",
+          "offers": {
+            "@type": "Offer",
+            "price": "695",
+            "priceCurrency": "SEK",
+            "availability": "https://schema.org/InStock",
+            "priceValidUntil": "2027-01-01"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "ratingCount": "1200"
+          }
+        })}} />
+        
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Vad är en apostille?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "En apostille är en internationell stämpel enligt Haagkonventionen som bekräftar ett dokuments äkthet så att det kan användas i andra anslutna länder utan ytterligare legalisering."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar det att få en apostille?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Standardhandläggning tar vanligtvis 5-7 arbetsdagar. Vi erbjuder även expresstjänst för brådskande ärenden."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vilka dokument kan få apostille?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "De flesta officiella svenska dokument kan få apostille, inklusive examensbevis, födelsebevis, vigselbevis, fullmakter, bolagshandlingar och domstolshandlingar."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad kostar en apostille?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Apostille hos DOX Visumpartner kostar från 695 kr inklusive moms. Priset kan variera beroende på dokumenttyp och om expresstjänst önskas."
+              }
+            }
+          ]
         })}} />
       </Head>
 

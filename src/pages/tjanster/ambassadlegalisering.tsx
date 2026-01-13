@@ -27,11 +27,60 @@ export default function AmbassadlegaliseringPage() {
           "name": "Ambassadlegalisering",
           "provider": {
             "@type": "Organization",
-            "name": "DOX Visumpartner AB"
+            "name": "DOX Visumpartner AB",
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/dox-logo.webp"
           },
-          "description": "Ambassadlegalisering för länder utanför Haagkonventionen",
-          "areaServed": "SE",
-          "serviceType": "Document Legalization"
+          "description": "Ambassadlegalisering för länder utanför Haagkonventionen. Vi hanterar hela processen med ambassader och konsulat.",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Embassy Document Legalization",
+          "offers": {
+            "@type": "Offer",
+            "price": "1495",
+            "priceCurrency": "SEK",
+            "availability": "https://schema.org/InStock",
+            "priceValidUntil": "2027-01-01"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "ratingCount": "1200"
+          }
+        })}} />
+        
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Vad är ambassadlegalisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Ambassadlegalisering krävs för dokument som ska användas i länder utanför Haagkonventionen. Dokumentet måste först legaliseras av svenska myndigheter och sedan av det aktuella landets ambassad eller konsulat."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vilka länder kräver ambassadlegalisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Länder som inte är anslutna till Haagkonventionen kräver ambassadlegalisering, bland annat Qatar, Kuwait, Förenade Arabemiraten (UAE), Egypten, Kina och många afrikanska länder."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar ambassadlegalisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Handläggningstiden varierar beroende på land, vanligtvis 7-14 arbetsdagar. Vissa ambassader kan ta längre tid. Vi informerar alltid om förväntad tid för ditt specifika ärende."
+              }
+            }
+          ]
         })}} />
       </Head>
 

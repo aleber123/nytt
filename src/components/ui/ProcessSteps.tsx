@@ -1,4 +1,5 @@
 import React from 'react';
+import Head from 'next/head';
 
 interface Step {
   id: number;
@@ -14,6 +15,26 @@ interface ProcessStepsProps {
 }
 
 const ProcessSteps: React.FC<ProcessStepsProps> = ({ title, subtitle, steps }) => {
+  // HowTo Schema for AI/Search engines
+  const howToSchema = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Hur du legaliserar dokument i Sverige",
+    "description": "Steg-för-steg guide för att legalisera svenska dokument för internationellt bruk via DOX Visumpartner",
+    "totalTime": "P5D",
+    "estimatedCost": {
+      "@type": "MonetaryAmount",
+      "currency": "SEK",
+      "value": "695"
+    },
+    "step": steps.map((step, index) => ({
+      "@type": "HowToStep",
+      "position": index + 1,
+      "name": step.title,
+      "text": step.description,
+      "url": "https://www.doxvl.se/bestall"
+    }))
+  };
   // Funktion för att rendera ikoner baserat på ikonnamn
   const renderIcon = (iconName: string) => {
     switch (iconName) {
@@ -48,7 +69,14 @@ const ProcessSteps: React.FC<ProcessStepsProps> = ({ title, subtitle, steps }) =
   };
 
   return (
-    <section className="py-16 bg-gray-50">
+    <>
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+        />
+      </Head>
+      <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-heading font-bold mb-4">{title}</h2>
@@ -90,6 +118,7 @@ const ProcessSteps: React.FC<ProcessStepsProps> = ({ title, subtitle, steps }) =
         </div>
       </div>
     </section>
+    </>
   );
 };
 

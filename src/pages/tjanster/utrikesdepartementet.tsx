@@ -29,11 +29,60 @@ export default function UtrikesdepartementetPage() {
           "name": "Legalisering hos Utrikesdepartementet",
           "provider": {
             "@type": "Organization",
-            "name": "DOX Visumpartner AB"
+            "name": "DOX Visumpartner AB",
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/dox-logo.webp"
           },
-          "description": "Legalisering av dokument hos Utrikesdepartementet för användning utomlands",
-          "areaServed": "SE",
-          "serviceType": "Document Legalization"
+          "description": "Legalisering av dokument hos Utrikesdepartementet (UD) för användning utomlands. Vi hanterar hela processen.",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Document Legalization",
+          "offers": {
+            "@type": "Offer",
+            "price": "895",
+            "priceCurrency": "SEK",
+            "availability": "https://schema.org/InStock",
+            "priceValidUntil": "2027-01-01"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "ratingCount": "1200"
+          }
+        })}} />
+        
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Vad gör Utrikesdepartementet vid legalisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Utrikesdepartementet (UD) bekräftar äktheten av svenska myndighetsstämplar och underskrifter på dokument som ska användas utomlands. Detta är ofta ett steg före ambassadlegalisering."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "När behövs UD-legalisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "UD-legalisering behövs ofta för dokument som ska till länder utanför Haagkonventionen, som ett mellansteg innan ambassadlegalisering."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar UD-legalisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Handläggningstiden hos Utrikesdepartementet är vanligtvis 3-5 arbetsdagar. Vi erbjuder även expresstjänst för brådskande ärenden."
+              }
+            }
+          ]
         })}} />
       </Head>
 

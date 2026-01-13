@@ -51,6 +51,7 @@ export interface CustomerPricing {
   stockholmSamedayFee?: number;       // Stockholm same-day courier
   
   // DHL Return delivery options
+  dhlEndOfDayFee?: number;            // DHL End of Day delivery
   dhlPre12Fee?: number;               // DHL Pre 12 delivery
   dhlPre9Fee?: number;                // DHL Pre 9 delivery
   

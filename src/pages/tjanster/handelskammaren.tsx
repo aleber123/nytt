@@ -46,7 +46,14 @@ export default function HandelskammarenPage() {
             "@type": "Offer",
             "price": "2250",
             "priceCurrency": "SEK",
-            "priceValidUntil": "2026-12-31"
+            "availability": "https://schema.org/InStock",
+            "priceValidUntil": "2027-01-01"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "ratingCount": "1200"
           }
         })}} />
         

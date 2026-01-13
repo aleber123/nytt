@@ -48,6 +48,7 @@ const emptyCustomPricing: CustomerPricing = {
   stockholmCourierFee: undefined,
   stockholmSamedayFee: undefined,
   // DHL Return delivery options
+  dhlEndOfDayFee: undefined,
   dhlPre12Fee: undefined,
   dhlPre9Fee: undefined,
   // Stockholm Courier return delivery options
@@ -993,12 +994,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.doxServiceFee || ''}
+                        value={formData.customPricing?.doxServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            doxServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            doxServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1011,12 +1012,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.expressServiceFee || ''}
+                        value={formData.customPricing?.expressServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            expressServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            expressServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1029,12 +1030,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.apostilleServiceFee || ''}
+                        value={formData.customPricing?.apostilleServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            apostilleServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            apostilleServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1047,12 +1048,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.notarizationServiceFee || ''}
+                        value={formData.customPricing?.notarizationServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            notarizationServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            notarizationServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1065,12 +1066,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.embassyServiceFee || ''}
+                        value={formData.customPricing?.embassyServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            embassyServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            embassyServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1083,12 +1084,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.translationServiceFee || ''}
+                        value={formData.customPricing?.translationServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            translationServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            translationServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1101,12 +1102,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.chamberServiceFee || ''}
+                        value={formData.customPricing?.chamberServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            chamberServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            chamberServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1119,12 +1120,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.udServiceFee || ''}
+                        value={formData.customPricing?.udServiceFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            udServiceFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            udServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1144,12 +1145,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.dhlPickupFee || ''}
+                        value={formData.customPricing?.dhlPickupFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            dhlPickupFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            dhlPickupFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1162,12 +1163,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.dhlExpressPickupFee || ''}
+                        value={formData.customPricing?.dhlExpressPickupFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            dhlExpressPickupFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            dhlExpressPickupFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1180,12 +1181,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.stockholmCourierFee || ''}
+                        value={formData.customPricing?.stockholmCourierFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            stockholmCourierFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            stockholmCourierFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1198,12 +1199,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.stockholmSamedayFee || ''}
+                        value={formData.customPricing?.stockholmSamedayFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            stockholmSamedayFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            stockholmSamedayFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1218,17 +1219,35 @@ export default function CustomersPage() {
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
+                      <label className="block text-xs text-gray-600 mb-1">DHL End of Day</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.dhlEndOfDayFee ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            dhlEndOfDayFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="Standard"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
                       <label className="block text-xs text-gray-600 mb-1">DHL Pre 12</label>
                       <input
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.dhlPre12Fee || ''}
+                        value={formData.customPricing?.dhlPre12Fee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            dhlPre12Fee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            dhlPre12Fee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1241,12 +1260,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.dhlPre9Fee || ''}
+                        value={formData.customPricing?.dhlPre9Fee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            dhlPre9Fee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            dhlPre9Fee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1266,12 +1285,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.stockholmCityFee || ''}
+                        value={formData.customPricing?.stockholmCityFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            stockholmCityFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            stockholmCityFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1284,12 +1303,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.stockholmExpressFee || ''}
+                        value={formData.customPricing?.stockholmExpressFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            stockholmExpressFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            stockholmExpressFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1302,12 +1321,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.stockholmUrgentFee || ''}
+                        value={formData.customPricing?.stockholmUrgentFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            stockholmUrgentFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            stockholmUrgentFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1327,12 +1346,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.scannedCopiesFee || ''}
+                        value={formData.customPricing?.scannedCopiesFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            scannedCopiesFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            scannedCopiesFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"
@@ -1345,12 +1364,12 @@ export default function CustomersPage() {
                         type="number"
                         min="0"
                         disabled={modalMode === 'view'}
-                        value={formData.customPricing?.returnPostnordFee || ''}
+                        value={formData.customPricing?.returnPostnordFee ?? ''}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
                           customPricing: { 
                             ...prev.customPricing, 
-                            returnPostnordFee: e.target.value ? parseFloat(e.target.value) : undefined 
+                            returnPostnordFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
                           }
                         }))}
                         placeholder="Standard"

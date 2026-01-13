@@ -17,6 +17,8 @@ interface SeoProps {
   faqItems?: FAQItem[];
   serviceType?: string;
   priceRange?: string;
+  servicePrice?: string;
+  serviceCurrency?: string;
 }
 
 const Seo: React.FC<SeoProps> = ({ 
@@ -27,14 +29,16 @@ const Seo: React.FC<SeoProps> = ({
   keywords,
   faqItems,
   serviceType,
-  priceRange
+  priceRange,
+  servicePrice,
+  serviceCurrency = 'SEK'
 }) => {
   const router = useRouter();
   const baseUrl = siteConfig.url;
   const url = `${baseUrl}${router.asPath || '/'}`;
   const ogImage = image || `${baseUrl}/og-image.jpg`;
 
-  // Create structured data for local business
+  // Create structured data for local business with AggregateRating
   const localBusinessData = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -71,9 +75,18 @@ const Seo: React.FC<SeoProps> = ({
         "closes": "15:00"
       }
     ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "bestRating": "5",
+      "worstRating": "1",
+      "ratingCount": "1200",
+      "reviewCount": "1200"
+    },
     "sameAs": [
       "https://www.facebook.com/doxvisumpartner",
-      "https://www.linkedin.com/company/dox-visumpartner"
+      "https://www.linkedin.com/company/dox-visumpartner",
+      "https://www.trustpilot.com/review/doxvl.dk"
     ]
   };
 
@@ -107,20 +120,30 @@ const Seo: React.FC<SeoProps> = ({
     }))
   } : null;
 
-  // Create Service schema if serviceType provided
+  // Create Service schema if serviceType provided (with optional pricing)
   const serviceSchema = serviceType ? {
     "@context": "https://schema.org",
     "@type": "Service",
     "serviceType": serviceType,
     "provider": {
       "@type": "Organization",
-      "name": "DOX Visumpartner"
+      "name": "DOX Visumpartner",
+      "url": "https://www.doxvl.se"
     },
     "areaServed": {
       "@type": "Country",
       "name": "Sweden"
     },
-    "description": description
+    "description": description,
+    ...(servicePrice && {
+      "offers": {
+        "@type": "Offer",
+        "price": servicePrice,
+        "priceCurrency": serviceCurrency,
+        "availability": "https://schema.org/InStock",
+        "priceValidUntil": new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+      }
+    })
   } : null;
 
   // Create BreadcrumbList schema

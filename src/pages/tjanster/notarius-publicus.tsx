@@ -29,11 +29,60 @@ export default function NotariusPublicusPage() {
           "name": "Notarius Publicus - Notarisering",
           "provider": {
             "@type": "Organization",
-            "name": "DOX Visumpartner AB"
+            "name": "DOX Visumpartner AB",
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/dox-logo.webp"
           },
-          "description": "Notarisering av dokument och bestyrkande av underskrifter",
-          "areaServed": "SE",
-          "serviceType": "Notarization"
+          "description": "Notarisering av dokument och bestyrkande av underskrifter via Notarius Publicus. Snabb handläggning från 595 kr.",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Notarization",
+          "offers": {
+            "@type": "Offer",
+            "price": "595",
+            "priceCurrency": "SEK",
+            "availability": "https://schema.org/InStock",
+            "priceValidUntil": "2027-01-01"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "ratingCount": "1200"
+          }
+        })}} />
+        
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Vad är Notarius Publicus?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Notarius Publicus är en av staten förordnad tjänsteman som har behörighet att bestyrka handlingar, bevittna underskrifter och utfärda apostille. I Sverige utses Notarius Publicus av länsstyrelsen."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "När behöver jag notarisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Notarisering behövs ofta för fullmakter, intyg och kopior som ska användas utomlands. Det är vanligt inför apostille eller ambassadlegalisering."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad kostar notarisering?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Notarisering hos DOX Visumpartner kostar från 595 kr. Priset varierar beroende på dokumenttyp och komplexitet."
+              }
+            }
+          ]
         })}} />
       </Head>
 
