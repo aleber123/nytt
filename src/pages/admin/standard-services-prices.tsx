@@ -31,6 +31,7 @@ function StandardServicesPricesPage() {
   const [services, setServices] = useState<StandardService[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'unconfirmed'>('all');
 
   // Standard services for Sweden
   const defaultServices: StandardService[] = [
@@ -323,15 +324,24 @@ function StandardServicesPricesPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-sm text-gray-600">Quick filters:</span>
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary-600 text-white">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${statusFilter === 'all' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
                 All ({services.length})
-              </span>
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+              </button>
+              <button
+                onClick={() => setStatusFilter('confirmed')}
+                className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${statusFilter === 'confirmed' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
                 ✓ Confirmed ({services.filter(s => !s.priceUnconfirmed).length})
-              </span>
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+              </button>
+              <button
+                onClick={() => setStatusFilter('unconfirmed')}
+                className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer transition-colors ${statusFilter === 'unconfirmed' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
                 ⚠ Unconfirmed ({services.filter(s => s.priceUnconfirmed).length})
-              </span>
+              </button>
               <button
                 onClick={() => loadStandardServices()}
                 className="ml-auto px-4 py-2 text-primary-600 hover:text-primary-800 font-medium"
@@ -343,7 +353,13 @@ function StandardServicesPricesPage() {
 
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service) => (
+            {services
+              .filter(service => {
+                if (statusFilter === 'confirmed') return !service.priceUnconfirmed;
+                if (statusFilter === 'unconfirmed') return service.priceUnconfirmed;
+                return true;
+              })
+              .map((service) => (
               <div key={service.code} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-100">
