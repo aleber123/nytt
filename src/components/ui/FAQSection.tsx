@@ -1,4 +1,5 @@
 import React from 'react';
+import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
 import FAQ from './FAQ';
 
@@ -34,33 +35,70 @@ const FAQSection: React.FC<FAQSectionProps> = ({ className = '' }) => {
       id: 5,
       question: t('faq.question5') || 'Kan jag spåra min beställning?',
       answer: t('faq.answer5') || 'Ja, när din beställning har bekräftats får du ett ordernummer som du kan använda för att spåra status på din beställning via vår orderstatus-sida.'
+    },
+    {
+      id: 6,
+      question: t('faq.question6') || 'Vad kostar en apostille?',
+      answer: t('faq.answer6') || 'Priset för apostille varierar beroende på dokumenttyp och om expresstjänst önskas. Se vår prislista för aktuella priser.'
+    },
+    {
+      id: 7,
+      question: t('faq.question7') || 'Vad är en Notarius Publicus?',
+      answer: t('faq.answer7') || 'En Notarius Publicus är en av staten förordnad tjänsteman som har behörighet att bestyrka handlingar, bevittna underskrifter och utfärda apostille. I Sverige utses Notarius Publicus av länsstyrelsen.'
+    },
+    {
+      id: 8,
+      question: t('faq.question8') || 'Vilka länder kräver ambassadlegalisering?',
+      answer: t('faq.answer8') || 'Länder som inte är anslutna till Haagkonventionen kräver ambassadlegalisering. Detta inkluderar bland annat Qatar, Kuwait, Förenade Arabemiraten (UAE), Egypten och många afrikanska länder.'
     }
   ];
 
+  // FAQ Schema for Google Rich Snippets
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  };
+
   return (
-    <section className={`py-16 ${className}`}>
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto">
-          <FAQ 
-            title={t('faq.title') || 'Vanliga frågor'}
-            subtitle={t('faq.subtitle') || 'Hitta svar på de vanligaste frågorna om våra legaliseringstjänster.'}
-            items={faqs} 
-          />
+    <>
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      </Head>
+      <section className={`py-16 ${className}`}>
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <FAQ 
+              title={t('faq.title') || 'Vanliga frågor'}
+              subtitle={t('faq.subtitle') || 'Hitta svar på de vanligaste frågorna om våra legaliseringstjänster.'}
+              items={faqs} 
+            />
+          </div>
+          
+          <div className="mt-12 text-center">
+            <p className="mb-4 text-gray-600">
+              {t('faq.moreQuestions') || 'Hittar du inte svar på din fråga?'}
+            </p>
+            <a
+              href="/kontakt"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
+            >
+              {t('faq.contactUs') || 'Kontakta oss'}
+            </a>
+          </div>
         </div>
-        
-        <div className="mt-12 text-center">
-          <p className="mb-4 text-gray-600">
-            {t('faq.moreQuestions') || 'Hittar du inte svar på din fråga?'}
-          </p>
-          <a
-            href="/kontakt"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
-          >
-            {t('faq.contactUs') || 'Kontakta oss'}
-          </a>
-        </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 };
 

@@ -387,12 +387,6 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                             {getStatusText(orderStatus.status).description}
                           </p>
                         </div>
-                        <div className="mt-3 md:mt-0 md:text-right">
-                          <p className="text-sm text-gray-500">
-                            {t('orderStatus.estimatedDelivery')}
-                          </p>
-                          <p className="text-sm font-medium">{orderStatus.estimatedDelivery}</p>
-                        </div>
                       </div>
                     </div>
 
@@ -402,13 +396,6 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                           {t('orderStatus.orderDate')}:
                         </p>
                         <p>{formatDate(orderStatus.createdAt)}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-gray-500 mb-1">
-                          {t('orderStatus.estimatedDelivery')}:
-                        </p>
-                        <p>{orderStatus.estimatedDelivery}</p>
                       </div>
 
                       {orderStatus.actualShipment && (

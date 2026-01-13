@@ -700,6 +700,12 @@
     "answer4": "Ja, originaldokument krävs vanligtvis för legalisering. I vissa fall kan notariebestyrkta kopior accepteras. Kontakta oss för specifika råd för ditt fall.",
     "question5": "Kan jag spåra min beställning?",
     "answer5": "Ja, när din beställning har bekräftats får du ett ordernummer som du kan använda för att spåra statusen på din beställning via vår ordersida.",
+    "question6": "Vad kostar en apostille?",
+    "answer6": "Priset för apostille varierar beroende på dokumenttyp och om expresstjänst önskas. Se vår prislista för aktuella priser.",
+    "question7": "Vad är en Notarius Publicus?",
+    "answer7": "En Notarius Publicus är en av staten förordnad tjänsteman som har behörighet att bestyrka handlingar, bevittna underskrifter och utfärda apostille. I Sverige utses Notarius Publicus av länsstyrelsen.",
+    "question8": "Vilka länder kräver ambassadlegalisering?",
+    "answer8": "Länder som inte är anslutna till Haagkonventionen kräver ambassadlegalisering. Detta inkluderar bland annat Qatar, Kuwait, Förenade Arabemiraten (UAE), Egypten och många afrikanska länder.",
     "moreQuestions": "Hittar du inte svaret på din fråga?",
     "contactUs": "Kontakta oss"
   },

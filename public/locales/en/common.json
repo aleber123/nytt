@@ -630,6 +630,12 @@
     "answer4": "Yes, original documents are usually required for legalization. In some cases, notarized copies may be accepted. Contact us for specific advice for your case.",
     "question5": "Can I track my order?",
     "answer5": "Yes, once your order has been confirmed, you will receive an order number that you can use to track the status of your order via our order status page.",
+    "question6": "How much does an apostille cost?",
+    "answer6": "The price for an apostille varies depending on document type and if express service is requested. See our price list for current prices.",
+    "question7": "What is a Notary Public?",
+    "answer7": "A Notary Public is a state-appointed official who has the authority to certify documents, witness signatures, and issue apostilles. In Sweden, Notaries Public are appointed by the County Administrative Board.",
+    "question8": "Which countries require embassy legalization?",
+    "answer8": "Countries that are not members of the Hague Convention require embassy legalization. This includes Qatar, Kuwait, United Arab Emirates (UAE), Egypt, and many African countries.",
     "moreQuestions": "Can't find the answer to your question?",
     "contactUs": "Contact us"
   },
