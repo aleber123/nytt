@@ -136,7 +136,7 @@ export default function LegaliseringIndexPage() {
                   className="bg-gray-50 hover:bg-gray-100 hover:shadow-md p-6 rounded-xl transition-all group border border-gray-100"
                 >
                   <div className="flex items-center gap-4 mb-3">
-                    <CountryFlag countryCode={country.countryCode} size="lg" />
+                    <CountryFlag code={country.countryCode} size={32} />
                     <h3 className="font-semibold text-lg text-gray-900 group-hover:text-primary-600 transition-colors">
                       {isEn ? country.nameEn : country.name}
                     </h3>
@@ -170,7 +170,7 @@ export default function LegaliseringIndexPage() {
                   className="bg-white hover:bg-gray-50 hover:shadow-sm p-4 rounded-lg transition-all text-center group border border-gray-100"
                 >
                   <div className="flex justify-center mb-2">
-                    <CountryFlag countryCode={country.countryCode} size="md" />
+                    <CountryFlag code={country.countryCode} size={24} />
                   </div>
                   <span className="font-medium text-sm text-gray-700 group-hover:text-primary-600 transition-colors">
                     {isEn ? country.nameEn : country.name}
