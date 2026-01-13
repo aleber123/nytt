@@ -180,38 +180,40 @@ function translateDescription(desc: string): string {
 export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: boolean }): Promise<jsPDF> {
   const doc = new jsPDF();
 
-  // Brand palette (use dark page header color from theme and neutral grays)
+  // Brand palette - ink-saving version (no large dark fills)
   const primary: [number, number, number] = [46, 45, 44]; // custom.page-header #2E2D2C
   const text: [number, number, number] = [32, 33, 36]; // gray-900
   const grayText: [number, number, number] = [95, 99, 104]; // gray-700
-  const lineGray: [number, number, number] = [226, 232, 240]; // gray-200
-  const softBg: [number, number, number] = [241, 245, 249]; // slate-100 as neutral section bg
+  const lineGray: [number, number, number] = [180, 180, 180]; // darker line for visibility
+  const softBg: [number, number, number] = [245, 245, 245]; // very light gray
 
-  // Header band
-  doc.setFillColor(primary[0], primary[1], primary[2]);
-  doc.rect(0, 0, 210, 40, 'F');
+  // Header - ink-saving: just a thin line instead of solid fill
+  doc.setDrawColor(primary[0], primary[1], primary[2]);
+  doc.setLineWidth(1);
+  doc.line(20, 28, 190, 28);
 
   // Logo (left)
   try {
     const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo.webp');
-    const targetH = 12; // mm
+    const targetH = 10; // mm
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
     doc.addImage(dataUrl, 'PNG', 20, 10, targetW, targetH);
   } catch {}
 
   // Order number prominent
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
+  doc.setFontSize(18);
   const ord = order.orderNumber || order.id || '';
-  if (ord) doc.text(`${ord}`, 20, 30);
+  if (ord) doc.text(`Order: ${ord}`, 20, 24);
 
-  // Subtitle right: COVER LETTER + date
+  // Subtitle right: PACKING SLIP + date
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text('COVER LETTER', 190, 16, { align: 'right' });
-  doc.text(formatDate(order.createdAt), 190, 22, { align: 'right' });
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('PACKING SLIP', 190, 14, { align: 'right' });
+  doc.text(formatDate(order.createdAt), 190, 20, { align: 'right' });
 
   // Company info block (place below header to avoid overlap)
   doc.setFont('helvetica', 'normal');
@@ -224,27 +226,27 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
     'info@doxvl.se'
   ];
 
-  // Body container
-  let y = 56;
+  // Body container - adjusted for smaller header
+  let y = 40;
   doc.setTextColor(text[0], text[1], text[2]);
 
   // Render company block at body top-right
-  let cy = y - 4;
+  let cy = y;
+  doc.setFontSize(8);
   companyLines.forEach((l) => {
     doc.text(l, 190, cy, { align: 'right' });
-    cy += 4;
+    cy += 3.5;
   });
   // Leave space under the right block if needed
   const companyBlockBottom = cy;
   // Push the left content below the company block to avoid overlap
-  if (companyBlockBottom + 8 > y) {
-    y = companyBlockBottom + 8;
+  if (companyBlockBottom + 4 > y) {
+    y = companyBlockBottom + 4;
   }
 
   // Card: Orderinformation
-  // Section header chip
-  doc.setFillColor(softBg[0], softBg[1], softBg[2]);
-  doc.roundedRect(16, y - 8, 178, 10, 2, 2, 'F');
+  // Section header - simple underlined text instead of filled box (ink-saving)
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(46, 45, 44);
@@ -323,16 +325,20 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
       ? [order.services as unknown as string]
       : [];
 
-  const hasChamber = serviceIds.some((id) => id === 'chamber');
   const hasNotarization = serviceIds.some((id) => id === 'notarisering' || id === 'notarization');
+  const hasApostille = serviceIds.some((id) => id === 'apostille');
+  const hasChamber = serviceIds.some((id) => id === 'chamber');
   const hasMinistry = serviceIds.some((id) => id === 'utrikesdepartementet' || id === 'ud');
   const hasEmbassy = serviceIds.some((id) => id === 'ambassad' || id === 'embassy');
+  const hasTranslation = serviceIds.some((id) => id === 'oversattning' || id === 'translation');
 
   const checklistItems: string[] = [];
-  if (hasChamber) checklistItems.push('Chamber of Commerce');
   if (hasNotarization) checklistItems.push('Notarization');
+  if (hasApostille) checklistItems.push('Apostille');
+  if (hasChamber) checklistItems.push('Chamber of Commerce');
   if (hasMinistry) checklistItems.push('Ministry for Foreign Affairs');
   if (hasEmbassy) checklistItems.push('Embassy Legalisation');
+  if (hasTranslation) checklistItems.push('Translation');
 
   if (checklistItems.length > 0) {
     // Section title
@@ -417,37 +423,40 @@ export async function printCoverLetter(order: Order): Promise<void> {
 export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF> {
   const doc = new jsPDF();
 
+  // Brand palette - ink-saving version (no large dark fills)
   const primary: [number, number, number] = [46, 45, 44];
   const text: [number, number, number] = [32, 33, 36];
   const grayText: [number, number, number] = [95, 99, 104];
-  const lineGray: [number, number, number] = [226, 232, 240];
-  const softBg: [number, number, number] = [241, 245, 249];
+  const lineGray: [number, number, number] = [180, 180, 180];
+  const softBg: [number, number, number] = [245, 245, 245];
 
-  // Header band
-  doc.setFillColor(primary[0], primary[1], primary[2]);
-  doc.rect(0, 0, 210, 40, 'F');
+  // Header - ink-saving: just a thin line instead of solid fill
+  doc.setDrawColor(primary[0], primary[1], primary[2]);
+  doc.setLineWidth(1);
+  doc.line(20, 28, 190, 28);
 
   // Logo (left)
   try {
     const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo.webp');
-    const targetH = 12;
+    const targetH = 10;
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
     doc.addImage(dataUrl, 'PNG', 20, 10, targetW, targetH);
   } catch {}
 
   // Order number prominent
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
+  doc.setFontSize(18);
   const ord = order.orderNumber || order.id || '';
-  if (ord) doc.text(`${ord}`, 20, 30);
+  if (ord) doc.text(`Order: ${ord}`, 20, 24);
 
   // Subtitle right: ORDER CONFIRMATION + date
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text('ORDER CONFIRMATION', 190, 16, { align: 'right' });
-  doc.text(formatDate(order.createdAt), 190, 22, { align: 'right' });
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('ORDER CONFIRMATION', 190, 14, { align: 'right' });
+  doc.text(formatDate(order.createdAt), 190, 20, { align: 'right' });
 
   // Company info block (right)
   doc.setFont('helvetica', 'normal');
@@ -460,27 +469,28 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     'info@doxvl.se'
   ];
 
-  let y = 56;
+  // Body container - adjusted for smaller header
+  let y = 40;
   doc.setTextColor(text[0], text[1], text[2]);
 
-  let cy = y - 4;
+  // Render company block at body top-right
+  let cy = y;
+  doc.setFontSize(8);
   companyLines.forEach((l) => {
     doc.text(l, 190, cy, { align: 'right' });
-    cy += 4;
+    cy += 3.5;
   });
   const companyBlockBottom = cy;
-  if (companyBlockBottom + 8 > y) {
-    y = companyBlockBottom + 8;
+  if (companyBlockBottom + 4 > y) {
+    y = companyBlockBottom + 4;
   }
 
-  // Section: Order information
-  doc.setFillColor(softBg[0], softBg[1], softBg[2]);
-  doc.roundedRect(16, y - 8, 178, 10, 2, 2, 'F');
+  // Section: Order information - simple text header (ink-saving)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(46, 45, 44);
   doc.text('Order Information', 20, y);
-  y += 12;
+  y += 8;
 
   doc.setTextColor(text[0], text[1], text[2]);
   doc.setFont('helvetica', 'normal');
@@ -570,16 +580,14 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.line(20, y, 190, y);
   y += 10;
 
-  // Pricing summary box - show individual line items
+  // Pricing summary - simple text header (ink-saving)
   const hasPricingData = Array.isArray(order.pricingBreakdown) || typeof order.totalPrice === 'number';
   if (hasPricingData) {
-    doc.setFillColor(softBg[0], softBg[1], softBg[2]);
-    doc.roundedRect(16, y - 6, 178, 10, 2, 2, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(46, 45, 44);
     doc.text('Pricing summary', 20, y);
-    y += 8;
+    y += 6;
 
     const labelX = 20;
     const valueX = 188;

@@ -742,7 +742,15 @@ function AdminOrdersPage() {
                           {(order.customerInfo?.firstName || '') + ' ' + (order.customerInfo?.lastName || '')}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
-                          {order.returnService || '—'}
+                          {order.returnService 
+                            ? order.returnService === 'own-delivery' 
+                              ? 'Own return shipping'
+                              : order.returnService === 'office-pickup'
+                                ? 'Office pickup'
+                                : order.returnService === 'retur'
+                                  ? 'Return shipping'
+                                  : order.returnService
+                            : '—'}
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
                           <div className="inline-flex items-center gap-2">
