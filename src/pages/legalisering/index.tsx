@@ -4,7 +4,6 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import Layout from '@/components/layout/Layout';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { CheckCircleIcon, DocumentTextIcon, BuildingLibraryIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
@@ -48,7 +47,7 @@ export default function LegaliseringIndexPage() {
     : 'Vi hjälper dig med legalisering av dokument för alla länder. Komplett service inkl. notarisering, Utrikesdepartementet och ambassad. Snabb hantering, fasta priser.';
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
@@ -310,7 +309,7 @@ export default function LegaliseringIndexPage() {
           </div>
         </section>
       </main>
-    </Layout>
+    </>
   );
 }
 
