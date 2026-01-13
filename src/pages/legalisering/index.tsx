@@ -48,11 +48,6 @@ export default function LegaliseringIndexPage() {
     ? 'We help you with document legalization for all countries. Complete service including notarization, Ministry for Foreign Affairs and embassy. Fast handling, fixed prices.'
     : 'Vi hjälper dig med legalisering av dokument för alla länder. Komplett service inkl. notarisering, Utrikesdepartementet och ambassad. Snabb hantering, fasta priser.';
 
-  const breadcrumbItems = [
-    { label: t('nav.home', 'Hem'), href: '/' },
-    { label: isEn ? 'Legalization' : 'Legalisering' }
-  ];
-
   return (
     <Layout>
       <Head>
@@ -87,7 +82,7 @@ export default function LegaliseringIndexPage() {
         {/* Breadcrumbs */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 py-3">
-            <Breadcrumbs items={breadcrumbItems} />
+            <Breadcrumbs />
           </div>
         </div>
 
