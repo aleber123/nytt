@@ -74,14 +74,7 @@ const Seo: React.FC<SeoProps> = ({
     "sameAs": [
       "https://www.facebook.com/doxvisumpartner",
       "https://www.linkedin.com/company/dox-visumpartner"
-    ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "127",
-      "bestRating": "5",
-      "worstRating": "1"
-    }
+    ]
   };
 
   // Create Organization schema
