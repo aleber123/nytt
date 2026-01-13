@@ -214,7 +214,14 @@ function AdminOrderDetailPage() {
   // If no stored overrides, initialize defaults from breakdown once order loads
   useEffect(() => {
     if (!order || !Array.isArray(order.pricingBreakdown)) return;
-    // Always reinitialize to pick up latest pricing structure
+    
+    // Skip if we already have saved lineOverrides from adminPrice
+    const ap = order.adminPrice as any;
+    if (ap && Array.isArray(ap.lineOverrides) && ap.lineOverrides.length > 0) {
+      return; // Don't overwrite saved overrides
+    }
+    
+    // Initialize from pricingBreakdown only if no saved overrides exist
     const initial = order.pricingBreakdown.map((item: any, idx: number) => {
       const base = (() => {
         // Prefer total field if it exists (matches pricingService output)
@@ -231,9 +238,8 @@ function AdminOrderDetailPage() {
       const label = item.description || getServiceName(item.service) || 'Rad';
       return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
     });
-    const totalFromInitial = initial.reduce((sum, o) => sum + o.baseAmount, 0);
     setLineOverrides(initial);
-  }, [order?.pricingBreakdown]);
+  }, [order?.pricingBreakdown, order?.adminPrice]);
 
   const getBreakdownTotal = () => {
     try {
