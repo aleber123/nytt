@@ -652,13 +652,13 @@ function AdminOrderDetailPage() {
         steps.push({
           id: 'apostille_delivery',
           name: '📋 Apostille – drop off',
-          description: 'Submit documents for apostille at the Swedish Ministry for Foreign Affairs',
+          description: 'Submit documents for apostille at the Swedish notary public',
           status: 'pending'
         });
         steps.push({
           id: 'apostille_pickup',
           name: '📋 Apostille – pick up',
-          description: 'Pick up apostilled documents from the Swedish Ministry for Foreign Affairs',
+          description: 'Pick up apostilled documents from the Swedish notary public',
           status: 'pending'
         });
       }

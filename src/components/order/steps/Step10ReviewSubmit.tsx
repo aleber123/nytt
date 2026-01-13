@@ -837,36 +837,73 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                       }
                     }
 
+                    const countryName = allCountries.find(c => c.code === answers.country)?.name || answers.country;
+                    const documentTypeName = answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
+                      answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
+                      answers.documentType === 'diploma' ? 'Examensbevis' :
+                      answers.documentType === 'commercial' ? 'Handelsdokument' :
+                      answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument';
+                    const servicesText = answers.services.map(serviceId => getServiceName(serviceId)).join(', ');
+                    const documentSourceText = answers.documentSource === 'original' ? 'Originaldokument' : 
+                      (answers.willSendMainDocsLater ? 'Skickas via e-post' : 'Uppladdade filer');
+
+                    const orderHtml = `
+                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #16a34a;">🎉 Ny beställning mottagen!</h2>
+                        
+                        <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #16a34a;">
+                          <h3 style="margin-top: 0; color: #166534;">Order #${orderId}</h3>
+                          <p style="margin: 0; font-size: 18px; font-weight: bold; color: #166534;">Totalbelopp: ${pricingResult.totalPrice} kr</p>
+                        </div>
+
+                        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                          <h3 style="margin-top: 0; color: #374151;">👤 Kunduppgifter</h3>
+                          <p><strong>Namn:</strong> ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</p>
+                          <p><strong>E-post:</strong> ${answers.customerInfo.email}</p>
+                          <p><strong>Telefon:</strong> ${answers.customerInfo.phone}</p>
+                          ${answers.customerInfo.companyName ? `<p><strong>Företag:</strong> ${answers.customerInfo.companyName}</p>` : ''}
+                        </div>
+
+                        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                          <h3 style="margin-top: 0; color: #374151;">📄 Orderdetaljer</h3>
+                          <p><strong>Land:</strong> ${countryName}</p>
+                          <p><strong>Dokumenttyp:</strong> ${documentTypeName}</p>
+                          <p><strong>Antal dokument:</strong> ${answers.quantity}</p>
+                          <p><strong>Dokumentkälla:</strong> ${documentSourceText}</p>
+                        </div>
+
+                        <div style="background-color: #eef2ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                          <h3 style="margin-top: 0; color: #4338ca;">🔧 Valda tjänster</h3>
+                          <p style="font-size: 16px;"><strong>${servicesText}</strong></p>
+                        </div>
+
+                        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                          <h3 style="margin-top: 0; color: #374151;">📦 Leverans</h3>
+                          <p><strong>Returfrakt:</strong> ${returfraktText}</p>
+                          ${premiumText ? `<p><strong>${premiumText}</strong></p>` : ''}
+                        </div>
+
+                        ${answers.additionalNotes ? `
+                        <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                          <h3 style="margin-top: 0; color: #92400e;">📝 Övriga kommentarer</h3>
+                          <p style="white-space: pre-wrap;">${answers.additionalNotes}</p>
+                        </div>
+                        ` : ''}
+
+                        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                        <p style="color: #6b7280; font-size: 14px;">
+                          <a href="https://doxvl-51a30.web.app/admin/orders/${orderId}" style="color: #2563eb;">Visa order i admin →</a>
+                        </p>
+                      </div>
+                    `;
+
                     const emailData = {
                       name: `Ny beställning - Order #${orderId}`,
                       email: 'noreply@doxvl.se',
                       phone: '',
-                      subject: `Ny beställning mottagen - Order #${orderId}`,
-                      message: `
-Ny beställning har mottagits!
-
-Ordernummer: ${orderId}
-Kund: ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}
-E-post: ${answers.customerInfo.email}
-Telefon: ${answers.customerInfo.phone}
-
-Land: ${allCountries.find(c => c.code === answers.country)?.name}
-Dokumenttyp: ${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
-              answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-              answers.documentType === 'diploma' ? 'Examensbevis' :
-              answers.documentType === 'commercial' ? 'Handelsdokument' :
-              answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}
-Antal dokument: ${answers.quantity}
-
-Valda tjänster: ${answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}
-Totalbelopp: ${pricingResult.totalPrice} kr
-
-Dokumentkälla: ${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}
-Returfrakt: ${returfraktText}
-${premiumText}
-
-${answers.additionalNotes ? `Övriga kommentarer: ${answers.additionalNotes}` : ''}
-                      `.trim(),
+                      subject: `🎉 Ny beställning - Order #${orderId} - ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
+                      message: `Ny beställning har mottagits!\n\nOrdernummer: ${orderId}\nKund: ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}\nLand: ${countryName}\nTjänster: ${servicesText}\nTotalbelopp: ${pricingResult.totalPrice} kr`,
+                      html: orderHtml,
                       orderId: orderId,
                       createdAt: Timestamp.now(),
                       status: 'unread'
