@@ -709,6 +709,14 @@ function AdminOrderDetailPage() {
           });
         }
         
+        // Embassy payment step (before drop-off)
+        steps.push({
+          id: 'embassy_payment',
+          name: '💳 Embassy fee – payment',
+          description: `Pay embassy fee for ${embassyCountry.name || embassyCountry.code || orderData.country} (in advance or on-site depending on embassy requirements)`,
+          status: 'pending'
+        });
+        
         steps.push({
           id: 'embassy_delivery',
           name: '📤 Embassy – drop off',
