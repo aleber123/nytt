@@ -5,10 +5,120 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Seo from '@/components/Seo';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { getAllActivePricingRules, PricingRule } from '@/firebase/pricingService';
+import { DocumentTextIcon, TruckIcon, BuildingOfficeIcon, GlobeAltIcon, ClockIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+
+// Service name translations
+const getServiceDisplayName = (serviceType: string, isEn: boolean): { title: string; description: string } => {
+  const serviceLabels: Record<string, { sv: { title: string; description: string }; en: { title: string; description: string } }> = {
+    apostille: {
+      sv: { title: 'Apostille', description: 'För länder anslutna till Haagkonventionen' },
+      en: { title: 'Apostille', description: 'For countries party to the Hague Convention' }
+    },
+    notarization: {
+      sv: { title: 'Notarisering', description: 'Juridisk bekräftelse av dokument' },
+      en: { title: 'Notarization', description: 'Legal certification of documents' }
+    },
+    embassy: {
+      sv: { title: 'Ambassadlegalisering', description: 'För länder utanför Haagkonventionen' },
+      en: { title: 'Embassy Legalization', description: 'For countries outside the Hague Convention' }
+    },
+    translation: {
+      sv: { title: 'Auktoriserad översättning', description: 'Officiella översättningar' },
+      en: { title: 'Certified Translation', description: 'Official translations' }
+    },
+    chamber: {
+      sv: { title: 'Handelskammaren', description: 'Handelskammarens legalisering' },
+      en: { title: 'Chamber of Commerce', description: 'Chamber of Commerce legalization' }
+    },
+    ud: {
+      sv: { title: 'Utrikesdepartementet', description: 'UD:s legalisering' },
+      en: { title: 'Ministry for Foreign Affairs', description: 'MFA legalization' }
+    },
+    'dhl-sweden': {
+      sv: { title: 'DHL Sverige', description: 'Leverans inom Sverige' },
+      en: { title: 'DHL Sweden', description: 'Delivery within Sweden' }
+    },
+    'dhl-europe': {
+      sv: { title: 'DHL Europa', description: 'Leverans inom Europa' },
+      en: { title: 'DHL Europe', description: 'Delivery within Europe' }
+    },
+    'dhl-world': {
+      sv: { title: 'DHL Världen', description: 'Internationell leverans' },
+      en: { title: 'DHL World', description: 'International delivery' }
+    },
+    'dhl-express-12': {
+      sv: { title: 'DHL Express 12:00', description: 'Expressleverans före kl. 12' },
+      en: { title: 'DHL Express 12:00', description: 'Express delivery before 12:00' }
+    },
+    'dhl-express-09': {
+      sv: { title: 'DHL Express 09:00', description: 'Expressleverans före kl. 09' },
+      en: { title: 'DHL Express 09:00', description: 'Express delivery before 09:00' }
+    },
+    'postnord-rek': {
+      sv: { title: 'PostNord Rekommenderat', description: 'Rekommenderad postleverans' },
+      en: { title: 'PostNord Registered', description: 'Registered mail delivery' }
+    },
+    'office-pickup': {
+      sv: { title: 'Hämtning på kontoret', description: 'Hämta dina dokument hos oss' },
+      en: { title: 'Office Pickup', description: 'Pick up your documents at our office' }
+    },
+    'own-delivery': {
+      sv: { title: 'Egen returfrakt', description: 'Du ordnar egen frakt' },
+      en: { title: 'Own Return Shipping', description: 'You arrange your own shipping' }
+    },
+    express: {
+      sv: { title: 'Expresstjänst', description: 'Snabbare handläggning' },
+      en: { title: 'Express Service', description: 'Faster processing' }
+    },
+    pickup_service: {
+      sv: { title: 'Upphämtning', description: 'Vi hämtar dina dokument' },
+      en: { title: 'Document Pickup', description: 'We pick up your documents' }
+    },
+    scanned_copies: {
+      sv: { title: 'Skannade kopior', description: 'Digitala kopior av dokument' },
+      en: { title: 'Scanned Copies', description: 'Digital copies of documents' }
+    }
+  };
+
+  const lang = isEn ? 'en' : 'sv';
+  if (serviceLabels[serviceType]) {
+    return serviceLabels[serviceType][lang];
+  }
+  
+  // Fallback: capitalize and clean up the service type
+  const cleanName = serviceType
+    .replace(/-/g, ' ')
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+  
+  return { title: cleanName, description: '' };
+};
+
+// Get icon for service category
+const getServiceIcon = (serviceType: string) => {
+  if (serviceType.includes('dhl') || serviceType.includes('postnord') || serviceType === 'own-delivery') {
+    return TruckIcon;
+  }
+  if (serviceType === 'office-pickup' || serviceType === 'pickup_service') {
+    return BuildingOfficeIcon;
+  }
+  if (serviceType === 'embassy') {
+    return GlobeAltIcon;
+  }
+  if (serviceType === 'express') {
+    return ClockIcon;
+  }
+  return DocumentTextIcon;
+};
 
 const PricesPage: React.FC = () => {
   const { t } = useTranslation('common');
+  const { locale } = useRouter();
+  const isEn = locale === 'en';
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,9 +132,7 @@ const PricesPage: React.FC = () => {
         setPricingRules(rules);
         setError(null);
       } catch (err) {
-        console.error('Error fetching pricing data:', err);
-        setError('Kunde inte ladda prisdata');
-        // Fallback to empty array
+        setError(isEn ? 'Could not load pricing data' : 'Kunde inte ladda prisdata');
         setPricingRules([]);
       } finally {
         setLoading(false);
@@ -32,146 +140,90 @@ const PricesPage: React.FC = () => {
     };
 
     fetchPricingData();
-  }, []);
+  }, [isEn]);
 
-  // Group pricing rules by service type and get representative prices
-  const getPricingData = () => {
-    if (pricingRules.length === 0) {
-      // No Firebase data - return empty array (error state will be shown)
-      return [];
-    }
+  // Categorize and process pricing data
+  const getCategorizedPricing = () => {
+    if (pricingRules.length === 0) return { legalization: [], shipping: [], additional: [] };
 
-    // Group by service type and get average prices
-    const serviceGroups: { [key: string]: PricingRule[] } = {};
-    pricingRules.forEach(rule => {
-      if (!serviceGroups[rule.serviceType]) {
-        serviceGroups[rule.serviceType] = [];
-      }
-      serviceGroups[rule.serviceType].push(rule);
-    });
+    const legalizationTypes = ['apostille', 'notarization', 'embassy', 'translation', 'chamber', 'ud'];
+    const shippingTypes = ['dhl-sweden', 'dhl-europe', 'dhl-world', 'dhl-express-12', 'dhl-express-09', 'postnord-rek', 'office-pickup', 'own-delivery'];
+    const additionalTypes = ['express', 'pickup_service', 'scanned_copies'];
 
-    // Create pricing data from Firebase data
-    const pricingData = Object.entries(serviceGroups).map(([serviceType, rules]) => {
-      // Calculate average price for this service type
-      const avgPrice = rules.reduce((sum, rule) => sum + rule.basePrice, 0) / rules.length;
-      const avgProcessingTime = Math.round(rules.reduce((sum, rule) => sum + rule.processingTime.standard, 0) / rules.length);
+    const categorize = (types: string[]) => {
+      return pricingRules
+        .filter(rule => types.includes(rule.serviceType))
+        .reduce((acc: PricingRule[], rule) => {
+          // Only keep one rule per service type (avoid duplicates)
+          if (!acc.find(r => r.serviceType === rule.serviceType)) {
+            acc.push(rule);
+          }
+          return acc;
+        }, [])
+        .sort((a, b) => a.basePrice - b.basePrice);
+    };
 
-      const serviceLabels = {
-        apostille: {
-          title: 'Apostille',
-          description: 'För länder anslutna till Haagkonventionen',
-          features: ['Officiell legalisering', 'Giltig i Haag-länder', 'Snabb handläggning', 'Digital leverans']
-        },
-        notarization: {
-          title: 'Notarisering',
-          description: 'Juridisk bekräftelse av dokument',
-          features: ['Notarius publicus', 'Juridisk giltighet', 'Originaldokument krävs', 'Snabb handläggning']
-        },
-        embassy: {
-          title: 'Ambassadlegalisering',
-          description: 'För länder utanför Haagkonventionen',
-          features: ['Ambassad/konsulat', 'Internationell giltighet', 'Komplex process', 'Hög säkerhet']
-        },
-        translation: {
-          title: 'Auktoriserad översättning',
-          description: 'Officiella översättningar',
-          features: ['Certifierade översättare', 'Officiell stämpel', 'Alla språk', 'Kvalitetsgaranti']
-        },
-        chamber: {
-          title: 'Handelskammaren',
-          description: 'Handelskammarens legalisering',
-          features: ['Handelskammarens stämpel', 'Internationell giltighet', 'Företagshandlingar', 'Officiell legalisering']
-        },
-        ud: {
-          title: 'Utrikesdepartementet',
-          description: 'UD:s legalisering',
-          features: ['Utrikesdepartementets stämpel', 'Högsta myndighet', 'Internationell giltighet', 'Officiell legalisering']
-        }
-      };
-
-      const serviceInfo = serviceLabels[serviceType as keyof typeof serviceLabels] || {
-        title: serviceType.charAt(0).toUpperCase() + serviceType.slice(1),
-        description: `Legaliserings tjänst för ${serviceType}`,
-        features: ['Officiell legalisering', 'Internationell giltighet', 'Snabb handläggning', 'Digital leverans']
-      };
-
-      // Handle quoted services (translation and embassy)
-      if (serviceType === 'translation' || serviceType === 'embassy') {
-        return {
-          service: serviceInfo.title,
-          description: serviceInfo.description,
-          officialFee: 'Offereras',
-          serviceFee: 'Offereras',
-          totalPrice: 'Offereras',
-          timeframe: `${avgProcessingTime} arbetsdagar`,
-          features: serviceInfo.features
-        };
-      }
-
-      return {
-        service: serviceInfo.title,
-        description: serviceInfo.description,
-        officialFee: `${Math.round(avgPrice * 0.9)} kr`, // Approximate official fee
-        serviceFee: `${Math.round(avgPrice * 0.1)} kr`,   // Approximate service fee
-        totalPrice: `${Math.round(avgPrice)} kr`,
-        timeframe: `${avgProcessingTime} arbetsdagar`,
-        features: serviceInfo.features
-      };
-    });
-
-    return pricingData;
+    return {
+      legalization: categorize(legalizationTypes),
+      shipping: categorize(shippingTypes),
+      additional: categorize(additionalTypes)
+    };
   };
 
-  const pricingData = getPricingData();
+  const { legalization, shipping, additional } = getCategorizedPricing();
 
-  const additionalFees = [
-    { service: 'Express-service', price: '+500 kr', description: 'Snabbare handläggning' },
-    { service: 'Postleverans', price: '+50 kr', description: 'Leverans med post' },
-    { service: 'Expressleverans', price: '+150 kr', description: 'Expressleverans' },
-    { service: 'Fler dokument', price: 'Enligt offert', description: 'För stora volymer' }
-  ];
+  const pageTitle = isEn ? 'Prices | DOX Visumpartner' : 'Priser | DOX Visumpartner';
+  const pageSubtitle = isEn 
+    ? 'Transparent pricing for all our services' 
+    : 'Transparent prissättning för alla våra tjänster';
 
   // Show loading state
   if (loading) {
     return (
       <>
         <Head>
-          <title>{t('prices.title') || 'Priser - Legaliseringstjänst'}</title>
+          <title>{pageTitle}</title>
         </Head>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-button mx-auto mb-4"></div>
-            <p className="text-gray-600">Laddar prisinformation...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">{isEn ? 'Loading pricing...' : 'Laddar priser...'}</p>
           </div>
         </div>
       </>
     );
   }
 
-  // Show error state or no pricing data
-  if (error || pricingData.length === 0) {
+  // Show error state
+  if (error || (legalization.length === 0 && shipping.length === 0)) {
     return (
       <>
         <Head>
-          <title>{t('prices.title') || 'Priser - Legaliseringstjänst'}</title>
+          <title>{pageTitle}</title>
         </Head>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center max-w-md mx-auto p-6">
             <div className="text-amber-500 text-6xl mb-4">📋</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('prices.contactForPricing', { defaultValue: 'Kontakta oss för priser' })}</h2>
-            <p className="text-gray-600 mb-4">{t('prices.contactForPricingText', { defaultValue: 'Vi ger dig gärna en offert baserad på dina specifika behov.' })}</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {isEn ? 'Contact us for pricing' : 'Kontakta oss för priser'}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {isEn 
+                ? 'We\'ll be happy to provide a quote based on your specific needs.' 
+                : 'Vi ger dig gärna en offert baserad på dina specifika behov.'}
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/kontakt"
-                className="bg-custom-button text-white px-6 py-2 rounded-md hover:bg-custom-button/90"
+                className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium"
               >
-                {t('prices.contactButton', { defaultValue: 'Kontakta oss' })}
+                {isEn ? 'Contact Us' : 'Kontakta oss'}
               </Link>
               <Link
                 href="/bestall"
-                className="border border-custom-button text-custom-button px-6 py-2 rounded-md hover:bg-custom-button/10"
+                className="border border-primary-600 text-primary-600 px-6 py-3 rounded-lg hover:bg-primary-50 transition-colors font-medium"
               >
-                {t('prices.orderButton', { defaultValue: 'Beställ' })}
+                {isEn ? 'Order' : 'Beställ'}
               </Link>
             </div>
           </div>
@@ -180,145 +232,212 @@ const PricesPage: React.FC = () => {
     );
   }
 
+  // Render a pricing card
+  const renderPricingCard = (rule: PricingRule, showFeatures: boolean = false) => {
+    const { title, description } = getServiceDisplayName(rule.serviceType, isEn);
+    const Icon = getServiceIcon(rule.serviceType);
+    const isQuoted = rule.serviceType === 'embassy' || rule.serviceType === 'translation';
+    
+    const features = {
+      apostille: isEn 
+        ? ['Official legalization', 'Valid in Hague countries', 'Fast processing'] 
+        : ['Officiell legalisering', 'Giltig i Haag-länder', 'Snabb handläggning'],
+      notarization: isEn 
+        ? ['Notary public', 'Legal validity', 'Original documents required'] 
+        : ['Notarius publicus', 'Juridisk giltighet', 'Originaldokument krävs'],
+      embassy: isEn 
+        ? ['Embassy/consulate', 'International validity', 'High security'] 
+        : ['Ambassad/konsulat', 'Internationell giltighet', 'Hög säkerhet'],
+      translation: isEn 
+        ? ['Certified translators', 'Official stamp', 'All languages'] 
+        : ['Certifierade översättare', 'Officiell stämpel', 'Alla språk'],
+      chamber: isEn 
+        ? ['Chamber stamp', 'International validity', 'Business documents'] 
+        : ['Handelskammarens stämpel', 'Internationell giltighet', 'Företagshandlingar'],
+      ud: isEn 
+        ? ['MFA stamp', 'Highest authority', 'International validity'] 
+        : ['UD:s stämpel', 'Högsta myndighet', 'Internationell giltighet']
+    };
+
+    return (
+      <div key={rule.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col h-full">
+        <div className="flex-1">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="p-2 bg-primary-50 rounded-lg">
+              <Icon className="w-6 h-6 text-primary-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+              {description && <p className="text-sm text-gray-500">{description}</p>}
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <div className="text-2xl font-bold text-primary-600">
+              {isQuoted 
+                ? (isEn ? 'Quote' : 'Offert') 
+                : `${rule.basePrice.toLocaleString('sv-SE')} kr`}
+            </div>
+          </div>
+
+          {showFeatures && features[rule.serviceType as keyof typeof features] && (
+            <ul className="space-y-2 mb-4">
+              {features[rule.serviceType as keyof typeof features].map((feature, idx) => (
+                <li key={idx} className="flex items-center text-sm text-gray-600">
+                  <ShieldCheckIcon className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <Seo
-        title={`${t('prices.title') || 'Priser'} | Legaliseringstjänst`}
-        description={t('prices.description') || 'Se våra konkurrenskraftiga priser för dokumentlegalisering. Transparent prissättning utan dolda avgifter.'}
+        title={pageTitle}
+        description={isEn 
+          ? 'See our competitive prices for document legalization, shipping and additional services. Transparent pricing.' 
+          : 'Se våra konkurrenskraftiga priser för dokumentlegalisering, frakt och tilläggstjänster. Transparent prissättning.'}
       />
 
-      
-      <div className="container mx-auto px-4 pt-12">
-        <h1 className="text-3xl font-heading font-bold text-gray-900 text-center mb-6">
-          {t('prices.title') || 'Priser'}
-        </h1>
-        <p className="text-lg text-gray-600 text-center mb-8">
-          {t('prices.subtitle') || 'Transparent prissättning utan dolda avgifter'}
-        </p>
-      </div>
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-primary-900 to-primary-800 text-white py-12 md:py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              {isEn ? 'Prices' : 'Priser'}
+            </h1>
+            <p className="text-lg text-primary-100 max-w-2xl mx-auto">
+              {pageSubtitle}
+            </p>
+          </div>
+        </div>
+      </section>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-6xl mx-auto">
-          {/* Main Services Pricing */}
-          <section className="mb-16">
-            <h2 className="text-3xl font-heading font-bold text-gray-900 mb-8 text-center">
-              {t('prices.servicesTitle') || 'Våra tjänster'}
-            </h2>
+      <div className="bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          
+          {/* Legalization Services */}
+          {legalization.length > 0 && (
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <DocumentTextIcon className="w-7 h-7 text-primary-600" />
+                {isEn ? 'Legalization Services' : 'Legaliseringstjänster'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {legalization.map(rule => renderPricingCard(rule, true))}
+              </div>
+            </section>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {pricingData.map((service, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col h-full">
-                  <div className="flex-1">
-                    <div className="text-center mb-4">
-                      <h3 className="text-xl font-heading font-bold text-gray-900 mb-2">
-                        {service.service}
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-4">
-                        {service.description}
-                      </p>
-                      <div className="text-3xl font-bold text-custom-button mb-2">
-                        {service.totalPrice}
+          {/* Shipping Services */}
+          {shipping.length > 0 && (
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <TruckIcon className="w-7 h-7 text-primary-600" />
+                {isEn ? 'Shipping & Delivery' : 'Frakt & Leverans'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {shipping.map(rule => {
+                  const { title } = getServiceDisplayName(rule.serviceType, isEn);
+                  const Icon = getServiceIcon(rule.serviceType);
+                  return (
+                    <div key={rule.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Icon className="w-5 h-5 text-primary-600" />
+                        <span className="font-medium text-gray-900">{title}</span>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {service.timeframe}
+                      <div className="text-xl font-bold text-primary-600">
+                        {rule.basePrice === 0 
+                          ? (isEn ? 'Free' : 'Gratis') 
+                          : `${rule.basePrice.toLocaleString('sv-SE')} kr`}
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
-                    <ul className="space-y-2 mb-6">
-                      {service.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-center text-sm text-gray-600">
-                          <svg className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+          {/* Additional Services */}
+          {additional.length > 0 && (
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <ClockIcon className="w-7 h-7 text-primary-600" />
+                {isEn ? 'Additional Services' : 'Tilläggstjänster'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {additional.map(rule => {
+                  const { title, description } = getServiceDisplayName(rule.serviceType, isEn);
+                  const Icon = getServiceIcon(rule.serviceType);
+                  return (
+                    <div key={rule.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Icon className="w-5 h-5 text-primary-600" />
+                        <div>
+                          <span className="font-medium text-gray-900">{title}</span>
+                          {description && <p className="text-xs text-gray-500">{description}</p>}
+                        </div>
+                      </div>
+                      <div className="text-xl font-bold text-primary-600">
+                        +{rule.basePrice.toLocaleString('sv-SE')} kr
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
-                  <Link
-                    href="/bestall"
-                    className="w-full bg-custom-button text-white py-2 px-4 rounded-md hover:bg-custom-button/90 transition-colors text-center block mt-auto"
-                  >
-                    {t('prices.orderButton') || 'Beställ'}
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Additional Fees */}
-          <section className="mb-16">
-            <h2 className="text-3xl font-heading font-bold text-gray-900 mb-8 text-center">
-              {t('prices.additionalTitle') || 'Tilläggstjänster'}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {additionalFees.map((fee, index) => (
-                <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                  <div>
-                    <div className="font-semibold text-gray-900 text-lg mb-2">{fee.service}</div>
-                    <div className="text-gray-600 text-sm leading-relaxed">{fee.description}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Pricing Information */}
-          <section className="mb-16">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-blue-900 mb-4">
-                {t('prices.infoTitle') || 'Viktig information'}
+          {/* Info Box */}
+          <section className="mb-12">
+            <div className="bg-primary-50 border border-primary-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-primary-900 mb-4">
+                {isEn ? 'Good to know' : 'Bra att veta'}
               </h3>
-              <ul className="space-y-2 text-blue-800">
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  {t('prices.info1') || 'Alla priser är exklusive moms (25%)'}
+              <ul className="space-y-3 text-primary-800">
+                <li className="flex items-start gap-3">
+                  <ShieldCheckIcon className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span>{isEn ? 'Prices may vary depending on document type and complexity' : 'Priserna kan variera beroende på dokumenttyp och komplexitet'}</span>
                 </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  {t('prices.info2') || 'Priserna kan variera beroende på dokumenttyp och komplexitet'}
+                <li className="flex items-start gap-3">
+                  <ShieldCheckIcon className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span>{isEn ? 'Contact us for quotes on larger volumes or special cases' : 'Kontakta oss för offert vid större volymer eller specialfall'}</span>
                 </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  {t('prices.info3') || 'Digital leverans är kostnadsfri för de flesta tjänster'}
-                </li>
-                <li className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  {t('prices.info4') || 'Kontakta oss för offert vid större volymer eller specialfall'}
+                <li className="flex items-start gap-3">
+                  <ShieldCheckIcon className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span>{isEn ? 'Digital delivery is free for most services' : 'Digital leverans är kostnadsfri för de flesta tjänster'}</span>
                 </li>
               </ul>
             </div>
           </section>
 
-          {/* Call to Action */}
-          <section className="text-center">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-              {t('prices.ctaTitle') || 'Redo att beställa?'}
+          {/* CTA Section */}
+          <section className="text-center bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {isEn ? 'Ready to get started?' : 'Redo att komma igång?'}
             </h2>
-            <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-              {t('prices.ctaText') || 'Få dina dokument legaliserade snabbt och enkelt. Kontakta oss idag för att komma igång.'}
+            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+              {isEn 
+                ? 'Get your documents legalized quickly and easily. Contact us today to get started.' 
+                : 'Få dina dokument legaliserade snabbt och enkelt. Kontakta oss idag för att komma igång.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/bestall"
-                className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="inline-flex items-center justify-center px-8 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
               >
-                {t('prices.ctaButton') || 'Beställ nu'}
+                {isEn ? 'Order Now' : 'Beställ nu'}
               </Link>
               <Link
                 href="/kontakt"
-                className="inline-flex items-center justify-center px-8 py-3 border border-primary-600 text-base font-medium rounded-md text-primary-600 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="inline-flex items-center justify-center px-8 py-3 border border-primary-600 text-primary-600 font-medium rounded-lg hover:bg-primary-50 transition-colors"
               >
-                {t('prices.contactButton') || 'Kontakta oss'}
+                {isEn ? 'Contact Us' : 'Kontakta oss'}
               </Link>
             </div>
           </section>
