@@ -6,12 +6,24 @@
 import { Country } from '../types';
 
 // Hague Convention countries (apostille available)
+// Updated January 2026 based on official HCCH list
 export const HAGUE_CONVENTION_COUNTRIES = [
-  'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
+  // Europe
+  'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'FR', 'ES', 'IT', 'NL', 'PL',
   'AT', 'BE', 'CH', 'CZ', 'EE', 'GR', 'HU', 'IE', 'IS', 'LI', 'LT', 'LU',
-  'LV', 'MT', 'PT', 'SK', 'SI', 'BG', 'HR', 'CY', 'RO', 'TR', 'AU', 'CA',
-  'JP', 'KR', 'MX', 'NZ', 'ZA', 'PH', 'CN', 'IN', 'BR', 'AR', 'CL', 'CO',
-  'PE', 'EC', 'UY', 'PY', 'BO', 'CR', 'PA', 'DO', 'SV', 'GT', 'HN', 'NI'
+  'LV', 'MT', 'PT', 'SK', 'SI', 'BG', 'HR', 'CY', 'RO', 'TR', 'UA', 'BY',
+  'AL', 'AD', 'BA', 'ME', 'MK', 'RS', 'XK', 'MC', 'SM', 'MD', 'RU',
+  // Americas
+  'US', 'CA', 'MX', 'BR', 'AR', 'CL', 'CO', 'PE', 'EC', 'UY', 'PY', 'BO',
+  'CR', 'PA', 'DO', 'SV', 'GT', 'HN', 'NI', 'VE', 'SR', 'BZ',
+  'TT', 'JM', 'BB', 'BS', 'AG', 'DM', 'GD', 'KN', 'LC', 'VC',
+  // Asia & Middle East
+  'JP', 'KR', 'CN', 'IN', 'PH', 'ID', 'SG', 'BN', 'MN', 'KZ', 'KG', 'TJ', 'UZ', 'AZ',
+  'AM', 'GE', 'IL', 'BH', 'OM', 'SA',
+  // Oceania
+  'AU', 'NZ', 'FJ', 'WS', 'TO', 'VU', 'MH',
+  // Africa
+  'ZA', 'MA', 'TN', 'MU', 'SC', 'BW', 'LS', 'SZ', 'NA', 'LR', 'MW', 'CV', 'BI', 'ST'
 ];
 
 // Popular countries sorted by selection frequency
