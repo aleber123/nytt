@@ -256,15 +256,90 @@ function StandardServicesPricesPage() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              📋 Standard Services - Sweden
-            </h1>
-            <p className="text-gray-600">
-              Update prices for standard services. All changes are automatically saved to Firebase.
-            </p>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">📋 Standard Services - Sweden</h1>
           </div>
 
+          {/* Summary Stats - Like Orders/Embassy page */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Total services</p>
+                  <p className="text-2xl font-bold text-gray-900">{services.length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Confirmed</p>
+                  <p className="text-2xl font-bold text-gray-900">{services.filter(s => !s.priceUnconfirmed).length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Unconfirmed</p>
+                  <p className="text-2xl font-bold text-gray-900">{services.filter(s => s.priceUnconfirmed).length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Avg. price</p>
+                  <p className="text-2xl font-bold text-gray-900">{Math.round(services.reduce((sum, s) => sum + s.totalPrice, 0) / services.length || 0)} kr</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions Bar */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-sm text-gray-600">Quick filters:</span>
+              <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary-600 text-white">
+                All ({services.length})
+              </span>
+              <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                ✓ Confirmed ({services.filter(s => !s.priceUnconfirmed).length})
+              </span>
+              <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                ⚠ Unconfirmed ({services.filter(s => s.priceUnconfirmed).length})
+              </span>
+              <button
+                onClick={() => loadStandardServices()}
+                className="ml-auto px-4 py-2 text-primary-600 hover:text-primary-800 font-medium"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
 
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -498,28 +573,6 @@ function StandardServicesPricesPage() {
             ))}
           </div>
 
-          {/* Summary */}
-          <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Summary - Sweden</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{services.length}</div>
-                <div className="text-sm text-gray-600">Standard services</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {services.reduce((sum, s) => sum + s.totalPrice, 0).toLocaleString('sv-SE')}
-                </div>
-                <div className="text-sm text-gray-600">kr total (sum)</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {Math.round(services.reduce((sum, s) => sum + s.totalPrice, 0) / services.length).toLocaleString('sv-SE')}
-                </div>
-                <div className="text-sm text-gray-600">kr average</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </ProtectedRoute>
