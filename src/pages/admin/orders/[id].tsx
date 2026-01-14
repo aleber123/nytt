@@ -35,6 +35,12 @@ interface ExtendedOrder extends Order {
   pendingEmbassyPrice?: number;
   pendingTotalPrice?: number;
   willSendMainDocsLater?: boolean;
+  confirmReturnAddressLater?: boolean;
+  returnAddressConfirmationRequired?: boolean;
+  returnAddressConfirmed?: boolean;
+  returnAddressConfirmedAt?: string;
+  returnAddressConfirmationSent?: boolean;
+  returnAddressConfirmationSentAt?: string;
 }
 
 interface ProcessingStep {
@@ -779,6 +785,16 @@ function AdminOrderDetailPage() {
         name: '🏷️ Print customer return label',
         description: 'Print the customer\'s uploaded shipping label and attach to package',
         status: 'pending'
+      });
+    }
+
+    // STEP: Await return address confirmation (only if customer chose to confirm later)
+    if (orderData.confirmReturnAddressLater || orderData.returnAddressConfirmationRequired) {
+      steps.push({
+        id: 'await_return_address_confirmation',
+        name: '📍 Await Return Address Confirmation',
+        description: 'Customer needs to confirm return address via email',
+        status: orderData.returnAddressConfirmed ? 'completed' : 'pending'
       });
     }
 
@@ -3151,9 +3167,18 @@ function AdminOrderDetailPage() {
     if (stepId === 'order_verification' && order?.pickupService) {
       return 'pickup';
     }
+    // New step for explicit return address confirmation
+    if (stepId === 'await_return_address_confirmation') {
+      return 'return';
+    }
     if (stepId === 'prepare_return') {
       const returnService = (order as any)?.returnService as string | undefined;
       if (returnService && ['own-delivery', 'office-pickup'].includes(returnService)) {
+        return null;
+      }
+      // Don't show address confirmation on prepare_return if there's a dedicated step for it
+      const extOrder = order as any;
+      if (extOrder.confirmReturnAddressLater || extOrder.returnAddressConfirmationRequired) {
         return null;
       }
       return 'return';

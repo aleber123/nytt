@@ -7,7 +7,7 @@
  * PostNord API Documentation:
  * - Sandbox: atapi2.postnord.com
  * - Production: api2.postnord.com
- * - Booking API v3: /rest/shipment/v3/booking
+ * - EDI Labels API v3: /rest/shipment/v3/edi/labels
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -29,7 +29,8 @@ const getBaseUrl = () =>
 const DOX_COMPANY = {
   name: 'DOX Visumpartner AB',
   contact: 'Henrik Oinas',
-  street1: 'Livdjursgatan 4, våning 6',
+  street1: 'Livdjursgatan 4',
+  street2: 'Våning 6',
   postalCode: '12162',
   city: 'Johanneshov',
   countryCode: 'SE',
@@ -67,6 +68,18 @@ interface PostNordShipmentRequest {
   weight?: number; // Weight in grams, default 100g for documents
 }
 
+// Generate unique item ID for PostNord (format: RR123456789SE for registered mail)
+function generateItemId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const nums = '0123456789';
+  let id = 'RR'; // Registered mail prefix
+  for (let i = 0; i < 9; i++) {
+    id += nums.charAt(Math.floor(Math.random() * nums.length));
+  }
+  id += 'SE'; // Country code
+  return id;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -92,6 +105,13 @@ export default async function handler(
     return res.status(500).json({ 
       error: 'PostNord API credentials not configured',
       details: 'Please set POSTNORD_API_KEY environment variable'
+    });
+  }
+
+  if (!POSTNORD_CONFIG.customerNumber) {
+    return res.status(500).json({ 
+      error: 'PostNord customer number not configured',
+      details: 'Please set POSTNORD_CUSTOMER_NUMBER environment variable'
     });
   }
 
@@ -123,19 +143,35 @@ export default async function handler(
         : SERVICE_CODES.REK_INTERNATIONAL;
     }
 
-    // Build PostNord Booking API request
-    // Using Shipment API v3 format
+    // Generate message date in ISO format
+    const messageDate = new Date().toISOString();
+    
+    // Generate unique item ID
+    const itemId = generateItemId();
+
+    // Build PostNord EDI Labels API request
+    // Using Shipment API v3 EDI format
     const postnordRequest = {
-      shipment: {
+      messageDate: messageDate,
+      updateIndicator: 'Original',
+      shipment: [{
+        shipmentId: body.orderNumber,
+        dateOfDespatch: body.shippingDate,
         service: {
           basicServiceCode: serviceCode,
-          additionalServiceCodes: body.withReceipt ? ['A1'] : [] // A1 = Mottagningsbevis
+          additionalServiceCode: body.withReceipt ? ['A1'] : []
         },
+        numberOfParcels: 1,
         parties: {
           sender: {
+            partyId: {
+              type: 'CustomerNumber',
+              value: POSTNORD_CONFIG.customerNumber
+            },
             name: DOX_COMPANY.name,
             contact: DOX_COMPANY.contact,
             address1: DOX_COMPANY.street1,
+            address2: DOX_COMPANY.street2,
             postalCode: DOX_COMPANY.postalCode,
             city: DOX_COMPANY.city,
             countryCode: DOX_COMPANY.countryCode,
@@ -153,26 +189,28 @@ export default async function handler(
             email: body.receiver.email || ''
           }
         },
-        parcels: [{
-          weight: {
-            value: body.weight || 100, // Default 100g for documents
-            unit: 'g'
+        items: [{
+          itemId: itemId,
+          grossWeight: {
+            value: (body.weight || 100) / 1000, // Convert grams to kg
+            unit: 'kg'
           },
-          contents: `Legalized documents - Order ${body.orderNumber}`
+          volume: {
+            value: 0.001, // 1 liter for documents
+            unit: 'm3'
+          }
         }],
-        orderNo: body.orderNumber,
-        customerNo: POSTNORD_CONFIG.customerNumber,
-        senderReference: body.orderNumber,
-        receiverReference: body.orderNumber
-      },
-      printConfig: {
-        format: 'PDF',
-        paperSize: 'A4'
-      }
+        references: {
+          reference: [{
+            referenceType: 'CU',
+            value: body.orderNumber
+          }]
+        }
+      }]
     };
 
-    // Call PostNord Booking API
-    const apiUrl = `${getBaseUrl()}/rest/shipment/v3/booking.json?apikey=${POSTNORD_CONFIG.apiKey}`;
+    // Call PostNord EDI Labels API
+    const apiUrl = `${getBaseUrl()}/rest/shipment/v3/edi/labels?apikey=${POSTNORD_CONFIG.apiKey}`;
     
     const postnordResponse = await fetch(apiUrl, {
       method: 'POST',
@@ -187,6 +225,9 @@ export default async function handler(
 
     if (!postnordResponse.ok) {
       let errorDetails = responseData.message || responseData.error || 'Unknown error';
+      if (responseData.compositeFault?.faults && Array.isArray(responseData.compositeFault.faults)) {
+        errorDetails = responseData.compositeFault.faults.map((e: any) => e.explanationText || e.message || e).join(', ');
+      }
       if (responseData.errors && Array.isArray(responseData.errors)) {
         errorDetails = responseData.errors.map((e: any) => e.message || e).join(', ');
       }
@@ -195,13 +236,15 @@ export default async function handler(
         error: 'PostNord API Error',
         status: postnordResponse.status,
         details: errorDetails,
-        postnordResponse: responseData
+        postnordResponse: responseData,
+        sentRequest: postnordRequest
       });
     }
 
     // Extract shipment details from response
-    const shipmentId = responseData.shipmentId || responseData.id;
-    const trackingNumber = responseData.itemId || responseData.trackingNumber;
+    const shipmentResult = responseData.shipment?.[0] || responseData;
+    const shipmentId = shipmentResult.shipmentId || responseData.shipmentId || body.orderNumber;
+    const trackingNumber = shipmentResult.items?.[0]?.itemId || itemId;
     
     // Generate public tracking URL
     const publicTrackingUrl = trackingNumber 
@@ -210,8 +253,10 @@ export default async function handler(
 
     // Extract label PDF if available
     let labelBase64 = null;
-    if (responseData.labels && responseData.labels.length > 0) {
-      labelBase64 = responseData.labels[0].data || responseData.labels[0].content;
+    if (shipmentResult.labels && shipmentResult.labels.length > 0) {
+      labelBase64 = shipmentResult.labels[0].data || shipmentResult.labels[0].content || shipmentResult.labels[0].labelData;
+    } else if (responseData.labels && responseData.labels.length > 0) {
+      labelBase64 = responseData.labels[0].data || responseData.labels[0].content || responseData.labels[0].labelData;
     } else if (responseData.printout) {
       labelBase64 = responseData.printout;
     }

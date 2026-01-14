@@ -71,6 +71,9 @@ export interface OrderAnswers {
     email: string;
   };
   
+  // Confirm return address later - customer will receive email to confirm address
+  confirmReturnAddressLater?: boolean;
+  
   // Billing information (for invoicing)
   billingInfo: {
     sameAsReturn: boolean; // If true, use return address for billing

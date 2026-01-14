@@ -106,6 +106,12 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
 
   // Handle next button click with validation
   const handleNext = () => {
+    // Allow proceeding if "confirm later" is checked, even if form is incomplete
+    if (answers.confirmReturnAddressLater) {
+      onNext();
+      return;
+    }
+    
     if (!isFormValid) {
       setShowValidation(true);
       // Scroll to first error
@@ -139,7 +145,7 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
       onBack={onBack}
       nextDisabled={false}
     >
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
         <div className="flex items-center">
           <span className="text-2xl mr-3">📦</span>
           <div>
@@ -153,6 +159,98 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
         </div>
       </div>
 
+      {/* Address type selector with 3 options */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {isEn ? 'Address Type' : 'Adresstyp'} *
+        </label>
+        <div className="grid grid-cols-3 gap-3">
+          <label 
+            className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              answers.deliveryAddressType === 'business' && !answers.confirmReturnAddressLater
+                ? 'border-custom-button bg-custom-button/5' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="addressType"
+              value="business"
+              checked={answers.deliveryAddressType === 'business' && !answers.confirmReturnAddressLater}
+              onChange={() => setAnswers(prev => ({ ...prev, deliveryAddressType: 'business', confirmReturnAddressLater: false }))}
+              className="sr-only"
+            />
+            <div className="flex items-center">
+              <span className="text-2xl mr-3">🏢</span>
+              <div>
+                <div className="font-medium text-gray-900">
+                  {isEn ? 'Business' : 'Företag'}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {isEn ? 'Office, company' : 'Kontor, företag'}
+                </div>
+              </div>
+            </div>
+          </label>
+          <label 
+            className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              answers.deliveryAddressType === 'residential' && !answers.confirmReturnAddressLater
+                ? 'border-custom-button bg-custom-button/5' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="addressType"
+              value="residential"
+              checked={answers.deliveryAddressType === 'residential' && !answers.confirmReturnAddressLater}
+              onChange={() => setAnswers(prev => ({ ...prev, deliveryAddressType: 'residential', confirmReturnAddressLater: false }))}
+              className="sr-only"
+            />
+            <div className="flex items-center">
+              <span className="text-2xl mr-3">🏠</span>
+              <div>
+                <div className="font-medium text-gray-900">
+                  {isEn ? 'Home' : 'Hem'}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {isEn ? 'Private residence' : 'Privatbostad'}
+                </div>
+              </div>
+            </div>
+          </label>
+          <label 
+            className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              answers.confirmReturnAddressLater
+                ? 'border-amber-500 bg-amber-50' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="addressType"
+              value="later"
+              checked={answers.confirmReturnAddressLater || false}
+              onChange={() => setAnswers(prev => ({ ...prev, confirmReturnAddressLater: true }))}
+              className="sr-only"
+            />
+            <div className="flex items-center">
+              <span className="text-2xl mr-3">📩</span>
+              <div>
+                <div className="font-medium text-gray-900">
+                  {isEn ? 'Confirm later' : 'Bekräftar senare'}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {isEn ? 'Via email' : 'Via email'}
+                </div>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Only show address form if NOT confirming later */}
+      {!answers.confirmReturnAddressLater && (
       <div className="space-y-4">
         {/* Same as pickup checkbox - only show if pickup service was selected */}
         {answers.pickupService && (
@@ -194,73 +292,6 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
             </span>
           </label>
         )}
-        {/* Address type selector */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {isEn ? 'Address Type' : 'Adresstyp'} *
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label 
-              className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                answers.deliveryAddressType === 'business' 
-                  ? 'border-custom-button bg-custom-button/5' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name="addressType"
-                value="business"
-                checked={answers.deliveryAddressType === 'business'}
-                onChange={() => setAnswers(prev => ({ ...prev, deliveryAddressType: 'business' }))}
-                className="sr-only"
-              />
-              <div className="flex items-center">
-                <span className="text-2xl mr-3">🏢</span>
-                <div>
-                  <div className="font-medium text-gray-900">
-                    {isEn ? 'Business Address' : 'Företagsadress'}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {isEn ? 'Office, company, etc.' : 'Kontor, företag, etc.'}
-                  </div>
-                </div>
-              </div>
-            </label>
-            <label 
-              className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                answers.deliveryAddressType === 'residential' 
-                  ? 'border-custom-button bg-custom-button/5' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name="addressType"
-                value="residential"
-                checked={answers.deliveryAddressType === 'residential'}
-                onChange={() => setAnswers(prev => ({ ...prev, deliveryAddressType: 'residential' }))}
-                className="sr-only"
-              />
-              <div className="flex items-center">
-                <span className="text-2xl mr-3">🏠</span>
-                <div>
-                  <div className="font-medium text-gray-900">
-                    {isEn ? 'Home Address' : 'Hemadress'}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {isEn ? 'Private residence' : 'Privatbostad'}
-                  </div>
-                </div>
-              </div>
-            </label>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            {isEn 
-              ? 'Note: Delivery to home addresses may have a different price than business addresses.' 
-              : 'OBS: Leverans till hemadress kan ha ett annat pris än företagsadress.'}
-          </p>
-        </div>
 
         {/* Company name - show only if business address is selected */}
         {answers.deliveryAddressType === 'business' && (
@@ -478,7 +509,7 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
         </div>
 
         {/* Validation Error Summary */}
-        {showValidation && !isFormValid && (
+        {showValidation && !isFormValid && !answers.confirmReturnAddressLater && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
             <div className="flex items-start">
               <span className="text-red-500 text-xl mr-3">⚠️</span>
@@ -496,6 +527,7 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
           </div>
         )}
       </div>
+      )}
     </StepContainer>
   );
 };
