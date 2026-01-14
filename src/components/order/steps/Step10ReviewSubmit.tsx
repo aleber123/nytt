@@ -56,11 +56,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
   // Local state for Step 10
   const submitButtonRef = useRef<HTMLButtonElement>(null);
-  const [isInCooldown, setIsInCooldown] = useState(false);
   const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const submissionInProgressRef = useRef(false);
-  const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const addressInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -744,22 +742,21 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 }
 
                 // Prevent multiple submissions - check ref immediately (more reliable than state)
-                if (submissionInProgressRef.current || isSubmitting || isInCooldown) {
+                if (submissionInProgressRef.current || isSubmitting) {
                   event.preventDefault();
                   return;
                 }
 
-                // Immediately disable button in DOM to prevent any further clicks
-                if (submitButtonRef.current) {
-                  submitButtonRef.current.disabled = true;
-                  submitButtonRef.current.style.opacity = '0.5';
-                  submitButtonRef.current.style.cursor = 'not-allowed';
-                }
-
+                // Show loading screen IMMEDIATELY after validation passes
+                setShowFullScreenLoader(true);
                 submissionInProgressRef.current = true;
 
+                // Disable button in DOM
+                if (submitButtonRef.current) {
+                  submitButtonRef.current.disabled = true;
+                }
+
                 try {
-                  setShowFullScreenLoader(true);
 
                   // Try to match customer by email domain for custom pricing
                   let customerPricingData = undefined;
@@ -936,6 +933,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 } catch (error) {
                   console.error('❌ Error submitting order:', error);
 
+                  // Reset state only on error - on success, keep loading until redirect completes
+                  submissionInProgressRef.current = false;
+                  setShowFullScreenLoader(false);
+                  if (submitButtonRef.current) {
+                    submitButtonRef.current.disabled = false;
+                  }
+
                   // Show beautiful error toast
                   toast.error(
                     <div className="text-center">
@@ -957,31 +961,12 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                       }
                     }
                   );
-                } finally {
-                  // isSubmitting is managed by parent
-                  submissionInProgressRef.current = false;
-                  setShowFullScreenLoader(false);
-
-                  // Start cooldown period (10 seconds)
-                  setIsInCooldown(true);
-                  cooldownTimeoutRef.current = setTimeout(() => {
-                    setIsInCooldown(false);
-                    // Re-enable button in DOM
-                    if (submitButtonRef.current) {
-                      submitButtonRef.current.disabled = false;
-                      submitButtonRef.current.style.opacity = '';
-                      submitButtonRef.current.style.cursor = '';
-                    }
-                  }, 10000); // 10 seconds cooldown
                 }
+                // No finally block - on success, loading screen stays until redirect completes
               }}
-              disabled={
-                isSubmitting ||
-                submissionInProgressRef.current ||
-                isInCooldown
-              }
+              disabled={isSubmitting || submissionInProgressRef.current}
               className={`w-full px-6 py-3 rounded-md font-medium text-white transition-all duration-200 sm:w-auto ${
-                isSubmitting || isInCooldown
+                isSubmitting
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-custom-button hover:bg-custom-button-hover'
               }`}
@@ -993,14 +978,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   {t('orderFlow.submittingOrder')}
-                </div>
-              ) : isInCooldown ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M12 2v6m0 0l-4-4m4 4l4-4m-4 14v6m0 0l4-4m-4 4l-4-4"></path>
-                  </svg>
-                  {t('orderFlow.wait10Seconds')}
                 </div>
               ) : (
                 t('orderFlow.submitOrder')
@@ -1103,19 +1080,19 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 }
 
                 // Prevent multiple submissions
-                if (submissionInProgressRef.current || isSubmitting || isInCooldown) {
+                if (submissionInProgressRef.current || isSubmitting) {
                   event.preventDefault();
                   return;
                 }
 
-                // Immediately disable button in DOM to prevent any further clicks
+                // Show loading screen IMMEDIATELY after validation passes
+                setShowFullScreenLoader(true);
+                submissionInProgressRef.current = true;
+
+                // Disable button in DOM
                 if (submitButtonRef.current) {
                   submitButtonRef.current.disabled = true;
-                  submitButtonRef.current.style.opacity = '0.5';
-                  submitButtonRef.current.style.cursor = 'not-allowed';
                 }
-
-                submissionInProgressRef.current = true;
 
                 try {
                   // Try to match customer by email domain for custom pricing
@@ -1762,6 +1739,12 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   }, 2000);
 
                 } catch (error) {
+                  // Reset state only on error - on success, keep loading until redirect completes
+                  submissionInProgressRef.current = false;
+                  setShowFullScreenLoader(false);
+                  if (submitButtonRef.current) {
+                    submitButtonRef.current.disabled = false;
+                  }
 
                   // Show beautiful error toast
                   toast.error(
@@ -1784,30 +1767,12 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                       }
                     }
                   );
-                } finally {
-                  // isSubmitting is managed by parent
-                  submissionInProgressRef.current = false;
-
-                  // Start cooldown period (10 seconds)
-                  setIsInCooldown(true);
-                  cooldownTimeoutRef.current = setTimeout(() => {
-                    setIsInCooldown(false);
-                    // Re-enable button in DOM
-                    if (submitButtonRef.current) {
-                      submitButtonRef.current.disabled = false;
-                      submitButtonRef.current.style.opacity = '';
-                      submitButtonRef.current.style.cursor = '';
-                    }
-                  }, 10000); // 10 seconds cooldown
                 }
+                // No finally block - on success, loading screen stays until redirect completes
               }}
-              disabled={
-                isSubmitting ||
-                submissionInProgressRef.current ||
-                isInCooldown
-              }
+              disabled={isSubmitting || submissionInProgressRef.current}
               className={`px-6 sm:px-8 py-3 font-semibold text-lg rounded-md transition-all duration-200 ${
-                isSubmitting || submissionInProgressRef.current || isInCooldown
+                isSubmitting || submissionInProgressRef.current
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
                   : 'bg-custom-button text-white hover:bg-custom-button-hover'
               }`}
@@ -1819,14 +1784,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   {t('orderFlow.submittingOrder')}
-                </div>
-              ) : isInCooldown ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M12 2v6m0 0l-4-4m4 4l4-4m-4 14v6m0 0l4-4m-4 4l-4-4"></path>
-                  </svg>
-                  {t('orderFlow.wait10Seconds')}
                 </div>
               ) : (
                 t('orderFlow.submitOrder')
