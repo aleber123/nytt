@@ -237,51 +237,53 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
         <SectionHeader 
           icon="🧾" 
           title={isEn ? 'Contact Information' : 'Kontaktuppgifter'}
-          subtitle={isEn ? 'Contact details' : 'Kontaktuppgifter'}
+          subtitle={isEn ? 'For invoice and contact' : 'För faktura och kontakt'}
         />
 
-        {/* Same as return address checkbox */}
-        <label className="flex items-center space-x-2 mb-4 p-3 bg-white border border-green-200 rounded-lg cursor-pointer">
-          <input
-            type="checkbox"
-            checked={answers.billingInfo.sameAsReturn}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              if (checked) {
-                // Copy return address to billing
-                setAnswers(prev => ({
-                  ...prev,
-                  billingInfo: {
-                    ...prev.billingInfo,
-                    sameAsReturn: true,
-                    firstName: prev.returnAddress.firstName,
-                    lastName: prev.returnAddress.lastName,
-                    companyName: prev.returnAddress.companyName,
-                    street: prev.returnAddress.street,
-                    postalCode: prev.returnAddress.postalCode,
-                    city: prev.returnAddress.city,
-                    country: prev.returnAddress.country,
-                    countryCode: prev.returnAddress.countryCode,
-                    email: prev.returnAddress.email,
-                    phone: prev.returnAddress.phone
-                  }
-                }));
-              } else {
-                setAnswers(prev => ({
-                  ...prev,
-                  billingInfo: { ...prev.billingInfo, sameAsReturn: false }
-                }));
-              }
-            }}
-            className="h-5 w-5 text-primary-600 rounded"
-          />
-          <span className="text-sm font-medium text-gray-700">
-            {isEn ? 'Same as return address' : 'Samma som returadress'}
-          </span>
-        </label>
+        {/* Same as return address checkbox - only show if return address is provided */}
+        {!answers.confirmReturnAddressLater && (
+          <label className="flex items-center space-x-2 mb-4 p-3 bg-white border border-green-200 rounded-lg cursor-pointer">
+            <input
+              type="checkbox"
+              checked={answers.billingInfo.sameAsReturn}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                if (checked) {
+                  // Copy return address to billing
+                  setAnswers(prev => ({
+                    ...prev,
+                    billingInfo: {
+                      ...prev.billingInfo,
+                      sameAsReturn: true,
+                      firstName: prev.returnAddress.firstName,
+                      lastName: prev.returnAddress.lastName,
+                      companyName: prev.returnAddress.companyName,
+                      street: prev.returnAddress.street,
+                      postalCode: prev.returnAddress.postalCode,
+                      city: prev.returnAddress.city,
+                      country: prev.returnAddress.country,
+                      countryCode: prev.returnAddress.countryCode,
+                      email: prev.returnAddress.email,
+                      phone: prev.returnAddress.phone
+                    }
+                  }));
+                } else {
+                  setAnswers(prev => ({
+                    ...prev,
+                    billingInfo: { ...prev.billingInfo, sameAsReturn: false }
+                  }));
+                }
+              }}
+              className="h-5 w-5 text-primary-600 rounded"
+            />
+            <span className="text-sm font-medium text-gray-700">
+              {isEn ? 'Same as return address' : 'Samma som returadress'}
+            </span>
+          </label>
+        )}
 
-        {/* Show billing fields only if not same as return */}
-        {!answers.billingInfo.sameAsReturn && (
+        {/* Show billing fields only if not same as return, or if confirming return address later */}
+        {(answers.confirmReturnAddressLater || !answers.billingInfo.sameAsReturn) && (
           <div className="space-y-4">
             {/* Company-specific fields */}
             {answers.customerType === 'company' && (
