@@ -80,7 +80,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
     // === Return address validation (only when billing is set to "same as return") ===
     // This prevents cases where the user checks "same as return" even though the return address steps were skipped.
-    if (answers.billingInfo.sameAsReturn) {
+    // Skip this validation if user chose to confirm return address later
+    if (answers.billingInfo.sameAsReturn && !answers.confirmReturnAddressLater) {
       if (answers.customerType === 'company') {
         if (!answers.returnAddress.companyName) {
           missing.push({ field: 'returnCompanyName', label: isEn ? 'Company name (return)' : 'Företagsnamn (returadress)', id: 'return-firstName' });
@@ -113,8 +114,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       }
     }
     
-    // === Billing validation (only if not same as return) ===
-    if (!answers.billingInfo.sameAsReturn) {
+    // === Billing validation (only if not same as return, or if confirming return address later) ===
+    if (!answers.billingInfo.sameAsReturn || answers.confirmReturnAddressLater) {
       if (answers.customerType === 'company') {
         if (!answers.billingInfo.companyName) {
           missing.push({ field: 'billingCompanyName', label: isEn ? 'Company name (billing)' : 'Företagsnamn (faktura)', id: 'return-firstName' });
@@ -160,6 +161,17 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         field: 'returnDeliveryDate',
         label: isEn ? 'Delivery date (Stockholm courier)' : 'Leveransdatum (Stockholm courier)',
         id: 'return-delivery-date'
+      });
+    }
+
+    // Terms and conditions must be accepted
+    const termsCheckbox = document.getElementById('terms-acceptance-upload') as HTMLInputElement || 
+                          document.getElementById('terms-acceptance-original') as HTMLInputElement;
+    if (termsCheckbox && !termsCheckbox.checked) {
+      missing.push({
+        field: 'termsAccepted',
+        label: isEn ? 'Accept terms and conditions' : 'Acceptera allmänna villkor',
+        id: termsCheckbox.id
       });
     }
     
