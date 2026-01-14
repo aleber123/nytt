@@ -366,7 +366,7 @@ const extractPrice = (service: any): number => {
 // Customer pricing interface (imported from customerService)
 interface CustomerPricingData {
   customPricing?: {
-    // Service fees
+    // Service fees (DOX handling fees)
     doxServiceFee?: number;
     expressServiceFee?: number;
     apostilleServiceFee?: number;
@@ -375,6 +375,12 @@ interface CustomerPricingData {
     translationServiceFee?: number;
     chamberServiceFee?: number;
     udServiceFee?: number;
+    // Official fees (government/authority fees - can be customized per customer)
+    apostilleOfficialFee?: number;
+    notarizationOfficialFee?: number;
+    chamberOfficialFee?: number;
+    udOfficialFee?: number;
+    embassyOfficialFee?: number;
     // Pickup fees
     dhlPickupFee?: number;
     dhlExpressPickupFee?: number;
@@ -409,6 +415,21 @@ const getCustomServiceFee = (serviceType: string, customerPricing?: CustomerPric
     'translation': customerPricing.translationServiceFee,
     'chamber': customerPricing.chamberServiceFee,
     'ud': customerPricing.udServiceFee
+  };
+  
+  return feeMap[serviceType];
+};
+
+// Helper to get custom official fee for a service type (government/authority fees)
+const getCustomOfficialFee = (serviceType: string, customerPricing?: CustomerPricingData['customPricing']): number | undefined => {
+  if (!customerPricing) return undefined;
+  
+  const feeMap: Record<string, number | undefined> = {
+    'apostille': customerPricing.apostilleOfficialFee,
+    'notarization': customerPricing.notarizationOfficialFee,
+    'embassy': customerPricing.embassyOfficialFee,
+    'chamber': customerPricing.chamberOfficialFee,
+    'ud': customerPricing.udOfficialFee
   };
   
   return feeMap[serviceType];
@@ -487,7 +508,11 @@ export const calculateOrderPrice = async (orderData: {
 
         // Get service name from centralized config
         const serviceName = SERVICE_NAMES_SV[serviceType] || serviceType;
-        const officialTotal = rule.officialFee * orderData.quantity;
+        
+        // Check for customer-specific official fee, otherwise use standard
+        const customOfficialFee = getCustomOfficialFee(serviceType, orderData.customerPricing?.customPricing);
+        const officialFeeToUse = customOfficialFee !== undefined ? customOfficialFee : rule.officialFee;
+        const officialTotal = officialFeeToUse * orderData.quantity;
         
         // Check for customer-specific service fee, otherwise use standard
         const customServiceFee = getCustomServiceFee(serviceType, orderData.customerPricing?.customPricing);
@@ -506,7 +531,7 @@ export const calculateOrderPrice = async (orderData: {
           service: `${serviceType}_official`,
           description: `${serviceName} - Officiell avgift`,
           quantity: orderData.quantity,
-          unitPrice: rule.officialFee,
+          unitPrice: officialFeeToUse,
           total: officialTotal,
           vatRate: VAT_RATES.EXEMPT,
           isTBC: rule.priceUnconfirmed || false

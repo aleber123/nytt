@@ -34,7 +34,7 @@ export interface CustomerAddress {
 
 // Custom pricing overrides for specific customers
 export interface CustomerPricing {
-  // Service fees
+  // Service fees (DOX handling fees)
   doxServiceFee?: number;      // Custom DOX service fee (e.g., 900 kr instead of standard)
   expressServiceFee?: number;  // Custom express fee
   apostilleServiceFee?: number;
@@ -43,6 +43,13 @@ export interface CustomerPricing {
   translationServiceFee?: number;
   chamberServiceFee?: number;
   udServiceFee?: number;
+  
+  // Official fees (government/authority fees - can be customized per customer)
+  apostilleOfficialFee?: number;      // Custom official apostille fee (standard: 440 kr)
+  notarizationOfficialFee?: number;   // Custom official notarization fee
+  chamberOfficialFee?: number;        // Custom official chamber of commerce fee
+  udOfficialFee?: number;             // Custom official UD/MFA fee
+  embassyOfficialFee?: number;        // Custom official embassy fee
   
   // Pickup fees
   dhlPickupFee?: number;              // DHL standard pickup

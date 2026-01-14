@@ -42,6 +42,12 @@ const emptyCustomPricing: CustomerPricing = {
   translationServiceFee: undefined,
   chamberServiceFee: undefined,
   udServiceFee: undefined,
+  // Official fees (government/authority fees)
+  apostilleOfficialFee: undefined,
+  notarizationOfficialFee: undefined,
+  chamberOfficialFee: undefined,
+  udOfficialFee: undefined,
+  embassyOfficialFee: undefined,
   // Pickup fees
   dhlPickupFee: undefined,
   dhlExpressPickupFee: undefined,
@@ -1129,6 +1135,104 @@ export default function CustomersPage() {
                           }
                         }))}
                         placeholder="Standard"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Official Fees (Government/Authority fees) */}
+                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
+                    Official Fees (Government/Authority fees)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Custom official fees charged by authorities (e.g., apostille 280 kr instead of standard 440 kr)</p>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Apostille Official</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.apostilleOfficialFee ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            apostilleOfficialFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="440"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Notarization Official</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.notarizationOfficialFee ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            notarizationOfficialFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="320"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Chamber Official</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.chamberOfficialFee ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            chamberOfficialFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="799"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">UD Official</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.udOfficialFee ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            udOfficialFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="750"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Embassy Official</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.embassyOfficialFee ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            embassyOfficialFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="1500"
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
                       />
                     </div>
