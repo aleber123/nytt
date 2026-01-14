@@ -233,7 +233,6 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
       {loadingServices && (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-custom-button"></div>
-          <p className="mt-2 text-gray-600">{t('orderFlow.step3.loadingServices', 'Laddar tillgängliga tjänster...')}</p>
         </div>
       )}
 

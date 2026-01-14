@@ -214,10 +214,9 @@ export default function ConfirmAddressPage() {
 
   if (loading) {
     return (
-      <PageWrapper title="Laddar... - DOX Visumpartner">
+      <PageWrapper title="DOX Visumpartner">
         <div className="text-center py-16">
           <Loader2 className="w-12 h-12 text-custom-button animate-spin mx-auto" />
-          <p className="mt-4 text-gray-600">Laddar...</p>
         </div>
       </PageWrapper>
     );
