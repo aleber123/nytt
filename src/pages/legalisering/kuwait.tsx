@@ -3,6 +3,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 
 
@@ -25,8 +26,7 @@ export default function KuwaitLegaliseringPage() {
         <title>Legalisering för Kuwait - Kuwaits ambassad Stockholm | DOX Visumpartner</title>
         <meta name="description" content="Vi hjälper dig med legalisering av dokument för Kuwait. Komplett service inkl. notarisering, UD och Kuwaits ambassad i Stockholm. Fast pris, snabb hantering." />
         <meta name="keywords" content="Kuwait, legalisering, ambassad, Stockholm, dokument, Kuwait City, arbete, visum" />
-        <link rel="canonical" href="https://www.doxvl.se/legalisering/kuwait" />
-        
+                
         <meta property="og:title" content="Legalisering för Kuwait - Kuwaits ambassad Stockholm | DOX Visumpartner" />
         <meta property="og:description" content="Komplett legaliseringsservice för Kuwait. Vi hanterar hela processen åt dig." />
         <meta property="og:url" content="https://www.doxvl.se/legalisering/kuwait" />
@@ -53,7 +53,7 @@ export default function KuwaitLegaliseringPage() {
         <section className="bg-gradient-to-br from-[#007A3D] to-[#005a2d] text-white py-16 md:py-24">
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-6xl">🇰🇼</span>
+              <CountryFlag code="KW" size={64} />
               <div>
                 <h1 className="text-3xl md:text-5xl font-bold">
                   Legalisering för Kuwait

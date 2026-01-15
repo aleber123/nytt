@@ -2,13 +2,14 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 
 
 export default function LibanonLegaliseringPage() {
   const country = {
     name: 'Libanon',
-    flag: '🇱🇧',
+    countryCode: 'LB',
     color: '#EE161F',
     colorDark: '#b8111a',
   };
@@ -37,8 +38,7 @@ export default function LibanonLegaliseringPage() {
         <title>Legalisering för {country.name} - Ambassad Stockholm | DOX Visumpartner</title>
         <meta name="description" content={`Vi hjälper dig med legalisering av dokument för ${country.name}. Komplett service inkl. notarisering, UD och ${country.name}s ambassad i Stockholm.`} />
         <meta name="keywords" content={`${country.name}, legalisering, ambassad, Stockholm, dokument, Beirut`} />
-        <link rel="canonical" href={`https://www.doxvl.se/legalisering/${country.name.toLowerCase()}`} />
-        <meta property="og:title" content={`Legalisering för ${country.name} | DOX Visumpartner`} />
+                <meta property="og:title" content={`Legalisering för ${country.name} | DOX Visumpartner`} />
         <meta property="og:description" content={`Komplett legaliseringsservice för ${country.name}. Vi hanterar hela processen.`} />
         <meta property="og:url" content={`https://www.doxvl.se/legalisering/${country.name.toLowerCase()}`} />
       </Head>
@@ -49,7 +49,7 @@ export default function LibanonLegaliseringPage() {
         <section className="bg-gradient-to-br text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-6xl">{country.flag}</span>
+              <CountryFlag code={country.countryCode} size={64} />
               <div>
                 <h1 className="text-3xl md:text-5xl font-bold">Legalisering för {country.name}</h1>
                 <p className="text-xl text-white/80">{embassy.name}</p>

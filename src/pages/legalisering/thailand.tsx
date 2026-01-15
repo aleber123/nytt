@@ -3,13 +3,14 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 export default function ThailandLegaliseringPage() {
   const { t } = useTranslation('common');
   const countryKey = 'thailand';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Thailand', flag: '🇹🇭', color: '#241D4F', colorDark: '#1a1539' };
+  const country = { name: 'Thailand', countryCode: 'TH', color: '#241D4F', colorDark: '#1a1539' };
   const embassy = {
     address: 'Floragatan 3',
     postalCode: '114 31 Stockholm',
@@ -22,14 +23,13 @@ export default function ThailandLegaliseringPage() {
       <Head>
         <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
-        <link rel="canonical" href="https://www.doxvl.se/legalisering/thailand" />
-      </Head>
+              </Head>
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-6xl">{country.flag}</span>
+              <CountryFlag code={country.countryCode} size={64} />
               <div>
                 <h1 className="text-3xl md:text-5xl font-bold">{t(`${cp}.title`)}</h1>
                 <p className="text-xl text-white/80">{t(`${cp}.embassyName`)}</p>

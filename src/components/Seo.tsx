@@ -75,14 +75,6 @@ const Seo: React.FC<SeoProps> = ({
         "closes": "15:00"
       }
     ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "bestRating": "5",
-      "worstRating": "1",
-      "ratingCount": "1200",
-      "reviewCount": "1200"
-    },
     "sameAs": [
       "https://www.facebook.com/doxvisumpartner",
       "https://www.linkedin.com/company/dox-visumpartner",

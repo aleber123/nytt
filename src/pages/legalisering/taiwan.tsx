@@ -3,6 +3,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 
 
@@ -25,8 +26,7 @@ export default function TaiwanLegaliseringPage() {
         <title>Legalisering för Taiwan - Taipei Mission Stockholm | DOX Visumpartner</title>
         <meta name="description" content="Vi hjälper dig med legalisering av dokument för Taiwan. Komplett service via Taipei Mission i Stockholm. Apostille och dokumentverifiering." />
         <meta name="keywords" content="Taiwan, legalisering, Taipei Mission, Stockholm, dokument, apostille, Taipei" />
-        <link rel="canonical" href="https://www.doxvl.se/legalisering/taiwan" />
-        
+                
         <meta property="og:title" content="Legalisering för Taiwan - Taipei Mission Stockholm | DOX Visumpartner" />
         <meta property="og:description" content="Komplett legaliseringsservice för Taiwan. Vi hanterar hela processen åt dig." />
         <meta property="og:url" content="https://www.doxvl.se/legalisering/taiwan" />
@@ -53,7 +53,7 @@ export default function TaiwanLegaliseringPage() {
         <section className="bg-gradient-to-br from-[#FE0000] to-[#cc0000] text-white py-16 md:py-24">
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-6xl">🇹🇼</span>
+              <CountryFlag code="TW" size={64} />
               <div>
                 <h1 className="text-3xl md:text-5xl font-bold">
                   Legalisering för Taiwan

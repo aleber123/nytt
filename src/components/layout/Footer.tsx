@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { useTranslation } from 'next-i18next';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation('common');
@@ -20,14 +21,14 @@ const Footer: React.FC = () => {
       { name: safeT('footer.services.translation', 'Auktoriserad översättning'), href: '/tjanster/oversattning' },
     ],
     countries: [
-      { name: '🇪🇬 Egypten', href: '/legalisering/egypten' },
-      { name: '🇶🇦 Qatar', href: '/legalisering/qatar' },
-      { name: '🇰🇼 Kuwait', href: '/legalisering/kuwait' },
-      { name: '🇹🇭 Thailand', href: '/legalisering/thailand' },
-      { name: '🇳🇬 Nigeria', href: '/legalisering/nigeria' },
-      { name: '🇮🇶 Irak', href: '/legalisering/irak' },
-      { name: '🇱🇧 Libanon', href: '/legalisering/libanon' },
-      { name: '🇪🇸 Spanien', href: '/legalisering/spanien' },
+      { name: 'Egypten', code: 'EG', href: '/legalisering/egypten' },
+      { name: 'Qatar', code: 'QA', href: '/legalisering/qatar' },
+      { name: 'Kuwait', code: 'KW', href: '/legalisering/kuwait' },
+      { name: 'Thailand', code: 'TH', href: '/legalisering/thailand' },
+      { name: 'Nigeria', code: 'NG', href: '/legalisering/nigeria' },
+      { name: 'Irak', code: 'IQ', href: '/legalisering/irak' },
+      { name: 'Libanon', code: 'LB', href: '/legalisering/libanon' },
+      { name: 'Spanien', code: 'ES', href: '/legalisering/spanien' },
     ],
     support: [
       { name: safeT('footer.support.faq', 'Vanliga frågor'), href: '/faq' },
@@ -171,7 +172,8 @@ const Footer: React.FC = () => {
             <ul role="list" className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
               {footerNavigation.countries.map((item) => (
                 <li key={item.name}>
-                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white">
+                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white flex items-center gap-1.5">
+                    <CountryFlag code={item.code} size={16} />
                     {item.name}
                   </Link>
                 </li>

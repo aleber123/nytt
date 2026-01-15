@@ -2,11 +2,12 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
+import CountryFlag from '@/components/ui/CountryFlag';
 
 
 
 export default function SpanienLegaliseringPage() {
-  const country = { name: 'Spanien', flag: '🇪🇸', color: '#AA151B', colorDark: '#8a1016' };
+  const country = { name: 'Spanien', countryCode: 'ES', color: '#AA151B', colorDark: '#8a1016' };
   const embassy = {
     name: 'Spaniens ambassad i Stockholm',
     address: 'Djurgårdsvägen 21',
@@ -23,14 +24,13 @@ export default function SpanienLegaliseringPage() {
         <title>Spanien - NIE-nummer & Apostille | DOX Visumpartner</title>
         <meta name="description" content="Vi hjälper dig med NIE-nummer för Spanien och apostille av dokument. Komplett service via Spaniens ambassad i Stockholm. Köpa bostad, starta företag." />
         <meta name="keywords" content="Spanien, NIE-nummer, apostille, ambassad, Stockholm, köpa bostad, företag, legalisering" />
-        <link rel="canonical" href="https://www.doxvl.se/legalisering/spanien" />
-      </Head>
+              </Head>
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-6xl">{country.flag}</span>
+              <CountryFlag code={country.countryCode} size={64} />
               <div>
                 <h1 className="text-3xl md:text-5xl font-bold">Spanien</h1>
                 <p className="text-xl text-white/80">NIE-nummer & Apostille</p>
