@@ -147,6 +147,27 @@ export default async function handler(
       readBy: [] // No one has read it yet
     });
 
+    // Get customer info for notification email
+    const orderData = orderSnap.data() as any;
+    const customerName = `${orderData?.customerInfo?.firstName || ''} ${orderData?.customerInfo?.lastName || ''}`.trim() || 'Kund';
+
+    // Send notification email to admin (info@doxvl.se)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://doxvl.se';
+    const adminOrderUrl = `${baseUrl}/admin/orders/${orderId}`;
+    
+    await db.collection('mailQueue').add({
+      to: 'info@doxvl.se',
+      subject: `📎 Ny filuppladdning - Order ${orderNumber}`,
+      html: generateAdminNotificationEmail({
+        orderNumber,
+        customerName,
+        files: uploadedFileInfos,
+        adminOrderUrl
+      }),
+      createdAt: new Date(),
+      status: 'pending'
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Filerna har laddats upp',
@@ -156,4 +177,69 @@ export default async function handler(
   } catch (error: any) {
     return res.status(500).json({ error: 'Ett fel uppstod vid uppladdningen', details: error.message });
   }
+}
+
+// Generate admin notification email HTML
+function generateAdminNotificationEmail(data: {
+  orderNumber: string;
+  customerName: string;
+  files: UploadedFile[];
+  adminOrderUrl: string;
+}): string {
+  const { orderNumber, customerName, files, adminOrderUrl } = data;
+  
+  const fileList = files.map(f => {
+    const sizeKB = Math.round(f.size / 1024);
+    return `<li style="margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+      📄 <strong>${f.name}</strong> <span style="color: #666;">(${sizeKB} KB)</span>
+    </li>`;
+  }).join('');
+
+  return `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ny filuppladdning</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+  <div style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden;">
+    
+    <div style="background: #0EB0A6; color: #ffffff; padding: 24px; text-align: center;">
+      <h1 style="margin: 0; font-size: 20px;">📎 Ny filuppladdning</h1>
+    </div>
+
+    <div style="padding: 24px;">
+      <p style="margin: 0 0 16px 0;">
+        <strong>${customerName}</strong> har laddat upp ${files.length} fil${files.length > 1 ? 'er' : ''} till order <strong>#${orderNumber}</strong>.
+      </p>
+
+      <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <h3 style="margin: 0 0 12px 0; color: #92400e; font-size: 14px;">Uppladdade filer:</h3>
+        <ul style="margin: 0; padding: 0; list-style: none;">
+          ${fileList}
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${adminOrderUrl}" style="display: inline-block; background: #0EB0A6; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; font-size: 15px;">
+          🔗 Öppna order i admin
+        </a>
+      </div>
+
+      <p style="font-size: 13px; color: #666; text-align: center; margin-top: 20px;">
+        Gå till Files-fliken för att se de uppladdade dokumenten.
+      </p>
+    </div>
+
+    <div style="background: #f8f9fa; padding: 16px; text-align: center; border-top: 1px solid #eaecef;">
+      <p style="margin: 0; color: #666; font-size: 12px;">
+        Detta är ett automatiskt meddelande från DOX Visumpartner AB
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
 }
