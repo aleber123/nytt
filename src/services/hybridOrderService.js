@@ -205,7 +205,8 @@ const createOrder = async (orderData) => {
           }
         }
 
-        return formattedOrderId;
+        // Return both orderId and token for secure confirmation page access
+        return { orderId: formattedOrderId, token: publicAccessToken };
 
       } catch (firebaseError) {
         console.error('❌ Firebase order creation failed:', firebaseError.message);
@@ -224,7 +225,8 @@ const createOrder = async (orderData) => {
     };
 
     const orderId = await mockFirebase.createOrder(orderWithDefaults);
-    return orderId;
+    // Return same format as Firebase path for consistency
+    return { orderId, token: orderData.publicAccessToken || null };
 
   } catch (error) {
     console.error('❌ Error creating order:', error);

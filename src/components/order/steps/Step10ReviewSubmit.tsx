@@ -785,6 +785,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     customerPricing: customerPricingData
                   });
 
+                  // Generate secure token for order confirmation page
+                  const publicAccessToken = crypto.randomUUID();
+
                   // Prepare order data
                   const orderData = {
                     country: answers.country,
@@ -819,11 +822,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
-                    locale: locale
+                    locale: locale,
+                    publicAccessToken: publicAccessToken
                   };
 
                   // Submit order (include main documents + any notarization support files + return label)
-                  const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
+                  const orderResult = await createOrderWithFiles(orderData, getFilesForUpload());
+                  const orderId = String(typeof orderResult === 'object' && orderResult?.orderId ? orderResult.orderId : orderResult); // Handle both new and legacy format
 
                   // Send email notification (save to Firestore for external processing, same as contact form)
                   try {
@@ -925,9 +930,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     // Don't block the order flow if email notification fails
                   }
 
-                  // Redirect to confirmation page after a short delay
+                  // Redirect to confirmation page using secure token
                   setTimeout(() => {
-                    router.push(`/bekraftelse?orderId=${orderId}`);
+                    router.push(`/bekraftelse?token=${publicAccessToken}`);
                   }, 2000);
 
                 } catch (error) {
@@ -1122,6 +1127,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     customerPricing: customerPricingData2
                   });
 
+                  // Generate secure token for order confirmation page
+                  const publicAccessToken2 = crypto.randomUUID();
+
                   // Prepare order data
                   const orderData = {
                     country: answers.country,
@@ -1156,11 +1164,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
-                    locale: locale
+                    locale: locale,
+                    publicAccessToken: publicAccessToken2
                   };
 
                   // Submit order (include any notarization support files + return label)
-                  const orderId = await createOrderWithFiles(orderData, getFilesForUpload());
+                  const orderResult2 = await createOrderWithFiles(orderData, getFilesForUpload());
+                  const orderId = String(typeof orderResult2 === 'object' && orderResult2?.orderId ? orderResult2.orderId : orderResult2); // Handle both new and legacy format
 
                   // Clear saved progress since order is complete
                   clearProgress();
@@ -1733,9 +1743,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     // Don't block the order flow if customer email fails
                   }
 
-                  // Redirect to confirmation page after a short delay
+                  // Redirect to confirmation page using secure token
                   setTimeout(() => {
-                    router.push(`/bekraftelse?orderId=${orderId}`);
+                    router.push(`/bekraftelse?token=${publicAccessToken2}`);
                   }, 2000);
 
                 } catch (error) {

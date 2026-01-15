@@ -36,17 +36,18 @@ service cloud.firestore {
 
     // ORDERS – customers create, admin/staff read/update
     // API routes use Firebase Admin SDK which bypasses these rules
+    // Customers access order confirmations via secure token in orderConfirmations collection
     // 
     // ⚠️ SECURITY NOTE: Read is currently open because hybridOrderService
-    // uses a separate Firebase instance without auth context.
-    // TODO: Refactor admin panel to use authenticated Firebase instance,
-    // then change read to: if request.auth != null
+    // uses Firebase client SDK which may not have auth context in all scenarios.
+    // The token-based orderConfirmations system protects customer-facing URLs.
+    // TODO: Migrate admin panel to use authenticated Firebase calls consistently
     match /orders/{orderId} {
       // Allow anyone to create an order (customer checkout flow)
       allow create: if true;
 
       // Read: Currently open for admin panel compatibility
-      // The admin panel is protected by Firebase Auth at the UI level
+      // Customer confirmation pages use secure tokens via orderConfirmations collection
       allow read: if true;
 
       // Update: Admin/staff can update anything
