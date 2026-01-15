@@ -843,14 +843,23 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     yPosition += 8;
 
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName}`, 20, yPosition);
-    yPosition += 4;
-
+    
+    // Show company name first (bold) if available
     if (invoice.customerInfo.companyName) {
       doc.setFont('helvetica', 'bold');
       doc.text(invoice.customerInfo.companyName, 20, yPosition);
+      yPosition += 5;
       doc.setFont('helvetica', 'normal');
+      // Show contact person as "Att:" line
+      const contactName = `${invoice.customerInfo.firstName || ''} ${invoice.customerInfo.lastName || ''}`.trim();
+      if (contactName) {
+        doc.text(`Att: ${contactName}`, 20, yPosition);
+        yPosition += 4;
+      }
+    } else {
+      // No company - show person name
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${invoice.customerInfo.firstName} ${invoice.customerInfo.lastName}`, 20, yPosition);
       yPosition += 4;
     }
 
@@ -1067,10 +1076,16 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     const hasZeroVat = invoice.lineItems.some(item => item.vatRate === 0);
     const hasStandardVat = invoice.lineItems.some(item => item.vatRate > 0);
 
-    if (hasZeroVat && hasStandardVat) {
+    // Show notes (e.g., reverse charge message) if present
+    if (invoice.notes) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(invoice.notes, 20, yPosition);
+      doc.setFont('helvetica', 'normal');
+      yPosition += 6;
+    } else if (hasZeroVat && hasStandardVat) {
       doc.text('VAT Rate: 25% on service fees, 0% on official fees (embassy legalization)', 20, yPosition);
-    } else if (hasZeroVat) {
-      doc.text('VAT Rate: 0% (embassy legalization is VAT exempt)', 20, yPosition);
+    } else if (hasZeroVat && !hasStandardVat) {
+      doc.text('VAT Rate: 0% - VAT exempt', 20, yPosition);
     } else {
       doc.text('VAT Rate: 25% on all services', 20, yPosition);
     }
@@ -1129,14 +1144,55 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
   }
 };
 
+// Check if customer is from a foreign EU country (for reverse charge VAT)
+function isEUCountryExceptSweden(countryCode?: string): boolean {
+  if (!countryCode) return false;
+  const euCountries = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES'];
+  return euCountries.includes(countryCode.toUpperCase());
+}
+
+// Check if customer is from outside EU (export, 0% VAT)
+function isNonEUCountry(countryCode?: string): boolean {
+  if (!countryCode) return false;
+  const euCountries = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'];
+  return !euCountries.includes(countryCode.toUpperCase());
+}
+
 // Main function to convert order to invoice
 export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
   try {
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber();
 
-    // Create line items from order
-    const lineItems = await createLineItemsFromOrder(order);
+    // Check if customer is a foreign company (for VAT exemption / reverse charge)
+    const customerCountry = order.customerInfo?.countryCode || order.customerInfo?.country || '';
+    const isSwedishCustomer = !customerCountry || customerCountry.toUpperCase() === 'SE' || customerCountry.toLowerCase() === 'sweden' || customerCountry.toLowerCase() === 'sverige';
+    const isForeignCompany = !isSwedishCustomer && !!order.customerInfo?.companyName;
+    const isReverseCharge = isForeignCompany && isEUCountryExceptSweden(customerCountry);
+    const isExport = isForeignCompany && isNonEUCountry(customerCountry);
+    const applyZeroVAT = isReverseCharge || isExport;
+
+    // Check if admin has set price adjustments (lineOverrides)
+    const adminPrice = (order as any).adminPrice;
+    let lineItems: InvoiceLineItem[];
+
+    if (adminPrice && Array.isArray(adminPrice.lineOverrides) && adminPrice.lineOverrides.length > 0) {
+      // Use admin price adjustments
+      lineItems = createLineItemsFromAdminPrice(order, adminPrice, applyZeroVAT);
+    } else {
+      // Fall back to automatic pricing from Firebase
+      lineItems = await createLineItemsFromOrder(order);
+      
+      // If foreign company, override VAT to 0%
+      if (applyZeroVAT) {
+        lineItems = lineItems.map(item => ({
+          ...item,
+          vatRate: VAT_RATES.ZERO,
+          vatAmount: 0,
+          totalPrice: item.unitPrice * item.quantity // Remove VAT from total
+        }));
+      }
+    }
 
     // Calculate totals
     const subtotal = lineItems.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -1148,20 +1204,33 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
     dueDate.setDate(dueDate.getDate() + 30);
 
     // Create invoice object with fallback for customer info
-    const customerInfo = order.customerInfo || {
-      firstName: 'Ej angivet',
-      lastName: '',
-      email: 'ingen@example.com',
-      phone: 'Inget telefonnummer angivet',
-      address: 'Ej angiven',
-      postalCode: '',
-      city: ''
+    // Include company name prominently if available
+    const customerInfo = {
+      firstName: order.customerInfo?.firstName || '',
+      lastName: order.customerInfo?.lastName || '',
+      email: order.customerInfo?.email || '',
+      phone: order.customerInfo?.phone || '',
+      address: order.customerInfo?.address || '',
+      postalCode: order.customerInfo?.postalCode || '',
+      city: order.customerInfo?.city || '',
+      companyName: order.customerInfo?.companyName || '',
+      orgNumber: (order.customerInfo as any)?.orgNumber || ''
     };
+
+    // Build payment terms and notes based on VAT status
+    let paymentTerms = 'Payment within 30 days';
+    let notes = '';
+    
+    if (isReverseCharge) {
+      notes = 'Reverse charge - VAT to be accounted for by the recipient. Article 196 Council Directive 2006/112/EC.';
+    } else if (isExport) {
+      notes = 'Export of services - VAT exempt.';
+    }
 
     const invoice: Invoice = {
       invoiceNumber,
       orderId: order.id || '',
-      orderNumber: order.orderNumber || order.id || '', // Use orderNumber if available, otherwise use order.id
+      orderNumber: order.orderNumber || order.id || '',
       customerInfo,
       lineItems,
       subtotal,
@@ -1171,8 +1240,9 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
       issueDate: Timestamp.now(),
       dueDate: Timestamp.fromDate(dueDate),
       status: 'draft',
-      paymentTerms: 'Betalning inom 30 dagar',
+      paymentTerms,
       paymentReference: invoiceNumber,
+      notes,
       companyInfo: COMPANY_INFO,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
@@ -1184,6 +1254,88 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
     throw error;
   }
 };
+
+// Create line items from admin price adjustments (lineOverrides)
+function createLineItemsFromAdminPrice(
+  order: Order, 
+  adminPrice: any, 
+  applyZeroVAT: boolean
+): InvoiceLineItem[] {
+  const lineItems: InvoiceLineItem[] = [];
+  const lineOverrides = adminPrice.lineOverrides || [];
+  const pricingBreakdown = order.pricingBreakdown || [];
+
+  for (let i = 0; i < lineOverrides.length; i++) {
+    const override = lineOverrides[i];
+    const originalItem = pricingBreakdown[i];
+
+    // Skip if not included
+    if (override.include === false) continue;
+
+    // Get the amount (use override if set, otherwise base amount)
+    const amount = override.overrideAmount !== null && override.overrideAmount !== undefined
+      ? Number(override.overrideAmount)
+      : Number(override.baseAmount || 0);
+
+    if (amount <= 0) continue;
+
+    // Get VAT rate (use override if set, otherwise default based on customer location)
+    let vatRate: number;
+    if (override.vatPercent !== null && override.vatPercent !== undefined) {
+      vatRate = Number(override.vatPercent) / 100;
+    } else if (applyZeroVAT) {
+      vatRate = VAT_RATES.ZERO;
+    } else {
+      // Default: official fees 0%, service fees 25%
+      const isOfficialFee = (override.label || '').toLowerCase().includes('official') || 
+                           (override.label || '').toLowerCase().includes('officiell');
+      vatRate = isOfficialFee ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
+    }
+
+    const vatAmount = applyZeroVAT ? 0 : Math.round(amount * vatRate * 100) / 100;
+    const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
+
+    // Get description from original item or override label
+    const description = originalItem?.description || override.label || `Line ${i + 1}`;
+
+    lineItems.push({
+      id: `admin_${i}_${Date.now()}`,
+      description,
+      quantity: 1,
+      unitPrice: amount,
+      totalPrice,
+      vatRate,
+      vatAmount,
+      serviceType: originalItem?.service || 'custom'
+    });
+  }
+
+  // Add any adjustments from admin
+  if (Array.isArray(adminPrice.adjustments)) {
+    for (const adj of adminPrice.adjustments) {
+      if (!adj.description || !adj.amount) continue;
+      const amount = Number(adj.amount);
+      if (amount === 0) continue;
+
+      const vatRate = applyZeroVAT ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
+      const vatAmount = applyZeroVAT ? 0 : Math.round(amount * vatRate * 100) / 100;
+      const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
+
+      lineItems.push({
+        id: `adjustment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        description: adj.description,
+        quantity: 1,
+        unitPrice: amount,
+        totalPrice,
+        vatRate,
+        vatAmount,
+        serviceType: 'adjustment'
+      });
+    }
+  }
+
+  return lineItems;
+}
 
 // Store invoice in Firebase with fallback to mock storage
 export const storeInvoice = async (invoice: Invoice): Promise<string> => {
