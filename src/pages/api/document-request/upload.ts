@@ -127,9 +127,9 @@ export default async function handler(
     // Also add files to the order's supplementary files
     const orderRef = db.collection('orders').doc(orderId);
     const orderSnap = await orderRef.get();
+    const orderData = orderSnap.exists ? (orderSnap.data() as any) : {};
     
     if (orderSnap.exists) {
-      const orderData = orderSnap.data() as any;
       const existingSupplementary = orderData.supplementaryFiles || [];
       
       await orderRef.update({
@@ -148,14 +148,14 @@ export default async function handler(
     });
 
     // Get customer info for notification email
-    const orderData = orderSnap.data() as any;
     const customerName = `${orderData?.customerInfo?.firstName || ''} ${orderData?.customerInfo?.lastName || ''}`.trim() || 'Kund';
 
     // Send notification email to admin (info@doxvl.se)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://doxvl.se';
     const adminOrderUrl = `${baseUrl}/admin/orders/${orderId}`;
     
-    await db.collection('mailQueue').add({
+    // Use emailQueue collection which triggers sendInvoiceEmail Cloud Function
+    await db.collection('emailQueue').add({
       to: 'info@doxvl.se',
       subject: `📎 Ny filuppladdning - Order ${orderNumber}`,
       html: generateAdminNotificationEmail({
