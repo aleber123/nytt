@@ -68,16 +68,33 @@ interface PostNordShipmentRequest {
   weight?: number; // Weight in grams, default 100g for documents
 }
 
-// Generate unique item ID for PostNord (format: RR123456789SE for registered mail)
+// Generate unique item ID with correct S10 check digit
+// S10 format: 2 letters + 8 digits + check digit + 2 letter country code
+// Check digit calculation: weighted sum mod 11, mapped to 0-9 (5 for 10, 0 for 11)
 function generateItemId(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const nums = '0123456789';
-  let id = 'RR'; // Registered mail prefix
-  for (let i = 0; i < 9; i++) {
-    id += nums.charAt(Math.floor(Math.random() * nums.length));
+  const prefix = 'RR'; // Registered mail prefix
+  const countryCode = 'SE';
+  
+  // Generate 8 random digits
+  let digits = '';
+  for (let i = 0; i < 8; i++) {
+    digits += Math.floor(Math.random() * 10).toString();
   }
-  id += 'SE'; // Country code
-  return id;
+  
+  // Calculate S10 check digit
+  // Weights: 8, 6, 4, 2, 3, 5, 9, 7 for positions 1-8
+  const weights = [8, 6, 4, 2, 3, 5, 9, 7];
+  let sum = 0;
+  for (let i = 0; i < 8; i++) {
+    sum += parseInt(digits[i]) * weights[i];
+  }
+  const remainder = sum % 11;
+  let checkDigit: number;
+  if (remainder === 0) checkDigit = 5;
+  else if (remainder === 1) checkDigit = 0;
+  else checkDigit = 11 - remainder;
+  
+  return `${prefix}${digits}${checkDigit}${countryCode}`;
 }
 
 export default async function handler(
@@ -149,68 +166,99 @@ export default async function handler(
     // Generate unique item ID
     const itemId = generateItemId();
 
-    // Build PostNord EDI Labels API request
-    // Using Shipment API v3 EDI format
+    // Build PostNord EDI Labels API request according to Swagger spec
+    // The request body must follow the ediInstruction schema
     const postnordRequest = {
       messageDate: messageDate,
+      messageFunction: 'Instruction',
       updateIndicator: 'Original',
       shipment: [{
-        shipmentId: body.orderNumber,
-        dateOfDespatch: body.shippingDate,
+        shipmentIdentification: {
+          shipmentId: body.orderNumber
+        },
+        dateAndTimes: {
+          loadingDate: `${body.shippingDate}T08:00:00Z`
+        },
         service: {
           basicServiceCode: serviceCode,
-          additionalServiceCode: body.withReceipt ? ['A1'] : []
+          ...(body.withReceipt ? { additionalServiceCode: ['A1'] } : {})
         },
-        numberOfParcels: 1,
+        numberOfPackages: {
+          value: 1
+        },
+        totalGrossWeight: {
+          value: (body.weight || 100) / 1000,
+          unit: 'KGM'
+        },
         parties: {
-          sender: {
-            partyId: {
-              type: 'CustomerNumber',
-              value: POSTNORD_CONFIG.customerNumber
+          consignor: {
+            issuerCode: 'Z12', // Z12 = PostNord Sweden
+            partyIdentification: {
+              partyId: POSTNORD_CONFIG.customerNumber,
+              partyIdType: '160' // 160 = Customer number
             },
-            name: DOX_COMPANY.name,
-            contact: DOX_COMPANY.contact,
-            address1: DOX_COMPANY.street1,
-            address2: DOX_COMPANY.street2,
-            postalCode: DOX_COMPANY.postalCode,
-            city: DOX_COMPANY.city,
-            countryCode: DOX_COMPANY.countryCode,
-            phone: DOX_COMPANY.phone,
-            email: DOX_COMPANY.email
+            party: {
+              nameIdentification: {
+                name: DOX_COMPANY.name,
+                companyName: DOX_COMPANY.name
+              },
+              address: {
+                streets: [DOX_COMPANY.street1, DOX_COMPANY.street2],
+                postalCode: DOX_COMPANY.postalCode,
+                city: DOX_COMPANY.city,
+                countryCode: DOX_COMPANY.countryCode
+              },
+              contact: {
+                contactName: DOX_COMPANY.contact,
+                emailAddress: DOX_COMPANY.email,
+                phoneNo: DOX_COMPANY.phone
+              }
+            }
           },
-          receiver: {
-            name: body.receiver.name,
-            address1: body.receiver.street1,
-            address2: body.receiver.street2 || '',
-            postalCode: body.receiver.postalCode,
-            city: body.receiver.city,
-            countryCode: body.receiver.countryCode.toUpperCase(),
-            phone: body.receiver.phone || '',
-            email: body.receiver.email || ''
+          consignee: {
+            party: {
+              nameIdentification: {
+                name: body.receiver.name
+              },
+              address: {
+                streets: [body.receiver.street1, body.receiver.street2 || ''].filter(s => s),
+                postalCode: body.receiver.postalCode,
+                city: body.receiver.city,
+                countryCode: body.receiver.countryCode.toUpperCase()
+              },
+              contact: {
+                emailAddress: body.receiver.email || '',
+                phoneNo: body.receiver.phone || '',
+                smsNo: body.receiver.phone || ''
+              }
+            }
           }
         },
-        items: [{
-          itemId: itemId,
-          grossWeight: {
-            value: (body.weight || 100) / 1000, // Convert grams to kg
-            unit: 'kg'
+        goodsItem: [{
+          packageTypeCode: 'EN', // EN = Envelope (for documents)
+          numberOfPackageTypeCodeItems: {
+            value: 1
           },
-          volume: {
-            value: 0.001, // 1 liter for documents
-            unit: 'm3'
-          }
-        }],
-        references: {
-          reference: [{
-            referenceType: 'CU',
-            value: body.orderNumber
+          items: [{
+            itemIdentification: {
+              itemId: itemId,
+              itemIdType: 'S10'
+            },
+            grossWeight: {
+              value: (body.weight || 100) / 1000,
+              unit: 'KGM'
+            }
           }]
-        }
+        }],
+        references: [{
+          referenceNo: body.orderNumber,
+          referenceType: 'CU'
+        }]
       }]
     };
 
-    // Call PostNord EDI Labels API
-    const apiUrl = `${getBaseUrl()}/rest/shipment/v3/edi/labels?apikey=${POSTNORD_CONFIG.apiKey}`;
+    // Call PostNord EDI Labels API - use /v3/edi/labels/pdf endpoint
+    const apiUrl = `${getBaseUrl()}/rest/shipment/v3/edi/labels/pdf?apikey=${POSTNORD_CONFIG.apiKey}`;
     
     const postnordResponse = await fetch(apiUrl, {
       method: 'POST',

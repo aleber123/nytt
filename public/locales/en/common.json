@@ -197,6 +197,8 @@
     "servicesHeading": "Choose the right service for your needs",
     "servicesSubheading": "We simplify the legalization process with clear services tailored for different situations",
     "from": "From",
+    "inclVat": "incl. VAT",
+    "exclVat": "excl. VAT",
     "translationPriceLabel": "Quote",
     "chooseService": "Choose service",
     "learnMore": "Learn more",

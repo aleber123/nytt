@@ -379,6 +379,7 @@ export default function Home() {
                       <div className="mb-4">
                         <p className="text-sm text-gray-500">{t('home.from')}</p>
                         <p className="text-lg font-bold text-custom-button">{service.price}</p>
+                        <p className="text-xs text-gray-400">{t('home.inclVat', 'inkl. moms')}</p>
                       </div>
                     ) : (
                       <div className="mb-4">

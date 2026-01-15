@@ -147,6 +147,8 @@
     "servicesHeading": "Välj rätt tjänst för dina behov",
     "servicesSubheading": "Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer",
     "from": "Från",
+    "inclVat": "inkl. moms",
+    "exclVat": "exkl. moms",
     "translationPriceLabel": "Offert",
     "chooseService": "Välj tjänst",
     "learnMore": "Läs mer",

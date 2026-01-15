@@ -607,11 +607,35 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             </div>
           )}
 
-          {/* Total Price */}
+          {/* VAT and Total Price */}
           <div className="flex flex-col py-3 border-t-2 border-green-300 bg-green-100 -mx-4 sm:-mx-6 px-4 sm:px-6 rounded-b-lg">
+            {/* VAT breakdown */}
+            {!loadingPricing && (
+              <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center text-sm text-green-700 mb-2">
+                <span>{locale === 'en' ? 'VAT (25%)' : 'Moms (25%)'}</span>
+                <span>
+                  {(() => {
+                    // Calculate VAT: items with vatRate > 0 have 25% VAT
+                    const vatTotal = pricingBreakdown.reduce((sum, item) => {
+                      if (item.isTBC) return sum;
+                      const vatRate = item.vatRate || 0;
+                      // If vatRate is stored as decimal (0.25) or percentage (25)
+                      const rate = vatRate > 1 ? vatRate / 100 : vatRate;
+                      const itemTotal = item.total || 0;
+                      // Calculate VAT from total (total includes VAT for items with VAT)
+                      const vatAmount = rate > 0 ? Math.round(itemTotal * rate / (1 + rate)) : 0;
+                      return sum + vatAmount;
+                    }, 0);
+                    return `${vatTotal.toLocaleString()} kr`;
+                  })()}
+                </span>
+              </div>
+            )}
+            
+            {/* Total */}
             <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center">
               <span className="text-lg font-semibold text-green-900">
-                {t('orderFlow.step10.total')}:
+                {t('orderFlow.step10.total')} {locale === 'en' ? '(incl. VAT)' : '(inkl. moms)'}:
                 {pricingBreakdown.some(item => item.isTBC) && '*'}
               </span>
               <span className="text-xl font-bold text-green-900">

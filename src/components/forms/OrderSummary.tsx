@@ -362,13 +362,25 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack
 
             {/* Total Section */}
             <div className="border-t-2 border-gray-300 pt-4 mt-4">
-              <div className="flex justify-between font-bold text-lg">
-                <span>Totalbelopp</span>
-                <span>{pricing.totalPrice} kr</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-500 mt-1">
+              <div className="flex justify-between text-sm text-gray-500 mb-1">
                 <span>Moms (25%)</span>
-                <span>{Math.round(pricing.totalPrice * 0.25)} kr</span>
+                <span>
+                  {(() => {
+                    // Calculate VAT correctly from breakdown items
+                    const vatTotal = pricing.breakdown?.reduce((sum: number, item: any) => {
+                      const vatRate = item.vatRate || 0;
+                      const rate = vatRate > 1 ? vatRate / 100 : vatRate;
+                      const itemTotal = item.total || 0;
+                      const vatAmount = rate > 0 ? Math.round(itemTotal * rate / (1 + rate)) : 0;
+                      return sum + vatAmount;
+                    }, 0) || Math.round(pricing.totalPrice * 0.20);
+                    return `${vatTotal.toLocaleString()} kr`;
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between font-bold text-lg">
+                <span>Totalbelopp (inkl. moms)</span>
+                <span>{pricing.totalPrice.toLocaleString()} kr</span>
               </div>
             </div>
           </div>

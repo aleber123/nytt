@@ -2727,8 +2727,8 @@ function AdminOrderDetailPage() {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const shippingDate = tomorrow.toISOString().split('T')[0];
 
-      // Determine country code
-      let countryCode = receiverAddress.country || 'SE';
+      // Determine country code - prefer countryCode field, fallback to country
+      let countryCode = receiverAddress.countryCode || receiverAddress.country || 'SE';
       if (countryCode.length > 2) {
         const countryNameToCode: Record<string, string> = {
           'Sweden': 'SE', 'Sverige': 'SE',
