@@ -499,6 +499,33 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
     );
   };
 
+  // Helper: Check if customer is a company (for VAT display)
+  const isCompanyCustomer = answers.customerType === 'company';
+
+  // Helper: Calculate price excluding VAT for a single item
+  const getPriceExclVat = (item: any) => {
+    if (item.isTBC) return item.total || 0;
+    const vatRate = item.vatRate || 0;
+    const rate = vatRate > 1 ? vatRate / 100 : vatRate;
+    const total = item.total || 0;
+    if (rate > 0) {
+      return Math.round(total / (1 + rate));
+    }
+    return total;
+  };
+
+  // Helper: Calculate total VAT
+  const calculateTotalVat = () => {
+    return pricingBreakdown.reduce((sum, item) => {
+      if (item.isTBC) return sum;
+      const vatRate = item.vatRate || 0;
+      const rate = vatRate > 1 ? vatRate / 100 : vatRate;
+      const itemTotal = item.total || 0;
+      const vatAmount = rate > 0 ? Math.round(itemTotal * rate / (1 + rate)) : 0;
+      return sum + vatAmount;
+    }, 0);
+  };
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="text-center mb-8">
@@ -510,6 +537,69 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         </p>
       </div>
 
+      {/* ===== CUSTOMER TYPE SELECTION - MUST BE ANSWERED FIRST ===== */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+        <div className="flex items-center space-x-2 mb-2">
+          <span className="text-xl">👤</span>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {locale === 'en' ? 'Customer Type' : 'Kundtyp'}
+          </h3>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          {locale === 'en' ? 'Are you ordering as a private person or company?' : 'Beställer du som privatperson eller företag?'}
+        </p>
+        
+        <div className="flex flex-wrap gap-4">
+          <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+            answers.customerType === 'private' 
+              ? 'border-primary-500 bg-primary-50' 
+              : 'border-gray-200 hover:border-gray-300'
+          }`}>
+            <input
+              type="radio"
+              name="customerType"
+              value="private"
+              checked={answers.customerType === 'private'}
+              onChange={() => setAnswers(prev => ({ ...prev, customerType: 'private' }))}
+              className="h-5 w-5 text-primary-600"
+            />
+            <div>
+              <span className="font-medium text-gray-900">{locale === 'en' ? 'Private Person' : 'Privatperson'}</span>
+              <p className="text-sm text-gray-500">{locale === 'en' ? 'Prices shown incl. VAT' : 'Priser visas inkl. moms'}</p>
+            </div>
+          </label>
+          
+          <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+            answers.customerType === 'company' 
+              ? 'border-primary-500 bg-primary-50' 
+              : 'border-gray-200 hover:border-gray-300'
+          }`}>
+            <input
+              type="radio"
+              name="customerType"
+              value="company"
+              checked={answers.customerType === 'company'}
+              onChange={() => setAnswers(prev => ({ ...prev, customerType: 'company' }))}
+              className="h-5 w-5 text-primary-600"
+            />
+            <div>
+              <span className="font-medium text-gray-900">{locale === 'en' ? 'Company' : 'Företag'}</span>
+              <p className="text-sm text-gray-500">{locale === 'en' ? 'Prices shown excl. VAT' : 'Priser visas exkl. moms'}</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* ===== REST OF CONTENT - ONLY SHOWN AFTER CUSTOMER TYPE IS SELECTED ===== */}
+      {!answers.customerType ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+          <span className="text-3xl mb-2 block">☝️</span>
+          <p className="text-amber-800 font-medium">
+            {locale === 'en' ? 'Please select customer type above to continue' : 'Vänligen välj kundtyp ovan för att fortsätta'}
+          </p>
+        </div>
+      ) : (
+        <>
       {/* Final Order Summary */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 mb-6">
         <h3 className="text-lg font-semibold text-green-900 mb-4">
@@ -566,16 +656,22 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   // Check if price is TBC (to be confirmed) - use the isTBC flag from pricing service
                   const isTBC = item.isTBC === true;
                   
+                  // Calculate price based on customer type
+                  const displayPrice = isCompanyCustomer ? getPriceExclVat(item) : (item.total || 0);
+                  const unitPriceDisplay = isCompanyCustomer && item.unitPrice 
+                    ? Math.round(item.unitPrice / 1.25) // Remove VAT from unit price for company
+                    : item.unitPrice;
+                  
                   // Build the price detail string
                   let priceDetail = '';
-                  if (isPerDocument && item.unitPrice && !isTBC) {
-                    priceDetail = `(${item.unitPrice} kr × ${item.quantity})`;
+                  if (isPerDocument && unitPriceDisplay && !isTBC) {
+                    priceDetail = `(${unitPriceDisplay} kr × ${item.quantity})`;
                   }
                   
                   // Format price display
                   const priceDisplay = isTBC 
                     ? (locale === 'en' ? 'TBC' : 'Bekräftas')
-                    : `${item.total?.toLocaleString() || 0} kr`;
+                    : `${displayPrice.toLocaleString()} kr`;
                   
                   return (
                     <div key={`${item.service}_${index}`} className="text-sm">
@@ -609,26 +705,27 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
           {/* VAT and Total Price */}
           <div className="flex flex-col py-3 border-t-2 border-green-300 bg-green-100 -mx-4 sm:-mx-6 px-4 sm:px-6 rounded-b-lg">
+            {/* For company customers: show subtotal excl. VAT first */}
+            {isCompanyCustomer && !loadingPricing && (
+              <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center text-sm text-green-700 mb-2">
+                <span>{locale === 'en' ? 'Subtotal (excl. VAT)' : 'Summa (exkl. moms)'}</span>
+                <span>
+                  {(() => {
+                    const subtotalExclVat = pricingBreakdown.reduce((sum, item) => {
+                      if (item.isTBC) return sum;
+                      return sum + getPriceExclVat(item);
+                    }, 0);
+                    return `${subtotalExclVat.toLocaleString()} kr`;
+                  })()}
+                </span>
+              </div>
+            )}
+            
             {/* VAT breakdown */}
             {!loadingPricing && (
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center text-sm text-green-700 mb-2">
                 <span>{locale === 'en' ? 'VAT (25%)' : 'Moms (25%)'}</span>
-                <span>
-                  {(() => {
-                    // Calculate VAT: items with vatRate > 0 have 25% VAT
-                    const vatTotal = pricingBreakdown.reduce((sum, item) => {
-                      if (item.isTBC) return sum;
-                      const vatRate = item.vatRate || 0;
-                      // If vatRate is stored as decimal (0.25) or percentage (25)
-                      const rate = vatRate > 1 ? vatRate / 100 : vatRate;
-                      const itemTotal = item.total || 0;
-                      // Calculate VAT from total (total includes VAT for items with VAT)
-                      const vatAmount = rate > 0 ? Math.round(itemTotal * rate / (1 + rate)) : 0;
-                      return sum + vatAmount;
-                    }, 0);
-                    return `${vatTotal.toLocaleString()} kr`;
-                  })()}
-                </span>
+                <span>{calculateTotalVat().toLocaleString()} kr</span>
               </div>
             )}
             
@@ -1901,6 +1998,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         </div>
       )}
 
+        </>
+      )}
     </div>
   );
 };

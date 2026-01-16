@@ -1468,6 +1468,50 @@ export const updateInvoiceStatus = async (invoiceId: string, status: Invoice['st
   }
 };
 
+// Update full invoice (for editing line items, VAT, etc.)
+export const updateInvoice = async (invoiceId: string, updates: Partial<Invoice>): Promise<void> => {
+  try {
+    const docRef = doc(db, INVOICES_COLLECTION, invoiceId);
+
+    // Recalculate totals if line items are updated
+    let finalUpdates = { ...updates };
+    if (updates.lineItems) {
+      const subtotal = updates.lineItems.reduce((sum, item) => sum + item.totalPrice, 0);
+      const vatTotal = updates.lineItems.reduce((sum, item) => sum + item.vatAmount, 0);
+      finalUpdates = {
+        ...finalUpdates,
+        subtotal,
+        vatTotal,
+        totalAmount: subtotal
+      };
+    }
+
+    await updateDoc(docRef, {
+      ...finalUpdates,
+      updatedAt: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating invoice in Firebase:', error);
+    throw error;
+  }
+};
+
+// Recalculate invoice line item with new VAT rate
+export const recalculateLineItem = (item: InvoiceLineItem, newVatRate: number): InvoiceLineItem => {
+  // newVatRate is in percentage (e.g., 25 for 25%, 0 for 0%)
+  const rate = newVatRate / 100;
+  const basePrice = item.unitPrice * item.quantity;
+  const vatAmount = Math.round(basePrice * rate * 100) / 100;
+  const totalPrice = Math.round((basePrice + vatAmount) * 100) / 100;
+
+  return {
+    ...item,
+    vatRate: rate,
+    vatAmount,
+    totalPrice
+  };
+};
+
 // Mock storage functions
 function getMockInvoices(): Invoice[] {
   try {

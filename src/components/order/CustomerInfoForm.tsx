@@ -183,56 +183,8 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
 
   return (
     <div className="mt-8 space-y-8">
-      {/* ===== SECTION 1: Customer Type ===== */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <SectionHeader 
-          icon="👤" 
-          title={isEn ? 'Customer Type' : 'Kundtyp'}
-          subtitle={isEn ? 'Are you ordering as a private person or company?' : 'Beställer du som privatperson eller företag?'}
-        />
-        
-        <div className="flex flex-wrap gap-4">
-          <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-            answers.customerType === 'private' 
-              ? 'border-primary-500 bg-primary-50' 
-              : 'border-gray-200 hover:border-gray-300'
-          }`}>
-            <input
-              type="radio"
-              name="customerType"
-              value="private"
-              checked={answers.customerType === 'private'}
-              onChange={() => setAnswers(prev => ({ ...prev, customerType: 'private' }))}
-              className="h-5 w-5 text-primary-600"
-            />
-            <div>
-              <span className="font-medium text-gray-900">{isEn ? 'Private Person' : 'Privatperson'}</span>
-              <p className="text-sm text-gray-500">{isEn ? 'Individual customer' : 'Enskild kund'}</p>
-            </div>
-          </label>
-          
-          <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-            answers.customerType === 'company' 
-              ? 'border-primary-500 bg-primary-50' 
-              : 'border-gray-200 hover:border-gray-300'
-          }`}>
-            <input
-              type="radio"
-              name="customerType"
-              value="company"
-              checked={answers.customerType === 'company'}
-              onChange={() => setAnswers(prev => ({ ...prev, customerType: 'company' }))}
-              className="h-5 w-5 text-primary-600"
-            />
-            <div>
-              <span className="font-medium text-gray-900">{isEn ? 'Company' : 'Företag'}</span>
-              <p className="text-sm text-gray-500">{isEn ? 'Business customer' : 'Företagskund'}</p>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {/* ===== SECTION 2: Billing Information ===== */}
+      {/* ===== SECTION: Billing Information ===== */}
+      {/* Note: Customer Type selection has been moved to the top of Step10 */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-6">
         <SectionHeader 
           icon="🧾" 
