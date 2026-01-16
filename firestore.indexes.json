@@ -1,16 +1,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "countryPopularity",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "selectionCount",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "pricing",
       "queryScope": "COLLECTION",
       "fields": [
