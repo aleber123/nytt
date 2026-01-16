@@ -4,7 +4,7 @@
  * If upload is selected, shows file upload interface on the same page
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
@@ -25,6 +25,28 @@ export const Step5DocumentSource: React.FC<StepProps & {
   
   // Track if user wants to send support docs later
   const [sendDocsLater, setSendDocsLater] = useState(false);
+  
+  // Drag and drop state
+  const [dragOverIndex, setDragOverIndex] = useState<number | string | null>(null);
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent, index: number | string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverIndex(null);
+  }, []);
+
+  const validateFile = useCallback((file: File): boolean => {
+    const acceptedTypes = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+    return acceptedTypes.includes(fileExt);
+  }, []);
 
   // Check if notarization is selected (need support documents)
   const hasNotarization = answers.services.includes('notarization');
@@ -415,10 +437,23 @@ export const Step5DocumentSource: React.FC<StepProps & {
               {Array.from({ length: answers.quantity }, (_, index) => (
                 <div 
                   key={index}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragOverIndex(null);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && validateFile(file)) {
+                      handleFileChange(index, file);
+                    }
+                  }}
                   className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
-                    answers.uploadedFiles[index] 
-                      ? 'border-green-400 bg-green-50' 
-                      : 'border-gray-300 hover:border-blue-400 bg-white'
+                    dragOverIndex === index
+                      ? 'border-blue-500 bg-blue-50 scale-[1.02]'
+                      : answers.uploadedFiles[index] 
+                        ? 'border-green-400 bg-green-50' 
+                        : 'border-gray-300 hover:border-blue-400 bg-white'
                   }`}
                 >
                   <input
@@ -436,19 +471,23 @@ export const Step5DocumentSource: React.FC<StepProps & {
                   >
                     <div className="flex items-center">
                       <span className="text-2xl mr-3">
-                        {answers.uploadedFiles[index] ? '✅' : '📎'}
+                        {dragOverIndex === index ? '📥' : answers.uploadedFiles[index] ? '✅' : '📎'}
                       </span>
                       <div>
                         <div className="font-medium text-gray-900">
                           {isEn ? `Document ${index + 1}` : `Dokument ${index + 1}`}
                         </div>
-                        {answers.uploadedFiles[index] ? (
+                        {dragOverIndex === index ? (
+                          <div className="text-sm text-blue-600">
+                            {isEn ? 'Drop file here' : 'Släpp filen här'}
+                          </div>
+                        ) : answers.uploadedFiles[index] ? (
                           <div className="text-sm text-green-600 break-words">
                             {answers.uploadedFiles[index]?.name}
                           </div>
                         ) : (
                           <div className="text-sm text-gray-500">
-                            {isEn ? 'Click to upload' : 'Klicka för att ladda upp'}
+                            {isEn ? 'Drag & drop or click to upload' : 'Dra och släpp eller klicka för att ladda upp'}
                           </div>
                         )}
                       </div>
@@ -520,11 +559,26 @@ export const Step5DocumentSource: React.FC<StepProps & {
               {needsIdDocument && (
                 <>
                   {!answers.willSendIdDocumentLater && (
-                    <div className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
-                      answers.idDocumentFile 
-                        ? 'border-green-400 bg-green-50' 
-                        : 'border-gray-300 hover:border-amber-400 bg-white'
-                    }`}>
+                    <div 
+                      onDragOver={(e) => handleDragOver(e, 'id-doc')}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOverIndex(null);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file && validateFile(file)) {
+                          handleIdDocumentChange(file);
+                        }
+                      }}
+                      className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
+                        dragOverIndex === 'id-doc'
+                          ? 'border-blue-500 bg-blue-50 scale-[1.02]'
+                          : answers.idDocumentFile 
+                            ? 'border-green-400 bg-green-50' 
+                            : 'border-gray-300 hover:border-amber-400 bg-white'
+                      }`}
+                    >
                       <input
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
@@ -538,19 +592,23 @@ export const Step5DocumentSource: React.FC<StepProps & {
                       >
                         <div className="flex items-center">
                           <span className="text-2xl mr-3">
-                            {answers.idDocumentFile ? '✅' : '🪪'}
+                            {dragOverIndex === 'id-doc' ? '📥' : answers.idDocumentFile ? '✅' : '🪪'}
                           </span>
                           <div>
                             <div className="font-medium text-gray-900">
                               {isEn ? 'ID/Passport copy' : 'Kopia på ID/Pass'}
                             </div>
-                            {answers.idDocumentFile ? (
+                            {dragOverIndex === 'id-doc' ? (
+                              <div className="text-sm text-blue-600">
+                                {isEn ? 'Drop file here' : 'Släpp filen här'}
+                              </div>
+                            ) : answers.idDocumentFile ? (
                               <div className="text-sm text-green-600 break-words">
                                 {answers.idDocumentFile.name}
                               </div>
                             ) : (
                               <div className="text-sm text-gray-500">
-                                {isEn ? 'Click to upload' : 'Klicka för att ladda upp'}
+                                {isEn ? 'Drag & drop or click to upload' : 'Dra och släpp eller klicka för att ladda upp'}
                               </div>
                             )}
                           </div>
@@ -602,11 +660,26 @@ export const Step5DocumentSource: React.FC<StepProps & {
                 <>
                   {/* 1. Registration Certificate */}
                   {!answers.willSendRegistrationCertLater && (
-                    <div className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
-                      answers.registrationCertFile 
-                        ? 'border-green-400 bg-green-50' 
-                        : 'border-gray-300 hover:border-amber-400 bg-white'
-                    }`}>
+                    <div 
+                      onDragOver={(e) => handleDragOver(e, 'reg-cert')}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOverIndex(null);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file && validateFile(file)) {
+                          handleRegistrationCertChange(file);
+                        }
+                      }}
+                      className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
+                        dragOverIndex === 'reg-cert'
+                          ? 'border-blue-500 bg-blue-50 scale-[1.02]'
+                          : answers.registrationCertFile 
+                            ? 'border-green-400 bg-green-50' 
+                            : 'border-gray-300 hover:border-amber-400 bg-white'
+                      }`}
+                    >
                       <input
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
@@ -620,19 +693,23 @@ export const Step5DocumentSource: React.FC<StepProps & {
                       >
                         <div className="flex items-center">
                           <span className="text-2xl mr-3">
-                            {answers.registrationCertFile ? '✅' : '🏢'}
+                            {dragOverIndex === 'reg-cert' ? '📥' : answers.registrationCertFile ? '✅' : '🏢'}
                           </span>
                           <div>
                             <div className="font-medium text-gray-900">
                               {isEn ? 'Registration certificate' : 'Registreringsbevis'}
                             </div>
-                            {answers.registrationCertFile ? (
+                            {dragOverIndex === 'reg-cert' ? (
+                              <div className="text-sm text-blue-600">
+                                {isEn ? 'Drop file here' : 'Släpp filen här'}
+                              </div>
+                            ) : answers.registrationCertFile ? (
                               <div className="text-sm text-green-600 break-words">
                                 {answers.registrationCertFile.name}
                               </div>
                             ) : (
                               <div className="text-sm text-gray-500">
-                                {isEn ? 'Click to upload' : 'Klicka för att ladda upp'}
+                                {isEn ? 'Drag & drop or click to upload' : 'Dra och släpp eller klicka för att ladda upp'}
                               </div>
                             )}
                           </div>
@@ -679,11 +756,26 @@ export const Step5DocumentSource: React.FC<StepProps & {
 
                   {/* 2. ID/Passport of signatory */}
                   {!answers.willSendSigningAuthorityIdLater && (
-                    <div className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
-                      answers.signingAuthorityIdFile 
-                        ? 'border-green-400 bg-green-50' 
-                        : 'border-gray-300 hover:border-amber-400 bg-white'
-                    }`}>
+                    <div 
+                      onDragOver={(e) => handleDragOver(e, 'signing-auth-id')}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOverIndex(null);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file && validateFile(file)) {
+                          handleSigningAuthorityIdChange(file);
+                        }
+                      }}
+                      className={`relative border-2 border-dashed rounded-lg p-4 transition-all ${
+                        dragOverIndex === 'signing-auth-id'
+                          ? 'border-blue-500 bg-blue-50 scale-[1.02]'
+                          : answers.signingAuthorityIdFile 
+                            ? 'border-green-400 bg-green-50' 
+                            : 'border-gray-300 hover:border-amber-400 bg-white'
+                      }`}
+                    >
                       <input
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
@@ -697,19 +789,23 @@ export const Step5DocumentSource: React.FC<StepProps & {
                       >
                         <div className="flex items-center">
                           <span className="text-2xl mr-3">
-                            {answers.signingAuthorityIdFile ? '✅' : '🪪'}
+                            {dragOverIndex === 'signing-auth-id' ? '📥' : answers.signingAuthorityIdFile ? '✅' : '🪪'}
                           </span>
                           <div>
                             <div className="font-medium text-gray-900">
                               {isEn ? 'ID of signatory' : 'ID på firmatecknaren'}
                             </div>
-                            {answers.signingAuthorityIdFile ? (
+                            {dragOverIndex === 'signing-auth-id' ? (
+                              <div className="text-sm text-blue-600">
+                                {isEn ? 'Drop file here' : 'Släpp filen här'}
+                              </div>
+                            ) : answers.signingAuthorityIdFile ? (
                               <div className="text-sm text-green-600 break-words">
                                 {answers.signingAuthorityIdFile.name}
                               </div>
                             ) : (
                               <div className="text-sm text-gray-500">
-                                {isEn ? 'Click to upload' : 'Klicka för att ladda upp'}
+                                {isEn ? 'Drag & drop or click to upload' : 'Dra och släpp eller klicka för att ladda upp'}
                               </div>
                             )}
                           </div>

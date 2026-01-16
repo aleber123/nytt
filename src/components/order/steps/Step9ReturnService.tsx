@@ -4,7 +4,7 @@
  * Includes premium delivery options for DHL and Stockholm City Courier
  */
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -34,6 +34,37 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
   loadingReturnServices
 }) => {
   const { t } = useTranslation('common');
+  const [isDraggingLabel, setIsDraggingLabel] = useState(false);
+
+  const handleLabelDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingLabel(true);
+  }, []);
+
+  const handleLabelDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingLabel(false);
+  }, []);
+
+  const handleLabelDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingLabel(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const acceptedTypes = ['.pdf', '.jpg', '.jpeg', '.png'];
+      const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (acceptedTypes.includes(fileExt)) {
+        if (file.size > 5 * 1024 * 1024) {
+          alert(t('orderFlow.step9.fileTooLarge', 'Filen är för stor. Max 5MB.'));
+          return;
+        }
+        setAnswers(prev => ({ ...prev, ownReturnLabelFile: file }));
+      }
+    }
+  }, [setAnswers, t]);
 
   const getStockholmNow = () => {
     const now = new Date();
@@ -405,7 +436,12 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                     </p>
                     
                     {!answers.ownReturnLabelFile ? (
-                      <div className="relative">
+                      <div 
+                        className="relative"
+                        onDragOver={handleLabelDragOver}
+                        onDragLeave={handleLabelDragLeave}
+                        onDrop={handleLabelDrop}
+                      >
                         <input
                           type="file"
                           id="return-label-upload"
@@ -428,13 +464,19 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                         />
                         <label
                           htmlFor="return-label-upload"
-                          className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-100 transition-colors"
+                          className={`flex items-center justify-center w-full px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+                            isDraggingLabel 
+                              ? 'border-blue-500 bg-blue-100 scale-[1.02]' 
+                              : 'border-blue-300 hover:border-blue-400 hover:bg-blue-100'
+                          }`}
                         >
                           <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                           </svg>
                           <span className="text-sm text-blue-700">
-                            {t('orderFlow.step9.uploadLabel', 'Välj fil eller dra och släpp')}
+                            {isDraggingLabel 
+                              ? t('orderFlow.step9.dropHere', 'Släpp filen här')
+                              : t('orderFlow.step9.uploadLabel', 'Välj fil eller dra och släpp')}
                           </span>
                         </label>
                         <p className="text-xs text-gray-500 mt-1">
