@@ -437,11 +437,14 @@ function AdminOrderDetailPage() {
 
     // Try match by ISO code
     let match = ALL_COUNTRIES.find(c => c.code === upper);
-    if (match) return { code: match.code, name: match.name, flag: match.flag };
+    if (match) return { code: match.code, name: match.nameEn || match.name, flag: match.flag };
 
-    // Try match by full name
-    match = ALL_COUNTRIES.find(c => c.name.toLowerCase() === value.toLowerCase());
-    if (match) return { code: match.code, name: match.name, flag: match.flag };
+    // Try match by full name (Swedish or English)
+    match = ALL_COUNTRIES.find(c => 
+      c.name.toLowerCase() === value.toLowerCase() || 
+      (c.nameEn && c.nameEn.toLowerCase() === value.toLowerCase())
+    );
+    if (match) return { code: match.code, name: match.nameEn || match.name, flag: match.flag };
 
     // Fallback: derive flag emoji from 2-letter country code
     if (/^[A-Za-z]{2}$/.test(value)) {
