@@ -2088,21 +2088,20 @@ export const getPopularCountries = async (maxResults: number = 18): Promise<Coun
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, using static popular countries');
       return getStaticPopularCountries().map(country => ({
         countryCode: country.code,
         countryName: country.name,
         flag: country.flag,
-        selectionCount: Math.max(1, Math.floor((country.popularity || 0) / 10)), // Reduce static popularity significantly
+        selectionCount: Math.max(1, Math.floor((country.popularity || 0) / 10)),
         lastSelected: Timestamp.now()
       })).sort((a, b) => b.selectionCount - a.selectionCount).slice(0, maxResults);
     }
 
-    // Get all dynamic popularity data
+    // Get all dynamic popularity data - simple query without compound index
     const q = query(
       collection(db, 'countryPopularity'),
       orderBy('selectionCount', 'desc'),
-      orderBy('lastSelected', 'desc')
+      limit(maxResults * 2) // Get more than needed to allow for sorting
     );
 
     const querySnapshot = await getDocs(q);
