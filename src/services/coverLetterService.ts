@@ -78,8 +78,16 @@ function getDocumentTypeName(docType?: string): string {
 function getCountryName(country?: string): string {
   if (!country) return '';
 
+  // Use Intl.DisplayNames to get full English country name
+  try {
+    const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    const fullName = displayNames.of(country.toUpperCase());
+    if (fullName) return fullName;
+  } catch {}
+
+  // Fallback map for common countries
   const map: Record<string, string> = {
-    US: 'USA',
+    US: 'United States of America',
     GB: 'United Kingdom',
     DE: 'Germany',
     SE: 'Sweden',
@@ -99,7 +107,18 @@ function getCountryName(country?: string): string {
     CA: 'Canada',
     AU: 'Australia',
     TR: 'Turkey',
-    KW: 'Kuwait'
+    KW: 'Kuwait',
+    BR: 'Brazil',
+    MX: 'Mexico',
+    AE: 'United Arab Emirates',
+    SA: 'Saudi Arabia',
+    QA: 'Qatar',
+    IQ: 'Iraq',
+    SY: 'Syria',
+    LB: 'Lebanon',
+    ET: 'Ethiopia',
+    AO: 'Angola',
+    TW: 'Taiwan'
   };
 
   const upper = country.toUpperCase();
@@ -699,4 +718,285 @@ export async function downloadOrderConfirmation(order: Order): Promise<void> {
   const ord = order.orderNumber || order.id || '';
   const file = ord ? `Order confirmation ${ord}.pdf` : 'Order confirmation.pdf';
   doc.save(file);
+}
+
+// ============================================================================
+// INSTANCE-SPECIFIC COVER LETTERS
+// ============================================================================
+
+type CoverLetterType = 'notary-apostille' | 'chamber' | 'ud' | 'embassy' | 'translation';
+
+// Editable fields for cover letter
+export interface NotaryApostilleCoverLetterData {
+  documentDescription: string; // e.g. "1 x Birth Certificate"
+  documentIssuer: string; // Company/authority that issued the document
+  actions: string[]; // List of actions to perform
+  countryOfUse: string;
+  language: string;
+  invoiceReference: string; // Our order number (SWE000...)
+  paymentMethod: string;
+  returnMethod: string;
+}
+
+/**
+ * Get default data for Notary/Apostille cover letter from order
+ */
+export function getNotaryApostilleDefaults(order: Order): NotaryApostilleCoverLetterData {
+  const services = Array.isArray(order.services) ? order.services : [];
+  const hasNotarization = services.some(s => s === 'notarization' || s === 'notarisering');
+  const hasApostille = services.some(s => s === 'apostille');
+
+  const notarizationDetails = (order as any).notarizationDetails || {};
+  const hasSignature = notarizationDetails.signature === true;
+  const hasSigningAuthority = notarizationDetails.signingAuthority === true;
+  const hasCopy = notarizationDetails.copy === true;
+  const hasOther = notarizationDetails.other === true;
+  const otherText = notarizationDetails.otherText || '';
+
+  const actions: string[] = [];
+  if (hasNotarization) {
+    if (hasSignature) actions.push('Signature verification');
+    if (hasSigningAuthority) actions.push('Verify signing authority');
+    if (hasCopy) actions.push('Certified copy');
+    if (hasOther && otherText) actions.push(otherText);
+    if (actions.length === 0 && hasNotarization) {
+      actions.push('Notarization');
+    }
+  }
+  if (hasApostille) {
+    actions.push('Apostille');
+  }
+
+  const quantity = order.quantity || 1;
+  const docType = getDocumentTypeName(order.documentType);
+
+  return {
+    documentDescription: `${quantity} x ${docType}`,
+    documentIssuer: '', // To be filled in by admin
+    actions,
+    countryOfUse: getCountryName(order.country),
+    language: (order as any).language || (order as any).documentLanguage || 'English',
+    invoiceReference: order.orderNumber || '', // Use our order number (SWE000...)
+    paymentMethod: order.paymentMethod || 'Invoice',
+    returnMethod: 'Pickup by DOX Visumpartner AB'
+  };
+}
+
+/**
+ * Generate a cover letter for Notarius Publicus / Apostille
+ * This is used when visiting Notarius Publicus for notarization and/or apostille
+ */
+export async function generateNotaryApostilleCoverLetter(
+  order: Order, 
+  data: NotaryApostilleCoverLetterData,
+  opts?: { autoPrint?: boolean }
+): Promise<jsPDF> {
+  const doc = new jsPDF();
+
+  // Brand palette
+  const primary: [number, number, number] = [46, 45, 44];
+  const text: [number, number, number] = [32, 33, 36];
+  const grayText: [number, number, number] = [95, 99, 104];
+  const lineGray: [number, number, number] = [180, 180, 180];
+
+  // Header line
+  doc.setDrawColor(primary[0], primary[1], primary[2]);
+  doc.setLineWidth(1);
+  doc.line(20, 28, 190, 28);
+
+  // Logo - use new logo (larger)
+  try {
+    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
+    const targetH = 18;
+    const ratio = width / height || 1;
+    const targetW = targetH * ratio;
+    doc.addImage(dataUrl, 'PNG', 20, 6, targetW, targetH);
+  } catch {}
+
+  // Title: Notarius Publicus
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Notarius Publicus', 190, 14, { align: 'right' });
+
+  // Date
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text(formatDate(new Date()), 190, 20, { align: 'right' });
+
+  // Company info block (right side)
+  let y = 40;
+  const companyLines = [
+    'DOX Visumpartner AB',
+    'Box 38',
+    '121 25 Stockholm-Globen',
+    'Tel: 08-40941900',
+    'info@doxvl.se'
+  ];
+  doc.setFontSize(8);
+  let cy = y;
+  companyLines.forEach((l) => {
+    doc.text(l, 190, cy, { align: 'right' });
+    cy += 3.5;
+  });
+
+  // Main title
+  y = 58;
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('Cover Letter', 20, y);
+  y += 12;
+
+  // Document info
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+
+  // "We request the following action(s) on the document(s):"
+  doc.text('We request the following action(s) on the document(s):', 20, y);
+  y += 8;
+
+  // Document description (editable)
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.documentDescription, 20, y);
+  y += 6;
+
+  // Document issuer (if provided)
+  if (data.documentIssuer) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.setFontSize(10);
+    doc.text(`Issued by: ${data.documentIssuer}`, 20, y);
+    y += 6;
+  }
+  y += 2;
+
+  // Requested actions section
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('Requested Action(s):', 20, y);
+  y += 6;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  // Draw actions with checkboxes (from editable data)
+  const boxSize = 4;
+  data.actions.forEach((action) => {
+    doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+    doc.rect(20, y - boxSize + 1, boxSize, boxSize);
+    doc.text(action, 20 + boxSize + 4, y + 1);
+    y += 7;
+  });
+
+  y += 6;
+
+  // Details section
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(20, y, 190, y);
+  y += 8;
+
+  // Two-column details (from editable data)
+  const leftX = 20;
+  const rightX = 110;
+  const rowH = 12;
+
+  const details: Array<{ label: string; value: string; col: 'left' | 'right' }> = [];
+
+  // Country of use
+  if (data.countryOfUse) {
+    details.push({ label: 'Country of use', value: data.countryOfUse, col: 'left' });
+  }
+
+  // Language
+  details.push({ label: 'Language', value: data.language, col: 'right' });
+
+  // Invoice reference
+  if (data.invoiceReference) {
+    details.push({ label: 'Invoice reference', value: data.invoiceReference, col: 'left' });
+  }
+
+  // Payment method
+  details.push({ label: 'Payment method', value: `${data.paymentMethod} (via email: invoice@visumpartner.se)`, col: 'right' });
+
+  // Return method
+  details.push({ label: 'Return', value: data.returnMethod, col: 'left' });
+
+  // Render details
+  let leftY = y;
+  let rightY = y;
+  details.forEach((detail) => {
+    const x = detail.col === 'left' ? leftX : rightX;
+    const currentY = detail.col === 'left' ? leftY : rightY;
+
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(detail.label + ':', x, currentY);
+
+    doc.setTextColor(text[0], text[1], text[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(detail.value, x, currentY + 5);
+
+    if (detail.col === 'left') {
+      leftY += rowH;
+    } else {
+      rightY += rowH;
+    }
+  });
+
+  y = Math.max(leftY, rightY) + 8;
+
+  // Internal notes box
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(16, y, 178, 28, 2, 2);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('Internal notes:', 20, y + 6);
+
+  // Footer
+  const footerY = 286;
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(20, footerY - 10, 190, footerY - 10);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text(
+    'DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • Tel: 08-40941900 • info@doxvl.se',
+    105,
+    footerY,
+    { align: 'center' }
+  );
+
+  if (opts?.autoPrint) {
+    try {
+      doc.autoPrint();
+    } catch {}
+  }
+
+  return doc;
+}
+
+export async function downloadNotaryApostilleCoverLetter(order: Order, data: NotaryApostilleCoverLetterData): Promise<void> {
+  const doc = await generateNotaryApostilleCoverLetter(order, data);
+  const ord = order.orderNumber || order.id || '';
+  const file = ord ? `Notary-Apostille Cover Letter ${ord}.pdf` : 'Notary-Apostille Cover Letter.pdf';
+  doc.save(file);
+}
+
+export async function printNotaryApostilleCoverLetter(order: Order, data: NotaryApostilleCoverLetterData): Promise<void> {
+  const doc = await generateNotaryApostilleCoverLetter(order, data, { autoPrint: true });
+  const blobUrl = doc.output('bloburl');
+  const win = window.open(blobUrl);
+  if (!win) {
+    const ord = order.orderNumber || order.id || '';
+    const file = ord ? `Notary-Apostille Cover Letter ${ord}.pdf` : 'Notary-Apostille Cover Letter.pdf';
+    doc.save(file);
+  }
 }
