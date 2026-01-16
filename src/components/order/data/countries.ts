@@ -145,7 +145,7 @@ export const ALL_COUNTRIES: Country[] = [
   { code: 'TL', name: 'Östtimor', nameEn: 'East Timor', flag: '🇹🇱' },
   { code: 'TR', name: 'Turkiet', nameEn: 'Turkey', flag: '🇹🇷' },
   { code: 'TM', name: 'Turkmenistan', nameEn: 'Turkmenistan', flag: '🇹🇲' },
-  { code: 'AE', name: 'Förenade Arabemiraten', nameEn: 'United Arab Emirates', flag: '🇦🇪' },
+  { code: 'AE', name: 'UAE', nameEn: 'UAE', flag: '🇦🇪' },
   { code: 'UZ', name: 'Uzbekistan', nameEn: 'Uzbekistan', flag: '🇺🇿' },
   { code: 'VN', name: 'Vietnam', nameEn: 'Vietnam', flag: '🇻🇳' },
   { code: 'YE', name: 'Jemen', nameEn: 'Yemen', flag: '🇾🇪' },

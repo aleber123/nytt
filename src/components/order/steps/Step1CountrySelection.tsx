@@ -39,8 +39,16 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
     loadPopularCountries();
   }, []);
 
-  // Get localized country name
+  // Get localized country name - prioritize our custom names from ALL_COUNTRIES
   const getCountryName = (countryCode: string) => {
+    // First check our custom country list for the name
+    const country = ALL_COUNTRIES.find(c => c.code === countryCode);
+    if (country) {
+      // Use nameEn for English, name for Swedish
+      return currentLocale === 'en' ? (country.nameEn || country.name) : country.name;
+    }
+    
+    // Fallback to Intl.DisplayNames
     try {
       if (countryCode && countryCode.length === 2) {
         const displayNames = new Intl.DisplayNames([currentLocale], { type: 'region' });
