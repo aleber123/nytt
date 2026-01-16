@@ -9,6 +9,7 @@ import { StepContainer } from '../shared/StepContainer';
 import { StepProps, Country } from '../types';
 import { ALL_COUNTRIES, POPULAR_COUNTRIES, HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
 import CountryFlag from '../../ui/CountryFlag';
+import { trackCountrySelection, getPopularCountries, CountryPopularity } from '@/firebase/pricingService';
 
 export const Step1CountrySelection: React.FC<StepProps> = ({
   answers,
@@ -20,6 +21,23 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
   const [countrySearch, setCountrySearch] = useState('');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dynamicPopularCountries, setDynamicPopularCountries] = useState<CountryPopularity[]>([]);
+  const [loadingPopular, setLoadingPopular] = useState(true);
+
+  // Load dynamic popular countries on mount
+  useEffect(() => {
+    const loadPopularCountries = async () => {
+      try {
+        const popular = await getPopularCountries(12);
+        setDynamicPopularCountries(popular);
+      } catch (error) {
+        // Fallback handled by getPopularCountries
+      } finally {
+        setLoadingPopular(false);
+      }
+    };
+    loadPopularCountries();
+  }, []);
 
   // Get localized country name
   const getCountryName = (countryCode: string) => {
@@ -46,6 +64,12 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
     setAnswers({ ...answers, country: countryCode });
     setCountrySearch('');
     setShowCountryDropdown(false);
+    
+    // Track country selection for popularity ranking (fire and forget)
+    trackCountrySelection(countryCode).catch(() => {
+      // Silently fail - tracking should not block user flow
+    });
+    
     // Automatically go to next step
     onNext();
   };
@@ -114,22 +138,37 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
         </div>
       </div>
 
-      {/* Popular Countries */}
+      {/* Popular Countries - Dynamic based on actual selections */}
       <div className="mb-8">
         <h3 className="text-sm font-medium text-gray-700 mb-3">
           {t('orderFlow.step1.popularCountries', 'Populära länder')}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {POPULAR_COUNTRIES.map((country) => (
-            <button
-              key={country.code}
-              onClick={() => handleCountrySelect(country.code)}
-              className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
-            >
-              <CountryFlag code={country.code} size={24} />
-              <span className="text-sm">{getCountryName(country.code)}</span>
-            </button>
-          ))}
+          {loadingPopular ? (
+            // Show static fallback while loading
+            POPULAR_COUNTRIES.slice(0, 12).map((country) => (
+              <button
+                key={country.code}
+                onClick={() => handleCountrySelect(country.code)}
+                className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
+              >
+                <CountryFlag code={country.code} size={24} />
+                <span className="text-sm">{getCountryName(country.code)}</span>
+              </button>
+            ))
+          ) : (
+            // Show dynamic popular countries
+            dynamicPopularCountries.map((country) => (
+              <button
+                key={country.countryCode}
+                onClick={() => handleCountrySelect(country.countryCode)}
+                className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
+              >
+                <CountryFlag code={country.countryCode} size={24} />
+                <span className="text-sm">{getCountryName(country.countryCode)}</span>
+              </button>
+            ))
+          )}
         </div>
       </div>
 

@@ -2154,6 +2154,57 @@ export const getPopularCountries = async (maxResults: number = 18): Promise<Coun
   }
 };
 
+// Admin function: Seed initial popularity for specific countries
+// Call this once from browser console or admin page to set up initial data
+export const seedCountryPopularity = async (): Promise<void> => {
+  if (!db) {
+    throw new Error('Firebase not initialized');
+  }
+
+  // Countries to seed with initial clicks (based on expected demand)
+  const countriesToSeed = [
+    { code: 'VN', name: 'Vietnam', flag: '🇻🇳', clicks: 100 },
+    { code: 'QA', name: 'Qatar', flag: '🇶🇦', clicks: 100 },
+    { code: 'KW', name: 'Kuwait', flag: '🇰🇼', clicks: 100 },
+    { code: 'TW', name: 'Taiwan', flag: '🇹🇼', clicks: 100 },
+    { code: 'ET', name: 'Ethiopia', flag: '🇪🇹', clicks: 100 },
+    { code: 'LB', name: 'Lebanon', flag: '🇱🇧', clicks: 100 },
+    { code: 'SY', name: 'Syria', flag: '🇸🇾', clicks: 100 },
+    { code: 'AO', name: 'Angola', flag: '🇦🇴', clicks: 100 },
+    { code: 'TH', name: 'Thailand', flag: '🇹🇭', clicks: 100 },
+    { code: 'AE', name: 'UAE', flag: '🇦🇪', clicks: 100 },
+    { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦', clicks: 100 },
+    { code: 'IQ', name: 'Iraq', flag: '🇮🇶', clicks: 100 },
+  ];
+
+  for (const country of countriesToSeed) {
+    try {
+      const popularityRef = doc(db, 'countryPopularity', country.code);
+      const docSnap = await getDoc(popularityRef);
+      
+      if (docSnap.exists()) {
+        // Add to existing count
+        const currentCount = docSnap.data().selectionCount || 0;
+        await updateDoc(popularityRef, {
+          selectionCount: currentCount + country.clicks,
+          lastSelected: Timestamp.now()
+        });
+      } else {
+        // Create new document
+        await setDoc(popularityRef, {
+          countryCode: country.code,
+          countryName: country.name,
+          flag: country.flag,
+          selectionCount: country.clicks,
+          lastSelected: Timestamp.now()
+        });
+      }
+    } catch (error) {
+      console.error(`Error seeding ${country.code}:`, error);
+    }
+  }
+};
+
 // Get static popular countries as fallback
 const getStaticPopularCountries = () => [
   { code: 'US', name: 'USA', flag: '🇺🇸', popularity: 95 },
