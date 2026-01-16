@@ -2155,7 +2155,7 @@ export const getPopularCountries = async (maxResults: number = 18): Promise<Coun
 
 // Admin function: Seed initial popularity for specific countries
 // Call this once from browser console or admin page to set up initial data
-export const seedCountryPopularity = async (): Promise<void> => {
+export const seedCountryPopularity = async (): Promise<{ success: number; failed: number; countries: string[] }> => {
   if (!db) {
     throw new Error('Firebase not initialized');
   }
@@ -2175,6 +2175,10 @@ export const seedCountryPopularity = async (): Promise<void> => {
     { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦', clicks: 100 },
     { code: 'IQ', name: 'Iraq', flag: '🇮🇶', clicks: 100 },
   ];
+
+  let success = 0;
+  let failed = 0;
+  const seededCountries: string[] = [];
 
   for (const country of countriesToSeed) {
     try {
@@ -2198,10 +2202,14 @@ export const seedCountryPopularity = async (): Promise<void> => {
           lastSelected: Timestamp.now()
         });
       }
+      success++;
+      seededCountries.push(country.name);
     } catch (error) {
-      console.error(`Error seeding ${country.code}:`, error);
+      failed++;
     }
   }
+
+  return { success, failed, countries: seededCountries };
 };
 
 // Get static popular countries as fallback

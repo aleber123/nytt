@@ -49,10 +49,13 @@ function AdminStatsPage() {
     }
     setSeeding(true);
     try {
-      await seedCountryPopularity();
-      toast.success('Popular countries seeded successfully!');
-    } catch (err) {
-      toast.error('Failed to seed popular countries');
+      const result = await seedCountryPopularity();
+      toast.success(`Seeded ${result.success} countries: ${result.countries.join(', ')}`);
+      if (result.failed > 0) {
+        toast.error(`Failed to seed ${result.failed} countries`);
+      }
+    } catch (err: any) {
+      toast.error(`Failed to seed: ${err?.message || 'Unknown error'}`);
     } finally {
       setSeeding(false);
     }
