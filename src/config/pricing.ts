@@ -78,6 +78,9 @@ export const VAT_RATES = {
   EXEMPT: 0          // VAT exempt (official fees)
 };
 
+// Services where official fees are VAT exempt (government fees)
+export const VAT_EXEMPT_OFFICIAL_FEES: string[] = ['ud', 'embassy'];
+
 // Service names (Swedish)
 export const SERVICE_NAMES_SV: Record<string, string> = {
   apostille: 'Apostille',

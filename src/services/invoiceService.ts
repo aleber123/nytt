@@ -1286,10 +1286,15 @@ function createLineItemsFromAdminPrice(
     } else if (applyZeroVAT) {
       vatRate = VAT_RATES.ZERO;
     } else {
-      // Default: official fees 0%, service fees 25%
+      // Default VAT logic:
+      // - Only UD and embassy official fees are VAT exempt (government fees)
+      // - All other fees (including apostille, notarization, chamber official fees) have 25% VAT
+      const serviceType = originalItem?.service || '';
       const isOfficialFee = (override.label || '').toLowerCase().includes('official') || 
                            (override.label || '').toLowerCase().includes('officiell');
-      vatRate = isOfficialFee ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
+      const isUDOrEmbassy = serviceType.includes('ud') || serviceType.includes('embassy');
+      const isVatExemptOfficialFee = isOfficialFee && isUDOrEmbassy;
+      vatRate = isVatExemptOfficialFee ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
     }
 
     const vatAmount = applyZeroVAT ? 0 : Math.round(amount * vatRate * 100) / 100;

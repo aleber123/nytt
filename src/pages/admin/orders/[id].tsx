@@ -13,7 +13,7 @@ import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import CountryFlag from '@/components/ui/CountryFlag';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
-import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
+import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
 import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation } from '@/services/coverLetterService';
 import { collection, addDoc, doc as fsDoc, getDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -1060,6 +1060,21 @@ function AdminOrderDetailPage() {
       if (typeof window !== 'undefined') {
         shouldSendDocumentReceiptEmail = window.confirm(
           'Do you want to send a confirmation to the customer that we have received their documents?'
+        );
+      }
+    }
+
+    // Auto-create and send invoice when final_check is completed
+    let shouldCreateAndSendInvoice = false;
+    if (
+      previousStep &&
+      previousStep.id === 'final_check' &&
+      previousStep.status !== 'completed' &&
+      status === 'completed'
+    ) {
+      if (typeof window !== 'undefined') {
+        shouldCreateAndSendInvoice = window.confirm(
+          'Order completed! Do you want to create and send the invoice to the customer?'
         );
       }
     }
@@ -2354,6 +2369,54 @@ function AdminOrderDetailPage() {
         } catch (returnEmailErr) {
           console.error('Error queuing return shipment email:', returnEmailErr);
           toast.error('Could not create return shipment email to customer');
+        }
+      }
+
+      // Auto-create and send invoice when final_check is completed
+      if (shouldCreateAndSendInvoice) {
+        try {
+          // Check if invoice already exists
+          const existingInvoices = await getInvoicesByOrderId(orderId);
+          
+          if (existingInvoices.length > 0) {
+            // Invoice exists - ask if they want to send it
+            const existingInvoice = existingInvoices[0];
+            if (existingInvoice.status === 'draft') {
+              const sendExisting = window.confirm(
+                `Invoice ${existingInvoice.invoiceNumber} already exists. Do you want to send it to the customer?`
+              );
+              if (sendExisting) {
+                const success = await sendInvoiceEmail(existingInvoice);
+                if (success) {
+                  toast.success(`Invoice ${existingInvoice.invoiceNumber} sent to customer`);
+                  await fetchInvoices(orderId);
+                } else {
+                  toast.error('Could not send invoice');
+                }
+              }
+            } else {
+              toast(`Invoice ${existingInvoice.invoiceNumber} already exists with status: ${existingInvoice.status}`);
+            }
+          } else {
+            // Create new invoice
+            const invoice = await convertOrderToInvoice(order);
+            const invoiceId = await storeInvoice(invoice);
+            
+            // Send the invoice
+            const storedInvoice = await getInvoiceById(invoiceId);
+            if (storedInvoice) {
+              const success = await sendInvoiceEmail(storedInvoice);
+              if (success) {
+                toast.success(`Invoice ${invoice.invoiceNumber} created and sent to customer`);
+              } else {
+                toast.success(`Invoice ${invoice.invoiceNumber} created but could not be sent`);
+              }
+              await fetchInvoices(orderId);
+            }
+          }
+        } catch (invoiceErr) {
+          console.error('Error creating/sending invoice:', invoiceErr);
+          toast.error('Could not create or send invoice');
         }
       }
     } catch (err) {

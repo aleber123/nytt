@@ -19,7 +19,8 @@ import {
   DEFAULT_PICKUP_FEE,
   SERVICE_FALLBACK_PRICES,
   SERVICE_NAMES_SV,
-  VAT_RATES
+  VAT_RATES,
+  VAT_EXEMPT_OFFICIAL_FEES
 } from '../config/pricing';
 
 export interface PricingRule {
@@ -526,14 +527,16 @@ export const calculateOrderPrice = async (orderData: {
 
         totalBasePrice += officialTotal + finalServiceFee;
 
-        // Add official fee line (per document, VAT exempt for official fees)
+        // Add official fee line (per document)
+        // Only UD and embassy official fees are VAT exempt (government fees)
+        const isOfficialFeeVatExempt = VAT_EXEMPT_OFFICIAL_FEES.includes(serviceType);
         breakdown.push({
           service: `${serviceType}_official`,
           description: `${serviceName} - Officiell avgift`,
           quantity: orderData.quantity,
           unitPrice: officialFeeToUse,
           total: officialTotal,
-          vatRate: VAT_RATES.EXEMPT,
+          vatRate: isOfficialFeeVatExempt ? VAT_RATES.EXEMPT : (isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD),
           isTBC: rule.priceUnconfirmed || false
         });
 
