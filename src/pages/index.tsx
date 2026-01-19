@@ -320,7 +320,11 @@ export default function Home() {
 
   return (
     <>
-      <Seo title={`${t('home.title')} | Legaliseringstjänst`} description={t('home.description')} />
+      <Seo 
+        title={t('home.title', 'Legalisering av Dokument | Apostille & Ambassad') + ' | DOX Visumpartner'} 
+        description={t('home.description', 'Professionell legalisering för utlandet. Apostille, notarisering, UD och ambassad. Snabb service i Stockholm.')} 
+        keywords="legalisering, apostille, ambassadlegalisering, notarius publicus, utrikesdepartementet, dokumentlegalisering, UD legalisering"
+      />
 
       <main>
         <HeroSection 
