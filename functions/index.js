@@ -1,11 +1,6 @@
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const { setGlobalOptions } = require('firebase-functions/v2');
+const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
-
-// Set global options for all functions
-setGlobalOptions({ region: 'us-central1' });
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -76,18 +71,17 @@ const updateStatus = async (ref, status, error = null) => {
 };
 
 // Cloud Function triggered when a new contact message is created
-exports.sendContactEmail = onDocumentCreated('contactMessages/{messageId}', async (event) => {
-    const snap = event.data;
-    if (!snap) return null;
+exports.sendContactEmail = functions.firestore
+  .document('contactMessages/{messageId}')
+  .onCreate(async (snap, context) => {
     const messageData = snap.data();
-    const messageId = event.params.messageId;
 
     // Verify reCAPTCHA token if present
     if (messageData.recaptchaToken) {
       const recaptchaResult = await verifyRecaptcha(messageData.recaptchaToken, 'contact_form');
       
       if (!recaptchaResult.success && !recaptchaResult.skipped) {
-        console.warn(`reCAPTCHA verification failed for contact message ${messageId}:`, recaptchaResult);
+        console.warn(`reCAPTCHA verification failed for contact message ${context.params.messageId}:`, recaptchaResult);
         
         // Mark as spam and don't send email
         await snap.ref.update({
@@ -103,7 +97,7 @@ exports.sendContactEmail = onDocumentCreated('contactMessages/{messageId}', asyn
       // Log the score for monitoring
       console.log(`reCAPTCHA score for contact message: ${recaptchaResult.score}`);
     } else {
-      console.warn(`No reCAPTCHA token for contact message ${messageId}`);
+      console.warn(`No reCAPTCHA token for contact message ${context.params.messageId}`);
     }
 
     // Email content (allow custom HTML if provided)
@@ -173,11 +167,10 @@ exports.sendContactEmail = onDocumentCreated('contactMessages/{messageId}', asyn
   });
 
 // Cloud Function to verify reCAPTCHA for new orders
-exports.verifyOrderRecaptcha = onDocumentCreated('orders/{orderId}', async (event) => {
-    const snap = event.data;
-    if (!snap) return null;
+exports.verifyOrderRecaptcha = functions.firestore
+  .document('orders/{orderId}')
+  .onCreate(async (snap, context) => {
     const orderData = snap.data();
-    const orderId = event.params.orderId;
     
     // Verify reCAPTCHA token if present
     if (orderData.recaptchaToken) {
@@ -191,7 +184,7 @@ exports.verifyOrderRecaptcha = onDocumentCreated('orders/{orderId}', async (even
       });
       
       if (!recaptchaResult.success && !recaptchaResult.skipped) {
-        console.warn(`reCAPTCHA verification failed for order ${orderId}:`, recaptchaResult);
+        console.warn(`reCAPTCHA verification failed for order ${context.params.orderId}:`, recaptchaResult);
         
         // Mark order as potentially suspicious but don't block it
         // Orders involve payment so we don't want to block legitimate customers
@@ -200,10 +193,10 @@ exports.verifyOrderRecaptcha = onDocumentCreated('orders/{orderId}', async (even
           recaptchaError: recaptchaResult.errorCodes || recaptchaResult.error
         });
       } else {
-        console.log(`reCAPTCHA verified for order ${orderId}, score: ${recaptchaResult.score}`);
+        console.log(`reCAPTCHA verified for order ${context.params.orderId}, score: ${recaptchaResult.score}`);
       }
     } else {
-      console.warn(`No reCAPTCHA token for order ${orderId}`);
+      console.warn(`No reCAPTCHA token for order ${context.params.orderId}`);
       await snap.ref.update({
         recaptchaVerified: false,
         recaptchaWarning: 'No reCAPTCHA token provided'
@@ -214,9 +207,9 @@ exports.verifyOrderRecaptcha = onDocumentCreated('orders/{orderId}', async (even
   });
 
 // Cloud Function triggered when a new customer email needs to be sent
-exports.sendCustomerConfirmationEmail = onDocumentCreated('customerEmails/{emailId}', async (event) => {
-    const snap = event.data;
-    if (!snap) return null;
+exports.sendCustomerConfirmationEmail = functions.firestore
+  .document('customerEmails/{emailId}')
+  .onCreate(async (snap, context) => {
     const emailData = snap.data();
     
     // Skip if already processed
@@ -255,9 +248,9 @@ exports.sendCustomerConfirmationEmail = onDocumentCreated('customerEmails/{email
   });
 
 // Cloud Function triggered when an invoice email needs to be sent
-exports.sendInvoiceEmail = onDocumentCreated('emailQueue/{emailId}', async (event) => {
-    const snap = event.data;
-    if (!snap) return null;
+exports.sendInvoiceEmail = functions.firestore
+  .document('emailQueue/{emailId}')
+  .onCreate(async (snap, context) => {
     const emailData = snap.data();
     
     // Skip if already processed
@@ -312,7 +305,7 @@ async function createMockDhlShipment(orderId) {
       .get();
 
     if (querySnap.empty) {
-      throw new HttpsError('not-found', `Order ${orderId} not found`);
+      throw new functions.https.HttpsError('not-found', `Order ${orderId} not found`);
     }
 
     orderDoc = querySnap.docs[0];
@@ -350,11 +343,10 @@ async function createRealDhlShipment(orderId) {
   return createMockDhlShipment(orderId);
 }
 
-exports.createDhlShipment = onCall(async (request) => {
-  const data = request.data;
+exports.createDhlShipment = functions.https.onCall(async (data, context) => {
   const orderId = data && typeof data.orderId === 'string' ? data.orderId.trim() : '';
   if (!orderId) {
-    throw new HttpsError('invalid-argument', 'orderId is required');
+    throw new functions.https.HttpsError('invalid-argument', 'orderId is required');
   }
 
   try {
@@ -364,11 +356,11 @@ exports.createDhlShipment = onCall(async (request) => {
     return result;
   } catch (error) {
     console.error('Error creating mock DHL shipment:', error);
-    if (error instanceof HttpsError) {
+    if (error instanceof functions.https.HttpsError) {
       throw error;
     }
     const message = (error && error.message) ? String(error.message) : String(error);
-    throw new HttpsError('internal', `Failed to create DHL shipment: ${message}`);
+    throw new functions.https.HttpsError('internal', `Failed to create DHL shipment: ${message}`);
   }
 });
 
@@ -387,7 +379,7 @@ async function createMockDhlPickup(orderId) {
       .get();
 
     if (querySnap.empty) {
-      throw new HttpsError('not-found', `Order ${orderId} not found`);
+      throw new functions.https.HttpsError('not-found', `Order ${orderId} not found`);
     }
 
     orderDoc = querySnap.docs[0];
@@ -419,11 +411,10 @@ async function createRealDhlPickup(orderId) {
   return createMockDhlPickup(orderId);
 }
 
-exports.createDhlPickup = onCall(async (request) => {
-  const data = request.data;
+exports.createDhlPickup = functions.https.onCall(async (data, context) => {
   const orderId = data && typeof data.orderId === 'string' ? data.orderId.trim() : '';
   if (!orderId) {
-    throw new HttpsError('invalid-argument', 'orderId is required');
+    throw new functions.https.HttpsError('invalid-argument', 'orderId is required');
   }
 
   try {
@@ -433,16 +424,16 @@ exports.createDhlPickup = onCall(async (request) => {
     return result;
   } catch (error) {
     console.error('Error creating mock DHL pickup:', error);
-    if (error instanceof HttpsError) {
+    if (error instanceof functions.https.HttpsError) {
       throw error;
     }
     const message = (error && error.message) ? String(error.message) : String(error);
-    throw new HttpsError('internal', `Failed to create DHL pickup: ${message}`);
+    throw new functions.https.HttpsError('internal', `Failed to create DHL pickup: ${message}`);
   }
 });
 
 // Test function to verify email setup
-exports.testEmail = onCall(async (request) => {
+exports.testEmail = functions.https.onCall(async (data, context) => {
   const mailOptions = {
     from: `"DOX Visumpartner Test" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
     to: 'alexander.bergqvist@gmail.com',
