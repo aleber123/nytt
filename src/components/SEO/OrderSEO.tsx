@@ -42,8 +42,8 @@ export const OrderSEO: React.FC<OrderSEOProps> = ({ step, totalSteps = 10 }) => 
   const baseUrl = siteConfig.url;
   const orderPath = '/bestall';
   const orderUrl = `${baseUrl}${orderPath}`;
-  const ogImage = `${baseUrl}/images/og-image.jpg`;
-  const twitterImage = `${baseUrl}/images/twitter-image.jpg`;
+  const ogImage = `${baseUrl}/dox-logo-new.png`;
+  const twitterImage = `${baseUrl}/dox-logo-new.png`;
   const ogLocale = locale.startsWith('en') ? 'en_US' : 'sv_SE';
 
   return (

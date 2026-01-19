@@ -36,7 +36,7 @@ const Seo: React.FC<SeoProps> = ({
   const router = useRouter();
   const baseUrl = siteConfig.url;
   const url = `${baseUrl}${router.asPath || '/'}`;
-  const ogImage = image || `${baseUrl}/og-image.jpg`;
+  const ogImage = image || `${baseUrl}/dox-logo-new.png`;
 
   // Create structured data for local business with AggregateRating
   const localBusinessData = {
