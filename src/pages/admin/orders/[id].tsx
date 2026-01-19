@@ -4064,6 +4064,22 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Remove flag emoji from step names (flags don't render well on Windows)
+  const stripFlagEmoji = (text: string) => {
+    if (!text) return text;
+    // Remove regional indicator symbols (flag emoji) - they consist of pairs of characters in range U+1F1E6 to U+1F1FF
+    // Using string iteration to handle surrogate pairs properly
+    let result = '';
+    const chars = Array.from(text);
+    for (let i = 0; i < chars.length; i++) {
+      const code = chars[i].codePointAt(0) || 0;
+      // Skip regional indicator symbols (U+1F1E6 to U+1F1FF)
+      if (code >= 0x1F1E6 && code <= 0x1F1FF) continue;
+      result += chars[i];
+    }
+    return result.trim();
+  };
+
   // Format date
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'N/A';
@@ -4401,7 +4417,7 @@ function AdminOrderDetailPage() {
                                          step.status === 'pending' ? index + 1 : '✗'}
                                       </div>
                                       <div>
-                                        <span className="font-medium text-sm">{step.name}</span>
+                                        <span className="font-medium text-sm">{stripFlagEmoji(step.name)}</span>
                                         <div className="text-xs text-gray-500">{step.description}</div>
                                       </div>
                                     </div>
@@ -5027,7 +5043,7 @@ function AdminOrderDetailPage() {
                                    step.status === 'pending' ? index + 1 : '✗'}
                                 </div>
                                 <div>
-                                  <h4 className="font-medium">{step.name}</h4>
+                                  <h4 className="font-medium">{stripFlagEmoji(step.name)}</h4>
                                   <p className="text-sm text-gray-600">{step.description}</p>
                                 </div>
                               </div>
