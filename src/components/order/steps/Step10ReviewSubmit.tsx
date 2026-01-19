@@ -703,6 +703,27 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             </div>
           )}
 
+          {/* Own Return Label - show uploaded file or warning if file was lost */}
+          {answers.returnService === 'own-delivery' && (
+            <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
+              <span className="text-gray-700">
+                {t('orderFlow.step9.ownReturnLabelTitle', 'Fraktsedel')}:
+              </span>
+              {answers.ownReturnLabelFile ? (
+                <span className="font-medium text-green-700 break-words flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {answers.ownReturnLabelFile.name}
+                </span>
+              ) : (
+                <span className="font-medium text-gray-500 italic">
+                  {t('orderFlow.step10.noLabelUploaded', 'Ingen fraktsedel uppladdad')}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* VAT and Total Price */}
           <div className="flex flex-col py-3 border-t-2 border-green-300 bg-green-100 -mx-4 sm:-mx-6 px-4 sm:px-6 rounded-b-lg">
             {/* For company customers: show subtotal excl. VAT first */}
@@ -1049,6 +1070,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     await addDoc(collection(db, 'contactMessages'), emailData);
                   } catch (emailError) {
                     // Don't block the order flow if email notification fails
+                  }
+
+                  // Track Google Ads conversion
+                  if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+                    (window as any).gtag('event', 'conversion', {
+                      'send_to': 'AW-940620817/m9LzCN3roGEQkfjCwAM'
+                    });
                   }
 
                   // Redirect to confirmation page using secure token
@@ -1862,6 +1890,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     await addDoc(collection(db, 'customerEmails'), customerEmailData);
                   } catch (customerEmailError) {
                     // Don't block the order flow if customer email fails
+                  }
+
+                  // Track Google Ads conversion
+                  if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+                    (window as any).gtag('event', 'conversion', {
+                      'send_to': 'AW-940620817/m9LzCN3roGEQkfjCwAM'
+                    });
                   }
 
                   // Redirect to confirmation page using secure token
