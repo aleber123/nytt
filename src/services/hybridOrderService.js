@@ -525,7 +525,10 @@ const createOrderWithFiles = async (orderData, files = []) => {
     }
 
     // First create the order to get the order ID
-    const orderId = await createOrder(orderData);
+    const orderResult = await createOrder(orderData);
+    
+    // Extract orderId from result (createOrder returns { orderId, token })
+    const orderId = typeof orderResult === 'object' ? orderResult.orderId : orderResult;
 
     // If there are files to upload, upload them
     let uploadedFiles = [];
@@ -553,7 +556,7 @@ const createOrderWithFiles = async (orderData, files = []) => {
       }
     }
 
-    return orderId;
+    return orderResult;
 
   } catch (error) {
     console.error('❌ Error creating order with files:', error);
