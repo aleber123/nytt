@@ -5,14 +5,54 @@ const nodemailer = require('nodemailer');
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Configure nodemailer transport (now using SMTP, e.g. Microsoft 365)
+// reCAPTCHA verification helper
+const verifyRecaptcha = async (token, expectedAction = null) => {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  
+  if (!secretKey) {
+    console.warn('reCAPTCHA secret key not configured - skipping verification');
+    return { success: true, score: 1.0, skipped: true };
+  }
+
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${secretKey}&response=${token}`
+    });
+
+    const data = await response.json();
+    
+    // reCAPTCHA v3 returns a score between 0.0 and 1.0
+    // 1.0 is very likely a good interaction, 0.0 is very likely a bot
+    const isValid = data.success && data.score >= 0.5;
+    
+    // Optionally verify the action matches
+    if (expectedAction && data.action !== expectedAction) {
+      console.warn(`reCAPTCHA action mismatch: expected ${expectedAction}, got ${data.action}`);
+    }
+
+    return {
+      success: isValid,
+      score: data.score,
+      action: data.action,
+      errorCodes: data['error-codes']
+    };
+  } catch (error) {
+    console.error('reCAPTCHA verification error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Configure nodemailer transport (using environment variables)
 const transporter = nodemailer.createTransport({
-  host: functions.config().email.host || 'smtp.office365.com',
-  port: Number(functions.config().email.port) || 587,
+  host: process.env.EMAIL_HOST || 'smtp.office365.com',
+  port: Number(process.env.EMAIL_PORT) || 587,
   secure: false,
   auth: {
-    user: functions.config().email.user, // Set this in Firebase config
-    pass: functions.config().email.pass  // Set this in Firebase config
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
@@ -35,6 +75,30 @@ exports.sendContactEmail = functions.firestore
   .document('contactMessages/{messageId}')
   .onCreate(async (snap, context) => {
     const messageData = snap.data();
+
+    // Verify reCAPTCHA token if present
+    if (messageData.recaptchaToken) {
+      const recaptchaResult = await verifyRecaptcha(messageData.recaptchaToken, 'contact_form');
+      
+      if (!recaptchaResult.success && !recaptchaResult.skipped) {
+        console.warn(`reCAPTCHA verification failed for contact message ${context.params.messageId}:`, recaptchaResult);
+        
+        // Mark as spam and don't send email
+        await snap.ref.update({
+          status: 'spam_blocked',
+          recaptchaScore: recaptchaResult.score || 0,
+          recaptchaError: recaptchaResult.errorCodes || recaptchaResult.error,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        return null; // Don't send email for suspected spam
+      }
+      
+      // Log the score for monitoring
+      console.log(`reCAPTCHA score for contact message: ${recaptchaResult.score}`);
+    } else {
+      console.warn(`No reCAPTCHA token for contact message ${context.params.messageId}`);
+    }
 
     // Email content (allow custom HTML if provided)
     const defaultHtml = `
@@ -70,7 +134,7 @@ exports.sendContactEmail = functions.firestore
     const htmlBody = messageData.html || defaultHtml;
     const textBody = messageData.text || (messageData.message ? String(messageData.message) : '');
     const mailOptions = {
-      from: `"DOX Visumpartner" <${functions.config().email.from || functions.config().email.user}>`,
+      from: `"DOX Visumpartner" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: 'info@doxvl.se,info@visumpartner.se',
       subject: messageData.subject || `Nytt kontaktmeddelande från ${messageData.name}`,
       html: htmlBody,
@@ -102,6 +166,46 @@ exports.sendContactEmail = functions.firestore
     }
   });
 
+// Cloud Function to verify reCAPTCHA for new orders
+exports.verifyOrderRecaptcha = functions.firestore
+  .document('orders/{orderId}')
+  .onCreate(async (snap, context) => {
+    const orderData = snap.data();
+    
+    // Verify reCAPTCHA token if present
+    if (orderData.recaptchaToken) {
+      const recaptchaResult = await verifyRecaptcha(orderData.recaptchaToken, 'submit_order');
+      
+      // Update order with reCAPTCHA verification result
+      await snap.ref.update({
+        recaptchaVerified: recaptchaResult.success,
+        recaptchaScore: recaptchaResult.score || 0,
+        recaptchaVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      if (!recaptchaResult.success && !recaptchaResult.skipped) {
+        console.warn(`reCAPTCHA verification failed for order ${context.params.orderId}:`, recaptchaResult);
+        
+        // Mark order as potentially suspicious but don't block it
+        // Orders involve payment so we don't want to block legitimate customers
+        await snap.ref.update({
+          recaptchaWarning: 'Low reCAPTCHA score - potential bot',
+          recaptchaError: recaptchaResult.errorCodes || recaptchaResult.error
+        });
+      } else {
+        console.log(`reCAPTCHA verified for order ${context.params.orderId}, score: ${recaptchaResult.score}`);
+      }
+    } else {
+      console.warn(`No reCAPTCHA token for order ${context.params.orderId}`);
+      await snap.ref.update({
+        recaptchaVerified: false,
+        recaptchaWarning: 'No reCAPTCHA token provided'
+      });
+    }
+    
+    return null;
+  });
+
 // Cloud Function triggered when a new customer email needs to be sent
 exports.sendCustomerConfirmationEmail = functions.firestore
   .document('customerEmails/{emailId}')
@@ -113,7 +217,7 @@ exports.sendCustomerConfirmationEmail = functions.firestore
     
     try {
       const mailOptions = {
-        from: `"DOX Visumpartner" <${functions.config().email.from || functions.config().email.user}>`,
+        from: `"DOX Visumpartner" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
         to: emailData.email,
         subject: emailData.subject || 'Bekräftelse på din beställning',
         html: emailData.message,
@@ -154,7 +258,7 @@ exports.sendInvoiceEmail = functions.firestore
     
     try {
       const mailOptions = {
-        from: `"DOX Visumpartner" <${functions.config().email.from || functions.config().email.user}>`,
+        from: `"DOX Visumpartner" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
         to: emailData.to,
         subject: emailData.subject || 'Din faktura från Legaliseringstjänst',
         html: emailData.html,
@@ -184,7 +288,7 @@ exports.sendInvoiceEmail = functions.firestore
     }
   });
 
-const USE_DHL_MOCK = !functions.config().dhl || !functions.config().dhl.api_key;
+const USE_DHL_MOCK = !process.env.DHL_API_KEY;
 
 // Callable function to create a mock DHL shipment for a given order
 async function createMockDhlShipment(orderId) {
@@ -331,7 +435,7 @@ exports.createDhlPickup = functions.https.onCall(async (data, context) => {
 // Test function to verify email setup
 exports.testEmail = functions.https.onCall(async (data, context) => {
   const mailOptions = {
-    from: `"DOX Visumpartner Test" <${functions.config().email.from || functions.config().email.user}>`,
+    from: `"DOX Visumpartner Test" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
     to: 'alexander.bergqvist@gmail.com',
     subject: 'Test Email från Firebase Functions',
     html: `

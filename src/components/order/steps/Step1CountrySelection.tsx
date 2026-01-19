@@ -7,7 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps, Country } from '../types';
-import { ALL_COUNTRIES, POPULAR_COUNTRIES, HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
+import { ALL_COUNTRIES, HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
 import CountryFlag from '../../ui/CountryFlag';
 import { trackCountrySelection, getPopularCountries, CountryPopularity } from '@/firebase/pricingService';
 
@@ -153,16 +153,15 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {loadingPopular ? (
-            // Show static fallback while loading
-            POPULAR_COUNTRIES.slice(0, 12).map((country) => (
-              <button
-                key={country.code}
-                onClick={() => handleCountrySelect(country.code)}
-                className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
+            // Show skeleton placeholders while loading
+            Array.from({ length: 12 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md animate-pulse"
               >
-                <CountryFlag code={country.code} size={24} />
-                <span className="text-sm">{getCountryName(country.code)}</span>
-              </button>
+                <div className="w-6 h-6 bg-gray-200 rounded" />
+                <div className="h-4 bg-gray-200 rounded w-20" />
+              </div>
             ))
           ) : (
             // Show dynamic popular countries
