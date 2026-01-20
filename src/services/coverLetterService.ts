@@ -1051,3 +1051,292 @@ export async function printNotaryApostilleCoverLetter(order: Order, data: Notary
     doc.save(file);
   }
 }
+
+// ============================================================================
+// EMBASSY COVER LETTER - Elegant formal letter for embassy legalisation
+// ============================================================================
+
+export interface EmbassyCoverLetterData {
+  embassyName: string; // e.g. "Embassy of Kuwait"
+  embassyAddress?: string;
+  documentDescription: string; // e.g. "1 x Birth Certificate"
+  documentIssuer?: string;
+  countryOfUse: string;
+  purpose?: string; // e.g. "For use in business registration"
+  invoiceReference: string;
+  paymentMethod: string;
+  returnMethod: string;
+  additionalNotes?: string;
+}
+
+/**
+ * Get default data for Embassy cover letter from order
+ */
+export function getEmbassyDefaults(order: Order): EmbassyCoverLetterData {
+  const quantity = order.quantity || 1;
+  const docType = getAllDocumentTypesDisplay(order);
+  const countryName = getCountryName(order.country);
+
+  return {
+    embassyName: `Embassy of ${countryName}`,
+    embassyAddress: '',
+    documentDescription: `${quantity} x ${docType}`,
+    documentIssuer: '',
+    countryOfUse: countryName,
+    purpose: '',
+    invoiceReference: order.orderNumber || '',
+    paymentMethod: order.paymentMethod || 'Invoice',
+    returnMethod: 'Collection by DOX Visumpartner AB',
+    additionalNotes: ''
+  };
+}
+
+/**
+ * Generate an elegant, formal cover letter for Embassy legalisation
+ * Professional design suitable for diplomatic correspondence
+ */
+export async function generateEmbassyCoverLetter(
+  order: Order,
+  data: EmbassyCoverLetterData,
+  opts?: { autoPrint?: boolean }
+): Promise<jsPDF> {
+  const doc = new jsPDF();
+
+  // Elegant color palette
+  const darkNavy: [number, number, number] = [26, 32, 44]; // Deep navy for headers
+  const gold: [number, number, number] = [180, 142, 73]; // Elegant gold accent
+  const text: [number, number, number] = [45, 55, 72]; // Soft dark for body text
+  const lightGray: [number, number, number] = [148, 163, 184]; // Subtle gray
+  const white: [number, number, number] = [255, 255, 255];
+
+  // Page dimensions
+  const pageWidth = 210;
+  const marginLeft = 25;
+  const marginRight = 25;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+
+  // ========== HEADER SECTION ==========
+  // Elegant top border with gold accent
+  doc.setDrawColor(gold[0], gold[1], gold[2]);
+  doc.setLineWidth(0.8);
+  doc.line(marginLeft, 15, pageWidth - marginRight, 15);
+
+  // Logo
+  try {
+    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
+    const targetH = 16;
+    const ratio = width / height || 1;
+    const targetW = targetH * ratio;
+    doc.addImage(dataUrl, 'PNG', marginLeft, 20, targetW, targetH);
+  } catch {}
+
+  // Company name and tagline (right aligned)
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
+  doc.text('DOX Visumpartner AB', pageWidth - marginRight, 24, { align: 'right' });
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.text('Document Legalisation Services', pageWidth - marginRight, 29, { align: 'right' });
+
+  // Subtle header underline
+  doc.setDrawColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.setLineWidth(0.3);
+  doc.line(marginLeft, 42, pageWidth - marginRight, 42);
+
+  // ========== DATE AND REFERENCE ==========
+  let y = 52;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', { 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  doc.text(dateStr, pageWidth - marginRight, y, { align: 'right' });
+  
+  if (data.invoiceReference) {
+    doc.setFontSize(9);
+    doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.text(`Ref: ${data.invoiceReference}`, pageWidth - marginRight, y + 5, { align: 'right' });
+  }
+
+  // ========== EMBASSY ADDRESS ==========
+  y = 52;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
+  doc.text(data.embassyName, marginLeft, y);
+  
+  if (data.embassyAddress) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(text[0], text[1], text[2]);
+    const addressLines = data.embassyAddress.split('\n');
+    addressLines.forEach((line, i) => {
+      doc.text(line, marginLeft, y + 6 + (i * 5));
+    });
+    y += 6 + (addressLines.length * 5);
+  }
+
+  // ========== SUBJECT LINE ==========
+  y = Math.max(y + 15, 80);
+  doc.setDrawColor(gold[0], gold[1], gold[2]);
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, y - 3, marginLeft + 40, y - 3);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
+  doc.text('RE: Request for Document Legalisation', marginLeft, y + 5);
+  y += 18;
+
+  // ========== SALUTATION ==========
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.text('Dear Sir/Madam,', marginLeft, y);
+  y += 12;
+
+  // ========== BODY TEXT ==========
+  const bodyText = `We respectfully submit the enclosed document(s) for legalisation at your esteemed Embassy. The document(s) have been duly authenticated by the Swedish Ministry for Foreign Affairs and are now presented for your attestation.`;
+  
+  const wrappedBody = doc.splitTextToSize(bodyText, contentWidth);
+  doc.text(wrappedBody, marginLeft, y);
+  y += wrappedBody.length * 5 + 8;
+
+  // ========== DOCUMENT DETAILS BOX ==========
+  const boxStartY = y;
+  const boxHeight = 50;
+  
+  // Elegant box with gold left border
+  doc.setFillColor(250, 250, 252);
+  doc.setDrawColor(gold[0], gold[1], gold[2]);
+  doc.rect(marginLeft, boxStartY, contentWidth, boxHeight, 'F');
+  doc.setLineWidth(2);
+  doc.line(marginLeft, boxStartY, marginLeft, boxStartY + boxHeight);
+  
+  // Box content
+  let boxY = boxStartY + 10;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
+  doc.text('DOCUMENT DETAILS', marginLeft + 8, boxY);
+  boxY += 8;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  
+  // Document description
+  doc.text(`Document(s): ${data.documentDescription}`, marginLeft + 8, boxY);
+  boxY += 6;
+  
+  // Issuer if provided
+  if (data.documentIssuer) {
+    doc.text(`Issued by: ${data.documentIssuer}`, marginLeft + 8, boxY);
+    boxY += 6;
+  }
+  
+  // Country of use
+  doc.text(`Country of Use: ${data.countryOfUse}`, marginLeft + 8, boxY);
+  boxY += 6;
+  
+  // Purpose if provided
+  if (data.purpose) {
+    doc.text(`Purpose: ${data.purpose}`, marginLeft + 8, boxY);
+  }
+
+  y = boxStartY + boxHeight + 12;
+
+  // ========== ADDITIONAL PARAGRAPH ==========
+  const additionalText = `We kindly request that the legalisation be processed at your earliest convenience. Upon completion, the document(s) will be collected by our authorised representative.`;
+  
+  const wrappedAdditional = doc.splitTextToSize(additionalText, contentWidth);
+  doc.text(wrappedAdditional, marginLeft, y);
+  y += wrappedAdditional.length * 5 + 8;
+
+  // ========== PAYMENT INFO ==========
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.text(`Payment Method: ${data.paymentMethod}`, marginLeft, y);
+  y += 6;
+  doc.text(`Collection: ${data.returnMethod}`, marginLeft, y);
+  y += 15;
+
+  // ========== CLOSING ==========
+  doc.text('We thank you for your kind assistance and remain at your disposal for any further information.', marginLeft, y);
+  y += 15;
+  
+  doc.text('Yours faithfully,', marginLeft, y);
+  y += 20;
+  
+  // Signature area
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
+  doc.text('DOX Visumpartner AB', marginLeft, y);
+  y += 5;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.text('Authorised Representative', marginLeft, y);
+
+  // ========== FOOTER ==========
+  const footerY = 280;
+  
+  // Gold accent line
+  doc.setDrawColor(gold[0], gold[1], gold[2]);
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, footerY - 8, pageWidth - marginRight, footerY - 8);
+  
+  // Footer text
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.text(
+    'DOX Visumpartner AB  •  Box 38, 121 25 Stockholm-Globen  •  Tel: +46 8 409 419 00  •  info@doxvl.se',
+    pageWidth / 2,
+    footerY,
+    { align: 'center' }
+  );
+  doc.text(
+    'www.visumpartner.se',
+    pageWidth / 2,
+    footerY + 4,
+    { align: 'center' }
+  );
+
+  if (opts?.autoPrint) {
+    try {
+      doc.autoPrint();
+    } catch {}
+  }
+
+  return doc;
+}
+
+export async function downloadEmbassyCoverLetter(order: Order, data: EmbassyCoverLetterData): Promise<void> {
+  const doc = await generateEmbassyCoverLetter(order, data);
+  const ord = order.orderNumber || order.id || '';
+  const file = ord ? `Embassy Cover Letter ${ord}.pdf` : 'Embassy Cover Letter.pdf';
+  doc.save(file);
+}
+
+export async function printEmbassyCoverLetter(order: Order, data: EmbassyCoverLetterData): Promise<void> {
+  const doc = await generateEmbassyCoverLetter(order, data, { autoPrint: true });
+  const blobUrl = doc.output('bloburl');
+  const win = window.open(blobUrl);
+  if (!win) {
+    const ord = order.orderNumber || order.id || '';
+    const file = ord ? `Embassy Cover Letter ${ord}.pdf` : 'Embassy Cover Letter.pdf';
+    doc.save(file);
+  }
+}

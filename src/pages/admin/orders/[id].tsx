@@ -16,7 +16,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
-import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation, downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter, getNotaryApostilleDefaults, NotaryApostilleCoverLetterData } from '@/services/coverLetterService';
+import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation, downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter, getNotaryApostilleDefaults, NotaryApostilleCoverLetterData, downloadEmbassyCoverLetter, printEmbassyCoverLetter, getEmbassyDefaults, EmbassyCoverLetterData } from '@/services/coverLetterService';
 import { collection, addDoc, doc as fsDoc, getDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -147,6 +147,7 @@ function AdminOrderDetailPage() {
   const [unreadSupplementaryCount, setUnreadSupplementaryCount] = useState(0);
   // Cover letter editable data
   const [notaryApostilleData, setNotaryApostilleData] = useState<NotaryApostilleCoverLetterData | null>(null);
+  const [embassyData, setEmbassyData] = useState<EmbassyCoverLetterData | null>(null);
   const [editedCustomer, setEditedCustomer] = useState({
     firstName: '',
     lastName: '',
@@ -6233,6 +6234,12 @@ function AdminOrderDetailPage() {
                         setNotaryApostilleData(defaults);
                       }
 
+                      // Initialize embassy data if not set
+                      if (!embassyData && coverLetters.some(l => l.id === 'embassy')) {
+                        const defaults = getEmbassyDefaults(order);
+                        setEmbassyData(defaults);
+                      }
+
                       return (
                         <div className="space-y-6">
                           {coverLetters.map((letter) => {
@@ -6465,6 +6472,220 @@ function AdminOrderDetailPage() {
                                         Download Form (PDF)
                                       </a>
                                     </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            // Embassy cover letter with editable form
+                            if (letter.id === 'embassy' && embassyData) {
+                              return (
+                                <div 
+                                  key={letter.id}
+                                  className="bg-gradient-to-br from-amber-50 to-white border border-amber-200 rounded-lg p-5"
+                                >
+                                  <div className="flex items-center space-x-3 mb-4">
+                                    <span className="text-2xl">🏛️</span>
+                                    <div>
+                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
+                                      <p className="text-sm text-amber-700">Elegant formal letter for embassy legalisation</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Editable form */}
+                                  <div className="space-y-4 border-t border-amber-200 pt-4">
+                                    {/* Embassy name and address */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Embassy name
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.embassyName}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            embassyName: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="e.g. Embassy of Kuwait"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Embassy address (optional)
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.embassyAddress || ''}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            embassyAddress: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="Street address, City"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Document details */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Document description
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.documentDescription}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            documentDescription: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="e.g. 1 x Birth Certificate"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Document issuer (optional)
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.documentIssuer || ''}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            documentIssuer: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="e.g. Skatteverket"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Country and purpose */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Country of use
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.countryOfUse}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            countryOfUse: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Purpose (optional)
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.purpose || ''}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            purpose: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="e.g. For business registration"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Payment and return */}
+                                    <div className="grid grid-cols-3 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Invoice reference
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.invoiceReference}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            invoiceReference: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Payment method
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.paymentMethod}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            paymentMethod: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Collection method
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={embassyData.returnMethod}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            returnMethod: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Reset button */}
+                                    <div className="flex justify-end">
+                                      <button
+                                        onClick={() => setEmbassyData(getEmbassyDefaults(order))}
+                                        className="text-sm text-gray-500 hover:text-gray-700 underline"
+                                      >
+                                        Reset to defaults
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Action buttons */}
+                                  <div className="flex items-center justify-end space-x-2 mt-4 pt-4 border-t border-amber-200">
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await downloadEmbassyCoverLetter(order, embassyData);
+                                          toast.success('Embassy cover letter downloaded');
+                                        } catch (err) {
+                                          toast.error('Failed to generate cover letter');
+                                        }
+                                      }}
+                                      className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      Download PDF
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await printEmbassyCoverLetter(order, embassyData);
+                                          toast.success('Printing embassy cover letter');
+                                        } catch (err) {
+                                          toast.error('Failed to print cover letter');
+                                        }
+                                      }}
+                                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                      </svg>
+                                      Print
+                                    </button>
                                   </div>
                                 </div>
                               );
