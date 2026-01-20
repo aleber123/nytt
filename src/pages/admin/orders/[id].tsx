@@ -5788,16 +5788,28 @@ function AdminOrderDetailPage() {
                 {activeTab === 'files' && (
                   <div className="space-y-6">
                     {/* Return Shipping Label Section */}
-                    {(order as any).hasReturnLabel && (order as any).returnLabelFileName && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    {(order as any).returnService === 'own-delivery' && (
+                      <div className={`border rounded-lg p-4 ${
+                        order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName)
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'bg-amber-50 border-amber-200'
+                      }`}>
                         <div className="flex items-center mb-3">
                           <span className="text-2xl mr-2">📦</span>
-                          <h3 className="text-lg font-medium text-blue-900">Return Shipping Label</h3>
+                          <h3 className={`text-lg font-medium ${
+                            order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName)
+                              ? 'text-blue-900'
+                              : 'text-amber-900'
+                          }`}>Return Shipping Label</h3>
                         </div>
-                        <p className="text-sm text-blue-700 mb-3">
+                        <p className={`text-sm mb-3 ${
+                          order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName)
+                            ? 'text-blue-700'
+                            : 'text-amber-700'
+                        }`}>
                           Customer uploaded their own return shipping label. Print and attach to package.
                         </p>
-                        {order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName) && (
+                        {order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName) ? (
                           <div className="flex space-x-2">
                             <a
                               href={order.uploadedFiles.find((f: any) => f.originalName === (order as any).returnLabelFileName)?.downloadURL}
@@ -5821,6 +5833,19 @@ function AdminOrderDetailPage() {
                             >
                               🖨️ Print Label
                             </button>
+                          </div>
+                        ) : (
+                          <div className="bg-amber-100 border border-amber-300 rounded p-3">
+                            <p className="text-amber-800 font-medium">⚠️ Fraktsedel saknas</p>
+                            <p className="text-amber-700 text-sm mt-1">
+                              Kunden valde egen retur men fraktsedeln laddades inte upp korrekt. 
+                              {(order as any).returnLabelFileName && (
+                                <span> Förväntat filnamn: <code className="bg-amber-200 px-1 rounded">{(order as any).returnLabelFileName}</code></span>
+                              )}
+                            </p>
+                            <p className="text-amber-700 text-sm mt-2">
+                              <strong>Åtgärd:</strong> Kontakta kunden och be dem skicka fraktsedeln via email.
+                            </p>
                           </div>
                         )}
                       </div>
