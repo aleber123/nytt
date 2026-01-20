@@ -16,7 +16,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
-import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation, downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter, getNotaryApostilleDefaults, NotaryApostilleCoverLetterData, downloadEmbassyCoverLetter, printEmbassyCoverLetter, getEmbassyDefaults, EmbassyCoverLetterData } from '@/services/coverLetterService';
+import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation, downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter, getNotaryApostilleDefaults, NotaryApostilleCoverLetterData, downloadEmbassyCoverLetter, printEmbassyCoverLetter, getEmbassyDefaults, EmbassyCoverLetterData, downloadUDCoverLetter, printUDCoverLetter, getUDDefaults, UDCoverLetterData } from '@/services/coverLetterService';
 import { collection, addDoc, doc as fsDoc, getDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -148,6 +148,7 @@ function AdminOrderDetailPage() {
   // Cover letter editable data
   const [notaryApostilleData, setNotaryApostilleData] = useState<NotaryApostilleCoverLetterData | null>(null);
   const [embassyData, setEmbassyData] = useState<EmbassyCoverLetterData | null>(null);
+  const [udData, setUdData] = useState<UDCoverLetterData | null>(null);
   const [editedCustomer, setEditedCustomer] = useState({
     firstName: '',
     lastName: '',
@@ -6248,6 +6249,12 @@ function AdminOrderDetailPage() {
                         setEmbassyData(defaults);
                       }
 
+                      // Initialize UD data if not set
+                      if (!udData && coverLetters.some(l => l.id === 'ud')) {
+                        const defaults = getUDDefaults(order);
+                        setUdData(defaults);
+                      }
+
                       return (
                         <div className="space-y-6">
                           {coverLetters.map((letter) => {
@@ -6683,6 +6690,142 @@ function AdminOrderDetailPage() {
                                         try {
                                           await printEmbassyCoverLetter(order, embassyData);
                                           toast.success('Printing embassy cover letter');
+                                        } catch (err) {
+                                          toast.error('Failed to print cover letter');
+                                        }
+                                      }}
+                                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                      </svg>
+                                      Print
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            // UD cover letter with editable form
+                            if (letter.id === 'ud' && udData) {
+                              return (
+                                <div 
+                                  key={letter.id}
+                                  className="bg-white border border-gray-200 rounded-lg p-5"
+                                >
+                                  <div className="flex items-center space-x-3 mb-4">
+                                    <span className="text-2xl">{letter.icon}</span>
+                                    <div>
+                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
+                                      <p className="text-sm text-gray-500">{letter.description}</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Editable form */}
+                                  <div className="space-y-4 mb-6">
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">Document Description</label>
+                                      <input
+                                        type="text"
+                                        value={udData.documentDescription}
+                                        onChange={(e) => setUdData({ ...udData, documentDescription: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">Document Issuer (optional)</label>
+                                      <input
+                                        type="text"
+                                        value={udData.documentIssuer || ''}
+                                        onChange={(e) => setUdData({ ...udData, documentIssuer: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        placeholder="Company or authority that issued the document"
+                                      />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Country of Use</label>
+                                        <input
+                                          type="text"
+                                          value={udData.countryOfUse}
+                                          onChange={(e) => setUdData({ ...udData, countryOfUse: e.target.value })}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                                        <input
+                                          type="text"
+                                          value={udData.language}
+                                          onChange={(e) => setUdData({ ...udData, language: e.target.value })}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Reference</label>
+                                        <input
+                                          type="text"
+                                          value={udData.invoiceReference}
+                                          onChange={(e) => setUdData({ ...udData, invoiceReference: e.target.value })}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                        <input
+                                          type="text"
+                                          value={udData.paymentMethod}
+                                          onChange={(e) => setUdData({ ...udData, paymentMethod: e.target.value })}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">Return Method</label>
+                                      <input
+                                        type="text"
+                                        value={udData.returnMethod}
+                                        onChange={(e) => setUdData({ ...udData, returnMethod: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                      />
+                                    </div>
+
+                                    {/* Reset button */}
+                                    <div className="flex justify-end">
+                                      <button
+                                        onClick={() => setUdData(getUDDefaults(order))}
+                                        className="text-sm text-gray-500 hover:text-gray-700 underline"
+                                      >
+                                        Reset to defaults
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Action buttons */}
+                                  <div className="flex items-center space-x-3">
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await downloadUDCoverLetter(order, udData);
+                                          toast.success('UD cover letter downloaded');
+                                        } catch (err) {
+                                          toast.error('Failed to generate cover letter');
+                                        }
+                                      }}
+                                      className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      Download
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await printUDCoverLetter(order, udData);
+                                          toast.success('Printing UD cover letter');
                                         } catch (err) {
                                           toast.error('Failed to print cover letter');
                                         }

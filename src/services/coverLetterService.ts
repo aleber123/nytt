@@ -1092,8 +1092,8 @@ export function getEmbassyDefaults(order: Order): EmbassyCoverLetterData {
 }
 
 /**
- * Generate an elegant, formal cover letter for Embassy legalisation
- * Professional design suitable for diplomatic correspondence
+ * Generate a formal cover letter for Embassy legalisation
+ * Clean design matching website colors
  */
 export async function generateEmbassyCoverLetter(
   order: Order,
@@ -1102,75 +1102,78 @@ export async function generateEmbassyCoverLetter(
 ): Promise<jsPDF> {
   const doc = new jsPDF();
 
-  // Elegant color palette
-  const darkNavy: [number, number, number] = [26, 32, 44]; // Deep navy for headers
-  const gold: [number, number, number] = [180, 142, 73]; // Elegant gold accent
-  const text: [number, number, number] = [45, 55, 72]; // Soft dark for body text
-  const lightGray: [number, number, number] = [148, 163, 184]; // Subtle gray
-  const white: [number, number, number] = [255, 255, 255];
+  // Brand palette matching website
+  const primary: [number, number, number] = [46, 45, 44]; // #2E2D2C - page header
+  const text: [number, number, number] = [32, 33, 36]; // gray-900
+  const grayText: [number, number, number] = [95, 99, 104]; // gray-700
+  const lineGray: [number, number, number] = [180, 180, 180]; // subtle lines
 
   // Page dimensions
   const pageWidth = 210;
-  const marginLeft = 25;
-  const marginRight = 25;
+  const marginLeft = 20;
+  const marginRight = 20;
   const contentWidth = pageWidth - marginLeft - marginRight;
 
   // ========== HEADER SECTION ==========
-  // Elegant top border with gold accent
-  doc.setDrawColor(gold[0], gold[1], gold[2]);
-  doc.setLineWidth(0.8);
-  doc.line(marginLeft, 15, pageWidth - marginRight, 15);
+  // Header line
+  doc.setDrawColor(primary[0], primary[1], primary[2]);
+  doc.setLineWidth(1);
+  doc.line(marginLeft, 48, pageWidth - marginRight, 48);
 
   // Logo
   try {
     const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
-    const targetH = 32; // mm (doubled for better visibility)
+    const targetH = 20; // mm
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
-    doc.addImage(dataUrl, 'PNG', marginLeft, 16, targetW, targetH);
+    doc.addImage(dataUrl, 'PNG', marginLeft, 10, targetW, targetH);
   } catch {}
 
-  // Company name and tagline (right aligned)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
-  doc.text('DOX Visumpartner AB', pageWidth - marginRight, 24, { align: 'right' });
-  
+  // Company info (right aligned)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
-  doc.text('Document Legalisation Services', pageWidth - marginRight, 29, { align: 'right' });
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  const companyLines = [
+    'DOX Visumpartner AB',
+    'Box 38',
+    '121 25 Stockholm-Globen',
+    'Tel: 08-40941900',
+    'info@doxvl.se'
+  ];
+  let cy = 14;
+  companyLines.forEach((l) => {
+    doc.text(l, pageWidth - marginRight, cy, { align: 'right' });
+    cy += 3.5;
+  });
 
-  // Subtle header underline
-  doc.setDrawColor(lightGray[0], lightGray[1], lightGray[2]);
-  doc.setLineWidth(0.3);
-  doc.line(marginLeft, 42, pageWidth - marginRight, 42);
+  // Title: Embassy Cover Letter
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Embassy Cover Letter', marginLeft, 42);
 
   // ========== DATE AND REFERENCE ==========
-  let y = 52;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(text[0], text[1], text[2]);
-  
+  let y = 58;
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', { 
     day: 'numeric', 
     month: 'long', 
     year: 'numeric' 
   });
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text(dateStr, pageWidth - marginRight, y, { align: 'right' });
   
   if (data.invoiceReference) {
-    doc.setFontSize(9);
-    doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
     doc.text(`Ref: ${data.invoiceReference}`, pageWidth - marginRight, y + 5, { align: 'right' });
   }
 
   // ========== EMBASSY ADDRESS ==========
-  y = 52;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
   doc.text(data.embassyName, marginLeft, y);
   
   if (data.embassyAddress) {
@@ -1185,23 +1188,19 @@ export async function generateEmbassyCoverLetter(
   }
 
   // ========== SUBJECT LINE ==========
-  y = Math.max(y + 15, 80);
-  doc.setDrawColor(gold[0], gold[1], gold[2]);
-  doc.setLineWidth(0.5);
-  doc.line(marginLeft, y - 3, marginLeft + 40, y - 3);
-  
+  y = Math.max(y + 15, 85);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
-  doc.text('RE: Request for Document Legalisation', marginLeft, y + 5);
-  y += 18;
+  doc.setFontSize(11);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text('RE: Request for Document Legalisation', marginLeft, y);
+  y += 12;
 
   // ========== SALUTATION ==========
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(text[0], text[1], text[2]);
   doc.text('Dear Sir/Madam,', marginLeft, y);
-  y += 12;
+  y += 10;
 
   // ========== BODY TEXT ==========
   const bodyText = `We respectfully submit the enclosed document(s) for legalisation at your esteemed Embassy. The document(s) have been duly authenticated by the Swedish Ministry for Foreign Affairs and are now presented for your attestation.`;
@@ -1210,49 +1209,38 @@ export async function generateEmbassyCoverLetter(
   doc.text(wrappedBody, marginLeft, y);
   y += wrappedBody.length * 5 + 8;
 
-  // ========== DOCUMENT DETAILS BOX ==========
-  const boxStartY = y;
-  const boxHeight = 50;
-  
-  // Elegant box with gold left border
-  doc.setFillColor(250, 250, 252);
-  doc.setDrawColor(gold[0], gold[1], gold[2]);
-  doc.rect(marginLeft, boxStartY, contentWidth, boxHeight, 'F');
-  doc.setLineWidth(2);
-  doc.line(marginLeft, boxStartY, marginLeft, boxStartY + boxHeight);
-  
-  // Box content
-  let boxY = boxStartY + 10;
+  // ========== DOCUMENT DETAILS SECTION ==========
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
-  doc.text('DOCUMENT DETAILS', marginLeft + 8, boxY);
-  boxY += 8;
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text('DOCUMENT DETAILS', marginLeft, y);
+  y += 6;
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(text[0], text[1], text[2]);
   
   // Document description
-  doc.text(`Document(s): ${data.documentDescription}`, marginLeft + 8, boxY);
-  boxY += 6;
+  doc.text(`Document(s): ${data.documentDescription}`, marginLeft, y);
+  y += 5;
   
   // Issuer if provided
   if (data.documentIssuer) {
-    doc.text(`Issued by: ${data.documentIssuer}`, marginLeft + 8, boxY);
-    boxY += 6;
+    doc.text(`Issued by: ${data.documentIssuer}`, marginLeft, y);
+    y += 5;
   }
   
   // Country of use
-  doc.text(`Country of Use: ${data.countryOfUse}`, marginLeft + 8, boxY);
-  boxY += 6;
+  doc.text(`Country of Use: ${data.countryOfUse}`, marginLeft, y);
+  y += 5;
   
   // Purpose if provided
   if (data.purpose) {
-    doc.text(`Purpose: ${data.purpose}`, marginLeft + 8, boxY);
+    doc.text(`Purpose: ${data.purpose}`, marginLeft, y);
+    y += 5;
   }
 
-  y = boxStartY + boxHeight + 12;
+  y += 8;
 
   // ========== ADDITIONAL PARAGRAPH ==========
   const additionalText = `We kindly request that the legalisation be processed at your earliest convenience. Upon completion, the document(s) will be collected by our authorised representative.`;
@@ -1262,55 +1250,44 @@ export async function generateEmbassyCoverLetter(
   y += wrappedAdditional.length * 5 + 8;
 
   // ========== PAYMENT INFO ==========
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(text[0], text[1], text[2]);
   doc.text(`Payment Method: ${data.paymentMethod}`, marginLeft, y);
-  y += 6;
+  y += 5;
   doc.text(`Collection: ${data.returnMethod}`, marginLeft, y);
-  y += 15;
+  y += 12;
 
   // ========== CLOSING ==========
-  doc.text('We thank you for your kind assistance and remain at your disposal for any further information.', marginLeft, y);
-  y += 15;
+  const closingText = 'We thank you for your kind assistance and remain at your disposal for any further information.';
+  const wrappedClosing = doc.splitTextToSize(closingText, contentWidth);
+  doc.text(wrappedClosing, marginLeft, y);
+  y += wrappedClosing.length * 5 + 10;
   
   doc.text('Yours faithfully,', marginLeft, y);
-  y += 20;
+  y += 15;
   
   // Signature area
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(darkNavy[0], darkNavy[1], darkNavy[2]);
+  doc.setFontSize(10);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
   doc.text('DOX Visumpartner AB', marginLeft, y);
-  y += 5;
+  y += 4;
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text('Authorised Representative', marginLeft, y);
 
   // ========== FOOTER ==========
-  const footerY = 280;
+  const footerY = 286;
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(marginLeft, footerY - 10, pageWidth - marginRight, footerY - 10);
   
-  // Gold accent line
-  doc.setDrawColor(gold[0], gold[1], gold[2]);
-  doc.setLineWidth(0.5);
-  doc.line(marginLeft, footerY - 8, pageWidth - marginRight, footerY - 8);
-  
-  // Footer text
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text(
-    'DOX Visumpartner AB  •  Box 38, 121 25 Stockholm-Globen  •  Tel: +46 8 409 419 00  •  info@doxvl.se',
+    'DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • Tel: 08-40941900 • info@doxvl.se',
     pageWidth / 2,
     footerY,
-    { align: 'center' }
-  );
-  doc.text(
-    'www.visumpartner.se',
-    pageWidth / 2,
-    footerY + 4,
     { align: 'center' }
   );
 
@@ -1337,6 +1314,291 @@ export async function printEmbassyCoverLetter(order: Order, data: EmbassyCoverLe
   if (!win) {
     const ord = order.orderNumber || order.id || '';
     const file = ord ? `Embassy Cover Letter ${ord}.pdf` : 'Embassy Cover Letter.pdf';
+    doc.save(file);
+  }
+}
+
+// ============================================================================
+// UD (UTRIKESDEPARTEMENTET) COVER LETTER - Ministry for Foreign Affairs
+// ============================================================================
+
+export interface UDCoverLetterData {
+  documentDescription: string; // e.g. "1 x Birth Certificate"
+  documentIssuer?: string;
+  countryOfUse: string;
+  language: string;
+  invoiceReference: string;
+  paymentMethod: string;
+  returnMethod: string;
+}
+
+/**
+ * Get default data for UD cover letter from order
+ */
+export function getUDDefaults(order: Order): UDCoverLetterData {
+  const quantity = order.quantity || 1;
+  const docType = getAllDocumentTypesDisplay(order);
+  const countryName = getCountryName(order.country);
+
+  return {
+    documentDescription: `${quantity} x ${docType}`,
+    documentIssuer: '',
+    countryOfUse: countryName,
+    language: (order as any).language || (order as any).documentLanguage || 'English',
+    invoiceReference: order.orderNumber || '',
+    paymentMethod: order.paymentMethod || 'Invoice',
+    returnMethod: 'Pickup by DOX Visumpartner AB'
+  };
+}
+
+/**
+ * Generate a cover letter for Utrikesdepartementet (Ministry for Foreign Affairs)
+ * Used when submitting documents for UD authentication/legalisation
+ */
+export async function generateUDCoverLetter(
+  order: Order,
+  data: UDCoverLetterData,
+  opts?: { autoPrint?: boolean }
+): Promise<jsPDF> {
+  const doc = new jsPDF();
+
+  // Brand palette matching website
+  const primary: [number, number, number] = [46, 45, 44]; // #2E2D2C - page header
+  const text: [number, number, number] = [32, 33, 36]; // gray-900
+  const grayText: [number, number, number] = [95, 99, 104]; // gray-700
+  const lineGray: [number, number, number] = [180, 180, 180]; // subtle lines
+
+  // Page dimensions
+  const pageWidth = 210;
+  const marginLeft = 20;
+  const marginRight = 20;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+
+  // ========== HEADER SECTION ==========
+  // Header line
+  doc.setDrawColor(primary[0], primary[1], primary[2]);
+  doc.setLineWidth(1);
+  doc.line(marginLeft, 48, pageWidth - marginRight, 48);
+
+  // Logo
+  try {
+    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
+    const targetH = 20; // mm
+    const ratio = width / height || 1;
+    const targetW = targetH * ratio;
+    doc.addImage(dataUrl, 'PNG', marginLeft, 10, targetW, targetH);
+  } catch {}
+
+  // Company info (right aligned)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  const companyLines = [
+    'DOX Visumpartner AB',
+    'Box 38',
+    '121 25 Stockholm-Globen',
+    'Tel: 08-40941900',
+    'info@doxvl.se'
+  ];
+  let cy = 14;
+  companyLines.forEach((l) => {
+    doc.text(l, pageWidth - marginRight, cy, { align: 'right' });
+    cy += 3.5;
+  });
+
+  // Title
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Utrikesdepartementet', marginLeft, 42);
+
+  // ========== DATE AND REFERENCE ==========
+  let y = 58;
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', { 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text(dateStr, pageWidth - marginRight, y, { align: 'right' });
+  
+  if (data.invoiceReference) {
+    doc.text(`Ref: ${data.invoiceReference}`, pageWidth - marginRight, y + 5, { align: 'right' });
+  }
+
+  // ========== UD ADDRESS ==========
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text('Utrikesdepartementet', marginLeft, y);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.text('Legaliseringsenheten', marginLeft, y + 6);
+  doc.text('103 39 Stockholm', marginLeft, y + 11);
+
+  // ========== MAIN CONTENT ==========
+  y = 90;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text('Cover Letter', marginLeft, y);
+  y += 10;
+
+  // Request text
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.text('We request the following action(s) on the document(s):', marginLeft, y);
+  y += 8;
+
+  // Document description
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.documentDescription, marginLeft, y);
+  y += 6;
+
+  // Document issuer (if provided)
+  if (data.documentIssuer) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.setFontSize(9);
+    doc.text(`Issued by: ${data.documentIssuer}`, marginLeft, y);
+    y += 6;
+  }
+  y += 4;
+
+  // Requested actions section
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Requested Action(s):', marginLeft, y);
+  y += 6;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  // Draw action with checkbox
+  const boxSize = 4;
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.rect(marginLeft, y - boxSize + 1, boxSize, boxSize);
+  doc.text('UD Legalisation (Ministry for Foreign Affairs authentication)', marginLeft + boxSize + 4, y + 1);
+  y += 10;
+
+  // Separator line
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(marginLeft, y, pageWidth - marginRight, y);
+  y += 10;
+
+  // Details section - two columns
+  const leftX = marginLeft;
+  const rightX = 110;
+  const rowH = 14;
+
+  // Country of use
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Country of use:', leftX, y);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(data.countryOfUse, leftX, y + 5);
+
+  // Language
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Language:', rightX, y);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(data.language, rightX, y + 5);
+  y += rowH;
+
+  // Invoice reference
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Invoice reference:', leftX, y);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(data.invoiceReference || '—', leftX, y + 5);
+
+  // Payment method
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Payment method:', rightX, y);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(`${data.paymentMethod} (via email: invoice@visumpartner.se)`, rightX, y + 5);
+  y += rowH;
+
+  // Return method
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Return:', leftX, y);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(data.returnMethod, leftX, y + 5);
+  y += rowH + 8;
+
+  // Internal notes box
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(marginLeft - 4, y, contentWidth + 8, 28, 2, 2);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('Internal notes:', marginLeft, y + 6);
+
+  // ========== FOOTER ==========
+  const footerY = 286;
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(marginLeft, footerY - 10, pageWidth - marginRight, footerY - 10);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text(
+    'DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • Tel: 08-40941900 • info@doxvl.se',
+    pageWidth / 2,
+    footerY,
+    { align: 'center' }
+  );
+
+  if (opts?.autoPrint) {
+    try {
+      doc.autoPrint();
+    } catch {}
+  }
+
+  return doc;
+}
+
+export async function downloadUDCoverLetter(order: Order, data: UDCoverLetterData): Promise<void> {
+  const doc = await generateUDCoverLetter(order, data);
+  const ord = order.orderNumber || order.id || '';
+  const file = ord ? `UD Cover Letter ${ord}.pdf` : 'UD Cover Letter.pdf';
+  doc.save(file);
+}
+
+export async function printUDCoverLetter(order: Order, data: UDCoverLetterData): Promise<void> {
+  const doc = await generateUDCoverLetter(order, data, { autoPrint: true });
+  const blobUrl = doc.output('bloburl');
+  const win = window.open(blobUrl);
+  if (!win) {
+    const ord = order.orderNumber || order.id || '';
+    const file = ord ? `UD Cover Letter ${ord}.pdf` : 'UD Cover Letter.pdf';
     doc.save(file);
   }
 }
