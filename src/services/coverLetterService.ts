@@ -265,10 +265,10 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   // Logo (left)
   try {
     const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo.webp');
-    const targetH = 10; // mm
+    const targetH = 20; // mm (doubled for better visibility)
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
-    doc.addImage(dataUrl, 'PNG', 20, 10, targetW, targetH);
+    doc.addImage(dataUrl, 'PNG', 20, 6, targetW, targetH);
   } catch {}
 
   // Order number prominent
@@ -508,10 +508,10 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   // Logo (left)
   try {
     const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo.webp');
-    const targetH = 10;
+    const targetH = 20; // mm (doubled for better visibility)
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
-    doc.addImage(dataUrl, 'PNG', 20, 10, targetW, targetH);
+    doc.addImage(dataUrl, 'PNG', 20, 6, targetW, targetH);
   } catch {}
 
   // Order number prominent
@@ -858,10 +858,10 @@ export async function generateNotaryApostilleCoverLetter(
   // Logo - use new logo (larger)
   try {
     const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
-    const targetH = 18;
+    const targetH = 36; // mm (doubled for better visibility)
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
-    doc.addImage(dataUrl, 'PNG', 20, 6, targetW, targetH);
+    doc.addImage(dataUrl, 'PNG', 20, 2, targetW, targetH);
   } catch {}
 
   // Title: Notarius Publicus
@@ -1124,10 +1124,10 @@ export async function generateEmbassyCoverLetter(
   // Logo
   try {
     const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
-    const targetH = 16;
+    const targetH = 32; // mm (doubled for better visibility)
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
-    doc.addImage(dataUrl, 'PNG', marginLeft, 20, targetW, targetH);
+    doc.addImage(dataUrl, 'PNG', marginLeft, 16, targetW, targetH);
   } catch {}
 
   // Company name and tagline (right aligned)
