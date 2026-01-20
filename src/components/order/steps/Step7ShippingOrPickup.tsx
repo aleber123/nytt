@@ -123,7 +123,7 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
             <div class="note">
               ${isRek
                 ? `<strong>${t('orderFlow.step7.rekTab', 'REK')}:</strong> ${t('orderFlow.step7.rekInfo', 'För rekommenderat brev (REK) ska du alltid använda denna boxadress.')}`
-                : `<strong>${t('orderFlow.step7.courierTab', 'BUD')}:</strong> ${t('orderFlow.step7.courierWarning', 'Viktigt: Skicka inte REK till denna adress.')}`}
+                : `<strong>${t('orderFlow.step7.courierTab', 'BUD')}:</strong> ${t('orderFlow.step7.courierWarning', 'Viktigt: Skicka inte vanlig post till denna adress.')}`}
             </div>
           </div>
         </body>
@@ -342,7 +342,7 @@ export const Step7ShippingOrPickup: React.FC<Step7Props> = ({
                     <p className="mt-2 text-xs text-red-700 font-medium">
                       {t(
                         'orderFlow.step7.courierWarning',
-                        'Viktigt: Skicka inte REK till denna adress.'
+                        'Viktigt: Skicka inte vanlig post till denna adress.'
                       )}
                     </p>
                   </div>

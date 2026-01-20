@@ -59,20 +59,71 @@ function formatCurrency(amount?: number): string {
 }
 
 function getDocumentTypeName(docType?: string): string {
-  switch (docType) {
-    case 'birthCertificate':
-      return 'Birth Certificate';
-    case 'marriageCertificate':
-      return 'Marriage Certificate';
-    case 'diploma':
-      return 'Diploma';
-    case 'commercial':
-      return 'Commercial Document';
-    case 'powerOfAttorney':
-      return 'Power of Attorney';
-    default:
-      return docType || 'Document';
+  if (!docType) return 'Document';
+  
+  const names: Record<string, string> = {
+    birthCertificate: 'Birth Certificate',
+    marriageCertificate: 'Marriage Certificate',
+    diploma: 'Diploma',
+    commercial: 'Commercial Document',
+    powerOfAttorney: 'Power of Attorney',
+    certificateOfOrigin: 'Certificate of Origin',
+    passport: 'Passport',
+    passportCopy: 'Passport Copy',
+    idCard: 'ID Card',
+    drivingLicense: 'Driving License',
+    residencePermit: 'Residence Permit',
+    degreeCertificate: 'Degree Certificate',
+    transcript: 'Transcript',
+    employmentCertificate: 'Employment Certificate',
+    salaryCertificate: 'Salary Certificate',
+    letterOfAppointment: 'Letter of Appointment',
+    criminalRecord: 'Criminal Record',
+    declarationLetter: 'Declaration Letter',
+    companyRegistration: 'Company Registration',
+    articlesOfAssociation: 'Articles of Association',
+    annualReport: 'Annual Report',
+    boardResolution: 'Board Resolution',
+    minutesOfMeeting: 'Minutes of Meeting',
+    businessDocuments: 'Business Documents',
+    freeSalesCertificate: 'Free Sales Certificate',
+    priceCertificate: 'Price Certificate',
+    invoice: 'Invoice',
+    contract: 'Contract',
+    distributionAgreement: 'Distribution Agreement',
+    terminationAgreement: 'Termination of Agreement',
+    euDeclarationOfConformity: 'EU Declaration of Conformity',
+    euCertificate: 'EU Certificate',
+    isoCertificate: 'ISO Certificate',
+    fscCertificate: 'FSC Certificate',
+    productionLicense: 'Production License',
+    manufacturerAuthorisation: 'Manufacturer/Importer Authorisation',
+    medicalCertificate: 'Medical Certificate',
+    bankStatement: 'Bank Statement',
+    deathCertificate: 'Death Certificate',
+    divorceDecree: 'Divorce Decree',
+    adoptionCertificate: 'Adoption Certificate',
+    nameChange: 'Name Change Certificate',
+    other: 'Other Document'
+  };
+  
+  if (names[docType]) return names[docType];
+  
+  // Handle custom document types
+  if (docType.startsWith('custom_')) {
+    const name = docType.replace('custom_', '').replace(/_/g, ' ');
+    return name.charAt(0).toUpperCase() + name.slice(1);
   }
+  
+  return docType;
+}
+
+// Get all document types as display string (for orders with multiple types)
+function getAllDocumentTypesDisplay(order: Order): string {
+  const types = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
+    ? (order as any).documentTypes
+    : order.documentType ? [order.documentType] : [];
+  return types.map(getDocumentTypeName).join(', ') || 'Document';
 }
 
 function getCountryName(country?: string): string {
@@ -284,7 +335,7 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
   if (customerName) details.push(['Customer', customerName]);
 
-  details.push(['Document type', getDocumentTypeName(order.documentType)]);
+  details.push(['Document type', getAllDocumentTypesDisplay(order)]);
   details.push(['Country of use', getCountryName(order.country)]);
   details.push(['Quantity', `${order.quantity}`]);
 
@@ -522,7 +573,7 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
   if (customerName) details.push(['Customer', customerName]);
 
-  details.push(['Document type', getDocumentTypeName(order.documentType)]);
+  details.push(['Document type', getAllDocumentTypesDisplay(order)]);
   details.push(['Country of use', getCountryName(order.country)]);
   details.push(['Quantity', `${order.quantity}`]);
 
@@ -768,7 +819,7 @@ export function getNotaryApostilleDefaults(order: Order): NotaryApostilleCoverLe
   }
 
   const quantity = order.quantity || 1;
-  const docType = getDocumentTypeName(order.documentType);
+  const docType = getAllDocumentTypesDisplay(order);
 
   return {
     documentDescription: `${quantity} x ${docType}`,

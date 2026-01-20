@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
+import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 // Defer importing Firebase-dependent service to client to avoid SSR issues
 
 // Define Order interface locally
@@ -13,6 +14,7 @@ interface Order {
   orderNumber?: string;
   services: string[];
   documentType: string;
+  documentTypes?: string[];
   country: string;
   quantity: number;
   expedited: boolean;
@@ -317,11 +319,21 @@ export function ConfirmationPage() {
                       <div className="space-y-3">
                         <p className="text-gray-700">
                           <span className="font-medium">Dokumenttyp:</span> {
-                            order.documentType === 'birthCertificate' ? 'Födelsebevis' :
-                            order.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-                            order.documentType === 'diploma' ? 'Examensbevis' :
-                            order.documentType === 'commercial' ? 'Handelsdokument' :
-                            order.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'
+                            (() => {
+                              const getDocTypeName = (typeId: string): string => {
+                                const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
+                                if (predefined) return predefined.name;
+                                if (typeId.startsWith('custom_')) {
+                                  const name = typeId.replace('custom_', '').replace(/_/g, ' ');
+                                  return name.charAt(0).toUpperCase() + name.slice(1);
+                                }
+                                return typeId;
+                              };
+                              const types = Array.isArray(order.documentTypes) && order.documentTypes.length > 0
+                                ? order.documentTypes
+                                : order.documentType ? [order.documentType] : [];
+                              return types.map(getDocTypeName).join(', ') || 'Annat dokument';
+                            })()
                           }
                         </p>
                         <p className="text-gray-700">

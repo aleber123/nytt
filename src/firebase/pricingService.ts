@@ -2631,3 +2631,250 @@ export const initializePickupPricing = async (updatedBy: string): Promise<void> 
     throw error;
   }
 };
+
+// ============================================
+// Document Type Popularity Tracking
+// ============================================
+
+export interface DocumentTypePopularity {
+  documentTypeId: string;
+  documentTypeName: string;
+  documentTypeNameEn: string;
+  selectionCount: number;
+  lastSelected: Timestamp;
+  isCustom?: boolean; // True if this was a custom/freetext document type
+}
+
+// Predefined document types with translations (no emojis)
+export const PREDEFINED_DOCUMENT_TYPES = [
+  // Personal documents
+  { id: 'birthCertificate', name: 'Födelsebevis', nameEn: 'Birth Certificate' },
+  { id: 'marriageCertificate', name: 'Vigselbevis', nameEn: 'Marriage Certificate' },
+  { id: 'deathCertificate', name: 'Dödsbevis', nameEn: 'Death Certificate' },
+  { id: 'divorceDecree', name: 'Skilsmässodom', nameEn: 'Divorce Decree' },
+  { id: 'adoptionCertificate', name: 'Adoptionshandling', nameEn: 'Adoption Certificate' },
+  { id: 'nameChange', name: 'Namnändring', nameEn: 'Name Change Certificate' },
+  
+  // ID documents
+  { id: 'passport', name: 'Pass', nameEn: 'Passport' },
+  { id: 'passportCopy', name: 'Passkopia', nameEn: 'Passport Copy' },
+  { id: 'idCard', name: 'ID-kort', nameEn: 'ID Card' },
+  { id: 'drivingLicense', name: 'Körkort', nameEn: 'Driving License' },
+  { id: 'residencePermit', name: 'Uppehållstillstånd', nameEn: 'Residence Permit' },
+  
+  // Education
+  { id: 'diploma', name: 'Examensbevis', nameEn: 'Diploma' },
+  { id: 'degreeCertificate', name: 'Examensbevis (högskola)', nameEn: 'Degree Certificate' },
+  { id: 'transcript', name: 'Betyg/Studieintyg', nameEn: 'Transcript' },
+  
+  // Employment
+  { id: 'employmentCertificate', name: 'Arbetsgivarintyg', nameEn: 'Employment Certificate' },
+  { id: 'salaryCertificate', name: 'Löneintyg', nameEn: 'Salary Certificate' },
+  { id: 'letterOfAppointment', name: 'Förordnande/Utnämning', nameEn: 'Letter of Appointment' },
+  
+  // Legal documents
+  { id: 'powerOfAttorney', name: 'Fullmakt', nameEn: 'Power of Attorney' },
+  { id: 'criminalRecord', name: 'Utdrag ur belastningsregistret', nameEn: 'Criminal Record' },
+  { id: 'declarationLetter', name: 'Försäkran/Deklaration', nameEn: 'Declaration Letter' },
+  
+  // Company documents
+  { id: 'companyRegistration', name: 'Registreringsbevis', nameEn: 'Company Registration' },
+  { id: 'articlesOfAssociation', name: 'Bolagsordning', nameEn: 'Articles of Association' },
+  { id: 'annualReport', name: 'Årsredovisning', nameEn: 'Annual Report' },
+  { id: 'boardResolution', name: 'Styrelseprotokoll', nameEn: 'Board Resolution' },
+  { id: 'minutesOfMeeting', name: 'Mötesprotokoll', nameEn: 'Minutes of Meeting' },
+  { id: 'businessDocuments', name: 'Affärshandlingar', nameEn: 'Business Documents' },
+  
+  // Trade & Commercial
+  { id: 'certificateOfOrigin', name: 'Ursprungsintyg', nameEn: 'Certificate of Origin' },
+  { id: 'commercial', name: 'Handelshandling', nameEn: 'Commercial Document' },
+  { id: 'freeSalesCertificate', name: 'Free Sales Certificate', nameEn: 'Free Sales Certificate' },
+  { id: 'priceCertificate', name: 'Prisintyg', nameEn: 'Price Certificate' },
+  { id: 'invoice', name: 'Faktura', nameEn: 'Invoice' },
+  { id: 'contract', name: 'Avtal/Kontrakt', nameEn: 'Contract' },
+  { id: 'distributionAgreement', name: 'Distributionsavtal', nameEn: 'Distribution Agreement' },
+  { id: 'terminationAgreement', name: 'Uppsägning av avtal', nameEn: 'Termination of Agreement' },
+  
+  // Certifications & Compliance
+  { id: 'euDeclarationOfConformity', name: 'EU-försäkran om överensstämmelse', nameEn: 'EU Declaration of Conformity' },
+  { id: 'euCertificate', name: 'EU-certifikat', nameEn: 'EU Certificate' },
+  { id: 'isoCertificate', name: 'ISO-certifikat', nameEn: 'ISO Certificate' },
+  { id: 'fscCertificate', name: 'FSC-certifikat', nameEn: 'FSC Certificate' },
+  { id: 'productionLicense', name: 'Produktionslicens', nameEn: 'Production License' },
+  { id: 'manufacturerAuthorisation', name: 'Tillverkar-/Importörsauktorisation', nameEn: 'Manufacturer/Importer Authorisation' },
+  
+  // Medical & Health
+  { id: 'medicalCertificate', name: 'Läkarintyg', nameEn: 'Medical Certificate' },
+  
+  // Financial
+  { id: 'bankStatement', name: 'Kontoutdrag', nameEn: 'Bank Statement' },
+  
+  // Other
+  { id: 'other', name: 'Övrigt', nameEn: 'Other' }
+];
+
+// Get document type info by ID
+export const getDocumentTypeInfo = (documentTypeId: string) => {
+  return PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === documentTypeId) || null;
+};
+
+// Track document type selection for popularity ranking
+export const trackDocumentTypeSelection = async (documentTypeId: string, customName?: string): Promise<void> => {
+  try {
+    if (!db) {
+      return;
+    }
+
+    const docTypeInfo = getDocumentTypeInfo(documentTypeId);
+    const isCustom = !docTypeInfo && !!customName;
+    
+    // For custom types, use the custom name as the ID (sanitized)
+    const docId = isCustom ? `custom_${customName?.toLowerCase().replace(/[^a-z0-9åäö]/g, '_')}` : documentTypeId;
+    const popularityRef = doc(db, 'documentTypePopularity', docId);
+
+    const popularityData: DocumentTypePopularity = {
+      documentTypeId: docId,
+      documentTypeName: docTypeInfo?.name || customName || documentTypeId,
+      documentTypeNameEn: docTypeInfo?.nameEn || customName || documentTypeId,
+      selectionCount: 1,
+      lastSelected: Timestamp.now(),
+      isCustom
+    };
+
+    const docSnap = await getDoc(popularityRef);
+    if (docSnap.exists()) {
+      await updateDoc(popularityRef, {
+        selectionCount: increment(1),
+        lastSelected: Timestamp.now()
+      });
+    } else {
+      await setDoc(popularityRef, popularityData);
+    }
+  } catch (error) {
+    // Don't throw - tracking should not break user flow
+  }
+};
+
+// Get popular document types sorted by selection count
+export const getPopularDocumentTypes = async (maxResults: number = 12): Promise<DocumentTypePopularity[]> => {
+  try {
+    if (!db) {
+      return getStaticPopularDocumentTypes().slice(0, maxResults);
+    }
+
+    const q = query(
+      collection(db, 'documentTypePopularity'),
+      orderBy('selectionCount', 'desc'),
+      limit(maxResults * 2)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const dynamicTypes = querySnapshot.docs.map(doc => doc.data() as DocumentTypePopularity);
+
+    if (dynamicTypes.length >= maxResults) {
+      return dynamicTypes.slice(0, maxResults);
+    }
+
+    // Merge with static data
+    const staticPopular = getStaticPopularDocumentTypes();
+    const existingIds = new Set(dynamicTypes.map(dt => dt.documentTypeId));
+
+    const mergedTypes = [...dynamicTypes];
+    for (const staticType of staticPopular) {
+      if (!existingIds.has(staticType.documentTypeId) && mergedTypes.length < maxResults) {
+        mergedTypes.push(staticType);
+      }
+    }
+
+    return mergedTypes.sort((a, b) => b.selectionCount - a.selectionCount).slice(0, maxResults);
+
+  } catch (error) {
+    return getStaticPopularDocumentTypes().slice(0, maxResults);
+  }
+};
+
+// Static fallback for popular document types
+const getStaticPopularDocumentTypes = (): DocumentTypePopularity[] => {
+  const popularIds = [
+    'birthCertificate',
+    'diploma',
+    'marriageCertificate',
+    'powerOfAttorney',
+    'companyRegistration',
+    'criminalRecord',
+    'employmentCertificate',
+    'certificateOfOrigin',
+    'passport',
+    'medicalCertificate',
+    'divorceDecree',
+    'commercial'
+  ];
+
+  return popularIds.map((id, index) => {
+    const info = getDocumentTypeInfo(id);
+    return {
+      documentTypeId: id,
+      documentTypeName: info?.name || id,
+      documentTypeNameEn: info?.nameEn || id,
+      selectionCount: 100 - index * 5, // Decreasing popularity
+      lastSelected: Timestamp.now()
+    };
+  });
+};
+
+// Seed initial document type popularity (admin function)
+export const seedDocumentTypePopularity = async (): Promise<{ success: number; failed: number }> => {
+  if (!db) {
+    throw new Error('Firebase not initialized');
+  }
+
+  const typesToSeed = [
+    { id: 'birthCertificate', clicks: 150 },
+    { id: 'diploma', clicks: 140 },
+    { id: 'marriageCertificate', clicks: 120 },
+    { id: 'powerOfAttorney', clicks: 110 },
+    { id: 'companyRegistration', clicks: 100 },
+    { id: 'criminalRecord', clicks: 90 },
+    { id: 'employmentCertificate', clicks: 85 },
+    { id: 'certificateOfOrigin', clicks: 80 },
+    { id: 'passport', clicks: 75 },
+    { id: 'medicalCertificate', clicks: 70 },
+    { id: 'divorceDecree', clicks: 65 },
+    { id: 'commercial', clicks: 60 }
+  ];
+
+  let success = 0;
+  let failed = 0;
+
+  for (const type of typesToSeed) {
+    try {
+      const info = getDocumentTypeInfo(type.id);
+      if (!info) continue;
+
+      const popularityRef = doc(db, 'documentTypePopularity', type.id);
+      const docSnap = await getDoc(popularityRef);
+
+      if (docSnap.exists()) {
+        const currentCount = docSnap.data().selectionCount || 0;
+        await updateDoc(popularityRef, {
+          selectionCount: currentCount + type.clicks,
+          lastSelected: Timestamp.now()
+        });
+      } else {
+        await setDoc(popularityRef, {
+          documentTypeId: type.id,
+          documentTypeName: info.name,
+          documentTypeNameEn: info.nameEn,
+          selectionCount: type.clicks,
+          lastSelected: Timestamp.now(),
+          isCustom: false
+        });
+      }
+      success++;
+    } catch (error) {
+      failed++;
+    }
+  }
+
+  return { success, failed };
+};

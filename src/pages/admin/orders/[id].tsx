@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import type { Order } from '@/firebase/orderService';
 import { toast } from 'react-hot-toast';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 import CountryFlag from '@/components/ui/CountryFlag';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -4346,17 +4347,21 @@ function AdminOrderDetailPage() {
                                         {t('order.summary.documentType', 'Dokumenttyp')}:
                                       </span>
                                       <span className="font-medium text-gray-900">
-                                        {order.documentType === 'birthCertificate'
-                                          ? t('documents.birthCertificate', 'Födelsebevis')
-                                          : order.documentType === 'marriageCertificate'
-                                          ? t('documents.marriageCertificate', 'Vigselbevis')
-                                          : order.documentType === 'diploma'
-                                          ? t('documents.diploma', 'Examensbevis')
-                                          : order.documentType === 'commercial'
-                                          ? t('documents.commercialDocuments', 'Handelsdokument')
-                                          : order.documentType === 'powerOfAttorney'
-                                          ? t('documents.powerOfAttorney', 'Fullmakt')
-                                          : t('documents.other', 'Annat dokument')}
+                                        {(() => {
+                                          const getDocTypeName = (typeId: string): string => {
+                                            const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
+                                            if (predefined) return predefined.name;
+                                            if (typeId?.startsWith('custom_')) {
+                                              const name = typeId.replace('custom_', '').replace(/_/g, ' ');
+                                              return name.charAt(0).toUpperCase() + name.slice(1);
+                                            }
+                                            return typeId || 'Annat dokument';
+                                          };
+                                          const types = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
+                                            ? (order as any).documentTypes
+                                            : order.documentType ? [order.documentType] : [];
+                                          return types.map(getDocTypeName).join(', ') || 'Annat dokument';
+                                        })()}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">

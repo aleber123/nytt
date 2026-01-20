@@ -1123,7 +1123,7 @@
       "courierPostalCode": "121 62",
       "courierCity": "Johanneshov",
       "courierCountry": "Sverige",
-      "courierWarning": "Viktigt: Skicka inte REK till denna adress.",
+      "courierWarning": "Viktigt: Skicka inte vanlig post till denna adress.",
       "courierTab": "BUD (t.ex. DHL, Bring m.m.)"
     },
     "step8": {

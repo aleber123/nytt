@@ -7,6 +7,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
+import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 
 const MIN_QUANTITY = 1;
 const MAX_QUANTITY = 100;
@@ -27,17 +28,18 @@ export const Step4Quantity: React.FC<StepProps> = ({
   const isMultiType = selectedDocumentTypes.length > 1;
 
   const getDocumentTypeName = (typeId: string) => {
-    const names: { [key: string]: string } = {
-      birthCertificate: t('orderFlow.step2.birthCertificate', { defaultValue: 'Birth Certificate' }),
-      marriageCertificate: t('orderFlow.step2.marriageCertificate', { defaultValue: 'Marriage Certificate' }),
-      certificateOfOrigin: t('orderFlow.step2.certificateOfOrigin', { defaultValue: 'Certificate of Origin (COO)' }),
-      diploma: t('orderFlow.step2.diploma', { defaultValue: 'Diploma' }),
-      passport: t('orderFlow.step2.passport', { defaultValue: 'Passport' }),
-      commercial: t('orderFlow.step2.commercial', { defaultValue: 'Commercial Documents' }),
-      powerOfAttorney: t('orderFlow.step2.powerOfAttorney', { defaultValue: 'Power of Attorney' }),
-      other: t('orderFlow.step2.other', { defaultValue: 'Other document' })
-    };
-    return names[typeId] || typeId;
+    // Check predefined types from pricingService
+    const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
+    if (predefined) {
+      return predefined.name; // Swedish name
+    }
+    // For custom types, extract the readable name from the ID
+    if (typeId.startsWith('custom_')) {
+      const name = typeId.replace('custom_', '').replace(/_/g, ' ');
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    // Fallback to translation or ID
+    return t(`orderFlow.step2.${typeId}`, { defaultValue: typeId });
   };
 
   const getQuantityForType = (typeId: string, source: any = answers) => {

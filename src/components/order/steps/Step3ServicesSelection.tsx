@@ -10,6 +10,7 @@ import { StepContainer } from '../shared/StepContainer';
 import { StepProps, Service } from '../types';
 import { HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
 import CountryFlag from '../../ui/CountryFlag';
+import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 
 interface Step3Props extends StepProps {
   availableServices: Service[];
@@ -86,22 +87,28 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
   };
 
   const getDocumentTypeName = () => {
-    const typeMap: { [key: string]: string } = {
-      birthCertificate: t('orderFlow.step2.birthCertificate', { defaultValue: 'Birth Certificate' }),
-      marriageCertificate: t('orderFlow.step2.marriageCertificate', { defaultValue: 'Marriage Certificate' }),
-      certificateOfOrigin: t('orderFlow.step2.certificateOfOrigin', { defaultValue: 'Certificate of Origin (COO)' }),
-      diploma: t('orderFlow.step2.diploma', { defaultValue: 'Diploma' }),
-      passport: t('orderFlow.step2.passport', { defaultValue: 'Passport' }),
-      commercial: t('orderFlow.step2.commercial', { defaultValue: 'Commercial Documents' }),
-      powerOfAttorney: t('orderFlow.step2.powerOfAttorney', { defaultValue: 'Power of Attorney' }),
-      other: t('orderFlow.step2.other', { defaultValue: 'Other document' })
+    // Helper to get display name for a single document type
+    const getDisplayName = (typeId: string): string => {
+      // Check predefined types from pricingService
+      const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
+      if (predefined) {
+        return predefined.name; // Swedish name
+      }
+      // For custom types, extract the readable name from the ID
+      if (typeId.startsWith('custom_')) {
+        const name = typeId.replace('custom_', '').replace(/_/g, ' ');
+        return name.charAt(0).toUpperCase() + name.slice(1);
+      }
+      // Fallback to translation or ID
+      return t(`orderFlow.step2.${typeId}`, { defaultValue: typeId });
     };
+    
     if (Array.isArray(answers.documentTypes) && answers.documentTypes.length > 0) {
-      const names = answers.documentTypes.map((type) => typeMap[type] || type);
+      const names = answers.documentTypes.map((type) => getDisplayName(type));
       return names.join(', ');
     }
 
-    return typeMap[answers.documentType] || answers.documentType;
+    return getDisplayName(answers.documentType);
   };
 
   const hasNotarizationSelected = answers.services.includes('notarization');

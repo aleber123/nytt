@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { useTranslation } from 'next-i18next';
+import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 
 interface OrderSummaryProps {
   answers: any;
@@ -63,28 +64,23 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
 
   // Get document type name with translation support
   const getDocumentTypeName = (type: string) => {
-    // Try to use translation first, fallback to Swedish
+    // Check predefined types from pricingService
+    const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === type);
+    if (predefined) {
+      return currentLocale === 'en' ? predefined.nameEn : predefined.name;
+    }
+    // For custom types, extract the readable name from the ID
+    if (type.startsWith('custom_')) {
+      const name = type.replace('custom_', '').replace(/_/g, ' ');
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    // Fallback to translation or type ID
     const translationKey = `orderFlow.step2.${type}`;
     const translated = t(translationKey);
-    
-    // If translation exists and is different from key, use it
     if (translated && translated !== translationKey) {
       return translated;
     }
-    
-    // Fallback to Swedish
-    const names: { [key: string]: string } = {
-      birthCertificate: 'Födelsebevis',
-      marriageCertificate: 'Vigselbevis',
-      certificateOfOrigin: 'Ursprungscertifikat (COO)',
-      deathCertificate: 'Dödsbevis',
-      diploma: 'Examensbevis',
-      passport: 'Pass',
-      transcript: 'Studieutdrag',
-      criminalRecord: 'Utdrag ur belastningsregistret',
-      other: 'Annat dokument'
-    };
-    return names[type] || type;
+    return type;
   };
 
   const documentTypesToDisplay: string[] = Array.isArray(answers.documentTypes) && answers.documentTypes.length > 0

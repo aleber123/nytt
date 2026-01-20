@@ -12,7 +12,7 @@ import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { createOrderWithFiles } from '@/services/hybridOrderService';
-import { calculateOrderPrice } from '@/firebase/pricingService';
+import { calculateOrderPrice, PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { printShippingLabel } from '@/services/shippingLabelService';
 import { StepProps } from '../types';
@@ -66,6 +66,29 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   const isValidEmail = (email: string) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
+  };
+
+  // Helper to get display name for document types (handles custom types)
+  const getDocumentTypeDisplayName = (typeId: string, isEnglish: boolean = false): string => {
+    // Check predefined types from pricingService
+    const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
+    if (predefined) {
+      return isEnglish ? predefined.nameEn : predefined.name;
+    }
+    // For custom types, extract the readable name from the ID
+    if (typeId.startsWith('custom_')) {
+      const name = typeId.replace('custom_', '').replace(/_/g, ' ');
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+    return typeId;
+  };
+
+  // Get all document types as display string
+  const getAllDocumentTypesDisplay = (isEnglish: boolean = false): string => {
+    if (Array.isArray(answers.documentTypes) && answers.documentTypes.length > 0) {
+      return answers.documentTypes.map(t => getDocumentTypeDisplayName(t, isEnglish)).join(', ');
+    }
+    return getDocumentTypeDisplayName(answers.documentType, isEnglish);
   };
 
   // Validation helper - get list of missing or invalid required fields
@@ -627,13 +650,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
             <span className="text-gray-700">{t('orderFlow.step10.documentType')}:</span>
             <span className="font-medium text-gray-900 break-words">
-              {answers.documentType === 'birthCertificate' ? t('orderFlow.step2.birthCertificate') :
-               answers.documentType === 'marriageCertificate' ? t('orderFlow.step2.marriageCertificate') :
-               answers.documentType === 'certificateOfOrigin' ? t('orderFlow.step2.certificateOfOrigin') :
-               answers.documentType === 'diploma' ? t('orderFlow.step2.diploma') :
-               answers.documentType === 'passport' ? t('orderFlow.step2.passport') :
-               answers.documentType === 'commercial' ? t('orderFlow.step2.commercial') :
-               answers.documentType === 'powerOfAttorney' ? t('orderFlow.step2.powerOfAttorney') : t('orderFlow.step2.other')}
+              {getAllDocumentTypesDisplay(locale === 'en')}
             </span>
           </div>
 
@@ -996,11 +1013,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     }
 
                     const countryName = allCountries.find(c => c.code === answers.country)?.name || answers.country;
-                    const documentTypeName = answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
-                      answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-                      answers.documentType === 'diploma' ? 'Examensbevis' :
-                      answers.documentType === 'commercial' ? 'Handelsdokument' :
-                      answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument';
+                    
+                    const documentTypeName = getAllDocumentTypesDisplay(false);
                     const servicesText = answers.services.map(serviceId => getServiceName(serviceId)).join(', ');
                     const documentSourceText = answers.documentSource === 'original' ? 'Originaldokument' : 
                       (answers.willSendMainDocsLater ? 'Skickas via e-post' : 'Uppladdade filer');
@@ -1462,7 +1476,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div class="section">
           <div class="row"><span class="label">Datum</span><span class="value">${new Date().toLocaleDateString('sv-SE')}</span></div>
           <div class="row"><span class="label">Land</span><span class="value">${allCountries.find(c => c.code === answers.country)?.name}</span></div>
-          <div class="row"><span class="label">Dokumenttyp</span><span class="value">${answers.documentType === 'birthCertificate' ? 'Födelsebevis' : answers.documentType === 'marriageCertificate' ? 'Vigselbevis' : answers.documentType === 'diploma' ? 'Examensbevis' : answers.documentType === 'commercial' ? 'Handelsdokument' : answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}</span></div>
+          <div class="row"><span class="label">Dokumenttyp</span><span class="value">${getAllDocumentTypesDisplay(false)}</span></div>
           <div class="row"><span class="label">Antal dokument</span><span class="value">${answers.quantity} st</span></div>
           <div class="row"><span class="label">Valda tjänster</span><span class="value">${answers.services.map(s => getServiceName(s)).join(', ')}</span></div>
           <div class="row"><span class="label">Totalbelopp</span><span class="value">${pricingResult.totalPrice} kr</span></div>
@@ -1623,11 +1637,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           </div>
           <div class="detail-row">
             <span class="detail-label">Document type:</span>
-            <span class="detail-value">${answers.documentType === 'birthCertificate' ? 'Birth certificate' :
-              answers.documentType === 'marriageCertificate' ? 'Marriage certificate' :
-              answers.documentType === 'diploma' ? 'Diploma' :
-              answers.documentType === 'commercial' ? 'Commercial document' :
-              answers.documentType === 'powerOfAttorney' ? 'Power of attorney' : 'Other document'}</span>
+            <span class="detail-value">${getAllDocumentTypesDisplay(true)}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Number of documents:</span>
@@ -1790,11 +1800,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           </div>
           <div class="detail-row">
             <span class="detail-label">Dokumenttyp:</span>
-            <span class="detail-value">${answers.documentType === 'birthCertificate' ? 'Födelsebevis' :
-              answers.documentType === 'marriageCertificate' ? 'Vigselbevis' :
-              answers.documentType === 'diploma' ? 'Examensbevis' :
-              answers.documentType === 'commercial' ? 'Handelsdokument' :
-              answers.documentType === 'powerOfAttorney' ? 'Fullmakt' : 'Annat dokument'}</span>
+            <span class="detail-value">${getAllDocumentTypesDisplay(false)}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Antal dokument:</span>
