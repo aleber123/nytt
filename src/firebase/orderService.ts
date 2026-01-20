@@ -94,6 +94,8 @@ export interface Order {
   returnTrackingUrl?: string;
   pickupTrackingNumber?: string;
   pickupLabelFile?: any;
+  // Linked orders for combined shipping
+  linkedOrders?: string[]; // Array of order IDs that should be shipped together
 }
 
 const ORDERS_COLLECTION = 'orders';

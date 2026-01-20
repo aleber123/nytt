@@ -193,12 +193,69 @@ function AdminOrderDetailPage() {
   const [embassyPriceInput, setEmbassyPriceInput] = useState<string>('');
   const [showEmbassyPriceWarningModal, setShowEmbassyPriceWarningModal] = useState(false);
 
+  // Combined shipping (samskick) states - linked via tracking number
+  const [linkedOrders, setLinkedOrders] = useState<string[]>([]);
+  const [linkedOrdersDetails, setLinkedOrdersDetails] = useState<ExtendedOrder[]>([]);
+  const [duplicateTrackingOrders, setDuplicateTrackingOrders] = useState<ExtendedOrder[]>([]);
+
   useEffect(() => {
     const orderId = router.query.id as string | undefined;
     if (orderId) {
       fetchOrder(orderId);
     }
   }, [router.query.id]);
+
+  // Fetch linked orders details when order loads
+  useEffect(() => {
+    if (order) {
+      // Set linked orders from order data
+      const linked = order.linkedOrders || [];
+      setLinkedOrders(linked);
+      if (linked.length > 0) {
+        fetchLinkedOrdersDetails(linked);
+      } else {
+        setLinkedOrdersDetails([]);
+      }
+    }
+  }, [order?.id, order?.linkedOrders]);
+
+  // Check for duplicate tracking numbers when order loads
+  useEffect(() => {
+    const checkDuplicateTracking = async () => {
+      if (!order || !order.returnTrackingNumber) {
+        setDuplicateTrackingOrders([]);
+        return;
+      }
+      
+      const currentOrderId = order.id || (router.query.id as string);
+      const trackingNum = order.returnTrackingNumber.trim();
+      
+      if (!trackingNum) {
+        setDuplicateTrackingOrders([]);
+        return;
+      }
+      
+      try {
+        const mod = await import('@/services/hybridOrderService');
+        const getAllOrders = mod.default?.getAllOrders || mod.getAllOrders;
+        const allOrders = await getAllOrders();
+        
+        // Find orders with same tracking number (excluding current order and already linked orders)
+        const linkedIds = order.linkedOrders || [];
+        const duplicates = allOrders.filter((o: ExtendedOrder) => 
+          o.returnTrackingNumber === trackingNum && 
+          o.id !== currentOrderId &&
+          !linkedIds.includes(o.id || '')
+        );
+        
+        setDuplicateTrackingOrders(duplicates);
+      } catch (err) {
+        setDuplicateTrackingOrders([]);
+      }
+    };
+    
+    checkDuplicateTracking();
+  }, [order?.id, order?.returnTrackingNumber, order?.linkedOrders]);
 
   // Initialize pricing editor from order.adminPrice if available
   useEffect(() => {
@@ -934,6 +991,95 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Fetch details of linked orders
+  const fetchLinkedOrdersDetails = async (orderIds: string[]) => {
+    if (!orderIds || orderIds.length === 0) {
+      setLinkedOrdersDetails([]);
+      return;
+    }
+    try {
+      const mod = await import('@/services/hybridOrderService');
+      const getOrderById = mod.default?.getOrderById || mod.getOrderById;
+      const details = await Promise.all(
+        orderIds.map(async (id) => {
+          try {
+            return await getOrderById(id);
+          } catch {
+            return null;
+          }
+        })
+      );
+      setLinkedOrdersDetails(details.filter(Boolean) as ExtendedOrder[]);
+    } catch (err) {
+      console.error('Error fetching linked orders:', err);
+    }
+  };
+
+  // Link order for combined shipping (from duplicate tracking warning)
+  const handleLinkDuplicateOrder = async (orderIdToLink: string) => {
+    if (!order) return;
+    const currentOrderId = order.id || (router.query.id as string);
+    
+    try {
+      // Update current order's linkedOrders
+      const currentLinked = order.linkedOrders || [];
+      if (!currentLinked.includes(orderIdToLink)) {
+        const newLinked = [...currentLinked, orderIdToLink];
+        await adminUpdateOrder(currentOrderId, { linkedOrders: newLinked });
+        
+        // Also update the other order to link back
+        const otherOrder = duplicateTrackingOrders.find(o => o.id === orderIdToLink);
+        if (otherOrder) {
+          const otherLinked = otherOrder.linkedOrders || [];
+          if (!otherLinked.includes(currentOrderId)) {
+            await adminUpdateOrder(orderIdToLink, { linkedOrders: [...otherLinked, currentOrderId] });
+          }
+        }
+        
+        setLinkedOrders(newLinked);
+        // Remove from duplicates list
+        setDuplicateTrackingOrders(prev => prev.filter(o => o.id !== orderIdToLink));
+        toast.success(`Order ${otherOrder?.orderNumber || orderIdToLink} linked for combined shipping`);
+        
+        // Refresh order data
+        await fetchOrder(currentOrderId);
+      }
+    } catch (err) {
+      console.error('Error linking order:', err);
+      toast.error('Failed to link order');
+    }
+  };
+
+  // Unlink order from combined shipping
+  const handleUnlinkOrder = async (orderIdToUnlink: string) => {
+    if (!order) return;
+    const currentOrderId = order.id || (router.query.id as string);
+    
+    try {
+      // Remove from current order's linkedOrders
+      const currentLinked = order.linkedOrders || [];
+      const newLinked = currentLinked.filter(id => id !== orderIdToUnlink);
+      await adminUpdateOrder(currentOrderId, { linkedOrders: newLinked.length > 0 ? newLinked : [] });
+      
+      // Also remove from the other order
+      const otherOrder = linkedOrdersDetails.find(o => o.id === orderIdToUnlink);
+      if (otherOrder) {
+        const otherLinked = otherOrder.linkedOrders || [];
+        const newOtherLinked = otherLinked.filter(id => id !== currentOrderId);
+        await adminUpdateOrder(orderIdToUnlink, { linkedOrders: newOtherLinked.length > 0 ? newOtherLinked : [] });
+      }
+      
+      setLinkedOrders(newLinked);
+      toast.success(`Order ${otherOrder?.orderNumber || orderIdToUnlink} unlinked`);
+      
+      // Refresh order data
+      await fetchOrder(currentOrderId);
+    } catch (err) {
+      console.error('Error unlinking order:', err);
+      toast.error('Failed to unlink order');
+    }
+  };
+
   const handleCreateInvoice = async () => {
     if (!order) return;
 
@@ -1111,17 +1257,17 @@ function AdminOrderDetailPage() {
       }
     }
 
-    // Auto-create and send invoice when final_check is completed
+    // Auto-create and send invoice when invoicing step is completed
     let shouldCreateAndSendInvoice = false;
     if (
       previousStep &&
-      previousStep.id === 'final_check' &&
+      previousStep.id === 'invoicing' &&
       previousStep.status !== 'completed' &&
       status === 'completed'
     ) {
       if (typeof window !== 'undefined') {
         shouldCreateAndSendInvoice = window.confirm(
-          'Order completed! Do you want to create and send the invoice to the customer?'
+          'Do you want to create and send the invoice to the customer?'
         );
       }
     }
@@ -2494,6 +2640,56 @@ function AdminOrderDetailPage() {
     setSavingTracking(true);
 
     try {
+      // Check if tracking number is already used by another order
+      if (trackingNumber && trackingNumber.trim()) {
+        const mod = await import('@/services/hybridOrderService');
+        const getAllOrders = mod.default?.getAllOrders || mod.getAllOrders;
+        const allOrders = await getAllOrders();
+        
+        const orderWithSameTracking = allOrders.find((o: ExtendedOrder) => 
+          o.returnTrackingNumber === trackingNumber.trim() && 
+          o.id !== orderId
+        );
+        
+        if (orderWithSameTracking) {
+          const shouldLink = window.confirm(
+            `⚠️ This tracking number is already used on order ${orderWithSameTracking.orderNumber || orderWithSameTracking.id}.\n\nDo you want to link these orders for combined shipping?`
+          );
+          
+          if (shouldLink) {
+            // Link the orders
+            const currentLinked = order.linkedOrders || [];
+            if (!currentLinked.includes(orderWithSameTracking.id!)) {
+              const newLinked = [...currentLinked, orderWithSameTracking.id!];
+              await adminUpdateOrder(orderId, {
+                returnTrackingNumber: trackingNumber,
+                returnTrackingUrl: trackingUrl,
+                linkedOrders: newLinked
+              });
+              
+              // Also link back from the other order
+              const otherLinked = orderWithSameTracking.linkedOrders || [];
+              if (!otherLinked.includes(orderId)) {
+                await adminUpdateOrder(orderWithSameTracking.id!, { 
+                  linkedOrders: [...otherLinked, orderId] 
+                });
+              }
+              
+              setOrder({ 
+                ...order, 
+                returnTrackingNumber: trackingNumber, 
+                returnTrackingUrl: trackingUrl,
+                linkedOrders: newLinked 
+              });
+              setLinkedOrders(newLinked);
+              toast.success(`Tracking saved and linked with order ${orderWithSameTracking.orderNumber || orderWithSameTracking.id}`);
+              setSavingTracking(false);
+              return;
+            }
+          }
+        }
+      }
+
       await adminUpdateOrder(orderId, {
         returnTrackingNumber: trackingNumber,
         returnTrackingUrl: trackingUrl
@@ -4326,6 +4522,117 @@ function AdminOrderDetailPage() {
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
+                    {/* Linked Orders Display - Show if this order has linked orders (from tracking number match) */}
+                    {linkedOrders.length > 0 && linkedOrdersDetails.length > 0 && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <span className="text-2xl mr-3">🔗</span>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-green-800">
+                              Combined shipping with {linkedOrders.length} {linkedOrders.length === 1 ? 'order' : 'orders'}
+                            </h4>
+                            <p className="text-sm text-green-700 mt-1">
+                              These orders should be shipped together.
+                            </p>
+                            <div className="mt-3 space-y-2">
+                              {linkedOrdersDetails.map((linkedOrder) => (
+                                <div 
+                                  key={linkedOrder.id} 
+                                  className="flex items-center justify-between p-2 bg-white rounded"
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <a 
+                                      href={`/admin/orders/${linkedOrder.id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-medium text-primary-600 hover:underline"
+                                    >
+                                      {linkedOrder.orderNumber || linkedOrder.id}
+                                    </a>
+                                    <span className="text-sm text-gray-500">
+                                      {(() => {
+                                        const c = ALL_COUNTRIES.find(country => country.code === linkedOrder.country);
+                                        return c?.name || linkedOrder.country;
+                                      })()}
+                                    </span>
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      linkedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                      linkedOrder.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                      linkedOrder.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {linkedOrder.status}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleUnlinkOrder(linkedOrder.id!)}
+                                    className="text-sm px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+                                  >
+                                    Unlink
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Duplicate Tracking Number Warning - Show if other orders have same tracking number */}
+                    {duplicateTrackingOrders.length > 0 && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <span className="text-2xl mr-3">⚠️</span>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-amber-800">
+                              Same tracking number on {duplicateTrackingOrders.length} other {duplicateTrackingOrders.length === 1 ? 'order' : 'orders'}
+                            </h4>
+                            <p className="text-sm text-amber-700 mt-1">
+                              Tracking number <strong>{order?.returnTrackingNumber}</strong> is also used on the following orders. Link them for combined shipping?
+                            </p>
+                            <div className="mt-3 space-y-2">
+                              {duplicateTrackingOrders.map((dupOrder) => (
+                                <div 
+                                  key={dupOrder.id} 
+                                  className="flex items-center justify-between p-2 bg-white rounded"
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <a 
+                                      href={`/admin/orders/${dupOrder.id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-medium text-primary-600 hover:underline"
+                                    >
+                                      {dupOrder.orderNumber || dupOrder.id}
+                                    </a>
+                                    <span className="text-sm text-gray-500">
+                                      {(() => {
+                                        const c = ALL_COUNTRIES.find(country => country.code === dupOrder.country);
+                                        return c?.name || dupOrder.country;
+                                      })()}
+                                    </span>
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      dupOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                      dupOrder.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {dupOrder.status}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleLinkDuplicateOrder(dupOrder.id!)}
+                                    className="text-sm px-3 py-1 rounded bg-primary-100 text-primary-700 hover:bg-primary-200"
+                                  >
+                                    Link for combined shipping
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Order Summary Card */}
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                       <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -5590,14 +5897,22 @@ function AdminOrderDetailPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                       Return tracking number
                                     </label>
-                                    <input
-                                      type="text"
-                                      value={trackingNumber}
-                                      onChange={(e) => setTrackingNumber(e.target.value)}
-                                      onBlur={saveTrackingInfo}
-                                      placeholder="t.ex. 1234567890"
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="text"
+                                        value={trackingNumber}
+                                        onChange={(e) => setTrackingNumber(e.target.value)}
+                                        placeholder="e.g. 1234567890"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <button
+                                        onClick={saveTrackingInfo}
+                                        disabled={savingTracking}
+                                        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
+                                      >
+                                        {savingTracking ? 'Saving...' : 'Save'}
+                                      </button>
+                                    </div>
                                   </div>
                                 )}
                                 

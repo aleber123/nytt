@@ -53,6 +53,7 @@ interface Order {
   uploadError?: string;
   invoiceReference?: string;
   additionalNotes?: string;
+  linkedOrders?: string[]; // Linked orders for combined shipping
 }
 import { toast } from 'react-hot-toast';
 
@@ -707,7 +708,19 @@ function AdminOrdersPage() {
                             onClick={(e) => e.stopPropagation()}
                           />
                         </td>
-                        <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">#{order.orderNumber || order.id}</td>
+                        <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">
+                          <span className="flex items-center gap-1">
+                            #{order.orderNumber || order.id}
+                            {order.linkedOrders && order.linkedOrders.length > 0 && (
+                              <span 
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800"
+                                title={`Samskick med ${order.linkedOrders.length} ${order.linkedOrders.length === 1 ? 'order' : 'ordrar'}`}
+                              >
+                                📦 +{order.linkedOrders.length}
+                              </span>
+                            )}
+                          </span>
+                        </td>
                         <td className="px-4 py-2 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getStatusBadgeColor(order.status)}`}>
                             {getStatusLabel(order.status)}
