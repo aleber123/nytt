@@ -4398,6 +4398,14 @@ function AdminOrderDetailPage() {
                                       </span>
                                       <span className="font-medium text-gray-900">{order.invoiceReference}</span>
                                     </div>
+                                    {order.customerInfo?.companyName && (
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">
+                                          {t('admin.orderDetail.labels.company', 'Company')}:
+                                        </span>
+                                        <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })()}
