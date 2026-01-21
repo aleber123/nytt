@@ -292,9 +292,12 @@ function AdminOrdersPage() {
         const fields = [
           o.orderNumber || o.id || '',
           `${o.customerInfo?.firstName || ''} ${o.customerInfo?.lastName || ''}`,
+          o.customerInfo?.companyName || '',
           o.customerInfo?.email || '',
+          o.customerInfo?.phone || '',
           o.country || '',
           o.status || '',
+          o.invoiceReference || '',
           o.returnService || ''
         ].join(' ').toLowerCase();
         return fields.includes(normalizedQuery);
