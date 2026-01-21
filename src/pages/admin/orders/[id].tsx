@@ -4730,7 +4730,7 @@ function AdminOrderDetailPage() {
                             {/* Basic Order Info + compact services */}
                             <div>
                               <h3 className="text-sm font-semibold mb-1 text-gray-800">
-                                {t('order.summary.orderDetails', 'Orderinformation')}
+                                Order information
                               </h3>
                               {(() => {
                                 const c = getCountryInfo(order.country);
@@ -4738,29 +4738,29 @@ function AdminOrderDetailPage() {
                                   <div className="space-y-0.5 text-xs">
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('order.summary.documentType', 'Dokumenttyp')}:
+                                        Document type:
                                       </span>
                                       <span className="font-medium text-gray-900">
                                         {(() => {
                                           const getDocTypeName = (typeId: string): string => {
                                             const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
-                                            if (predefined) return predefined.name;
+                                            if (predefined) return predefined.nameEn || predefined.name;
                                             if (typeId?.startsWith('custom_')) {
                                               const name = typeId.replace('custom_', '').replace(/_/g, ' ');
                                               return name.charAt(0).toUpperCase() + name.slice(1);
                                             }
-                                            return typeId || 'Annat dokument';
+                                            return typeId || 'Other document';
                                           };
                                           const types = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
                                             ? (order as any).documentTypes
                                             : order.documentType ? [order.documentType] : [];
-                                          return types.map(getDocTypeName).join(', ') || 'Annat dokument';
+                                          return types.map(getDocTypeName).join(', ') || 'Other document';
                                         })()}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('order.summary.country', 'Land')}:
+                                        Country:
                                       </span>
                                       <span className="flex items-center space-x-1 font-medium text-gray-900">
                                         <span aria-hidden="true">
@@ -4771,30 +4771,30 @@ function AdminOrderDetailPage() {
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('order.summary.quantity', 'Number of documents')}:
+                                        Quantity:
                                       </span>
                                       <span className="font-medium text-gray-900">{order.quantity}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('admin.orderDetail.labels.source', 'Source')}:
+                                        Source:
                                       </span>
                                       <span className="font-medium text-gray-900">
                                         {order.documentSource === 'original'
-                                          ? t('admin.orderDetail.source.original', 'Original document')
-                                          : t('admin.orderDetail.source.files', 'Uploaded files')}
+                                          ? 'Original documents'
+                                          : 'Uploaded files'}
                                       </span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500">
-                                        {t('admin.orderDetail.labels.customerRef', 'Customer ref')}:
+                                        Customer ref:
                                       </span>
                                       <span className="font-medium text-gray-900">{order.invoiceReference}</span>
                                     </div>
                                     {order.customerInfo?.companyName && (
                                       <div className="flex items-center justify-between">
                                         <span className="text-gray-500">
-                                          {t('admin.orderDetail.labels.company', 'Company')}:
+                                          Company:
                                         </span>
                                         <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
                                       </div>
