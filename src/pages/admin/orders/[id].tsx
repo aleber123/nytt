@@ -152,6 +152,7 @@ function AdminOrderDetailPage() {
   const [editedCustomer, setEditedCustomer] = useState({
     firstName: '',
     lastName: '',
+    companyName: '',
     email: '',
     phone: '',
     address: '',
@@ -166,6 +167,17 @@ function AdminOrderDetailPage() {
     country: '',
     company: '',
     name: ''
+  });
+  const [editedReturnAddress, setEditedReturnAddress] = useState({
+    firstName: '',
+    lastName: '',
+    companyName: '',
+    street: '',
+    postalCode: '',
+    city: '',
+    country: '',
+    phone: '',
+    email: ''
   });
   const [savingCustomerInfo, setSavingCustomerInfo] = useState(false);
   
@@ -950,6 +962,7 @@ function AdminOrderDetailPage() {
         setEditedCustomer({
           firstName: ci.firstName || '',
           lastName: ci.lastName || '',
+          companyName: ci.companyName || '',
           email: ci.email || '',
           phone: ci.phone || '',
           address: ci.address || '',
@@ -966,6 +979,19 @@ function AdminOrderDetailPage() {
           country: pa.country || '',
           company: pa.company || '',
           name: pa.name || ''
+        });
+
+        const ra = (extendedOrder as any).returnAddress || {};
+        setEditedReturnAddress({
+          firstName: ra.firstName || '',
+          lastName: ra.lastName || '',
+          companyName: ra.companyName || '',
+          street: ra.street || '',
+          postalCode: ra.postalCode || '',
+          city: ra.city || '',
+          country: ra.country || '',
+          phone: ra.phone || '',
+          email: ra.email || ''
         });
 
         // Fetch invoices for this order
@@ -3558,6 +3584,7 @@ function AdminOrderDetailPage() {
     setEditedCustomer({
       firstName: ci.firstName || '',
       lastName: ci.lastName || '',
+      companyName: ci.companyName || '',
       email: ci.email || '',
       phone: ci.phone || '',
       address: ci.address || '',
@@ -3722,6 +3749,7 @@ function AdminOrderDetailPage() {
     const newCustomer = {
       firstName: editedCustomer.firstName.trim(),
       lastName: editedCustomer.lastName.trim(),
+      companyName: editedCustomer.companyName.trim(),
       email: editedCustomer.email.trim(),
       phone: editedCustomer.phone.trim(),
       address: editedCustomer.address.trim(),
@@ -3762,7 +3790,7 @@ function AdminOrderDetailPage() {
     );
 
     if (!hasCustomerChanges && !hasPickupChanges) {
-      toast('Inga ändringar att spara');
+      toast('No changes to save');
       return;
     }
 
@@ -3803,6 +3831,63 @@ function AdminOrderDetailPage() {
       toast.error('Could not save customer information');
     } finally {
       setSavingCustomerInfo(false);
+    }
+  };
+
+  // Save return address
+  const [savingReturnAddress, setSavingReturnAddress] = useState(false);
+  const saveReturnAddress = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    if (!orderId) return;
+
+    const currentReturn: any = (order as any).returnAddress || {};
+    const newReturn = {
+      firstName: editedReturnAddress.firstName.trim(),
+      lastName: editedReturnAddress.lastName.trim(),
+      companyName: editedReturnAddress.companyName.trim(),
+      street: editedReturnAddress.street.trim(),
+      postalCode: editedReturnAddress.postalCode.trim(),
+      city: editedReturnAddress.city.trim(),
+      country: editedReturnAddress.country.trim(),
+      phone: editedReturnAddress.phone.trim(),
+      email: editedReturnAddress.email.trim()
+    };
+
+    const hasReturnChanges =
+      (currentReturn.firstName || '') !== newReturn.firstName ||
+      (currentReturn.lastName || '') !== newReturn.lastName ||
+      (currentReturn.companyName || '') !== newReturn.companyName ||
+      (currentReturn.street || '') !== newReturn.street ||
+      (currentReturn.postalCode || '') !== newReturn.postalCode ||
+      (currentReturn.city || '') !== newReturn.city ||
+      (currentReturn.country || '') !== newReturn.country ||
+      (currentReturn.phone || '') !== newReturn.phone ||
+      (currentReturn.email || '') !== newReturn.email;
+
+    if (!hasReturnChanges) {
+      toast('No changes to save');
+      return;
+    }
+
+    setSavingReturnAddress(true);
+
+    try {
+      await adminUpdateOrder(orderId, {
+        returnAddress: newReturn
+      });
+
+      setOrder({
+        ...order,
+        returnAddress: newReturn
+      } as ExtendedOrder);
+
+      toast.success('Return address saved');
+    } catch (err) {
+      console.error('Error saving return address:', err);
+      toast.error('Could not save return address');
+    } finally {
+      setSavingReturnAddress(false);
     }
   };
 
@@ -4807,6 +4892,7 @@ function AdminOrderDetailPage() {
 
                           {/* Customer Info Sidebar */}
                           <div className="space-y-6">
+                            {/* Customer Information - Contact details only */}
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
                               <h3 className="text-lg font-medium mb-4">Customer information</h3>
                               <div className="space-y-3">
@@ -4832,6 +4918,16 @@ function AdminOrderDetailPage() {
                                 </div>
 
                                 <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Company name</label>
+                                  <input
+                                    type="text"
+                                    value={editedCustomer.companyName}
+                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, companyName: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
+                                </div>
+
+                                <div>
                                   <label className="block text-xs text-gray-500 mb-1">Email</label>
                                   <input
                                     type="email"
@@ -4848,39 +4944,6 @@ function AdminOrderDetailPage() {
                                     value={editedCustomer.phone}
                                     onChange={(e) => setEditedCustomer({ ...editedCustomer, phone: e.target.value })}
                                     className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Address</label>
-                                  <input
-                                    type="text"
-                                    value={editedCustomer.address}
-                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, address: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-1"
-                                  />
-                                  <div className="grid grid-cols-2 gap-2 mt-1">
-                                    <input
-                                      type="text"
-                                      placeholder="Postal code"
-                                      value={editedCustomer.postalCode}
-                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, postalCode: e.target.value })}
-                                      className="border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="City"
-                                      value={editedCustomer.city}
-                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, city: e.target.value })}
-                                      className="border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                  </div>
-                                  <input
-                                    type="text"
-                                    placeholder="Country"
-                                    value={editedCustomer.country}
-                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, country: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm mt-1"
                                   />
                                 </div>
 
@@ -4942,6 +5005,115 @@ function AdminOrderDetailPage() {
                                     className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {savingCustomerInfo ? 'Saving...' : 'Save customer info'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Return Address - Separate card */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-6">
+                              <h3 className="text-lg font-medium mb-4">Return address</h3>
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">First name</label>
+                                    <input
+                                      type="text"
+                                      value={editedReturnAddress.firstName}
+                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, firstName: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Last name</label>
+                                    <input
+                                      type="text"
+                                      value={editedReturnAddress.lastName}
+                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, lastName: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Company name</label>
+                                  <input
+                                    type="text"
+                                    value={editedReturnAddress.companyName}
+                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, companyName: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Street address</label>
+                                  <input
+                                    type="text"
+                                    value={editedReturnAddress.street}
+                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, street: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Postal code</label>
+                                    <input
+                                      type="text"
+                                      value={editedReturnAddress.postalCode}
+                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, postalCode: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">City</label>
+                                    <input
+                                      type="text"
+                                      value={editedReturnAddress.city}
+                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, city: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Country</label>
+                                  <input
+                                    type="text"
+                                    value={editedReturnAddress.country}
+                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, country: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
+                                  <input
+                                    type="tel"
+                                    value={editedReturnAddress.phone}
+                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, phone: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Email</label>
+                                  <input
+                                    type="email"
+                                    value={editedReturnAddress.email}
+                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, email: e.target.value })}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  />
+                                </div>
+
+                                <div className="mt-4 flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={saveReturnAddress}
+                                    disabled={savingReturnAddress}
+                                    className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {savingReturnAddress ? 'Saving...' : 'Save return address'}
                                   </button>
                                 </div>
                               </div>

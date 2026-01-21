@@ -35,6 +35,7 @@ interface Order {
   customerInfo?: {
     firstName?: string;
     lastName?: string;
+    companyName?: string;
     email?: string;
     phone?: string;
     address?: string;
@@ -672,7 +673,7 @@ function AdminOrdersPage() {
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.services', 'Services')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.country', 'Country')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.contact', 'Contact')}</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.return', 'Return')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.company', 'Company')}</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.actions', 'Actions')}</th>
                     </tr>
                   </thead>
@@ -755,15 +756,7 @@ function AdminOrdersPage() {
                           {(order.customerInfo?.firstName || '') + ' ' + (order.customerInfo?.lastName || '')}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
-                          {order.returnService 
-                            ? order.returnService === 'own-delivery' 
-                              ? 'Own return shipping'
-                              : order.returnService === 'office-pickup'
-                                ? 'Office pickup'
-                                : order.returnService === 'retur'
-                                  ? 'Return shipping'
-                                  : order.returnService
-                            : '—'}
+                          {order.customerInfo?.companyName || '—'}
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
                           <div className="inline-flex items-center gap-2">
