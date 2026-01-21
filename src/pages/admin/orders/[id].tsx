@@ -6338,15 +6338,15 @@ function AdminOrderDetailPage() {
                           </div>
                         ) : (
                           <div className="bg-amber-100 border border-amber-300 rounded p-3">
-                            <p className="text-amber-800 font-medium">⚠️ Fraktsedel saknas</p>
+                            <p className="text-amber-800 font-medium">⚠️ Return label missing</p>
                             <p className="text-amber-700 text-sm mt-1">
-                              Kunden valde egen retur men fraktsedeln laddades inte upp korrekt. 
+                              Customer selected own return but the label was not uploaded correctly. 
                               {(order as any).returnLabelFileName && (
-                                <span> Förväntat filnamn: <code className="bg-amber-200 px-1 rounded">{(order as any).returnLabelFileName}</code></span>
+                                <span> Expected filename: <code className="bg-amber-200 px-1 rounded">{(order as any).returnLabelFileName}</code></span>
                               )}
                             </p>
                             <p className="text-amber-700 text-sm mt-2">
-                              <strong>Åtgärd:</strong> Kontakta kunden och be dem skicka fraktsedeln via email.
+                              <strong>Action:</strong> Contact the customer and ask them to send the return label via email.
                             </p>
                           </div>
                         )}

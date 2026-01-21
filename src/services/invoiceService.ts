@@ -1595,8 +1595,10 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
     const pdfBlob = await generateInvoicePDFBlob(invoice);
 
     // Create email data for Firestore (will be processed by external service)
+    // Send to internal invoice email for manual processing with external invoicing system
     const emailData = {
-      to: invoice.customerInfo.email,
+      to: 'fakturor@visumpartner.se',
+      originalCustomerEmail: invoice.customerInfo.email,
       subject: `Invoice ${invoice.invoiceNumber} from DOX Visumpartner AB`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

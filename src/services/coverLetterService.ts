@@ -1203,7 +1203,7 @@ export async function generateEmbassyCoverLetter(
   y += 10;
 
   // ========== BODY TEXT ==========
-  const bodyText = `We respectfully submit the enclosed document(s) for legalisation at your esteemed Embassy. The document(s) have been duly authenticated by the Swedish Ministry for Foreign Affairs and are now presented for your attestation.`;
+  const bodyText = `We respectfully submit the enclosed document(s) for legalisation at your esteemed Embassy. The document(s) have been duly authenticated by the Ministry for Foreign Affairs and are now presented for your attestation.`;
   
   const wrappedBody = doc.splitTextToSize(bodyText, contentWidth);
   doc.text(wrappedBody, marginLeft, y);

@@ -918,9 +918,17 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 try {
 
                   // Try to match customer by email domain for custom pricing
+                  // Use fallback chain: billingInfo -> returnAddress -> customerInfo (same as bestall.tsx)
+                  const emailForPricing = (
+                    answers.billingInfo?.email ||
+                    answers.returnAddress?.email ||
+                    answers.customerInfo?.email ||
+                    ''
+                  ).trim();
+                  
                   let customerPricingData = undefined;
-                  if (answers.customerInfo?.email) {
-                    const matchedCustomer = await getCustomerByEmailDomain(answers.customerInfo.email);
+                  if (emailForPricing) {
+                    const matchedCustomer = await getCustomerByEmailDomain(emailForPricing);
                     if (matchedCustomer) {
                       customerPricingData = {
                         customPricing: matchedCustomer.customPricing,
@@ -1264,9 +1272,17 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                 try {
                   // Try to match customer by email domain for custom pricing
+                  // Use fallback chain: billingInfo -> returnAddress -> customerInfo (same as bestall.tsx)
+                  const emailForPricing2 = (
+                    answers.billingInfo?.email ||
+                    answers.returnAddress?.email ||
+                    answers.customerInfo?.email ||
+                    ''
+                  ).trim();
+                  
                   let customerPricingData2 = undefined;
-                  if (answers.customerInfo?.email) {
-                    const matchedCustomer2 = await getCustomerByEmailDomain(answers.customerInfo.email);
+                  if (emailForPricing2) {
+                    const matchedCustomer2 = await getCustomerByEmailDomain(emailForPricing2);
                     if (matchedCustomer2) {
                       customerPricingData2 = {
                         customPricing: matchedCustomer2.customPricing,
@@ -1633,7 +1649,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           </div>
           <div class="detail-row">
             <span class="detail-label">Country:</span>
-            <span class="detail-value">${allCountries.find(c => c.code === answers.country)?.name}</span>
+            <span class="detail-value">${allCountries.find(c => c.code === answers.country)?.nameEn || allCountries.find(c => c.code === answers.country)?.name}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Document type:</span>

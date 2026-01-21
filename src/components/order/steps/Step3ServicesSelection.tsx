@@ -268,7 +268,9 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-gray-900 mb-1 break-words">{service.name}</h3>
                     {/* <p className="text-gray-600 mb-2">{service.description}</p> */}
+                    {/* Price hidden - uncomment to restore:
                     <span className="text-custom-button font-medium break-words">{service.price}</span>
+                    */}
 
                     {/* Service Badge (temporarily hidden to reduce text in cards)
                     {badge && (
@@ -329,9 +331,11 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                   )}
                 </p>
                 */}
+                {/* "On request" text hidden - uncomment to restore:
                 <span className="text-custom-button font-medium">
                   {t('orderFlow.step3.translationOnRequest', currentLocale === 'en' ? 'On request' : 'På förfrågan')}
                 </span>
+                */}
               </div>
 
               <div className="flex-shrink-0 self-start sm:self-auto sm:ml-4">

@@ -198,8 +198,8 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
 
   const isOwnReturn = answers.returnService === 'own-delivery';
   
-  const isNextDisabled = !answers.returnService || 
-    (isOwnReturn && !answers.ownReturnTrackingNumber?.trim());
+  // Tracking number is now optional - customer can provide it later via email
+  const isNextDisabled = !answers.returnService;
 
   const handlePremiumOptionKeyDown = (
     event: React.KeyboardEvent<HTMLLabelElement>,
@@ -405,6 +405,9 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-blue-900">
                       {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}
+                      <span className="text-gray-500 font-normal ml-1">
+                        ({t('orderFlow.step9.optional', 'valfritt')})
+                      </span>
                     </label>
                     <input
                       type="text"
