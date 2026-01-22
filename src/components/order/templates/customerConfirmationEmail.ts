@@ -142,15 +142,37 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
       ${documentSource === 'original' ?
         `<div class="next-steps">
           <h3>📦 Next steps</h3>
-          <p>Please send your original documents to the following address:</p>
-          <div class="address-box">
-            <strong>DOX Visumpartner AB</strong><br>
-            Att: Document handling<br>
-            Box 38<br>
-            121 25 Stockholm-Globen<br>
-            Sweden
+          <p>Please send your original documents to one of the following addresses depending on your shipping method:</p>
+          
+          <div style="display:flex; gap:16px; flex-wrap:wrap; margin:16px 0;">
+            <div style="flex:1; min-width:200px;">
+              <div style="background:#DC2626; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">📮 REK (Registered Mail)</div>
+              <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#DC2626;">
+                <strong>DOX Visumpartner AB</strong><br>
+                Att: Document handling<br>
+                Box 38<br>
+                121 25 Stockholm-Globen<br>
+                Sweden
+              </div>
+            </div>
+            <div style="flex:1; min-width:200px;">
+              <div style="background:#2563EB; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">🚚 COURIER / DHL</div>
+              <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#2563EB;">
+                <strong>DOX Visumpartner AB</strong><br>
+                Att: Document handling<br>
+                Livdjursgatan 4, floor 6<br>
+                121 62 Johanneshov<br>
+                Sweden
+              </div>
+            </div>
           </div>
-          <p><strong>Important:</strong> Mark the envelope with <span class="highlight">"Order #${orderId}"</span> and send it as <strong>registered mail</strong>.</p>
+          
+          <p><strong>Important:</strong> Mark the envelope with <span class="highlight">"Order #${orderId}"</span>.</p>
+          
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; margin-top:16px; text-align:center;">
+            <p style="margin:0 0 10px; color:#374151; font-size:14px;">🖨️ <strong>Print a shipping label with your order number:</strong></p>
+            <a href="https://www.doxvl.se/shipping-label?orderId=${orderId}" style="display:inline-block; background:#2563EB; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">Print Shipping Label</a>
+          </div>
         </div>`
         :
         `<div class="next-steps">
@@ -248,15 +270,37 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
       ${documentSource === 'original' ?
         `<div class="next-steps">
           <h3>📦 Nästa steg</h3>
-          <p>Skicka dina originaldokument till följande adress:</p>
-          <div class="address-box">
-            <strong>DOX Visumpartner AB</strong><br>
-            Att: Dokumenthantering<br>
-            Box 38<br>
-            121 25 Stockholm-Globen<br>
-            Sverige
+          <p>Skicka dina originaldokument till en av följande adresser beroende på din fraktmetod:</p>
+          
+          <div style="display:flex; gap:16px; flex-wrap:wrap; margin:16px 0;">
+            <div style="flex:1; min-width:200px;">
+              <div style="background:#DC2626; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">📮 REK (Rekommenderat brev)</div>
+              <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#DC2626;">
+                <strong>DOX Visumpartner AB</strong><br>
+                Att: Dokumenthantering<br>
+                Box 38<br>
+                121 25 Stockholm-Globen<br>
+                Sverige
+              </div>
+            </div>
+            <div style="flex:1; min-width:200px;">
+              <div style="background:#2563EB; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">🚚 BUD / DHL</div>
+              <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#2563EB;">
+                <strong>DOX Visumpartner AB</strong><br>
+                Att: Dokumenthantering<br>
+                Livdjursgatan 4, våning 6<br>
+                121 62 Johanneshov<br>
+                Sverige
+              </div>
+            </div>
           </div>
-          <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span> och skicka med <strong>REK (rekommenderat brev)</strong>.</p>
+          
+          <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span>.</p>
+          
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; margin-top:16px; text-align:center;">
+            <p style="margin:0 0 10px; color:#374151; font-size:14px;">🖨️ <strong>Skriv ut en fraktsedel med ditt ordernummer:</strong></p>
+            <a href="https://www.doxvl.se/shipping-label?orderId=${orderId}" style="display:inline-block; background:#2563EB; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">Skriv ut fraktsedel</a>
+          </div>
         </div>`
         :
         `<div class="next-steps">

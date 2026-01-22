@@ -39,19 +39,18 @@ const CookieBanner: React.FC = () => {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
-      <div className="container mx-auto px-4 py-4">
-        <div className="max-w-4xl mx-auto">
+    <div 
+      className="fixed bottom-4 left-4 z-50 rounded-lg border border-gray-200 shadow-xl max-w-sm"
+      style={{ backgroundColor: 'rgba(255, 255, 255, 0.65)', backdropFilter: 'blur(8px)' }}
+    >
+      <div className="p-4">
           {!showDetails ? (
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {t('cookie.title') || 'Vi använder cookies'}
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  {t('cookie.shortText1') || 'Vi använder cookies för att förbättra din upplevelse på vår webbplats.'}
-                  {" "}
-                  {t('cookie.shortText2') || 'Vissa cookies är nödvändiga för att webbplatsen ska fungera, medan andra hjälper oss att förbättra våra tjänster.'}
+            <div className="space-y-3">
+              <div>
+                <p className="text-gray-700 text-sm">
+                  <span className="font-semibold">{t('cookie.title') || 'Vi använder cookies'}</span>
+                  {' – '}
+                  {t('cookie.shortText1') || 'Vi använder cookies för att förbättra din upplevelse.'}
                   <button
                     onClick={() => setShowDetails(true)}
                     className="text-primary-700 hover:text-primary-900 underline ml-1"
@@ -60,18 +59,18 @@ const CookieBanner: React.FC = () => {
                   </button>
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  onClick={acceptEssentialOnly}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                >
-                  {t('cookie.essentialOnly') || 'Endast nödvändiga'}
-                </button>
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={acceptAllCookies}
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-700 hover:bg-primary-900 rounded-md transition-colors"
+                  className="w-full px-4 py-2 text-sm font-medium text-white bg-primary-700 hover:bg-primary-900 rounded-md transition-colors"
                 >
                   {t('cookie.acceptAll') || 'Acceptera alla'}
+                </button>
+                <button
+                  onClick={acceptEssentialOnly}
+                  className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  {t('cookie.essentialOnly') || 'Endast nödvändiga'}
                 </button>
               </div>
             </div>
@@ -148,7 +147,6 @@ const CookieBanner: React.FC = () => {
               </button>
             </div>
           )}
-        </div>
       </div>
     </div>
   );

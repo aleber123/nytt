@@ -71,7 +71,7 @@ export interface Order {
   };
   deliveryMethod: string;
   paymentMethod: string;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'shipped' | 'delivered';
+  status: 'pending' | 'received' | 'processing' | 'submitted' | 'action-required' | 'ready-for-return' | 'completed' | 'cancelled';
   totalPrice: number;
   pricingBreakdown?: any[]; // Store pricing breakdown for validation
   createdAt?: Timestamp;

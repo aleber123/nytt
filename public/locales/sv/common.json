@@ -908,20 +908,24 @@
       }
     },
     "statuses": {
-      "pending": "Väntar på behandling",
-      "processing": "Under behandling",
-      "completed": "Färdigbehandlad",
-      "shipped": "Skickad",
-      "delivered": "Levererad",
-      "cancelled": "Avbruten/Returnerad"
+      "pending": "Pending",
+      "received": "Received",
+      "processing": "Processing",
+      "submitted": "Submitted",
+      "action-required": "Action Required",
+      "ready-for-return": "Ready for Return",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
     },
     "statusDescriptions": {
-      "pending": "Din beställning väntar på att behandlas",
+      "pending": "Din beställning har skapats, väntar på dokument",
+      "received": "Vi har mottagit dina dokument",
       "processing": "Vi arbetar aktivt med dina dokument",
-      "completed": "Dokumenten är klara för leverans",
-      "shipped": "Dokumenten är på väg till dig",
-      "delivered": "Dokumenten har levererats",
-      "cancelled": "Beställningen har avbrutits eller returnerats",
+      "submitted": "Dokumenten har lämnats in till en myndighet",
+      "action-required": "Ytterligare information eller dokument behövs",
+      "ready-for-return": "Dokumenten är klara och skickas snart",
+      "completed": "Dokumenten har levererats till dig",
+      "cancelled": "Beställningen har avbrutits",
       "default": "Status uppdateras snart"
     },
     "errors": {

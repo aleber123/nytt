@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 
@@ -14,7 +15,9 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
   onNext,
   onBack
 }) => {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const router = useRouter();
+  const isEn = i18n.language === 'en' || router.locale === 'en';
 
   const handleSelect = (wantsCopies: boolean) => {
     setAnswers({
@@ -28,8 +31,8 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
 
   return (
     <StepContainer
-      title={t('orderFlow.step8.title', 'Vill du ha skannade kopior?')}
-      subtitle={t('orderFlow.step8.subtitle', 'Vi kan skanna dina legaliserade dokument och skicka dem digitalt')}
+      title={isEn ? 'Would you like scanned copies?' : 'Vill du ha skannade kopior?'}
+      subtitle={isEn ? 'We can scan your legalized documents and send digital copies to you' : 'Vi kan skanna dina legaliserade dokument och skicka dem digitalt'}
       onBack={onBack}
       showNext={false}
     >
@@ -39,10 +42,10 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
           <span className="text-2xl mr-3">📄</span>
           <div>
             <div className="font-medium text-blue-900">
-              {t('orderFlow.step8.selectedQuantity', { quantity: answers.quantity })}
+              {isEn ? `You have selected: ${answers.quantity} document${answers.quantity > 1 ? 's' : ''}` : `Du har valt: ${answers.quantity} dokument`}
             </div>
             <div className="text-sm text-blue-700">
-              {t('orderFlow.step8.scannedCopiesPrice', `Skannade kopior: ${scannedCopiesPrice} kr (${200} kr per dokument)`)}
+              {isEn ? `Scanned copies cost ${scannedCopiesPrice} kr (200 kr per document)` : `Skannade kopior: ${scannedCopiesPrice} kr (200 kr per dokument)`}
             </div>
           </div>
         </div>
@@ -62,10 +65,10 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
           <div className="flex items-center">
             <div className="text-left">
               <div className="text-lg font-medium text-gray-900">
-                {t('orderFlow.step8.yesCopies', 'Ja tack, skicka digitala kopior')}
+                {isEn ? 'Yes please' : 'Ja tack'}
               </div>
               <div className="text-gray-600">
-                {t('orderFlow.step8.yesCopiesDescription', 'Få högkvalitativa skanningar via e-post')}
+                {isEn ? `Add scanned copies (+${scannedCopiesPrice} kr)` : `Lägg till skannade kopior (+${scannedCopiesPrice} kr)`}
               </div>
             </div>
           </div>
@@ -83,10 +86,10 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
           <div className="flex items-center">
             <div className="text-left">
               <div className="text-lg font-medium text-gray-900">
-                {t('orderFlow.step8.noCopies', 'Nej tack')}
+                {isEn ? 'No thanks' : 'Nej tack'}
               </div>
               <div className="text-gray-600">
-                {t('orderFlow.step8.noCopiesDescription', 'Jag behöver bara de fysiska dokumenten')}
+                {isEn ? "I don't need scanned copies" : 'Jag behöver inte skannade kopior'}
               </div>
             </div>
           </div>
@@ -99,10 +102,12 @@ export const Step8ScannedCopies: React.FC<StepProps> = ({
           <span className="text-2xl mr-3">💡</span>
           <div>
             <h4 className="font-medium text-amber-900 mb-1">
-              {t('orderFlow.step8.helpTitle', 'Varför välja skannade kopior?')}
+              {isEn ? 'Why choose scanned copies?' : 'Varför välja skannade kopior?'}
             </h4>
             <p className="text-sm text-amber-800">
-              {t('orderFlow.step8.helpText', 'Skannade kopior är perfekta om du behöver skicka dokumenten via e-post eller ladda upp dem digitalt. Du får både fysiska originalen och digitala kopior.')}
+              {isEn 
+                ? 'Scanned copies are perfect if you need to send documents via email or upload them digitally. You get both the physical originals and digital copies.'
+                : 'Skannade kopior är perfekta om du behöver skicka dokumenten via e-post eller ladda upp dem digitalt. Du får både fysiska originalen och digitala kopior.'}
             </p>
           </div>
         </div>

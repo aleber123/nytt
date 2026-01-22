@@ -4403,19 +4403,25 @@ function AdminOrderDetailPage() {
     }
   };
 
-  // Get status badge color
+  // Get status badge color (colorblind-friendly palette)
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'pending':
         return 'bg-blue-100 text-blue-800';
-      case 'processing':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'shipped':
+      case 'received':
         return 'bg-purple-100 text-purple-800';
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
+      case 'processing':
+        return 'bg-amber-100 text-amber-800';
+      case 'submitted':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'action-required':
+        return 'bg-orange-100 text-orange-800';
+      case 'ready-for-return':
+        return 'bg-teal-100 text-teal-800';
+      case 'completed':
+        return 'bg-gray-700 text-white';
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gray-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -4503,9 +4509,12 @@ function AdminOrderDetailPage() {
                   <div className="flex items-center space-x-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeColor(order.status)}`}>
                       {order.status === 'pending' ? 'Pending' :
+                       order.status === 'received' ? 'Received' :
                        order.status === 'processing' ? 'Processing' :
-                       order.status === 'shipped' ? 'Shipped' :
-                       order.status === 'delivered' ? 'Delivered' :
+                       order.status === 'submitted' ? 'Submitted' :
+                       order.status === 'action-required' ? 'Action Required' :
+                       order.status === 'ready-for-return' ? 'Ready for Return' :
+                       order.status === 'completed' ? 'Completed' :
                        order.status === 'cancelled' ? 'Cancelled' : order.status}
                     </span>
                     <span className="text-lg font-semibold text-gray-900">{getComputedTotal()} kr</span>
@@ -4518,9 +4527,12 @@ function AdminOrderDetailPage() {
                       disabled={isUpdating}
                     >
                       <option value="pending">Pending</option>
+                      <option value="received">Received</option>
                       <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
+                      <option value="submitted">Submitted</option>
+                      <option value="action-required">Action Required</option>
+                      <option value="ready-for-return">Ready for Return</option>
+                      <option value="completed">Completed</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
                     <button

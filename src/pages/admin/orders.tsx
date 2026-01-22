@@ -44,7 +44,7 @@ interface Order {
   };
   deliveryMethod: string;
   paymentMethod: string;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'shipped' | 'delivered';
+  status: 'pending' | 'received' | 'processing' | 'submitted' | 'action-required' | 'ready-for-return' | 'completed' | 'cancelled';
   totalPrice: number;
   createdAt?: any;
   updatedAt?: any;
@@ -58,8 +58,8 @@ interface Order {
 }
 import { toast } from 'react-hot-toast';
 
-const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending', 'processing'];
-const ALL_STATUSES: Order['status'][] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'completed'];
+const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending', 'received', 'processing', 'submitted'];
+const ALL_STATUSES: Order['status'][] = ['pending', 'received', 'processing', 'submitted', 'action-required', 'ready-for-return', 'completed', 'cancelled'];
 
 function AdminOrdersPage() {
   const { t } = useTranslation('common');
@@ -252,27 +252,27 @@ function AdminOrdersPage() {
     }).format(date);
   };
 
-  // Get status badge color
+  // Get status badge color (colorblind-friendly palette)
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'pending':
         return 'bg-blue-100 text-blue-800';
-        break;
-      case 'processing':
-        return 'bg-yellow-100 text-yellow-800';
-        break;
-      case 'shipped':
+      case 'received':
         return 'bg-purple-100 text-purple-800';
-        break;
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-        break;
+      case 'processing':
+        return 'bg-amber-100 text-amber-800';
+      case 'submitted':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'action-required':
+        return 'bg-orange-100 text-orange-800';
+      case 'ready-for-return':
+        return 'bg-teal-100 text-teal-800';
+      case 'completed':
+        return 'bg-gray-700 text-white';
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
-        break;
+        return 'bg-gray-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-800';
-        break;
     }
   };
   
@@ -354,59 +354,87 @@ function AdminOrdersPage() {
           )}
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-xl">⏳</span>
+                  </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryTotal', 'Total orders')}</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryPending', 'Waiting for processing')}</p>
+                  <p className="text-sm font-medium text-gray-500">Pending</p>
                   <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'pending').length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
+                  <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                    <span className="text-xl">📥</span>
+                  </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryProcessing', 'Being processed')}</p>
+                  <p className="text-sm font-medium text-gray-500">Received</p>
+                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'received').length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-amber-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
+                    <span className="text-xl">⚙️</span>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Processing</p>
                   <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'processing').length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-lg shadow-sm border border-indigo-200 p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <span className="text-xl">📤</span>
+                  </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">{t('admin.orders.summaryDelivered', 'Delivered')}</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'delivered').length}</p>
+                  <p className="text-sm font-medium text-gray-500">Submitted</p>
+                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'submitted').length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-orange-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
+                    <span className="text-xl">⚠️</span>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Action Required</p>
+                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'action-required').length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-teal-200 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center">
+                    <span className="text-xl">📦</span>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Ready for Return</p>
+                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'ready-for-return').length}</p>
                 </div>
               </div>
             </div>

@@ -18,8 +18,9 @@ import { printShippingLabel } from '@/services/shippingLabelService';
 import { StepProps } from '../types';
 import CountryFlag from '../../ui/CountryFlag';
 import { ALL_COUNTRIES } from '../data/countries';
-import { CustomerInfoForm } from '../CustomerInfoForm';
+// CustomerInfoForm moved to Step9CustomerInfo
 import { TermsAcceptance } from '../TermsAcceptance';
+import { generateCustomerConfirmationEmail } from '../templates/customerConfirmationEmail';
 
 interface Step10Props extends Omit<StepProps, 'currentLocale'> {
   allCountries: any[];
@@ -60,7 +61,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   const [showValidation, setShowValidation] = useState(false);
   const submissionInProgressRef = useRef(false);
 
-  const addressInputRef = useRef<HTMLInputElement | null>(null);
+  // addressInputRef moved to Step9CustomerInfo
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -560,69 +561,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         </p>
       </div>
 
-      {/* ===== CUSTOMER TYPE SELECTION - MUST BE ANSWERED FIRST ===== */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-        <div className="flex items-center space-x-2 mb-2">
-          <span className="text-xl">👤</span>
-          <h3 className="text-lg font-semibold text-gray-900">
-            {locale === 'en' ? 'Customer Type' : 'Kundtyp'}
-          </h3>
-        </div>
-        <p className="text-sm text-gray-600 mb-4">
-          {locale === 'en' ? 'Are you ordering as a private person or company?' : 'Beställer du som privatperson eller företag?'}
-        </p>
-        
-        <div className="flex flex-wrap gap-4">
-          <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-            answers.customerType === 'private' 
-              ? 'border-primary-500 bg-primary-50' 
-              : 'border-gray-200 hover:border-gray-300'
-          }`}>
-            <input
-              type="radio"
-              name="customerType"
-              value="private"
-              checked={answers.customerType === 'private'}
-              onChange={() => setAnswers(prev => ({ ...prev, customerType: 'private' }))}
-              className="h-5 w-5 text-primary-600"
-            />
-            <div>
-              <span className="font-medium text-gray-900">{locale === 'en' ? 'Private Person' : 'Privatperson'}</span>
-              <p className="text-sm text-gray-500">{locale === 'en' ? 'Prices shown incl. VAT' : 'Priser visas inkl. moms'}</p>
-            </div>
-          </label>
-          
-          <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-            answers.customerType === 'company' 
-              ? 'border-primary-500 bg-primary-50' 
-              : 'border-gray-200 hover:border-gray-300'
-          }`}>
-            <input
-              type="radio"
-              name="customerType"
-              value="company"
-              checked={answers.customerType === 'company'}
-              onChange={() => setAnswers(prev => ({ ...prev, customerType: 'company' }))}
-              className="h-5 w-5 text-primary-600"
-            />
-            <div>
-              <span className="font-medium text-gray-900">{locale === 'en' ? 'Company' : 'Företag'}</span>
-              <p className="text-sm text-gray-500">{locale === 'en' ? 'Prices shown excl. VAT' : 'Priser visas exkl. moms'}</p>
-            </div>
-          </label>
-        </div>
-      </div>
+      {/* Customer Type moved to Step 9 (Step9CustomerInfo) */}
 
-      {/* ===== REST OF CONTENT - ONLY SHOWN AFTER CUSTOMER TYPE IS SELECTED ===== */}
-      {!answers.customerType ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
-          <span className="text-3xl mb-2 block">☝️</span>
-          <p className="text-amber-800 font-medium">
-            {locale === 'en' ? 'Please select customer type above to continue' : 'Vänligen välj kundtyp ovan för att fortsätta'}
-          </p>
-        </div>
-      ) : (
-        <>
       {/* Final Order Summary */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 mb-6">
         <h3 className="text-lg font-semibold text-green-900 mb-4">
@@ -868,14 +808,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           {/* Terms and Conditions Acceptance */}
           <TermsAcceptance locale={locale} id="terms-acceptance-upload" />
 
-          {/* Customer Information Form */}
-          <CustomerInfoForm
-            answers={answers}
-            setAnswers={setAnswers}
-            locale={locale}
-            addressInputRef={addressInputRef}
-            showValidation={showValidation}
-          />
+          {/* Customer Information Form moved to Step 9 (Step9CustomerInfo) */}
 
           {/* reCAPTCHA v3 - invisible, handled by provider */}
 
@@ -997,6 +930,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   const orderResult = await createOrderWithFiles(orderData, getFilesForUpload());
                   const orderId = String(typeof orderResult === 'object' && orderResult?.orderId ? orderResult.orderId : orderResult); // Handle both new and legacy format
 
+                  // Trigger save of customer info to localStorage if checkbox is checked
+                  window.dispatchEvent(new CustomEvent('saveCustomerInfo'));
+
                   // Send email notification (save to Firestore for external processing, same as contact form)
                   try {
                     let returfraktText = 'Ej vald';
@@ -1024,72 +960,128 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     
                     const documentTypeName = getAllDocumentTypesDisplay(false);
                     const servicesText = answers.services.map(serviceId => getServiceName(serviceId)).join(', ');
-                    const documentSourceText = answers.documentSource === 'original' ? 'Originaldokument' : 
-                      (answers.willSendMainDocsLater ? 'Skickas via e-post' : 'Uppladdade filer');
+                    const siteUrlInternal = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
+                    
+                    // Build internal HTML email for handlers (same design as original documents flow)
+                    const internalHtml = `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ny beställning order #${orderId} | DOX Visumpartner AB</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px; }
+    .wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { background: #2E2D2C; color: #fff; padding: 24px 32px; text-align: center; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .content { padding: 24px 28px; }
+    .badge { display:inline-block; background:#0EB0A6; color:#fff; border-radius: 6px; padding: 8px 12px; font-weight: 700; margin: 8px 0 16px; }
+    .section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:16px 0; }
+    .row { display:flex; justify-content:space-between; gap: 12px; padding:8px 0; border-bottom:1px solid #eef2f6; }
+    .row:last-child { border-bottom:none; }
+    .label { color:#5f6368; font-weight:600; }
+    .value { color:#202124; font-weight:700; }
+    .button { display:inline-block; background:#0EB0A6; color:#fff !important; text-decoration:none; border-radius:6px; padding:10px 16px; font-weight:700; margin-top:12px; }
+    .muted { color:#5f6368; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Ny beställning 📎 UPPLADDADE FILER</h1>
+    </div>
+    <div class="content">
+      <div class="badge">Order #${orderId}</div>
 
-                    const orderHtml = `
-                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                        <h2 style="color: #16a34a;">🎉 Ny beställning mottagen!</h2>
-                        
-                        <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #16a34a;">
-                          <h3 style="margin-top: 0; color: #166534;">Order #${orderId}</h3>
-                          <p style="margin: 0; font-size: 18px; font-weight: bold; color: #166534;">Totalbelopp: ${pricingResult.totalPrice} kr</p>
-                        </div>
+      <div class="section">
+        <div class="row"><span class="label">Datum</span><span class="value">${new Date().toLocaleDateString('sv-SE')}</span></div>
+        <div class="row"><span class="label">Land</span><span class="value">${countryName}</span></div>
+        <div class="row"><span class="label">Dokumenttyp</span><span class="value">${documentTypeName}</span></div>
+        <div class="row"><span class="label">Antal dokument</span><span class="value">${answers.quantity} st</span></div>
+        <div class="row"><span class="label">Valda tjänster</span><span class="value">${servicesText}</span></div>
+        <div class="row"><span class="label">Totalbelopp</span><span class="value">${pricingResult.totalPrice} kr</span></div>
+        <div class="row"><span class="label">Dokumentkälla</span><span class="value">${answers.willSendMainDocsLater ? 'Skickas via e-post' : 'Uppladdade filer'}</span></div>
+        <div class="row"><span class="label">Returfrakt</span><span class="value">${returfraktText}</span></div>
+        ${premiumText ? `<div class="row"><span class="label">Premium</span><span class="value">${premiumText}</span></div>` : ''}
+      </div>
 
-                        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                          <h3 style="margin-top: 0; color: #374151;">👤 Kunduppgifter</h3>
-                          <p><strong>Namn:</strong> ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</p>
-                          <p><strong>E-post:</strong> ${answers.customerInfo.email}</p>
-                          <p><strong>Telefon:</strong> ${answers.customerInfo.phone}</p>
-                          ${answers.customerInfo.companyName ? `<p><strong>Företag:</strong> ${answers.customerInfo.companyName}</p>` : ''}
-                        </div>
+      <div class="section">
+        <div class="row"><span class="label">Kund</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
+        <div class="row"><span class="label">E-post</span><span class="value">${answers.customerInfo.email}</span></div>
+        <div class="row"><span class="label">Telefon</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
+        <div class="row"><span class="label">Adress</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
+        ${answers.invoiceReference ? `<div class="row"><span class="label">Fakturareferens</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
+      </div>
 
-                        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                          <h3 style="margin-top: 0; color: #374151;">📄 Orderdetaljer</h3>
-                          <p><strong>Land:</strong> ${countryName}</p>
-                          <p><strong>Dokumenttyp:</strong> ${documentTypeName}</p>
-                          <p><strong>Antal dokument:</strong> ${answers.quantity}</p>
-                          <p><strong>Dokumentkälla:</strong> ${documentSourceText}</p>
-                        </div>
+      ${answers.uploadedFiles && answers.uploadedFiles.length > 0 ? `
+      <div class="section" style="background:#ECFDF5; border:2px solid #10B981;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <span style="font-size:24px;">📎</span>
+          <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPPLADDADE FILER (${answers.uploadedFiles.length} st)</h3>
+        </div>
+        <div style="background:#fff; border:1px solid #A7F3D0; border-radius:6px; padding:12px;">
+          ${answers.uploadedFiles.map((file: File | null, i: number) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'Fil ' + (i + 1)}</div>`).join('')}
+        </div>
+        <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 Visa filer i admin</a>
+      </div>
+      ` : ''}
 
-                        <div style="background-color: #eef2ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                          <h3 style="margin-top: 0; color: #4338ca;">🔧 Valda tjänster</h3>
-                          <p style="font-size: 16px;"><strong>${servicesText}</strong></p>
-                        </div>
+      ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Övriga kommentarer</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
 
-                        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                          <h3 style="margin-top: 0; color: #374151;">📦 Leverans</h3>
-                          <p><strong>Returfrakt:</strong> ${returfraktText}</p>
-                          ${premiumText ? `<p><strong>${premiumText}</strong></p>` : ''}
-                        </div>
+      <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
+    </div>
+  </div>
+</body>
+</html>
+                    `.trim();
 
-                        ${answers.additionalNotes ? `
-                        <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-                          <h3 style="margin-top: 0; color: #92400e;">📝 Övriga kommentarer</h3>
-                          <p style="white-space: pre-wrap;">${answers.additionalNotes}</p>
-                        </div>
-                        ` : ''}
-
-                        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-                        <p style="color: #6b7280; font-size: 14px;">
-                          <a href="https://doxvl-51a30.web.app/admin/orders/${orderId}" style="color: #2563eb;">Visa order i admin →</a>
-                        </p>
-                      </div>
-                    `;
-
-                    const emailData = {
-                      name: `Ny beställning - Order #${orderId}`,
-                      email: 'noreply@doxvl.se',
-                      phone: '',
-                      subject: `🎉 Ny beställning - Order #${orderId} - ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
-                      message: `Ny beställning har mottagits!\n\nOrdernummer: ${orderId}\nKund: ${answers.customerInfo.firstName} ${answers.customerInfo.lastName}\nLand: ${countryName}\nTjänster: ${servicesText}\nTotalbelopp: ${pricingResult.totalPrice} kr`,
-                      html: orderHtml,
-                      orderId: orderId,
+                    // Send styled HTML email to handlers via customerEmails queue (same as original documents flow)
+                    await addDoc(collection(db, 'customerEmails'), {
+                      name: `Order #${orderId}`,
+                      email: 'info@doxvl.se,info@visumpartner.se',
+                      subject: `Ny beställning - Order ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
+                      message: internalHtml,
                       createdAt: Timestamp.now(),
-                      status: 'unread'
-                    };
+                      status: 'queued'
+                    });
+                    
+                    // Send customer confirmation email
+                    const customerEmail = answers.billingInfo?.email || answers.returnAddress?.email || answers.customerInfo?.email;
+                    const customerFirstName = answers.billingInfo?.firstName || answers.returnAddress?.firstName || answers.customerInfo?.firstName || '';
+                    const customerLastName = answers.billingInfo?.lastName || answers.returnAddress?.lastName || answers.customerInfo?.lastName || '';
+                    
+                    if (customerEmail) {
+                      const customerConfirmationHtml = generateCustomerConfirmationEmail({
+                        orderId: orderId,
+                        customerFirstName: customerFirstName,
+                        customerLastName: customerLastName,
+                        countryName: countryName,
+                        documentType: documentTypeName,
+                        quantity: answers.quantity,
+                        services: servicesText,
+                        totalPrice: pricingResult.totalPrice,
+                        documentSource: answers.documentSource as 'upload' | 'original',
+                        returnService: returfraktText,
+                        locale: locale
+                      });
 
-                    await addDoc(collection(db, 'contactMessages'), emailData);
+                      // Use same format as original documents flow - message field contains HTML
+                      const customerEmailData = {
+                        name: `${customerFirstName} ${customerLastName}`,
+                        email: customerEmail,
+                        phone: answers.billingInfo?.phone || answers.returnAddress?.phone || answers.customerInfo?.phone || '',
+                        subject: locale === 'en' 
+                          ? `Order Confirmation – ${orderId}` 
+                          : `Orderbekräftelse – ${orderId}`,
+                        message: customerConfirmationHtml,
+                        orderId: orderId,
+                        createdAt: Timestamp.now(),
+                        status: 'pending'
+                      };
+
+                      await addDoc(collection(db, 'customerEmails'), customerEmailData);
+                    }
                   } catch (emailError) {
                     // Don't block the order flow if email notification fails
                   }
@@ -1166,37 +1158,69 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div className="space-y-4">
           {/* Address Display for Original Documents - only show if services are selected */}
           {!answers.helpMeChooseServices && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 mb-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-red-900 mb-2">
-                    {t('orderFlow.step10.shippingAddressTitle')}
-                  </h3>
-                  <div className="bg-white border border-red-200 rounded-lg p-4 mb-3" id="shipping-address-final">
-                    <div className="font-medium text-gray-900 mb-1">{t('orderFlow.step7.companyName')}</div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 sm:p-6 mb-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="text-xl">📦</span>
+                <h3 className="text-lg font-semibold text-amber-900">
+                  {locale === 'en' ? 'Send your documents to us' : 'Skicka dina dokument till oss'}
+                </h3>
+              </div>
+              
+              <p className="text-sm text-amber-800 mb-4">
+                {locale === 'en' 
+                  ? 'Choose the address that matches your shipping method. Write the order number clearly on the envelope.'
+                  : 'Välj adressen som matchar din fraktmetod. Skriv ordernumret tydligt på kuvertet.'}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* REK Address */}
+                <div className="bg-white border-2 border-red-300 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="inline-block px-2 py-0.5 text-xs font-bold text-red-700 bg-red-100 rounded">REK</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {locale === 'en' ? 'Registered mail' : 'Rekommenderat brev'}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-semibold text-gray-900">{t('orderFlow.step7.companyName')}</div>
                     <div className="text-gray-700">{t('orderFlow.step7.attention')}</div>
                     <div className="text-gray-700">{t('orderFlow.step7.street')}</div>
                     <div className="text-gray-700">{t('orderFlow.step7.postalCode')} {t('orderFlow.step7.city')}</div>
                     <div className="text-gray-700">{t('orderFlow.step7.country')}</div>
                   </div>
-                  <div className="text-sm text-red-700">
-                    <strong>{locale === 'en' ? 'Important:' : 'Viktigt:'}</strong> {locale === 'en' ? 'Write the order number clearly on the envelope or print a shipping label below.' : 'Skriv tydligt ordernumret på kuvertet eller skriv ut en fraktsedel nedan.'}
+                </div>
+
+                {/* Courier/DHL Address */}
+                <div className="bg-white border-2 border-blue-300 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="inline-block px-2 py-0.5 text-xs font-bold text-blue-700 bg-blue-100 rounded">BUD/DHL</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {locale === 'en' ? 'Courier / DHL' : 'Bud / DHL'}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <div className="font-semibold text-gray-900">{t('orderFlow.step7.companyName')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.attention')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.courierStreet', 'Livdjursgatan 4, våning 6')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.courierPostalCode', '121 62')} {t('orderFlow.step7.courierCity', 'Johanneshov')}</div>
+                    <div className="text-gray-700">{t('orderFlow.step7.courierCountry', 'Sverige')}</div>
                   </div>
                 </div>
-                <div className="sm:ml-4">
-                  <button
-                    onClick={() => {
-                      // Print shipping label with blank order number so customer can write it by hand
-                      printShippingLabel(undefined);
-                    }}
-                    className="flex items-center justify-center w-12 h-12 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors duration-200"
-                    title="Skriv ut fraktsedel"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v5a2 2 0 002 2h2m10-9V5a2 2 0 00-2-2H9a2 2 0 00-2 2v3m10 9H7m10 0v4H7v-4" />
-                    </svg>
-                  </button>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-xs text-amber-700">
+                  <strong>{locale === 'en' ? 'Tip:' : 'Tips:'}</strong> {locale === 'en' ? 'Print a shipping label with the order number' : 'Skriv ut en fraktsedel med ordernumret'}
                 </div>
+                <button
+                  onClick={() => printShippingLabel(undefined)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v5a2 2 0 002 2h2m10-9V5a2 2 0 00-2-2H9a2 2 0 00-2 2v3m10 9H7m10 0v4H7v-4" />
+                  </svg>
+                  {locale === 'en' ? 'Print label' : 'Skriv ut'}
+                </button>
               </div>
             </div>
           )}
@@ -1220,14 +1244,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             </div>
           )}
 
-          {/* Customer Information Form */}
-          <CustomerInfoForm
-            answers={answers}
-            setAnswers={setAnswers}
-            locale={locale}
-            addressInputRef={addressInputRef}
-            showValidation={showValidation}
-          />
+          {/* Customer Information Form moved to Step 9 (Step9CustomerInfo) */}
 
           {/* Terms and Conditions Acceptance */}
           <TermsAcceptance locale={locale} id="terms-acceptance-original" />
@@ -1350,6 +1367,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   // Submit order (include any notarization support files + return label)
                   const orderResult2 = await createOrderWithFiles(orderData, getFilesForUpload());
                   const orderId = String(typeof orderResult2 === 'object' && orderResult2?.orderId ? orderResult2.orderId : orderResult2); // Handle both new and legacy format
+
+                  // Trigger save of customer info to localStorage if checkbox is checked
+                  window.dispatchEvent(new CustomEvent('saveCustomerInfo'));
 
                   // Clear saved progress since order is complete
                   clearProgress();
@@ -1680,15 +1700,37 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           :
           `<div class="next-steps">
             <h3>📦 Next steps</h3>
-            <p>Please send your original documents to the following address:</p>
-            <div class="address-box">
-              <strong>DOX Visumpartner AB</strong><br>
-              Att: Document handling<br>
-              Box 38<br>
-              121 25 Stockholm-Globen<br>
-              Sweden
+            <p>Please send your original documents to one of the following addresses depending on your shipping method:</p>
+            
+            <div style="display:flex; gap:16px; flex-wrap:wrap; margin:16px 0;">
+              <div style="flex:1; min-width:200px;">
+                <div style="background:#DC2626; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">📮 REK (Registered Mail)</div>
+                <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#DC2626;">
+                  <strong>DOX Visumpartner AB</strong><br>
+                  Att: Document handling<br>
+                  Box 38<br>
+                  121 25 Stockholm-Globen<br>
+                  Sweden
+                </div>
+              </div>
+              <div style="flex:1; min-width:200px;">
+                <div style="background:#2563EB; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">🚚 COURIER / DHL</div>
+                <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#2563EB;">
+                  <strong>DOX Visumpartner AB</strong><br>
+                  Att: Document handling<br>
+                  Livdjursgatan 4, floor 6<br>
+                  121 62 Johanneshov<br>
+                  Sweden
+                </div>
+              </div>
             </div>
-            <p><strong>Important:</strong> Mark the envelope with <span class="highlight">"Order #${orderId}"</span> and send it as <strong>registered mail</strong>.</p>
+            
+            <p><strong>Important:</strong> Mark the envelope with <span class="highlight">"Order #${orderId}"</span>.</p>
+            
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; margin-top:16px; text-align:center;">
+              <p style="margin:0 0 10px; color:#374151; font-size:14px;">🖨️ <strong>Print a shipping label with your order number:</strong></p>
+              <a href="https://www.doxvl.se/shipping-label?orderId=${orderId}" style="display:inline-block; background:#2563EB; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">Print Shipping Label</a>
+            </div>
           </div>`)
         :
         `<div class="next-steps">
@@ -1712,6 +1754,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         if (answers.returnService === 'office-pickup') return 'office pickup';
         return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
       })()}</strong>.</p>
+
+      <div style="background:#f0fdf4; border:2px solid #22c55e; border-radius:8px; padding:20px; margin:22px 0; text-align:center;">
+        <h3 style="color:#166534; margin:0 0 10px; font-size:17px;">📍 Track Your Order</h3>
+        <p style="color:#15803d; margin:0 0 14px; font-size:14px;">Follow the progress of your order in real-time:</p>
+        <a href="https://www.doxvl.se/orderstatus?order=${orderId}" style="display:inline-block; background:#22c55e; color:#fff; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:700; font-size:15px;">Track Order Status</a>
+        <p style="color:#6b7280; margin:14px 0 0; font-size:12px;">Use your email address to verify and view status</p>
+      </div>
 
       <div class="contact-info">
         <h3>Questions?</h3>
@@ -1843,15 +1892,37 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           :
           `<div class="next-steps">
             <h3>📦 Nästa steg</h3>
-            <p>Skicka dina originaldokument till följande adress:</p>
-            <div class="address-box">
-              <strong>DOX Visumpartner AB</strong><br>
-              Att: Dokumenthantering<br>
-              Box 38<br>
-              121 25 Stockholm-Globen<br>
-              Sverige
+            <p>Skicka dina originaldokument till en av följande adresser beroende på din fraktmetod:</p>
+            
+            <div style="display:flex; gap:16px; flex-wrap:wrap; margin:16px 0;">
+              <div style="flex:1; min-width:200px;">
+                <div style="background:#DC2626; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">📮 REK (Rekommenderat brev)</div>
+                <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#DC2626;">
+                  <strong>DOX Visumpartner AB</strong><br>
+                  Att: Dokumenthantering<br>
+                  Box 38<br>
+                  121 25 Stockholm-Globen<br>
+                  Sverige
+                </div>
+              </div>
+              <div style="flex:1; min-width:200px;">
+                <div style="background:#2563EB; color:#fff; padding:6px 12px; border-radius:4px 4px 0 0; font-weight:700; font-size:13px;">🚚 BUD / DHL</div>
+                <div class="address-box" style="margin:0; border-radius:0 0 4px 4px; border-top:none; border-color:#2563EB;">
+                  <strong>DOX Visumpartner AB</strong><br>
+                  Att: Dokumenthantering<br>
+                  Livdjursgatan 4, våning 6<br>
+                  121 62 Johanneshov<br>
+                  Sverige
+                </div>
+              </div>
             </div>
-            <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span> och skicka med <strong>REK (rekommenderat brev)</strong>.</p>
+            
+            <p><strong>Viktigt:</strong> Märk försändelsen med <span class="highlight">"Order #${orderId}"</span>.</p>
+            
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:14px; margin-top:16px; text-align:center;">
+              <p style="margin:0 0 10px; color:#374151; font-size:14px;">🖨️ <strong>Skriv ut en fraktsedel med ditt ordernummer:</strong></p>
+              <a href="https://www.doxvl.se/shipping-label?orderId=${orderId}" style="display:inline-block; background:#2563EB; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">Skriv ut fraktsedel</a>
+            </div>
           </div>`)
         :
         `<div class="next-steps">
@@ -1876,6 +1947,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
       })()}</strong>.</p>
 
+      <div style="background:#f0fdf4; border:2px solid #22c55e; border-radius:8px; padding:20px; margin:22px 0; text-align:center;">
+        <h3 style="color:#166534; margin:0 0 10px; font-size:17px;">📍 Följ din order</h3>
+        <p style="color:#15803d; margin:0 0 14px; font-size:14px;">Följ ditt ärende i realtid:</p>
+        <a href="https://www.doxvl.se/orderstatus?order=${orderId}" style="display:inline-block; background:#22c55e; color:#fff; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:700; font-size:15px;">Se orderstatus</a>
+        <p style="color:#6b7280; margin:14px 0 0; font-size:12px;">Använd din e-postadress för att verifiera och se status</p>
+      </div>
+
       <div class="contact-info">
         <h3>Har du frågor?</h3>
         <p>Kontakta oss gärna:</p>
@@ -1896,20 +1974,28 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 </html>
                       `.trim();
 
-                    const customerEmailData = {
-                      name: `${answers.customerInfo.firstName} ${answers.customerInfo.lastName}`,
-                      email: answers.customerInfo.email,
-                      phone: answers.customerInfo.phone,
-                      subject: isEnglish
-                        ? `Order Confirmation – ${orderId}`
-                        : `Orderbekräftelse – ${orderId}`,
-                      message: customerHtml,
-                      orderId: orderId,
-                      createdAt: Timestamp.now(),
-                      status: 'unread'
-                    };
+                    // Use billingInfo as primary source for customer email (that's where CustomerInfoForm saves data)
+                    const custEmail = answers.billingInfo?.email || answers.returnAddress?.email || answers.customerInfo?.email;
+                    const custFirstName = answers.billingInfo?.firstName || answers.returnAddress?.firstName || answers.customerInfo?.firstName || '';
+                    const custLastName = answers.billingInfo?.lastName || answers.returnAddress?.lastName || answers.customerInfo?.lastName || '';
+                    const custPhone = answers.billingInfo?.phone || answers.returnAddress?.phone || answers.customerInfo?.phone || '';
+                    
+                    if (custEmail) {
+                      const customerEmailData = {
+                        name: `${custFirstName} ${custLastName}`,
+                        email: custEmail,
+                        phone: custPhone,
+                        subject: isEnglish
+                          ? `Order Confirmation – ${orderId}`
+                          : `Orderbekräftelse – ${orderId}`,
+                        message: customerHtml,
+                        orderId: orderId,
+                        createdAt: Timestamp.now(),
+                        status: 'pending'
+                      };
 
-                    await addDoc(collection(db, 'customerEmails'), customerEmailData);
+                      await addDoc(collection(db, 'customerEmails'), customerEmailData);
+                    }
                   } catch (customerEmailError) {
                     // Don't block the order flow if customer email fails
                   }
@@ -2053,9 +2139,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             </div>
           </div>
         </div>
-      )}
-
-        </>
       )}
     </div>
   );

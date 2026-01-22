@@ -229,43 +229,55 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     }).format(date);
   };
 
-  // Hämta statustext baserat på status
+  // Hämta statustext baserat på status (colorblind-friendly palette)
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
         return {
           text: t('orderStatus.statuses.pending'),
-          color: 'bg-gray-100 text-gray-800',
+          color: 'bg-blue-100 text-blue-800',
           description: t('orderStatus.statusDescriptions.pending')
+        };
+      case 'received':
+        return {
+          text: t('orderStatus.statuses.received'),
+          color: 'bg-purple-100 text-purple-800',
+          description: t('orderStatus.statusDescriptions.received')
         };
       case 'processing':
         return {
           text: t('orderStatus.statuses.processing'),
-          color: 'bg-yellow-100 text-yellow-800',
+          color: 'bg-amber-100 text-amber-800',
           description: t('orderStatus.statusDescriptions.processing')
+        };
+      case 'submitted':
+        return {
+          text: t('orderStatus.statuses.submitted'),
+          color: 'bg-indigo-100 text-indigo-800',
+          description: t('orderStatus.statusDescriptions.submitted')
+        };
+      case 'action-required':
+        return {
+          text: t('orderStatus.statuses.action-required'),
+          color: 'bg-orange-100 text-orange-800',
+          description: t('orderStatus.statusDescriptions.action-required')
+        };
+      case 'ready-for-return':
+        return {
+          text: t('orderStatus.statuses.ready-for-return'),
+          color: 'bg-teal-100 text-teal-800',
+          description: t('orderStatus.statusDescriptions.ready-for-return')
         };
       case 'completed':
         return {
           text: t('orderStatus.statuses.completed'),
-          color: 'bg-blue-100 text-blue-800',
+          color: 'bg-gray-700 text-white',
           description: t('orderStatus.statusDescriptions.completed')
-        };
-      case 'shipped':
-        return {
-          text: t('orderStatus.statuses.shipped'),
-          color: 'bg-purple-100 text-purple-800',
-          description: t('orderStatus.statusDescriptions.shipped')
-        };
-      case 'delivered':
-        return {
-          text: t('orderStatus.statuses.delivered'),
-          color: 'bg-green-100 text-green-800',
-          description: t('orderStatus.statusDescriptions.delivered')
         };
       case 'cancelled':
         return {
           text: t('orderStatus.statuses.cancelled'),
-          color: 'bg-red-100 text-red-800',
+          color: 'bg-gray-100 text-red-700',
           description: t('orderStatus.statusDescriptions.cancelled')
         };
       default:

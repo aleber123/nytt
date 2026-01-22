@@ -937,20 +937,24 @@
       }
     },
     "statuses": {
-      "pending": "Waiting for processing",
-      "processing": "Being processed",
-      "completed": "Processing completed",
-      "shipped": "Shipped",
-      "delivered": "Delivered",
-      "cancelled": "Cancelled/Returned"
+      "pending": "Pending",
+      "received": "Received",
+      "processing": "Processing",
+      "submitted": "Submitted",
+      "action-required": "Action Required",
+      "ready-for-return": "Ready for Return",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
     },
     "statusDescriptions": {
-      "pending": "Your order is waiting to be processed",
+      "pending": "Your order has been created, waiting for documents",
+      "received": "We have received your documents",
       "processing": "We are actively working on your documents",
-      "completed": "The documents are ready for shipment",
-      "shipped": "The documents are on their way to you",
-      "delivered": "The documents have been delivered",
-      "cancelled": "The order has been cancelled or returned",
+      "submitted": "Documents have been submitted to an authority",
+      "action-required": "Additional information or documents needed",
+      "ready-for-return": "Documents are ready and will be shipped soon",
+      "completed": "Documents have been delivered to you",
+      "cancelled": "The order has been cancelled",
       "default": "Status will be updated soon"
     },
     "errors": {

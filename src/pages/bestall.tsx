@@ -27,10 +27,11 @@ import Step3ServicesSelection from '@/components/order/steps/Step3ServicesSelect
 import Step4Quantity from '@/components/order/steps/Step4Quantity';
 import Step5DocumentSource from '@/components/order/steps/Step5DocumentSource';
 import { Step6PickupService } from '@/components/order/steps/Step6PickupService';
-import Step7ShippingOrPickup from '@/components/order/steps/Step7ShippingOrPickup';
+// Step7ShippingOrPickup removed - shipping info moved to Step 10 summary
 import Step8ScannedCopies from '@/components/order/steps/Step8ScannedCopies';
 import Step9ReturnService from '@/components/order/steps/Step9ReturnService';
 import Step9bReturnAddress from '@/components/order/steps/Step9bReturnAddress';
+import Step9CustomerInfo from '@/components/order/steps/Step9CustomerInfo';
 import Step10ReviewSubmit from '@/components/order/steps/Step10ReviewSubmit';
 import OrderSummary from '@/components/order/OrderSummary';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
@@ -107,7 +108,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     },
     // Billing information
     billingInfo: {
-      sameAsReturn: true, // Default to same as return address
+      sameAsReturn: false, // Default to separate billing info (user fills in directly)
       firstName: '',
       lastName: '',
       companyName: '',
@@ -1378,8 +1379,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   onBack={() => navigateToStep(4)}
                   onDocumentSourceSelect={(source) => {
                     if (source === 'upload') {
-                      // Skip pickup service step and go to shipping step
-                      navigateToStep(8);
+                      // Skip pickup service step and go to scanned copies step
+                      navigateToStep(7);
                     } else {
                       // Go to pickup service step
                       navigateToStep(6);
@@ -1399,57 +1400,60 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   currentLocale={currentLocale}
                 />
               )}
+              {/* Step 7: Scanned Copies (was Step 8) */}
               {currentQuestion === 7 && (
-                <Step7ShippingOrPickup
-                  answers={answers}
-                  setAnswers={setAnswers}
-                  onNext={() => navigateToStep(8)}
-                  onBack={() => navigateToStep(6)}
-                  onSkip={() => {
-                    if (answers.documentSource === 'upload') {
-                      navigateToStep(8);
-                    } else {
-                      navigateToStep(9);
-                    }
-                  }}
-                  currentLocale={currentLocale}
-                />
-              )}
-              {currentQuestion === 8 && (
                 <Step8ScannedCopies
                   answers={answers}
                   setAnswers={setAnswers}
-                  onNext={() => navigateToStep(9)}
+                  onNext={() => navigateToStep(8)}
                   onBack={() => {
                     if (answers.documentSource === 'upload') {
                       navigateToStep(5);
                     } else {
-                      navigateToStep(7);
+                      navigateToStep(6);
                     }
                   }}
                   currentLocale={currentLocale}
                 />
               )}
-              {currentQuestion === 9 && (
+              {/* Step 8: Return Service (was Step 9) */}
+              {currentQuestion === 8 && (
                 <Step9ReturnService
                   answers={answers}
                   setAnswers={setAnswers}
-                  onNext={() => navigateToStep(9.5)}
-                  onBack={() => navigateToStep(8)}
+                  onNext={() => navigateToStep(8.5)}
+                  onBack={() => navigateToStep(7)}
                   returnServices={returnServices}
                   loadingReturnServices={loadingReturnServices}
                 />
               )}
-              {currentQuestion === 9.5 && (
+              {/* Step 8.5: Return Address (was Step 9.5) */}
+              {currentQuestion === 8.5 && (
                 <Step9bReturnAddress
                   answers={answers}
                   setAnswers={setAnswers}
-                  onNext={() => navigateToStep(10)}
-                  onBack={() => navigateToStep(9)}
-                  onSkip={() => navigateToStep(10)}
+                  onNext={() => navigateToStep(9)}
+                  onBack={() => navigateToStep(8)}
+                  onSkip={() => navigateToStep(9)}
                   currentLocale={currentLocale}
                 />
               )}
+              {/* Step 9: Customer Info (was Step 9.7) */}
+              {currentQuestion === 9 && (
+                <Step9CustomerInfo
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(10)}
+                  onBack={() => {
+                    // Go back to step 8.5 if return address was required, otherwise step 8
+                    const requiresReturnAddress = !!answers.returnService && 
+                      ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city', 'postnord-rek'].includes(answers.returnService);
+                    navigateToStep(requiresReturnAddress ? 8.5 : 8);
+                  }}
+                  currentLocale={currentLocale}
+                />
+              )}
+              {/* Step 10: Review & Submit */}
               {currentQuestion === 10 && (
                 <Step10ReviewSubmit
                   answers={answers}
@@ -1460,10 +1464,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                       navigateToStep(4);
                       return;
                     }
-                    // Go back to step 9.5 if return address was required, otherwise step 9
-                    const requiresReturnAddress = !!answers.returnService && 
-                      ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city', 'postnord-rek'].includes(answers.returnService);
-                    navigateToStep(requiresReturnAddress ? 9.5 : 9);
+                    navigateToStep(9);
                   }}
                   allCountries={allCountries}
                   returnServices={returnServices}

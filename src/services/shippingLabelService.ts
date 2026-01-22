@@ -119,60 +119,143 @@ interface LabelOptions {
   orderNumber?: string;
 }
 
-const COMPANY = {
+const REK_ADDRESS = {
   name: 'DOX Visumpartner AB',
   attention: 'Att: Dokumenthantering',
-  street: 'Livdjursgatan 4',
+  street: 'Box 38',
+  postalCity: '121 25 Stockholm-Globen',
+  country: 'Sverige',
+};
+
+const BUD_ADDRESS = {
+  name: 'DOX Visumpartner AB',
+  attention: 'Att: Dokumenthantering',
+  street: 'Livdjursgatan 4, våning 6',
   postalCity: '121 62 Johanneshov',
   country: 'Sverige',
 };
 
 export function generateShippingLabelPDF(opts: LabelOptions = {}): jsPDF {
-  const doc = new jsPDF({ unit: 'mm', format: 'A6' }); // A6 label size
+  const doc = new jsPDF({ unit: 'mm', format: 'A4' }); // A4 for both addresses
 
-  // Branding band
+  // Header band
   doc.setFillColor(46, 45, 44);
-  doc.rect(0, 0, 148, 18, 'F');
+  doc.rect(0, 0, 210, 25, 'F');
 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text(COMPANY.name, 6, 12);
+  doc.setFontSize(16);
+  doc.text('Fraktsedel - DOX Visumpartner AB', 105, 12, { align: 'center' });
+  
+  if (opts.orderNumber) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Order: ${opts.orderNumber}`, 105, 20, { align: 'center' });
+  }
 
-  // Address block
-  let y = 28;
+  let y = 35;
+  doc.setTextColor(32, 33, 36);
+
+  // Instruction text
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text('Välj adressen som matchar din fraktmetod. Skriv ordernumret tydligt på kuvertet.', 105, y, { align: 'center' });
+  y += 15;
+
+  // ===== REK ADDRESS (Left side) =====
+  const rekX = 15;
+  const boxWidth = 85;
+  const boxHeight = 75;
+
+  // REK label badge
+  doc.setFillColor(220, 38, 38); // Red
+  doc.roundedRect(rekX, y, 30, 8, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('REK', rekX + 15, y + 5.5, { align: 'center' });
+
+  // REK subtitle
+  doc.setTextColor(220, 38, 38);
+  doc.setFontSize(10);
+  doc.text('Rekommenderat brev', rekX + 35, y + 5.5);
+
+  y += 12;
+
+  // REK address box
+  doc.setDrawColor(220, 38, 38);
+  doc.setLineWidth(1);
+  doc.roundedRect(rekX, y, boxWidth, boxHeight, 3, 3, 'S');
+
+  let rekY = y + 10;
   doc.setTextColor(32, 33, 36);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text('Ship To:', 6, y);
-  y += 8;
+  doc.text(REK_ADDRESS.name, rekX + 5, rekY); rekY += 7;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(12);
-  doc.text(COMPANY.name, 6, y); y += 6;
-  doc.text(COMPANY.attention, 6, y); y += 6;
-  doc.text(COMPANY.street, 6, y); y += 6;
-  doc.text(COMPANY.postalCity, 6, y); y += 6;
-  doc.text(COMPANY.country, 6, y); y += 10;
-
-  // Order number box
+  doc.setFontSize(11);
+  doc.text(REK_ADDRESS.attention, rekX + 5, rekY); rekY += 7;
+  doc.text(REK_ADDRESS.street, rekX + 5, rekY); rekY += 7;
+  doc.text(REK_ADDRESS.postalCity, rekX + 5, rekY); rekY += 7;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  const label = 'Order #';
-  const value = opts.orderNumber || '________';
-  doc.text(`${label}${value}`, 6, y);
-  y += 4;
-  doc.setDrawColor(46, 45, 44);
-  doc.setLineWidth(0.4);
-  doc.rect(6, y, 136, 16);
+  doc.text(REK_ADDRESS.country, rekX + 5, rekY);
+
+  // ===== BUD/DHL ADDRESS (Right side) =====
+  const budX = 110;
+
+  // BUD label badge
+  doc.setFillColor(37, 99, 235); // Blue
+  doc.roundedRect(budX, y - 12, 45, 8, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('BUD / DHL', budX + 22.5, y - 6.5, { align: 'center' });
+
+  // BUD subtitle
+  doc.setTextColor(37, 99, 235);
+  doc.setFontSize(10);
+  doc.text('Bud / Kurir', budX + 50, y - 6.5);
+
+  // BUD address box
+  doc.setDrawColor(37, 99, 235);
+  doc.setLineWidth(1);
+  doc.roundedRect(budX, y, boxWidth, boxHeight, 3, 3, 'S');
+
+  let budY = y + 10;
+  doc.setTextColor(32, 33, 36);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(BUD_ADDRESS.name, budX + 5, budY); budY += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text(BUD_ADDRESS.attention, budX + 5, budY); budY += 7;
+  doc.text(BUD_ADDRESS.street, budX + 5, budY); budY += 7;
+  doc.text(BUD_ADDRESS.postalCity, budX + 5, budY); budY += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text(BUD_ADDRESS.country, budX + 5, budY);
+
+  y += boxHeight + 15;
+
+  // Order number section
+  doc.setTextColor(32, 33, 36);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  const orderLabel = opts.orderNumber ? `Order: ${opts.orderNumber}` : 'Order: ________________';
+  doc.text(orderLabel, 105, y, { align: 'center' });
+  y += 8;
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text('Write the order number clearly inside the box if missing.', 8, y + 6);
+  doc.setTextColor(95, 99, 104);
+  doc.text('Skriv ordernumret tydligt på kuvertet/paketet.', 105, y, { align: 'center' });
 
-  // Instruction
-  y += 22;
+  // Footer instructions
+  y = 260;
   doc.setFontSize(9);
   doc.setTextColor(95, 99, 104);
-  doc.text('Please place this label on the outside of your envelope.', 6, y);
+  doc.text('Tips: Klipp ut den adress du behöver och fäst på kuvertet.', 105, y, { align: 'center' });
+  y += 5;
+  doc.text('REK = Rekommenderat brev via Posten | BUD/DHL = Bud eller kurirtjänst', 105, y, { align: 'center' });
 
   return doc;
 }
@@ -182,6 +265,6 @@ export function printShippingLabel(orderNumber?: string): void {
   const blobUrl = doc.output('bloburl');
   const win = window.open(blobUrl);
   if (!win) {
-    doc.save(`Shipping Label ${orderNumber || ''}.pdf`);
+    doc.save(`Fraktsedel ${orderNumber || ''}.pdf`);
   }
 }
