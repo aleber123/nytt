@@ -138,10 +138,6 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
             <span class="detail-label">Selected services:</span>
             <span class="detail-value">${services}</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Total amount:</span>
-            <span class="detail-value highlight">${totalPrice} SEK</span>
-          </div>
         </div>
       </div>
 
@@ -266,10 +262,6 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
           <div class="detail-row">
             <span class="detail-label">Valda tjänster:</span>
             <span class="detail-value">${services}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Totalbelopp:</span>
-            <span class="detail-value highlight">${totalPrice} kr</span>
           </div>
         </div>
       </div>
