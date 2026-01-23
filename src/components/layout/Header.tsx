@@ -52,12 +52,12 @@ const Header: React.FC = () => {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <NextImage
-                src="/dox-logo.webp"
+                src="/logo-new.svg"
                 alt="DOX Visumpartner AB"
-                width={120}
-                height={40}
+                width={201}
+                height={101}
                 priority
-                style={{ width: 'auto', height: 'auto', maxHeight: '2.5rem' }}
+                style={{ width: 'auto', height: 'auto', maxHeight: '3.3rem' }}
               />
             </Link>
           </div>

@@ -30,6 +30,10 @@ const Footer: React.FC = () => {
       { name: 'Libanon', code: 'LB', href: '/legalisering/libanon' },
       { name: 'Spanien', code: 'ES', href: '/legalisering/spanien' },
     ],
+    visas: [
+      { name: 'Visum Angola', code: 'AO', href: '/visum/angola' },
+      { name: 'Visum Angola (Norsk)', code: 'AO', href: '/visum/angola-no' },
+    ],
     support: [
       { name: safeT('footer.support.faq', 'Vanliga frågor'), href: '/faq' },
       { name: safeT('footer.support.contact', 'Kontakta oss'), href: '/kontakt' },
@@ -60,11 +64,11 @@ const Footer: React.FC = () => {
           <div className="space-y-8 xl:col-span-1">
             <Link href="/" className="flex items-center">
               <NextImage
-                src="/dox-logo.webp"
+                src="/logo-new.svg"
                 alt="DOX Visumpartner AB"
-                width={120}
-                height={40}
-                style={{ height: 'auto', width: 'auto', maxHeight: '2.5rem' }}
+                width={259}
+                height={131}
+                style={{ height: 'auto', width: 'auto', maxHeight: '4.3rem' }}
               />
             </Link>
             <p className="text-base text-gray-300 whitespace-pre-line">
@@ -171,6 +175,21 @@ const Footer: React.FC = () => {
             </h3>
             <ul role="list" className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
               {footerNavigation.countries.map((item) => (
+                <li key={item.name}>
+                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white flex items-center gap-1.5">
+                    <CountryFlag code={item.code} size={16} />
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-8 xl:mt-0">
+            <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
+              Visum
+            </h3>
+            <ul role="list" className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {footerNavigation.visas.map((item) => (
                 <li key={item.name}>
                   <Link href={item.href} className="text-sm text-gray-400 hover:text-white flex items-center gap-1.5">
                     <CountryFlag code={item.code} size={16} />

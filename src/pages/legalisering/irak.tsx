@@ -10,13 +10,14 @@ export default function IrakLegaliseringPage() {
   const countryKey = 'irak';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Irak', countryCode: 'IQ', color: '#007A3D', colorDark: '#005a2d' };
-  const embassy = { address: 'Släggbacken 9 (konsulär)', postalCode: '531 71 Solna', phone: '+46 8 411 44 43' };
+  const country = { name: 'Irak', countryCode: 'IQ', color: '#007A3D', colorDark: '#005C2E' };
+  const embassy = { address: 'Lidingövägen 74', postalCode: '115 27 Stockholm', phone: '+46 8 662 12 50' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

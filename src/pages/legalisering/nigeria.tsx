@@ -10,13 +10,14 @@ export default function NigeriaLegaliseringPage() {
   const countryKey = 'nigeria';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Nigeria', countryCode: 'NG', color: '#008751', colorDark: '#00633b' };
-  const embassy = { address: 'Skarpögatan 4, Box 27829', postalCode: '101 32 Stockholm', phone: '+46 8 24 51 12' };
+  const country = { name: 'Nigeria', countryCode: 'NG', color: '#008751', colorDark: '#00653D' };
+  const embassy = { address: 'Birger Jarlsgatan 37', postalCode: '111 45 Stockholm', phone: '+46 8 24 51 12' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

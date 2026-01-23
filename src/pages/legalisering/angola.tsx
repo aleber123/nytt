@@ -10,13 +10,14 @@ export default function AngolaLegaliseringPage() {
   const countryKey = 'angola';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Angola', countryCode: 'AO', color: '#CC092F', colorDark: '#9a0724' };
-  const embassy = { address: 'Pyramidvägen 7, 3 tr', postalCode: '169 56 Solna', phone: '+46 8 24 28 90' };
+  const country = { name: 'Angola', countryCode: 'AO', color: '#CE1126', colorDark: '#A00D1E' };
+  const embassy = { address: 'Ulriksdals Slottsväg 4', postalCode: '170 79 Solna', phone: '+46 8 655 00 70' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

@@ -10,13 +10,14 @@ export default function SyrienLegaliseringPage() {
   const countryKey = 'syrien';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Syrien', countryCode: 'SY', color: '#CE1126', colorDark: '#9e0d1d' };
-  const embassy = { address: 'Vendevägen 90, 5:e våningen', postalCode: '182 32 Danderyd', phone: '+46 8 622 18 70' };
+  const country = { name: 'Syrien', countryCode: 'SY', color: '#CE1126', colorDark: '#A00D1E' };
+  const embassy = { address: 'Engelbrektsgatan 34', postalCode: '114 32 Stockholm', phone: '+46 8 611 90 90' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

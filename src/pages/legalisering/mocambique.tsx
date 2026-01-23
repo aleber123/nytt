@@ -10,13 +10,14 @@ export default function MocambiqueLegaliseringPage() {
   const countryKey = 'mocambique';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Moçambique', countryCode: 'MZ', color: '#007168', colorDark: '#00524c' };
-  const embassy = { address: 'Tingsvägen 19, 9:e våningen', postalCode: '191 61 Sollentuna', phone: '+46 8 666 03 50' };
+  const country = { name: 'Moçambique', countryCode: 'MZ', color: '#007168', colorDark: '#00544E' };
+  const embassy = { address: 'Karlavägen 29', postalCode: '114 31 Stockholm', phone: '+46 8 679 05 20' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

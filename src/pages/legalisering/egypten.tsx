@@ -18,10 +18,12 @@ export default function EgyptenLegaliseringPage() {
     website: 'https://embassyofegypt.se'
   };
 
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
+
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

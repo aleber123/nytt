@@ -10,13 +10,14 @@ export default function LibyenLegaliseringPage() {
   const countryKey = 'libyen';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Libyen', countryCode: 'LY', color: '#239E46', colorDark: '#1a7534' };
-  const embassy = { address: 'Herserudsvägen 18', postalCode: '181 34 Lidingö', phone: '+46 8 767 29 90' };
+  const country = { name: 'Libyen', countryCode: 'LY', color: '#239E46', colorDark: '#1A7534' };
+  const embassy = { address: 'Herserudsvägen 18', postalCode: '181 34 Lidingö', phone: '+46 8 767 48 50' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

@@ -10,13 +10,14 @@ export default function PalestinaLegaliseringPage() {
   const countryKey = 'palestina';
   const cp = `countryPages.${countryKey}`;
   
-  const country = { name: 'Palestina', countryCode: 'PS', color: '#007A3D', colorDark: '#005a2d' };
-  const embassy = { address: 'Rådmansgatan 48', postalCode: '113 57 Stockholm', phone: '+46 997 200 749' };
+  const country = { name: 'Palestina', countryCode: 'PS', color: '#007A3D', colorDark: '#005C2E' };
+  const embassy = { address: 'Engelbrektsgatan 34', postalCode: '114 32 Stockholm', phone: '+46 8 611 90 90' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       

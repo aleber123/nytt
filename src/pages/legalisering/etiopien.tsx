@@ -12,11 +12,12 @@ export default function EtiopienLegaliseringPage() {
   
   const country = { name: 'Etiopien', countryCode: 'ET', color: '#078930', colorDark: '#056622' };
   const embassy = { address: 'Birger Jarlsgatan 39, Box 10448', postalCode: '100 55 Stockholm', phone: '+46 8 120 485 00' };
+  const pageTitle = `${t(`${cp}.title`)} | DOX Visumpartner`;
 
   return (
     <>
       <Head>
-        <title>{t(`${cp}.title`)} | DOX Visumpartner</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={t(`${cp}.metaDescription`)} />
               </Head>
       
