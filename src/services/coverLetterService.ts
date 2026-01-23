@@ -651,7 +651,11 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   y += 10;
 
   // Pricing summary - simple text header (ink-saving)
-  const hasPricingData = Array.isArray(order.pricingBreakdown) || typeof order.totalPrice === 'number';
+  // Use adminPrice.lineOverrides if available (admin-adjusted prices), otherwise fall back to pricingBreakdown
+  const adminPrice = (order as any).adminPrice;
+  const hasAdminOverrides = adminPrice && Array.isArray(adminPrice.lineOverrides) && adminPrice.lineOverrides.length > 0;
+  const hasPricingData = hasAdminOverrides || Array.isArray(order.pricingBreakdown) || typeof order.totalPrice === 'number';
+  
   if (hasPricingData) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -666,8 +670,48 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     doc.setFontSize(10);
     doc.setTextColor(text[0], text[1], text[2]);
 
-    // Show each line item from pricing breakdown
-    if (Array.isArray(order.pricingBreakdown)) {
+    // Show each line item - prefer admin overrides if available
+    if (hasAdminOverrides) {
+      // Use admin-adjusted prices from lineOverrides
+      adminPrice.lineOverrides.forEach((override: any) => {
+        // Skip excluded items
+        if (override.include === false) return;
+        
+        // Use overrideAmount if set, otherwise baseAmount
+        const price = override.overrideAmount !== null && override.overrideAmount !== undefined 
+          ? Number(override.overrideAmount) 
+          : Number(override.baseAmount || 0);
+        
+        if (!price) return;
+        
+        // Get description from label
+        let description = override.label || 'Item';
+        description = translateDescription(description);
+        
+        doc.text(description, labelX, y);
+        doc.text(formatCurrency(price), valueX, y, { align: 'right' });
+        y += 5;
+      });
+      
+      // Show adjustments if any
+      if (Array.isArray(adminPrice.adjustments)) {
+        adminPrice.adjustments.forEach((adj: any) => {
+          if (!adj.amount) return;
+          const description = adj.description || 'Adjustment';
+          doc.text(description, labelX, y);
+          doc.text(formatCurrency(adj.amount), valueX, y, { align: 'right' });
+          y += 5;
+        });
+      }
+      
+      // Show discount if any
+      if (adminPrice.discountAmount && adminPrice.discountAmount > 0) {
+        doc.text('Discount', labelX, y);
+        doc.text(`-${formatCurrency(adminPrice.discountAmount)}`, valueX, y, { align: 'right' });
+        y += 5;
+      }
+    } else if (Array.isArray(order.pricingBreakdown)) {
+      // Fallback to original pricingBreakdown
       order.pricingBreakdown.forEach((item: any) => {
         // Get the price - prefer total, then fee, then calculate from unitPrice
         let price = 0;
@@ -691,14 +735,18 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
       });
     }
 
-    // Show total
-    if (typeof order.totalPrice === 'number') {
+    // Show total - use adminPrice.computedTotal if available, otherwise order.totalPrice
+    const displayTotal = hasAdminOverrides && typeof adminPrice.computedTotal === 'number' 
+      ? adminPrice.computedTotal 
+      : order.totalPrice;
+    
+    if (typeof displayTotal === 'number') {
       y += 2;
       doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
       doc.line(labelX, y - 2, valueX, y - 2);
       doc.setFont('helvetica', 'bold');
       doc.text('Total', labelX, y + 2);
-      doc.text(formatCurrency(order.totalPrice), valueX, y + 2, { align: 'right' });
+      doc.text(formatCurrency(displayTotal), valueX, y + 2, { align: 'right' });
       y += 8;
     }
 
