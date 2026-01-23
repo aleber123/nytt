@@ -133,140 +133,147 @@ function calculateVAT(amount: number, vatRate: number = VAT_RATES.STANDARD): { v
   return { vatAmount, totalWithVAT };
 }
 
-// Create line items from order services using consistent pricing logic
+// Create line items from order's pricingBreakdown (which already includes customer-specific pricing and VAT settings)
 async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]> {
   const lineItems: InvoiceLineItem[] = [];
 
   try {
-    // Use consistent pricing logic matching order summary and order submission
+    // PRIORITY: Use pricingBreakdown from order - this already contains correct prices
+    // including customer-specific pricing from Customer Registry and VAT-exempt settings
+    if (order.pricingBreakdown && Array.isArray(order.pricingBreakdown) && order.pricingBreakdown.length > 0) {
+      for (const item of order.pricingBreakdown) {
+        if (!item) continue;
+        
+        // Get the base amount (before VAT)
+        const baseAmount = typeof item.total === 'number' ? item.total
+                        : typeof item.unitPrice === 'number' ? (item.unitPrice * (item.quantity || 1))
+                        : typeof item.fee === 'number' ? item.fee
+                        : 0;
+        
+        if (baseAmount <= 0) continue;
+        
+        // Get VAT rate from pricingBreakdown (already calculated correctly with customer VAT-exempt)
+        // vatRate in pricingBreakdown is stored as decimal (0.25) or string ('exempt')
+        let vatRate: number = VAT_RATES.STANDARD;
+        if (item.vatRate !== undefined) {
+          if (item.vatRate === 'exempt' || item.vatRate === 0 || item.vatRate === '0') {
+            vatRate = VAT_RATES.ZERO;
+          } else if (typeof item.vatRate === 'number') {
+            vatRate = item.vatRate;
+          }
+        }
+        
+        // Calculate VAT amount
+        const vatAmount = Math.round(baseAmount * vatRate * 100) / 100;
+        const totalPrice = Math.round((baseAmount + vatAmount) * 100) / 100;
+        
+        lineItems.push({
+          id: `${item.service || 'item'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: item.description || getServiceDescription(item.service || '', order),
+          quantity: item.quantity || 1,
+          unitPrice: item.unitPrice || baseAmount,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: item.service || ''
+        });
+      }
+      
+      return lineItems;
+    }
+
+    // FALLBACK: If no pricingBreakdown, calculate from Firebase pricing rules
+    // This should rarely happen for new orders
     for (const serviceId of order.services) {
       try {
-        // Try to get pricing rule from Firebase (same logic as order submission)
         const { getPricingRule } = await import('@/firebase/pricingService');
         let pricingRule = await getPricingRule(order.country, serviceId);
 
-        // If not found, try SE standard pricing (same as loadAvailableServices)
         if (!pricingRule) {
           pricingRule = await getPricingRule('SE', serviceId);
         }
 
         if (pricingRule) {
-          const isEmbassyService = serviceId === 'embassy' || serviceId === 'ambassad';
           const isUDService = serviceId === 'ud' || serviceId === 'utrikesdepartementet';
+          const isEmbassyService = serviceId === 'embassy' || serviceId === 'ambassad';
 
-          if (isEmbassyService && pricingRule.officialFee && pricingRule.serviceFee) {
-            // Embassy official fee line item (0% VAT remains)
+          if (pricingRule.officialFee !== undefined && pricingRule.serviceFee !== undefined) {
+            // Official fee - VAT exempt for UD and embassy
             const officialFeeTotal = pricingRule.officialFee * order.quantity;
-            const { vatAmount: officialVatAmount, totalWithVAT: officialTotalWithVAT } = calculateVAT(officialFeeTotal, VAT_RATES.ZERO);
+            const officialVatRate = (isUDService || isEmbassyService) ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
+            const officialVatAmount = Math.round(officialFeeTotal * officialVatRate * 100) / 100;
 
             lineItems.push({
               id: `${serviceId}_official_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               description: `${getServiceDescription(serviceId, order)} - Officiell avgift`,
               quantity: order.quantity,
               unitPrice: pricingRule.officialFee,
-              totalPrice: officialTotalWithVAT,
-              vatRate: VAT_RATES.ZERO,
-              vatAmount: officialVatAmount,
-              serviceType: serviceId,
-              officialFee: pricingRule.officialFee
-            });
-
-            // Service fee line item (25% VAT) - Fixed fee per service, not per document
-            const serviceFeeTotal = pricingRule.serviceFee;
-            const { vatAmount: serviceVatAmount, totalWithVAT: serviceTotalWithVAT } = calculateVAT(serviceFeeTotal, VAT_RATES.STANDARD);
-
-            lineItems.push({
-              id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              description: `DOX Visumpartner Service Fee (${getServiceDescription(serviceId, order)})`,
-              quantity: 1,
-              unitPrice: pricingRule.serviceFee,
-              totalPrice: serviceTotalWithVAT,
-              vatRate: VAT_RATES.STANDARD,
-              vatAmount: serviceVatAmount,
-              serviceType: serviceId,
-              serviceFee: pricingRule.serviceFee
-            });
-          } else if (pricingRule.officialFee && pricingRule.serviceFee) {
-            // For other services with separate fees
-            // Official fee VAT: 25% for Apostille/Notarization/Chamber/Translation, 0% for UD
-            const officialFeeTotal = pricingRule.officialFee * order.quantity;
-            const officialVatRate = isUDService ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
-            const { vatAmount: officialVatAmount, totalWithVAT: officialTotalWithVAT } = calculateVAT(officialFeeTotal, officialVatRate);
-
-            lineItems.push({
-              id: `${serviceId}_official_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              description: `${getServiceDescription(serviceId, order)} - Officiell avgift`,
-              quantity: order.quantity,
-              unitPrice: pricingRule.officialFee,
-              totalPrice: officialTotalWithVAT,
+              totalPrice: officialFeeTotal + officialVatAmount,
               vatRate: officialVatRate,
               vatAmount: officialVatAmount,
               serviceType: serviceId,
               officialFee: pricingRule.officialFee
             });
 
-            // Service fee line item (25% VAT) - Fixed fee per service, not per document
+            // Service fee - always 25% VAT unless customer is VAT exempt
             const serviceFeeTotal = pricingRule.serviceFee;
-            const { vatAmount: serviceVatAmount, totalWithVAT: serviceTotalWithVAT } = calculateVAT(serviceFeeTotal, VAT_RATES.STANDARD);
+            const serviceVatAmount = Math.round(serviceFeeTotal * VAT_RATES.STANDARD * 100) / 100;
 
             lineItems.push({
               id: `${serviceId}_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              description: `DOX Visumpartner Service Fee (${getServiceDescription(serviceId, order)})`,
+              description: `DOX Visumpartner serviceavgift (${getServiceDescription(serviceId, order)})`,
               quantity: 1,
               unitPrice: pricingRule.serviceFee,
-              totalPrice: serviceTotalWithVAT,
+              totalPrice: serviceFeeTotal + serviceVatAmount,
               vatRate: VAT_RATES.STANDARD,
               vatAmount: serviceVatAmount,
               serviceType: serviceId,
               serviceFee: pricingRule.serviceFee
             });
           } else {
-            // Use total base price for services without separate fees
-            const servicePrice = pricingRule.basePrice;
-            // If using basePrice-only services: apply 25% by default (covers most), 0% for UD explicitly
+            const servicePrice = pricingRule.basePrice || getServicePrice(serviceId);
             const vatRate = isUDService ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
-            const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity, vatRate);
+            const total = servicePrice * order.quantity;
+            const vatAmount = Math.round(total * vatRate * 100) / 100;
 
             lineItems.push({
               id: `${serviceId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               description: getServiceDescription(serviceId, order),
               quantity: order.quantity,
               unitPrice: servicePrice,
-              totalPrice: totalWithVAT,
+              totalPrice: total + vatAmount,
               vatRate,
               vatAmount,
               serviceType: serviceId
             });
           }
         } else {
-          // Fallback to hardcoded prices if Firebase pricing not available
           const servicePrice = getServicePrice(serviceId);
-          const vatRate = VAT_RATES.STANDARD;
-          const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity, vatRate);
+          const total = servicePrice * order.quantity;
+          const vatAmount = Math.round(total * VAT_RATES.STANDARD * 100) / 100;
 
           lineItems.push({
             id: `${serviceId}_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             description: getServiceDescription(serviceId, order),
             quantity: order.quantity,
             unitPrice: servicePrice,
-            totalPrice: totalWithVAT,
-            vatRate,
+            totalPrice: total + vatAmount,
+            vatRate: VAT_RATES.STANDARD,
             vatAmount,
             serviceType: serviceId
           });
         }
       } catch (error) {
-        console.error(`Error getting pricing for service ${serviceId}:`, error);
-        // Ultimate fallback to hardcoded prices
         const servicePrice = getServicePrice(serviceId);
-        const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity);
+        const total = servicePrice * order.quantity;
+        const vatAmount = Math.round(total * VAT_RATES.STANDARD * 100) / 100;
 
         lineItems.push({
-          id: `${serviceId}_error_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `${serviceId}_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           description: getServiceDescription(serviceId, order),
           quantity: order.quantity,
           unitPrice: servicePrice,
-          totalPrice: totalWithVAT,
+          totalPrice: total + vatAmount,
           vatRate: VAT_RATES.STANDARD,
           vatAmount,
           serviceType: serviceId
@@ -274,114 +281,66 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
       }
     }
 
-    // Add additional services (scanned copies and pickup service)
+    // Add additional services from order flags (fallback only)
     if (order.scannedCopies) {
-      const scannedCopiesPrice = 200 * order.quantity; // 200 kr per document
-      const { vatAmount: scannedVatAmount, totalWithVAT: scannedTotalWithVAT } = calculateVAT(scannedCopiesPrice, VAT_RATES.STANDARD);
-
+      const price = 200 * order.quantity;
+      const vatAmount = Math.round(price * VAT_RATES.STANDARD * 100) / 100;
       lineItems.push({
-        id: `scanned_copies_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        description: 'Scanned Copies',
+        id: `scanned_copies_${Date.now()}`,
+        description: 'Skannade kopior',
         quantity: order.quantity,
         unitPrice: 200,
-        totalPrice: scannedTotalWithVAT,
+        totalPrice: price + vatAmount,
         vatRate: VAT_RATES.STANDARD,
-        vatAmount: scannedVatAmount,
+        vatAmount,
         serviceType: 'scanned_copies'
       });
     }
 
     if (order.pickupService) {
-      const pickupPrice = 450; // Fixed pickup service price
-      const { vatAmount: pickupVatAmount, totalWithVAT: pickupTotalWithVAT } = calculateVAT(pickupPrice, VAT_RATES.STANDARD);
-
+      const price = 450;
+      const vatAmount = Math.round(price * VAT_RATES.STANDARD * 100) / 100;
       lineItems.push({
-        id: `pickup_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        description: 'Document Pickup',
+        id: `pickup_service_${Date.now()}`,
+        description: 'Dokumenthämtning',
         quantity: 1,
-        unitPrice: pickupPrice,
-        totalPrice: pickupTotalWithVAT,
+        unitPrice: price,
+        totalPrice: price + vatAmount,
         vatRate: VAT_RATES.STANDARD,
-        vatAmount: pickupVatAmount,
+        vatAmount,
         serviceType: 'pickup_service'
       });
     }
 
-    // Add express processing fee if applicable
     if (order.expedited) {
-      const expressPrice = 500; // Express processing fee
-      const { vatAmount: expressVatAmount, totalWithVAT: expressTotalWithVAT } = calculateVAT(expressPrice, VAT_RATES.STANDARD);
-
+      const price = 500;
+      const vatAmount = Math.round(price * VAT_RATES.STANDARD * 100) / 100;
       lineItems.push({
-        id: `express_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        description: 'Express Processing',
+        id: `express_${Date.now()}`,
+        description: 'Expressbehandling',
         quantity: 1,
-        unitPrice: expressPrice,
-        totalPrice: expressTotalWithVAT,
+        unitPrice: price,
+        totalPrice: price + vatAmount,
         vatRate: VAT_RATES.STANDARD,
-        vatAmount: expressVatAmount,
+        vatAmount,
         serviceType: 'express'
       });
     }
 
-    // Add premium pickup if applicable
-    if ((order as any).premiumPickup) {
-      const premiumPickupPrice = 750; // Premium pickup price
-      const { vatAmount: premiumVatAmount, totalWithVAT: premiumTotalWithVAT } = calculateVAT(premiumPickupPrice, VAT_RATES.STANDARD);
-
-      lineItems.push({
-        id: `premium_pickup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        description: 'Premium Pickup (Express)',
-        quantity: 1,
-        unitPrice: premiumPickupPrice,
-        totalPrice: premiumTotalWithVAT,
-        vatRate: VAT_RATES.STANDARD,
-        vatAmount: premiumVatAmount,
-        serviceType: 'premium_pickup'
-      });
-    }
-
-    // Add return shipping and premium delivery from pricingBreakdown if available
-    if (order.pricingBreakdown && Array.isArray(order.pricingBreakdown)) {
-      const shippingEntries = order.pricingBreakdown.filter((it: any) =>
-        it && (it.service === 'return_service' || it.service === 'premium_delivery')
-      );
-
-      for (const entry of shippingEntries) {
-        const base = typeof entry.total === 'number' ? entry.total
-                  : typeof entry.unitPrice === 'number' ? entry.unitPrice
-                  : typeof entry.fee === 'number' ? entry.fee
-                  : 0;
-
-        if (base > 0) {
-          const { vatAmount, totalWithVAT } = calculateVAT(base, VAT_RATES.STANDARD);
-          lineItems.push({
-            id: `${entry.service}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            description: entry.description || (entry.service === 'return_service' ? 'Returfrakt' : 'Premiumleverans'),
-            quantity: 1,
-            unitPrice: base,
-            totalPrice: totalWithVAT,
-            vatRate: VAT_RATES.STANDARD,
-            vatAmount,
-            serviceType: entry.service
-          });
-        }
-      }
-    }
-
   } catch (error) {
     console.error('Error creating line items from order:', error);
-    // Fallback to basic line items
+    // Ultimate fallback
     for (const service of order.services) {
       const servicePrice = getServicePrice(service);
-      const { vatAmount, totalWithVAT } = calculateVAT(servicePrice * order.quantity);
+      const total = servicePrice * order.quantity;
+      const vatAmount = Math.round(total * VAT_RATES.STANDARD * 100) / 100;
 
       lineItems.push({
-        id: `${service}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `${service}_${Date.now()}`,
         description: getServiceDescription(service, order),
         quantity: order.quantity,
         unitPrice: servicePrice,
-        totalPrice: totalWithVAT,
+        totalPrice: total + vatAmount,
         vatRate: VAT_RATES.STANDARD,
         vatAmount,
         serviceType: service
@@ -791,14 +750,11 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
 
     let yPosition = 20;
 
-    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.rect(0, 0, 210, 35, 'F');
-
-    // Render logo and then place company name under it
-    let logoTextY = 22; // default fallback if logo fails
+    // Render logo (3x larger, no background)
+    let logoBottomY = 20; // default fallback if logo fails
     try {
       const img = new Image();
-      await new Promise((res, rej) => { img.onload = res as any; img.onerror = rej as any; img.src = '/dox-logo.webp'; });
+      await new Promise((res, rej) => { img.onload = res as any; img.onerror = rej as any; img.src = '/dox-logo-new.png'; });
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
       const ctx = canvas.getContext('2d');
@@ -806,22 +762,16 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
         ctx.drawImage(img, 0, 0);
         const dataUrl = canvas.toDataURL('image/png');
         const logoY = 10;
-        const targetH = 12; // mm
+        const targetH = 36; // mm (3x larger: 12 * 3 = 36)
         const ratio = img.naturalWidth / img.naturalHeight || 1;
         const targetW = targetH * ratio;
         doc.addImage(dataUrl, 'PNG', 20, logoY, targetW, targetH);
-        logoTextY = logoY + targetH + 6; // place text 6mm below logo bottom
+        logoBottomY = logoY + targetH + 5;
       }
     } catch {}
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DOX Visumpartner AB', 20, logoTextY);
-
-    // Removed header address lines to prevent overlap with logo
-
-    // Invoice title and number - right aligned
+    // Invoice title and number - right aligned (black text)
+    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text(invoice.status === 'credit_note' ? 'CREDIT NOTE' : 'INVOICE', 190, 20, { align: 'right' });
@@ -833,7 +783,8 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.text(`Order No: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
     doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
 
-    yPosition = 50;
+    // Start customer info below the logo
+    yPosition = Math.max(logoBottomY, 50);
 
     // Customer information section
     doc.setTextColor(textColor[0], textColor[1], textColor[2]);
@@ -1164,13 +1115,18 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber();
 
+    // Check if customer is VAT exempt from Customer Registry (stored on order)
+    const customerVatExempt = (order as any).customerPricing?.vatExempt || false;
+
     // Check if customer is a foreign company (for VAT exemption / reverse charge)
     const customerCountry = order.customerInfo?.countryCode || order.customerInfo?.country || '';
     const isSwedishCustomer = !customerCountry || customerCountry.toUpperCase() === 'SE' || customerCountry.toLowerCase() === 'sweden' || customerCountry.toLowerCase() === 'sverige';
     const isForeignCompany = !isSwedishCustomer && !!order.customerInfo?.companyName;
     const isReverseCharge = isForeignCompany && isEUCountryExceptSweden(customerCountry);
     const isExport = isForeignCompany && isNonEUCountry(customerCountry);
-    const applyZeroVAT = isReverseCharge || isExport;
+    
+    // Apply zero VAT if: foreign company (reverse charge/export) OR customer is VAT exempt in registry
+    const applyZeroVAT = isReverseCharge || isExport || customerVatExempt;
 
     // Check if admin has set price adjustments (lineOverrides)
     const adminPrice = (order as any).adminPrice;
@@ -1180,10 +1136,10 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
       // Use admin price adjustments
       lineItems = createLineItemsFromAdminPrice(order, adminPrice, applyZeroVAT);
     } else {
-      // Fall back to automatic pricing from Firebase
+      // Use pricingBreakdown from order (already has correct customer-specific pricing and VAT)
       lineItems = await createLineItemsFromOrder(order);
       
-      // If foreign company, override VAT to 0%
+      // If customer is VAT exempt (from registry or foreign company), ensure all VAT is 0%
       if (applyZeroVAT) {
         lineItems = lineItems.map(item => ({
           ...item,
@@ -1225,6 +1181,8 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
       notes = 'Reverse charge - VAT to be accounted for by the recipient. Article 196 Council Directive 2006/112/EC.';
     } else if (isExport) {
       notes = 'Export of services - VAT exempt.';
+    } else if (customerVatExempt) {
+      notes = 'VAT exempt customer.';
     }
 
     const invoice: Invoice = {
@@ -1588,11 +1546,24 @@ export const createCreditInvoice = async (originalInvoiceId: string, creditAmoun
   }
 };
 
+// Helper function to convert Uint8Array to base64 string
+function uint8ArrayToBase64(uint8Array: Uint8Array): string {
+  let binary = '';
+  const len = uint8Array.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(uint8Array[i]);
+  }
+  return btoa(binary);
+}
+
 // Function to send invoice via email
 export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
   try {
     // Generate PDF for attachment
     const pdfBlob = await generateInvoicePDFBlob(invoice);
+    
+    // Convert Uint8Array to base64 string for Firestore storage
+    const pdfBase64 = uint8ArrayToBase64(pdfBlob);
 
     // Create email data for Firestore (will be processed by external service)
     // Send to internal invoice email for manual processing with external invoicing system
@@ -1631,7 +1602,8 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
       `,
       attachments: [{
         filename: `Invoice ${invoice.orderNumber || invoice.invoiceNumber}.pdf`,
-        content: pdfBlob,
+        content: pdfBase64,
+        encoding: 'base64',
         contentType: 'application/pdf'
       }],
       invoiceId: invoice.id,
@@ -1654,12 +1626,12 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
 
 // Helper function to generate PDF blob for email attachment - matches main PDF function
 async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const doc = new jsPDF();
 
-      // Professional Swedish invoice colors
-      const primaryColor: [number, number, number] = [42, 103, 170]; // #2a67aa
+      // Professional Swedish invoice colors - matching the main generateInvoicePDF (dark/black theme)
+      const primaryColor: [number, number, number] = [46, 45, 44]; // Dark/black theme
       const textColor: [number, number, number] = [51, 51, 51]; // #333
       const lightGray: [number, number, number] = [248, 249, 250]; // #f8f9fa
       const borderColor: [number, number, number] = [229, 231, 235]; // #e5e7eb
@@ -1683,7 +1655,6 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
             day: 'numeric'
           }).format(date);
         } catch (error) {
-          console.error('Error formatting date in PDF:', error, timestamp);
           return 'N/A';
         }
       };
@@ -1698,23 +1669,35 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
 
       let yPosition = 20;
 
-      // Header - Professional Swedish invoice style
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(0, 0, 210, 35, 'F');
+      // Render logo (3x larger, no background)
+      let logoBottomY = 20; // default fallback if logo fails
+      try {
+        const img = new Image();
+        await new Promise((res, rej) => { 
+          img.onload = res as any; 
+          img.onerror = rej as any; 
+          img.src = '/dox-logo-new.png';
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth; 
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/png');
+          const logoY = 10;
+          const targetH = 36; // mm (3x larger: 12 * 3 = 36)
+          const ratio = img.naturalWidth / img.naturalHeight || 1;
+          const targetW = targetH * ratio;
+          doc.addImage(dataUrl, 'PNG', 20, logoY, targetW, targetH);
+          logoBottomY = logoY + targetH + 5;
+        }
+      } catch {
+        // Logo failed to load, continue without it
+      }
 
-      // Company name and details
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text(invoice.companyInfo.name, 20, 20);
-
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(invoice.companyInfo.address, 20, 26);
-      doc.text(`${invoice.companyInfo.postalCode} ${invoice.companyInfo.city}`, 20, 30);
-      doc.text(`Org. No: ${invoice.companyInfo.orgNumber}`, 20, 34);
-
-      // Invoice title and number - right aligned
+      // Invoice title and number - right aligned (black text)
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text(invoice.status === 'credit_note' ? 'CREDIT NOTE' : 'INVOICE', 190, 20, { align: 'right' });
@@ -1726,7 +1709,8 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       doc.text(`Order No: ${invoice.orderNumber || invoice.orderId}`, 190, 34, { align: 'right' });
       doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, 190, 38, { align: 'right' });
 
-      yPosition = 50;
+      // Start customer info below the logo
+      yPosition = Math.max(logoBottomY, 50);
 
       // Customer information section
       doc.setTextColor(textColor[0], textColor[1], textColor[2]);
@@ -1736,16 +1720,25 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
       yPosition += 8;
 
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      const firstName = invoice.customerInfo?.firstName || '';
-      const lastName = invoice.customerInfo?.lastName || '';
-      doc.text(`${firstName} ${lastName}`.trim(), 20, yPosition);
-      yPosition += 4;
-
+      
+      // Show company name first (bold) if available
       if (invoice.customerInfo?.companyName) {
         doc.setFont('helvetica', 'bold');
         doc.text(invoice.customerInfo.companyName, 20, yPosition);
+        yPosition += 5;
         doc.setFont('helvetica', 'normal');
+        // Show contact person as "Att:" line
+        const contactName = `${invoice.customerInfo?.firstName || ''} ${invoice.customerInfo?.lastName || ''}`.trim();
+        if (contactName) {
+          doc.text(`Att: ${contactName}`, 20, yPosition);
+          yPosition += 4;
+        }
+      } else {
+        // No company - show person name
+        doc.setFont('helvetica', 'normal');
+        const firstName = invoice.customerInfo?.firstName || '';
+        const lastName = invoice.customerInfo?.lastName || '';
+        doc.text(`${firstName} ${lastName}`.trim(), 20, yPosition);
         yPosition += 4;
       }
 
@@ -1771,7 +1764,7 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
         yPosition += 4;
       }
 
-      if (invoice.customerInfo.orgNumber) {
+      if (invoice.customerInfo?.orgNumber) {
         yPosition += 4;
         doc.setFontSize(8);
         doc.text(`Org. No: ${invoice.customerInfo.orgNumber}`, 20, yPosition);

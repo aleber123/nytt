@@ -36,6 +36,18 @@ interface Order {
     postalCode: string;
     city: string;
   };
+  returnAddress?: {
+    firstName?: string;
+    lastName?: string;
+    companyName?: string;
+    street?: string;
+    addressLine2?: string;
+    postalCode?: string;
+    city?: string;
+    countryCode?: string;
+    email?: string;
+    phone?: string;
+  };
   deliveryMethod: string;
   paymentMethod: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
@@ -306,8 +318,26 @@ export function ConfirmationPage() {
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                       <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.deliveryAddress')}:</h3>
                       <div className="space-y-3">
-                        <p className="text-gray-700">{order.customerInfo.address}</p>
-                        <p className="text-gray-700">{order.customerInfo.postalCode} {order.customerInfo.city}</p>
+                        {order.returnAddress ? (
+                          <>
+                            {order.returnAddress.companyName && (
+                              <p className="text-gray-700 font-medium">{order.returnAddress.companyName}</p>
+                            )}
+                            {(order.returnAddress.firstName || order.returnAddress.lastName) && (
+                              <p className="text-gray-700">{order.returnAddress.firstName} {order.returnAddress.lastName}</p>
+                            )}
+                            <p className="text-gray-700">{order.returnAddress.street}</p>
+                            {order.returnAddress.addressLine2 && (
+                              <p className="text-gray-700">{order.returnAddress.addressLine2}</p>
+                            )}
+                            <p className="text-gray-700">{order.returnAddress.postalCode} {order.returnAddress.city}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-gray-700">{order.customerInfo.address}</p>
+                            <p className="text-gray-700">{order.customerInfo.postalCode} {order.customerInfo.city}</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

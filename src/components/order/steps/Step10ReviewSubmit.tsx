@@ -965,11 +965,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     // Build internal HTML email for handlers (same design as original documents flow)
                     const internalHtml = `
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ny beställning order #${orderId} | DOX Visumpartner AB</title>
+  <title>New Order #${orderId} | DOX Visumpartner AB</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px; }
     .wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
@@ -989,45 +989,45 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 <body>
   <div class="wrap">
     <div class="header">
-      <h1>Ny beställning 📎 UPPLADDADE FILER</h1>
+      <h1>New Order 📎 UPLOADED FILES</h1>
     </div>
     <div class="content">
       <div class="badge">Order #${orderId}</div>
 
       <div class="section">
-        <div class="row"><span class="label">Datum</span><span class="value">${new Date().toLocaleDateString('sv-SE')}</span></div>
-        <div class="row"><span class="label">Land</span><span class="value">${countryName}</span></div>
-        <div class="row"><span class="label">Dokumenttyp</span><span class="value">${documentTypeName}</span></div>
-        <div class="row"><span class="label">Antal dokument</span><span class="value">${answers.quantity} st</span></div>
-        <div class="row"><span class="label">Valda tjänster</span><span class="value">${servicesText}</span></div>
-        <div class="row"><span class="label">Totalbelopp</span><span class="value">${pricingResult.totalPrice} kr</span></div>
-        <div class="row"><span class="label">Dokumentkälla</span><span class="value">${answers.willSendMainDocsLater ? 'Skickas via e-post' : 'Uppladdade filer'}</span></div>
-        <div class="row"><span class="label">Returfrakt</span><span class="value">${returfraktText}</span></div>
+        <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleDateString('en-GB')}</span></div>
+        <div class="row"><span class="label">Country</span><span class="value">${countryName}</span></div>
+        <div class="row"><span class="label">Document Type</span><span class="value">${documentTypeName}</span></div>
+        <div class="row"><span class="label">Quantity</span><span class="value">${answers.quantity} pcs</span></div>
+        <div class="row"><span class="label">Services</span><span class="value">${servicesText}</span></div>
+        <div class="row"><span class="label">Total Amount</span><span class="value">${pricingResult.totalPrice} SEK</span></div>
+        <div class="row"><span class="label">Document Source</span><span class="value">${answers.willSendMainDocsLater ? 'Sent via email' : 'Uploaded files'}</span></div>
+        <div class="row"><span class="label">Return Shipping</span><span class="value">${returfraktText}</span></div>
         ${premiumText ? `<div class="row"><span class="label">Premium</span><span class="value">${premiumText}</span></div>` : ''}
       </div>
 
       <div class="section">
-        <div class="row"><span class="label">Kund</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
-        <div class="row"><span class="label">E-post</span><span class="value">${answers.customerInfo.email}</span></div>
-        <div class="row"><span class="label">Telefon</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
-        <div class="row"><span class="label">Adress</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
-        ${answers.invoiceReference ? `<div class="row"><span class="label">Fakturareferens</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
+        <div class="row"><span class="label">Customer</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
+        <div class="row"><span class="label">Email</span><span class="value">${answers.customerInfo.email}</span></div>
+        <div class="row"><span class="label">Phone</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
+        <div class="row"><span class="label">Address</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
+        ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
       </div>
 
       ${answers.uploadedFiles && answers.uploadedFiles.length > 0 ? `
       <div class="section" style="background:#ECFDF5; border:2px solid #10B981;">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
           <span style="font-size:24px;">📎</span>
-          <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPPLADDADE FILER (${answers.uploadedFiles.length} st)</h3>
+          <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPLOADED FILES (${answers.uploadedFiles.length} pcs)</h3>
         </div>
         <div style="background:#fff; border:1px solid #A7F3D0; border-radius:6px; padding:12px;">
-          ${answers.uploadedFiles.map((file: File | null, i: number) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'Fil ' + (i + 1)}</div>`).join('')}
+          ${answers.uploadedFiles.map((file: File | null, i: number) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'File ' + (i + 1)}</div>`).join('')}
         </div>
-        <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 Visa filer i admin</a>
+        <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 View files in admin</a>
       </div>
       ` : ''}
 
-      ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Övriga kommentarer</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
+      ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Additional Notes</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
 
       <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
     </div>
@@ -1040,7 +1040,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     await addDoc(collection(db, 'customerEmails'), {
                       name: `Order #${orderId}`,
                       email: 'info@doxvl.se,info@visumpartner.se',
-                      subject: `Ny beställning - Order ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
+                      subject: `New Order - ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
                       message: internalHtml,
                       createdAt: Timestamp.now(),
                       status: 'queued'
@@ -1424,11 +1424,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     
                     const internalHtml = `
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ny beställning order #${orderId} | DOX Visumpartner AB</title>
+  <title>New Order #${orderId} | DOX Visumpartner AB</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px; }
     .wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
@@ -1457,7 +1457,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   <body>
     <div class="wrap">
       <div class="header">
-        <h1>Ny beställning${hasPickup ? ' 📦 UPPHÄMTNING BESTÄLLD' : ''}</h1>
+        <h1>New Order${hasPickup ? ' 📦 PICKUP ORDERED' : ''}</h1>
       </div>
       <div class="content">
         <div class="badge">Order #${orderId}</div>
@@ -1467,19 +1467,19 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div class="pickup-alert">
           <div class="pickup-alert-header">
             <span class="pickup-alert-icon">🚚</span>
-            <h2 class="pickup-alert-title">UPPHÄMTNING BESTÄLLD!</h2>
+            <h2 class="pickup-alert-title">PICKUP ORDERED!</h2>
           </div>
           <p style="margin:0 0 8px 0; color:#92400E; font-weight:600;">
-            Kunden har beställt att vi hämtar dokumenten. Boka DHL-upphämtning!
+            Customer has ordered document pickup. Book DHL pickup!
           </p>
-          <div class="row" style="border:none; padding:4px 0;"><span class="label">Upphämtningstjänst</span><span class="value">${getPickupMethodName(answers.pickupMethod)}</span></div>
-          ${isStockholmPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Nivå</span><span class="value">${getStockholmLevel(answers.premiumPickup)}</span></div>` : (answers.premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(answers.premiumPickup)}</span></div>` : '')}
-          ${isStockholmPickup && answers.pickupDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Datum</span><span class="value">${answers.pickupDate}</span></div>` : ''}
-          ${isStockholmPickup && answers.pickupTimeWindow ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Tidsfönster</span><span class="value">${answers.pickupTimeWindow}</span></div>` : ''}
+          <div class="row" style="border:none; padding:4px 0;"><span class="label">Pickup Service</span><span class="value">${getPickupMethodName(answers.pickupMethod)}</span></div>
+          ${isStockholmPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Level</span><span class="value">${getStockholmLevel(answers.premiumPickup)}</span></div>` : (answers.premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(answers.premiumPickup)}</span></div>` : '')}
+          ${isStockholmPickup && answers.pickupDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Date</span><span class="value">${answers.pickupDate}</span></div>` : ''}
+          ${isStockholmPickup && answers.pickupTimeWindow ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Time Window</span><span class="value">${answers.pickupTimeWindow}</span></div>` : ''}
           
           ${pickupAddr && pickupAddr.street ? `
           <div class="pickup-address">
-            <div style="font-weight:700; margin-bottom:8px; color:#92400E;">📍 Hämtningsadress:</div>
+            <div style="font-weight:700; margin-bottom:8px; color:#92400E;">📍 Pickup Address:</div>
             ${pickupAddr.company ? `<div style="font-weight:700;">${pickupAddr.company}</div>` : ''}
             <div>${pickupAddr.name || ''}</div>
             <div>${pickupAddr.street}</div>
@@ -1494,13 +1494,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div class="return-alert">
           <div class="pickup-alert-header">
             <span class="pickup-alert-icon">⚡</span>
-            <h2 class="return-alert-title">STOCKHOLM COURIER - LEVERANS</h2>
+            <h2 class="return-alert-title">STOCKHOLM COURIER - DELIVERY</h2>
           </div>
-          <div class="row" style="border:none; padding:4px 0;"><span class="label">Nivå</span><span class="value">${getStockholmLevel(answers.premiumDelivery)}</span></div>
-          ${answers.returnDeliveryDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Datum</span><span class="value">${answers.returnDeliveryDate}</span></div>` : ''}
+          <div class="row" style="border:none; padding:4px 0;"><span class="label">Level</span><span class="value">${getStockholmLevel(answers.premiumDelivery)}</span></div>
+          ${answers.returnDeliveryDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Date</span><span class="value">${answers.returnDeliveryDate}</span></div>` : ''}
 
           <div class="return-address">
-            <div style="font-weight:700; margin-bottom:8px; color:#075985;">📍 Leveransadress:</div>
+            <div style="font-weight:700; margin-bottom:8px; color:#075985;">📍 Delivery Address:</div>
             ${returnAddrLine2 ? `<div style="font-weight:700;">${returnAddrLine2}</div>` : ''}
             ${returnAddrLine1 ? `<div>${returnAddrLine1}</div>` : ''}
             ${returnAddrLine3 ? `<div>${returnAddrLine3}</div>` : ''}
@@ -1510,42 +1510,42 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         ` : ''}
 
         <div class="section">
-          <div class="row"><span class="label">Datum</span><span class="value">${new Date().toLocaleDateString('sv-SE')}</span></div>
-          <div class="row"><span class="label">Land</span><span class="value">${allCountries.find(c => c.code === answers.country)?.name}</span></div>
-          <div class="row"><span class="label">Dokumenttyp</span><span class="value">${getAllDocumentTypesDisplay(false)}</span></div>
-          <div class="row"><span class="label">Antal dokument</span><span class="value">${answers.quantity} st</span></div>
-          <div class="row"><span class="label">Valda tjänster</span><span class="value">${answers.services.map(s => getServiceName(s)).join(', ')}</span></div>
-          <div class="row"><span class="label">Totalbelopp</span><span class="value">${pricingResult.totalPrice} kr</span></div>
-          <div class="row"><span class="label">Dokumentkälla</span><span class="value">${answers.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade filer'}</span></div>
-          <div class="row"><span class="label">Upphämtning</span><span class="value" style="${hasPickup ? 'color:#D97706; font-weight:800;' : ''}">${hasPickup ? '✅ JA - BOKA UPPHÄMTNING' : '❌ Nej'}</span></div>
-          <div class="row"><span class="label">Returfrakt</span><span class="value">${(() => {
-            if (!answers.returnService) return 'Ej vald';
-            if (answers.returnService === 'own-delivery') return 'Egen returfrakt';
-            if (answers.returnService === 'office-pickup') return 'Hämtning på vårt kontor';
+          <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleDateString('en-GB')}</span></div>
+          <div class="row"><span class="label">Country</span><span class="value">${allCountries.find(c => c.code === answers.country)?.name}</span></div>
+          <div class="row"><span class="label">Document Type</span><span class="value">${getAllDocumentTypesDisplay(false)}</span></div>
+          <div class="row"><span class="label">Quantity</span><span class="value">${answers.quantity} pcs</span></div>
+          <div class="row"><span class="label">Services</span><span class="value">${answers.services.map(s => getServiceName(s)).join(', ')}</span></div>
+          <div class="row"><span class="label">Total Amount</span><span class="value">${pricingResult.totalPrice} SEK</span></div>
+          <div class="row"><span class="label">Document Source</span><span class="value">${answers.documentSource === 'original' ? 'Original documents' : 'Uploaded files'}</span></div>
+          <div class="row"><span class="label">Pickup</span><span class="value" style="${hasPickup ? 'color:#D97706; font-weight:800;' : ''}">${hasPickup ? '✅ YES - BOOK PICKUP' : '❌ No'}</span></div>
+          <div class="row"><span class="label">Return Shipping</span><span class="value">${(() => {
+            if (!answers.returnService) return 'Not selected';
+            if (answers.returnService === 'own-delivery') return 'Own return shipping';
+            if (answers.returnService === 'office-pickup') return 'Office pickup';
             return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
           })()}</span></div>
         </div>
 
         <div class="section">
-          <div class="row"><span class="label">Kund</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
-          <div class="row"><span class="label">E-post</span><span class="value">${answers.customerInfo.email}</span></div>
-          <div class="row"><span class="label">Telefon</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
-          <div class="row"><span class="label">Adress</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
-          ${answers.invoiceReference ? `<div class="row"><span class="label">Fakturareferens</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
+          <div class="row"><span class="label">Customer</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
+          <div class="row"><span class="label">Email</span><span class="value">${answers.customerInfo.email}</span></div>
+          <div class="row"><span class="label">Phone</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
+          <div class="row"><span class="label">Address</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
+          ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
         </div>
 
         ${answers.documentSource === 'original' && !hasPickup ? `
         <div class="section">
-          <div class="label" style="margin-bottom:6px;">Inkommande postadress (kund skickar själv)</div>
+          <div class="label" style="margin-bottom:6px;">Incoming postal address (customer sends themselves)</div>
           <div class="address">
             DOX Visumpartner AB<br/>
-            Att: Dokumenthantering<br/>
+            Att: Document handling<br/>
             Box 38<br/>
             121 25 Stockholm-Globen<br/>
-            Sverige
+            Sweden
           </div>
-          <a class="button" href="${siteUrlInternal}/shipping-label?orderId=${orderId}" target="_blank" rel="noopener">Skriv ut fraktsedel</a>
-          <div class="muted">Be kunden alltid märka med Order #${orderId} och skicka med REK.</div>
+          <a class="button" href="${siteUrlInternal}/shipping-label?orderId=${orderId}" target="_blank" rel="noopener">Print shipping label</a>
+          <div class="muted">Always ask customer to mark with Order #${orderId} and send via registered mail.</div>
         </div>
         ` : ''}
 
@@ -1553,16 +1553,16 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div class="section" style="background:#ECFDF5; border:2px solid #10B981;">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
             <span style="font-size:24px;">📎</span>
-            <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPPLADDADE FILER (${answers.uploadedFiles.length} st)</h3>
+            <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPLOADED FILES (${answers.uploadedFiles.length} pcs)</h3>
           </div>
           <div style="background:#fff; border:1px solid #A7F3D0; border-radius:6px; padding:12px;">
-            ${answers.uploadedFiles.map((file, i) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'Fil ' + (i + 1)}</div>`).join('')}
+            ${answers.uploadedFiles.map((file, i) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'File ' + (i + 1)}</div>`).join('')}
           </div>
-          <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 Visa filer i admin</a>
+          <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 View files in admin</a>
         </div>
         ` : ''}
 
-        ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Övriga kommentarer</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
+        ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Additional Notes</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
 
         <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
       </div>
@@ -1576,7 +1576,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     await addDoc(collection(db, 'customerEmails'), {
                       name: `Order #${orderId}`,
                       email: 'info@doxvl.se,info@visumpartner.se',
-                      subject: `Ny beställning - Order ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
+                      subject: `New Order - ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
                       message: internalHtml, // HTML body is supported by that function
                       createdAt: Timestamp.now(),
                       status: 'queued'

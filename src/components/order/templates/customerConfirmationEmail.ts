@@ -57,6 +57,11 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
       padding: 28px 36px;
       text-align: center;
     }
+    .header-logo {
+      max-height: 50px;
+      width: auto;
+      margin-bottom: 16px;
+    }
     .header h1 {
       margin: 0;
       font-size: 22px;
@@ -95,6 +100,7 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
 <body>
   <div class="email-container">
     <div class="header">
+      <img src="https://www.doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" class="header-logo">
       <h1>Order Confirmation</h1>
       <p>Thank you for your order with DOX Visumpartner AB</p>
     </div>
@@ -223,6 +229,7 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
 <body>
   <div class="email-container">
     <div class="header">
+      <img src="https://www.doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" class="header-logo">
       <h1>Orderbekräftelse</h1>
       <p>Tack för din beställning hos DOX Visumpartner AB</p>
     </div>
