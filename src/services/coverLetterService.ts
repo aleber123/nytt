@@ -262,9 +262,9 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   doc.setLineWidth(1);
   doc.line(20, 28, 190, 28);
 
-  // Logo (left)
+  // Logo (left) - use new logo
   try {
-    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo.webp');
+    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
     const targetH = 20; // mm (doubled for better visibility)
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
@@ -505,9 +505,9 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.setLineWidth(1);
   doc.line(20, 28, 190, 28);
 
-  // Logo (left)
+  // Logo (left) - use new logo
   try {
-    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo.webp');
+    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
     const targetH = 20; // mm (doubled for better visibility)
     const ratio = width / height || 1;
     const targetW = targetH * ratio;
