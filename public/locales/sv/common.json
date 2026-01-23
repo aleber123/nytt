@@ -884,7 +884,7 @@
     "returnTrackingNumber": "Returspårningsnummer",
     "returnDate": "Returdatum",
     "trackShipment": "Spåra försändelse",
-    "returnInstructions": "Vi har registrerat ett returspårningsnummer för dina dokument. Använd spårningslänken eller kontakta oss om du har frågor om returen.",
+    "returnInstructions": "Dina dokument är på väg! Använd spårningslänken ovan för att följa försändelsen. Kontakta oss om du har några frågor.",
     "steps": {
       "orderReceived": {
         "name": "Beställning mottagen",

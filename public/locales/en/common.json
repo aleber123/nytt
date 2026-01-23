@@ -913,7 +913,7 @@
     "returnTrackingNumber": "Return Tracking Number",
     "returnDate": "Return Date",
     "trackShipment": "Track shipment",
-    "returnInstructions": "Your documents have been returned. Contact us if you have questions about the return.",
+    "returnInstructions": "Your documents are on their way! Use the tracking link above to follow the shipment. Contact us if you have any questions.",
     "steps": {
       "orderReceived": {
         "name": "Order received",

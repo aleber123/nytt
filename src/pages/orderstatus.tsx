@@ -437,8 +437,8 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
                         </div>
                       )}
 
-                      {/* Return tracking information */}
-                      {orderStatus.returnTrackingNumber && (
+                      {/* Return tracking information - only show when documents have been shipped */}
+                      {orderStatus.returnTrackingNumber && ['shipped', 'delivered', 'completed', 'ready-for-return'].includes(orderStatus.status) && (
                         <>
                           <div className="col-span-2 border-t border-gray-200 pt-4 mt-4">
                             <h4 className="text-base font-medium text-gray-900 mb-3">
