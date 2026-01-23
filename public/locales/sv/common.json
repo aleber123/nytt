@@ -908,14 +908,14 @@
       }
     },
     "statuses": {
-      "pending": "Pending",
-      "received": "Received",
-      "processing": "Processing",
-      "submitted": "Submitted",
-      "action-required": "Action Required",
-      "ready-for-return": "Ready for Return",
-      "completed": "Completed",
-      "cancelled": "Cancelled"
+      "pending": "Väntande",
+      "received": "Mottagen",
+      "processing": "Behandlas",
+      "submitted": "Inskickad",
+      "action-required": "Åtgärd krävs",
+      "ready-for-return": "Klar för retur",
+      "completed": "Slutförd",
+      "cancelled": "Avbruten"
     },
     "statusDescriptions": {
       "pending": "Din beställning har skapats, väntar på dokument",

@@ -965,9 +965,15 @@ export async function generateNotaryApostilleCoverLetter(
   // Language
   details.push({ label: 'Language', value: data.language, col: 'right' });
 
-  // Invoice reference
-  if (data.invoiceReference) {
-    details.push({ label: 'Invoice reference', value: data.invoiceReference, col: 'left' });
+  // Order number (always shown) - use the order number passed via invoiceReference which defaults to order.orderNumber
+  const orderNum = order.orderNumber || order.id || '';
+  if (orderNum) {
+    details.push({ label: 'Order number', value: orderNum, col: 'left' });
+  }
+
+  // Additional invoice reference (if provided and different from order number)
+  if (data.invoiceReference && data.invoiceReference !== orderNum) {
+    details.push({ label: 'Additional reference', value: data.invoiceReference, col: 'left' });
   }
 
   // Payment method
@@ -1249,7 +1255,17 @@ export async function generateEmbassyCoverLetter(
   doc.text(wrappedAdditional, marginLeft, y);
   y += wrappedAdditional.length * 5 + 8;
 
-  // ========== PAYMENT INFO ==========
+  // ========== REFERENCE INFO ==========
+  const embassyOrderNum = order.orderNumber || order.id || '';
+  if (embassyOrderNum) {
+    doc.text(`Order Number: ${embassyOrderNum}`, marginLeft, y);
+    y += 5;
+  }
+  // Additional reference if provided and different from order number
+  if (data.invoiceReference && data.invoiceReference !== embassyOrderNum) {
+    doc.text(`Additional Reference: ${data.invoiceReference}`, marginLeft, y);
+    y += 5;
+  }
   doc.text(`Payment Method: ${data.paymentMethod}`, marginLeft, y);
   y += 5;
   doc.text(`Collection: ${data.returnMethod}`, marginLeft, y);
@@ -1520,15 +1536,16 @@ export async function generateUDCoverLetter(
   doc.text(data.language, rightX, y + 5);
   y += rowH;
 
-  // Invoice reference
+  // Order number (always shown)
+  const udOrderNum = order.orderNumber || order.id || '';
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Invoice reference:', leftX, y);
+  doc.text('Order number:', leftX, y);
   doc.setTextColor(text[0], text[1], text[2]);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text(data.invoiceReference || '—', leftX, y + 5);
+  doc.text(udOrderNum || '—', leftX, y + 5);
 
   // Payment method
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
@@ -1540,6 +1557,19 @@ export async function generateUDCoverLetter(
   doc.setFontSize(10);
   doc.text(`${data.paymentMethod} (via email: invoice@visumpartner.se)`, rightX, y + 5);
   y += rowH;
+
+  // Additional reference (if provided and different from order number)
+  if (data.invoiceReference && data.invoiceReference !== udOrderNum) {
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Additional reference:', leftX, y);
+    doc.setTextColor(text[0], text[1], text[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(data.invoiceReference, leftX, y + 5);
+    y += rowH;
+  }
 
   // Return method
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);

@@ -6857,7 +6857,18 @@ function AdminOrderDetailPage() {
                                       </div>
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Invoice reference
+                                          Order number (fixed)
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={order.orderNumber || order.id || ''}
+                                          disabled
+                                          className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Additional invoice reference
                                         </label>
                                         <input
                                           type="text"
@@ -6866,6 +6877,7 @@ function AdminOrderDetailPage() {
                                             ...notaryApostilleData,
                                             invoiceReference: e.target.value
                                           })}
+                                          placeholder="Optional extra reference..."
                                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                                         />
                                       </div>
@@ -7110,10 +7122,21 @@ function AdminOrderDetailPage() {
                                     </div>
 
                                     {/* Payment and return */}
-                                    <div className="grid grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Invoice reference
+                                          Order number (fixed)
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={order.orderNumber || order.id || ''}
+                                          disabled
+                                          className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Additional invoice reference
                                         </label>
                                         <input
                                           type="text"
@@ -7122,9 +7145,12 @@ function AdminOrderDetailPage() {
                                             ...embassyData,
                                             invoiceReference: e.target.value
                                           })}
+                                          placeholder="Optional extra reference..."
                                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                                         />
                                       </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Payment method
@@ -7261,16 +7287,28 @@ function AdminOrderDetailPage() {
                                         />
                                       </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
                                       <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Reference</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Order Number (fixed)</label>
+                                        <input
+                                          type="text"
+                                          value={order.orderNumber || order.id || ''}
+                                          disabled
+                                          className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Additional Invoice Reference</label>
                                         <input
                                           type="text"
                                           value={udData.invoiceReference}
                                           onChange={(e) => setUdData({ ...udData, invoiceReference: e.target.value })}
+                                          placeholder="Optional extra reference..."
                                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                                         />
                                       </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                                         <input
