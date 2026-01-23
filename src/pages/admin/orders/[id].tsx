@@ -1293,7 +1293,7 @@ function AdminOrderDetailPage() {
     ) {
       if (typeof window !== 'undefined') {
         shouldCreateAndSendInvoice = window.confirm(
-          'Do you want to create and send the invoice to the customer?'
+          'Send invoice to fakturor@visumpartner.se?'
         );
       }
     }
@@ -2602,12 +2602,12 @@ function AdminOrderDetailPage() {
             const existingInvoice = existingInvoices[0];
             if (existingInvoice.status === 'draft') {
               const sendExisting = window.confirm(
-                `Invoice ${existingInvoice.invoiceNumber} already exists. Do you want to send it to the customer?`
+                `Invoice ${existingInvoice.invoiceNumber} already exists. Send to fakturor@visumpartner.se?`
               );
               if (sendExisting) {
                 const success = await sendInvoiceEmail(existingInvoice);
                 if (success) {
-                  toast.success(`Invoice ${existingInvoice.invoiceNumber} sent to customer`);
+                  toast.success(`Invoice ${existingInvoice.invoiceNumber} sent to fakturor@visumpartner.se`);
                   await fetchInvoices(orderId);
                 } else {
                   toast.error('Could not send invoice');
@@ -2626,7 +2626,7 @@ function AdminOrderDetailPage() {
             if (storedInvoice) {
               const success = await sendInvoiceEmail(storedInvoice);
               if (success) {
-                toast.success(`Invoice ${invoice.invoiceNumber} created and sent to customer`);
+                toast.success(`Invoice ${invoice.invoiceNumber} created and sent to fakturor@visumpartner.se`);
               } else {
                 toast.success(`Invoice ${invoice.invoiceNumber} created but could not be sent`);
               }

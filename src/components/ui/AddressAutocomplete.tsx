@@ -116,78 +116,91 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     };
   }, []);
 
+  // Store callbacks in refs to avoid re-creating autocomplete
+  const onChangeRef = useRef(onChange);
+  const onSelectRef = useRef(onSelect);
+  
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+
   // Initialize autocomplete when Google Maps is ready
   useEffect(() => {
-    if (status === 'ready' && inputRef.current && window.google && window.google.maps && window.google.maps.places) {
-      try {
+    // Skip if already initialized or not ready
+    if (autocompleteRef.current) return;
+    if (status !== 'ready') return;
+    if (!inputRef.current) return;
+    if (!window.google?.maps?.places) return;
+    
+    try {
+      const normalizeCountryRestriction = () => {
+        if (!countryRestriction) return undefined;
+        if (Array.isArray(countryRestriction)) {
+          const list = countryRestriction.map((c) => (c || '').toLowerCase()).filter(Boolean);
+          return list.length ? list : undefined;
+        }
+        const single = (countryRestriction || '').toLowerCase();
+        return single ? single : undefined;
+      };
 
-        const normalizeCountryRestriction = () => {
-          if (!countryRestriction) return undefined;
-          if (Array.isArray(countryRestriction)) {
-            const list = countryRestriction.map((c) => (c || '').toLowerCase()).filter(Boolean);
-            return list.length ? list : undefined;
-          }
-          const single = (countryRestriction || '').toLowerCase();
-          return single ? single : undefined;
+      const parsePlace = (place: any) => {
+        const components = place?.address_components || [];
+        const get = (type: string, useShort = false) => {
+          const comp = components.find((c: any) => Array.isArray(c.types) && c.types.includes(type));
+          if (!comp) return '';
+          return useShort ? (comp.short_name || '') : (comp.long_name || '');
         };
 
-        const parsePlace = (place: any) => {
-          const components = place?.address_components || [];
-          const get = (type: string, useShort = false) => {
-            const comp = components.find((c: any) => Array.isArray(c.types) && c.types.includes(type));
-            if (!comp) return '';
-            return useShort ? (comp.short_name || '') : (comp.long_name || '');
-          };
+        const streetNumber = get('street_number');
+        const route = get('route');
+        const postalCode = get('postal_code');
+        const postalTown = get('postal_town');
+        const locality = get('locality');
+        const sublocality = get('sublocality');
+        const city = postalTown || locality || sublocality;
+        const countryCode = get('country', true);
+        const street = [route, streetNumber].filter(Boolean).join(' ').trim();
 
-          const streetNumber = get('street_number');
-          const route = get('route');
-          const postalCode = get('postal_code');
-          const postalTown = get('postal_town');
-          const locality = get('locality');
-          const sublocality = get('sublocality');
-          const city = postalTown || locality || sublocality;
-          const countryCode = get('country', true);
-          const street = [route, streetNumber].filter(Boolean).join(' ').trim();
-
-          return {
-            street: street || undefined,
-            postalCode: postalCode || undefined,
-            city: city || undefined,
-            countryCode: countryCode || undefined,
-            formattedAddress: place?.formatted_address || undefined
-          };
+        return {
+          street: street || undefined,
+          postalCode: postalCode || undefined,
+          city: city || undefined,
+          countryCode: countryCode || undefined,
+          formattedAddress: place?.formatted_address || undefined
         };
+      };
 
-        const autocomplete = new window.google.maps.places.Autocomplete(
-          inputRef.current,
-          {
-            componentRestrictions: normalizeCountryRestriction() ? { country: normalizeCountryRestriction() } : undefined,
-            fields: ['formatted_address', 'address_components'],
-            types: ['address']
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        inputRef.current,
+        {
+          componentRestrictions: normalizeCountryRestriction() ? { country: normalizeCountryRestriction() } : undefined,
+          fields: ['formatted_address', 'address_components'],
+          types: ['address']
+        }
+      );
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place && place.formatted_address) {
+          const address = place.formatted_address;
+          setInputValue(address);
+          onChangeRef.current(address);
+          if (onSelectRef.current) {
+            onSelectRef.current(parsePlace(place));
           }
-        );
+        }
+      });
 
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
-          if (place && place.formatted_address) {
-            const address = place.formatted_address;
-            setInputValue(address);
-            onChange(address);
-            if (onSelect) {
-              onSelect(parsePlace(place));
-            }
-          } else {
-            onChange(inputValue);
-          }
-        });
+      autocompleteRef.current = autocomplete;
 
-        autocompleteRef.current = autocomplete;
-
-      } catch (error) {
-        setStatus('fallback');
-      }
+    } catch (error) {
+      setStatus('fallback');
     }
-  }, [status, onChange, onSelect, inputValue, countryRestriction]);
+  }, [status, countryRestriction]);
 
   // Update local input value when prop changes
   useEffect(() => {

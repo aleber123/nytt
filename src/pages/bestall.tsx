@@ -27,7 +27,7 @@ import Step3ServicesSelection from '@/components/order/steps/Step3ServicesSelect
 import Step4Quantity from '@/components/order/steps/Step4Quantity';
 import Step5DocumentSource from '@/components/order/steps/Step5DocumentSource';
 import { Step6PickupService } from '@/components/order/steps/Step6PickupService';
-// Step7ShippingOrPickup removed - shipping info moved to Step 10 summary
+import { Step7ShippingOrPickup } from '@/components/order/steps/Step7ShippingOrPickup';
 import Step8ScannedCopies from '@/components/order/steps/Step8ScannedCopies';
 import Step9ReturnService from '@/components/order/steps/Step9ReturnService';
 import Step9bReturnAddress from '@/components/order/steps/Step9bReturnAddress';
@@ -1393,11 +1393,28 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                 <Step6PickupService
                   answers={answers}
                   setAnswers={setAnswers}
-                  onNext={() => navigateToStep(7)}
+                  onNext={() => {
+                    // If pickup service selected, go to pickup address step
+                    if (answers.pickupService) {
+                      navigateToStep(6.5);
+                    } else {
+                      navigateToStep(7);
+                    }
+                  }}
                   onBack={() => navigateToStep(5)}
                   pickupServices={pickupServices}
                   loadingPickupServices={loadingPickupServices}
                   currentLocale={currentLocale}
+                />
+              )}
+              {/* Step 6.5: Pickup Address (only shown if pickup service selected) */}
+              {currentQuestion === 6.5 && (
+                <Step7ShippingOrPickup
+                  answers={answers}
+                  setAnswers={setAnswers}
+                  onNext={() => navigateToStep(7)}
+                  onBack={() => navigateToStep(6)}
+                  onSkip={() => navigateToStep(7)}
                 />
               )}
               {/* Step 7: Scanned Copies (was Step 8) */}
@@ -1409,6 +1426,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   onBack={() => {
                     if (answers.documentSource === 'upload') {
                       navigateToStep(5);
+                    } else if (answers.pickupService) {
+                      navigateToStep(6.5);
                     } else {
                       navigateToStep(6);
                     }
