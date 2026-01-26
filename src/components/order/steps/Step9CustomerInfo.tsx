@@ -12,6 +12,7 @@ import { CustomerInfoForm } from '../CustomerInfoForm';
 
 interface Step9CustomerInfoProps extends Omit<StepProps, 'currentLocale'> {
   currentLocale?: string;
+  isEVisa?: boolean; // Hide "Same as return address" for e-visa orders
 }
 
 export const Step9CustomerInfo: React.FC<Step9CustomerInfoProps> = ({
@@ -19,7 +20,8 @@ export const Step9CustomerInfo: React.FC<Step9CustomerInfoProps> = ({
   setAnswers,
   onNext,
   onBack,
-  currentLocale
+  currentLocale,
+  isEVisa = false
 }) => {
   const { t, i18n } = useTranslation('common');
   const router = useRouter();
@@ -126,6 +128,7 @@ export const Step9CustomerInfo: React.FC<Step9CustomerInfoProps> = ({
             locale={locale}
             addressInputRef={addressInputRef}
             showValidation={false}
+            hideReturnAddressOption={isEVisa}
           />
         </>
       )}

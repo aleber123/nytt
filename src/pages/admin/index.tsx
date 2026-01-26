@@ -65,11 +65,20 @@ function AdminIndexPage() {
 
   const adminPages = [
     {
-      title: 'Orders',
-      description: 'View and manage customer orders',
+      title: 'Legalization Orders',
+      description: 'View and manage legalization orders',
       href: '/admin/orders',
       color: 'bg-orange-600 hover:bg-orange-700',
-      badge: 'All orders',
+      badge: 'SWE-orders',
+      icon: 'clipboard-list',
+      category: 'orders'
+    },
+    {
+      title: 'Visa Orders',
+      description: 'View and manage visa orders',
+      href: '/admin/visa-orders',
+      color: 'bg-emerald-600 hover:bg-emerald-700',
+      badge: 'VISA-orders',
       icon: 'clipboard-list',
       category: 'orders'
     },
@@ -98,6 +107,15 @@ function AdminIndexPage() {
       color: 'bg-blue-600 hover:bg-blue-700',
       icon: 'building',
       badge: '10+ countries',
+      category: 'pricing'
+    },
+    {
+      title: 'Visa Requirements',
+      description: 'Manage visa types (e-visa/sticker) and rules per country and nationality',
+      href: '/admin/visa-requirements',
+      color: 'bg-cyan-600 hover:bg-cyan-700',
+      icon: 'building',
+      badge: 'Visa',
       category: 'pricing'
     },
     {

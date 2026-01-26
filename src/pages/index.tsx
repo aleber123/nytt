@@ -6,7 +6,7 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Seo from '@/components/Seo';
 import Link from 'next/link';
-import HeroSection from '@/components/ui/HeroSection';
+import HeroCarousel from '@/components/ui/HeroCarousel';
 import ProcessSteps from '@/components/ui/ProcessSteps';
 import TestimonialSection from '@/components/ui/TestimonialSection';
 import FAQSection from '@/components/ui/FAQSection';
@@ -59,7 +59,7 @@ export default function Home() {
           shortDescription: t(`services.${service.serviceType}.description`),
           icon: getServiceIcon(service.serviceType),
           price:
-            service.serviceType === 'translation'
+            (service.serviceType === 'translation' || service.serviceType === 'visa')
               ? t('home.translationPriceLabel', 'Offert')
               : service.totalPrice,
           timeframe: service.timeframe,
@@ -194,6 +194,16 @@ export default function Home() {
       totalPrice: '',
       timeframe: '',
       features: ['Utrikesdepartementets stämpel', 'Högsta myndighet', 'Internationell giltighet', 'Officiell legalisering']
+    },
+    {
+      serviceType: 'visa',
+      service: 'Visum',
+      description: t('services.visa.description'),
+      officialFee: '',
+      serviceFee: '',
+      totalPrice: '',
+      timeframe: '',
+      features: ['Alla länder', 'E-visum & sticker-visum', 'Snabb handläggning', 'Personlig service']
     }
   ];
 
@@ -211,6 +221,8 @@ export default function Home() {
         return 'home';
       case 'ud':
         return 'landmark';
+      case 'visa':
+        return 'passport';
       default:
         return 'document-check';
     }
@@ -231,6 +243,8 @@ export default function Home() {
         return 'handelskammaren';
       case 'ud':
         return 'utrikesdepartementet';
+      case 'visa':
+        return 'visum';
       default:
         return serviceType;
     }
@@ -313,6 +327,12 @@ export default function Home() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
         );
+      case 'passport':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-custom-button" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+          </svg>
+        );
       default:
         return null;
     }
@@ -327,12 +347,7 @@ export default function Home() {
       />
 
       <main>
-        <HeroSection 
-          title={t('hero.title')}
-          subtitle={t('hero.subtitle')}
-          ctaText={t('hero.cta')}
-          ctaLink="/bestall"
-        />
+        <HeroCarousel />
 
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
@@ -393,13 +408,13 @@ export default function Home() {
 
                     <div className="flex gap-2">
                       <Link
-                        href={`/bestall?service=${service.id}`}
+                        href={service.serviceType === 'visa' ? '/visum/bestall' : `/bestall?service=${service.id}`}
                         className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
                       >
                         {t('home.chooseService')}
                       </Link>
                       <Link
-                        href={`/tjanster/${getServiceSlug(service.serviceType)}`}
+                        href={service.serviceType === 'visa' ? '/visum' : `/tjanster/${getServiceSlug(service.serviceType)}`}
                         className="inline-flex items-center justify-center px-4 py-2 border border-custom-button text-custom-button hover:bg-custom-button hover:text-white rounded-md transition-colors duration-200"
                       >
                         {t('home.learnMore')}

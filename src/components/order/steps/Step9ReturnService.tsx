@@ -152,10 +152,18 @@ export const Step9ReturnService: React.FC<Step9Props> = ({
     });
   };
 
-  // Filter out premium delivery options from main list
-  const baseServices = returnServices.filter(
-    service => !['dhl-pre-12', 'dhl-pre-9', 'stockholm-express', 'stockholm-sameday'].includes(service.id)
-  );
+  // Filter out premium delivery options from main list and sort in preferred order
+  const serviceOrder = ['postnord-rek', 'dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city'];
+  const baseServices = returnServices
+    .filter(service => !['dhl-pre-12', 'dhl-pre-9', 'stockholm-express', 'stockholm-sameday'].includes(service.id))
+    .sort((a, b) => {
+      const indexA = serviceOrder.indexOf(a.id);
+      const indexB = serviceOrder.indexOf(b.id);
+      // If not in the order list, put at the end
+      const orderA = indexA === -1 ? 999 : indexA;
+      const orderB = indexB === -1 ? 999 : indexB;
+      return orderA - orderB;
+    });
 
   // Premium DHL options
   const dhlPremiumOptions = returnServices

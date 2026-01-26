@@ -50,6 +50,16 @@ const FAQSection: React.FC<FAQSectionProps> = ({ className = '' }) => {
       id: 8,
       question: t('faq.question8') || 'Vilka länder kräver ambassadlegalisering?',
       answer: t('faq.answer8') || 'Länder som inte är anslutna till Haagkonventionen kräver ambassadlegalisering. Detta inkluderar bland annat Qatar, Kuwait, Förenade Arabemiraten (UAE), Egypten och många afrikanska länder.'
+    },
+    {
+      id: 9,
+      question: t('faq.question9') || 'Hur ansöker jag om visum?',
+      answer: t('faq.answer9') || 'Du kan ansöka om visum via vår webbplats. Välj destinationsland och nationalitet, välj den visumtyp du behöver, så guidar vi dig genom ansökningsprocessen.'
+    },
+    {
+      id: 10,
+      question: t('faq.question10') || 'Hur lång tid tar det att få visum?',
+      answer: t('faq.answer10') || 'Handläggningstiden varierar beroende på destinationsland och visumtyp. E-visum behandlas vanligtvis inom 1-5 arbetsdagar, medan sticker-visum kan ta 5-20 arbetsdagar.'
     }
   ];
 

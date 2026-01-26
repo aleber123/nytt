@@ -2878,3 +2878,97 @@ export const seedDocumentTypePopularity = async (): Promise<{ success: number; f
 
   return { success, failed };
 };
+
+// ============================================
+// VISA DESTINATION POPULARITY TRACKING
+// ============================================
+
+export interface VisaDestinationPopularity {
+  countryCode: string;
+  countryName: string;
+  countryNameEn: string;
+  selectionCount: number;
+  lastSelected: Timestamp;
+}
+
+// Track visa destination selection for popularity ranking
+export const trackVisaDestinationSelection = async (countryCode: string, countryName: string, countryNameEn: string): Promise<void> => {
+  try {
+    if (!db) return;
+
+    const popularityRef = doc(db, 'visaDestinationPopularity', countryCode);
+    const docSnap = await getDoc(popularityRef);
+    
+    if (docSnap.exists()) {
+      await updateDoc(popularityRef, {
+        selectionCount: increment(1),
+        lastSelected: Timestamp.now()
+      });
+    } else {
+      await setDoc(popularityRef, {
+        countryCode,
+        countryName,
+        countryNameEn,
+        selectionCount: 1,
+        lastSelected: Timestamp.now()
+      });
+    }
+  } catch (error) {
+    // Silently fail - tracking should not break user flow
+  }
+};
+
+// Get popular visa destinations sorted by selection count
+export const getPopularVisaDestinations = async (maxResults: number = 15): Promise<VisaDestinationPopularity[]> => {
+  // Static fallback list - curated popular destinations
+  const staticPopular: VisaDestinationPopularity[] = [
+    { countryCode: 'IN', countryName: 'Indien', countryNameEn: 'India', selectionCount: 150, lastSelected: Timestamp.now() },
+    { countryCode: 'TR', countryName: 'Turkiet', countryNameEn: 'Turkey', selectionCount: 145, lastSelected: Timestamp.now() },
+    { countryCode: 'VN', countryName: 'Vietnam', countryNameEn: 'Vietnam', selectionCount: 140, lastSelected: Timestamp.now() },
+    { countryCode: 'EG', countryName: 'Egypten', countryNameEn: 'Egypt', selectionCount: 135, lastSelected: Timestamp.now() },
+    { countryCode: 'LK', countryName: 'Sri Lanka', countryNameEn: 'Sri Lanka', selectionCount: 130, lastSelected: Timestamp.now() },
+    { countryCode: 'ID', countryName: 'Indonesien', countryNameEn: 'Indonesia', selectionCount: 125, lastSelected: Timestamp.now() },
+    { countryCode: 'TH', countryName: 'Thailand', countryNameEn: 'Thailand', selectionCount: 120, lastSelected: Timestamp.now() },
+    { countryCode: 'KE', countryName: 'Kenya', countryNameEn: 'Kenya', selectionCount: 115, lastSelected: Timestamp.now() },
+    { countryCode: 'TZ', countryName: 'Tanzania', countryNameEn: 'Tanzania', selectionCount: 110, lastSelected: Timestamp.now() },
+    { countryCode: 'SA', countryName: 'Saudiarabien', countryNameEn: 'Saudi Arabia', selectionCount: 105, lastSelected: Timestamp.now() },
+    { countryCode: 'JP', countryName: 'Japan', countryNameEn: 'Japan', selectionCount: 100, lastSelected: Timestamp.now() },
+    { countryCode: 'KR', countryName: 'Sydkorea', countryNameEn: 'South Korea', selectionCount: 95, lastSelected: Timestamp.now() },
+    { countryCode: 'CD', countryName: 'Kongo-Kinshasa', countryNameEn: 'DR Congo', selectionCount: 90, lastSelected: Timestamp.now() },
+    { countryCode: 'AO', countryName: 'Angola', countryNameEn: 'Angola', selectionCount: 85, lastSelected: Timestamp.now() },
+    { countryCode: 'NG', countryName: 'Nigeria', countryNameEn: 'Nigeria', selectionCount: 80, lastSelected: Timestamp.now() },
+  ];
+
+  try {
+    if (!db) {
+      return staticPopular.slice(0, maxResults);
+    }
+
+    const q = query(
+      collection(db, 'visaDestinationPopularity'),
+      orderBy('selectionCount', 'desc'),
+      limit(maxResults * 2)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const dynamicCountries = querySnapshot.docs.map(doc => doc.data() as VisaDestinationPopularity);
+
+    if (dynamicCountries.length >= maxResults) {
+      return dynamicCountries.slice(0, maxResults);
+    }
+
+    // Merge with static data
+    const existingCodes = new Set(dynamicCountries.map(c => c.countryCode));
+    const merged = [...dynamicCountries];
+    
+    for (const staticCountry of staticPopular) {
+      if (!existingCodes.has(staticCountry.countryCode) && merged.length < maxResults) {
+        merged.push({ ...staticCountry, selectionCount: Math.floor(staticCountry.selectionCount / 10) });
+      }
+    }
+
+    return merged.sort((a, b) => b.selectionCount - a.selectionCount).slice(0, maxResults);
+  } catch (error) {
+    return staticPopular.slice(0, maxResults);
+  }
+};

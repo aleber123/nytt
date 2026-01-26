@@ -22,6 +22,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // VISA REQUIREMENTS – public read, only admin may change
+    match /visaRequirements/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // CONTENT – static content
     match /content/{doc} {
       allow read: if true;
@@ -32,6 +38,22 @@ service cloud.firestore {
     match /countryPopularity/{doc} {
       allow read: if true;
       allow write: if true;
+    }
+
+    // VISA ORDERS – customers create, admin/staff read/update
+    // Same pattern as regular orders - token-based confirmation for customers
+    match /visaOrders/{orderId} {
+      // Allow anyone to create an order (customer checkout flow)
+      allow create: if true;
+
+      // Read: Currently open for admin panel compatibility
+      allow read: if true;
+
+      // Update: Admin/staff can update anything
+      allow update: if isAdmin() || isDoxStaff();
+
+      // Never allow client-side delete
+      allow delete: if false;
     }
 
     // ORDERS – customers create, admin/staff read/update

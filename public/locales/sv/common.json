@@ -133,7 +133,18 @@
     "contact": "Kontakt",
     "order": "Beställ nu",
     "admin": "Admin",
-    "orders": "Ordrar"
+    "orders": "Ordrar",
+    "legalization": "Legaliseringar",
+    "visa": "Visum",
+    "orderStatus": "Orderstatus"
+  },
+  "serviceModal": {
+    "title": "Vad vill du beställa?",
+    "subtitle": "Välj den tjänst du behöver",
+    "legalization": "Legalisering",
+    "legalizationDesc": "Apostille, UD, ambassad & notarius",
+    "visa": "Visum",
+    "visaDesc": "Ansök om visum till alla länder"
   },
   "seo": {
     "order": {
@@ -141,11 +152,194 @@
       "description": "Beställ professionell legalisering av dina dokument. Apostille, notarisering och ambassadlegalisering för alla länder. Snabb, säker och pålitlig service."
     }
   },
+  "heroCarousel": {
+    "ariaLabel": "Tjänster karusell",
+    "prevSlide": "Föregående",
+    "nextSlide": "Nästa",
+    "goToSlide": "Gå till slide {{number}}",
+    "visa": {
+      "title": "Visumtjänster för alla destinationer",
+      "subtitle": "Vi hjälper dig att ansöka om visum snabbt och enkelt. Professionell service för affärs- och turistresor.",
+      "cta": "Beställ visum"
+    }
+  },
+  "visa": {
+    "pageTitle": "Visumtjänster | DOX Visumpartner",
+    "pageDescription": "Vi hjälper dig med visum till alla länder. Snabb och professionell service.",
+    "heroTitle": "Visumtjänster",
+    "heroSubtitle": "Vi hjälper dig att ansöka om visum till destinationer världen över. Snabbt, enkelt och professionellt.",
+    "orderCta": "Beställ visum",
+    "howItWorksTitle": "Så fungerar det",
+    "step1Title": "Fyll i formuläret",
+    "step1Desc": "Ange destination, resedatum och övrig information.",
+    "step2Title": "Skicka pass & dokument",
+    "step2Desc": "Vi hämtar eller tar emot ditt pass och nödvändiga dokument.",
+    "step3Title": "Få ditt visum",
+    "step3Desc": "Vi levererar tillbaka ditt pass med visum.",
+    "ctaTitle": "Redo att beställa?",
+    "ctaText": "Starta din visumansökan idag. Vi guidar dig genom hela processen.",
+    "ctaButton": "Beställ visum nu"
+  },
+  "visaOrder": {
+    "pageTitle": "Beställ visum | DOX Visumpartner",
+    "pageDescription": "Beställ visum enkelt och snabbt. Vi hjälper dig med hela processen.",
+    "step1": {
+      "title": "Vilket land ska du resa till?",
+      "subtitle": "Välj destinationsland för din resa",
+      "searchPlaceholder": "Sök land...",
+      "popularCountries": "Populära destinationer",
+      "showAll": "Visa alla länder",
+      "showLess": "Visa färre"
+    },
+    "step2": {
+      "title": "Vilken nationalitet har du?",
+      "subtitle": "Välj ditt medborgarskap",
+      "searchPlaceholder": "Sök nationalitet...",
+      "popularNationalities": "Vanliga nationaliteter",
+      "showAll": "Visa alla nationaliteter",
+      "showLess": "Visa färre"
+    },
+    "step3": {
+      "title": "Vad är syftet med din resa?",
+      "subtitle": "Välj typ av resa",
+      "business": {
+        "title": "Affärsresa",
+        "description": "Möten, konferenser, affärsförhandlingar"
+      },
+      "tourist": {
+        "title": "Turistresa",
+        "description": "Semester, besök hos familj/vänner"
+      }
+    },
+    "step4": {
+      "title": "Hur många inresor behöver du?",
+      "subtitle": "Välj antal inresor",
+      "single": {
+        "title": "Single entry",
+        "description": "En inresa till landet"
+      },
+      "multiple": {
+        "title": "Multiple entry",
+        "description": "Flera inresor under visumets giltighetstid"
+      },
+      "hint": "Tips: Om du är osäker, välj single entry. Multiple entry är vanligtvis dyrare och kräver ofta mer dokumentation."
+    },
+    "step5": {
+      "title": "När ska du resa?",
+      "subtitle": "Ange datum för avresa och hemresa",
+      "departureLabel": "Avresedatum",
+      "returnLabel": "Hemresedatum",
+      "duration": "Resans längd",
+      "days": "dagar",
+      "dateError": "Hemresedatum måste vara efter avresedatum"
+    },
+    "step6": {
+      "title": "När behöver du passet tillbaka?",
+      "titleEVisa": "När behöver du visumet?",
+      "subtitle": "Ange senaste datum du behöver ditt pass med visum",
+      "subtitleEVisa": "Ange senaste datum du behöver ditt e-visum klart",
+      "deadlineLabel": "Senast behöver jag passet",
+      "deadlineLabelEVisa": "Senast behöver jag visumet",
+      "daysRemaining": "dagar kvar",
+      "veryUrgentWarning": "Mycket kort tid! Expresshantering kan krävas och extra avgifter kan tillkomma.",
+      "urgentWarning": "Kort tid. Vi rekommenderar att du skickar in din ansökan så snart som möjligt.",
+      "normalTime": "God tid för normal handläggning.",
+      "hint": "Tips: Planera för att ha passet tillbaka minst 1 vecka före avresa för oförutsedda förseningar.",
+      "hintEVisa": "Tips: E-visum levereras digitalt via e-post. Planera för att ha visumet klart minst några dagar före avresa."
+    },
+    "step7": {
+      "title": "Vill du att vi hämtar ditt pass?",
+      "subtitle": "Vi kan skicka bud för att hämta ditt pass",
+      "yesPickup": {
+        "title": "Ja, hämta mitt pass",
+        "description": "Vi skickar bud för att hämta ditt pass",
+        "price": "Från 149 kr"
+      },
+      "noPickup": {
+        "title": "Nej, jag skickar själv",
+        "description": "Jag skickar passet till er med egen frakt"
+      },
+      "addressTitle": "Hämtadress",
+      "nameLabel": "Namn",
+      "companyLabel": "Företag (valfritt)",
+      "streetLabel": "Gatuadress",
+      "postalCodeLabel": "Postnummer",
+      "cityLabel": "Stad"
+    },
+    "step8": {
+      "title": "Hur vill du få tillbaka ditt pass?",
+      "subtitle": "Välj leveranssätt för retur",
+      "postnord": {
+        "title": "PostNord",
+        "description": "Leverans inom 1-2 arbetsdagar",
+        "price": "99 kr"
+      },
+      "dhl": {
+        "title": "DHL Express",
+        "description": "Expressleverans nästa arbetsdag",
+        "price": "199 kr"
+      },
+      "pickup": {
+        "title": "Hämta hos oss",
+        "description": "Hämta ditt pass på vårt kontor i Stockholm",
+        "price": "Gratis"
+      },
+      "premiumDelivery": {
+        "title": "Leverans före kl 12",
+        "description": "Garanterad leverans före kl 12 på vardagar"
+      }
+    },
+    "step9": {
+      "title": "Vart ska vi skicka ditt pass?",
+      "subtitle": "Ange leveransadress för retur",
+      "firstNameLabel": "Förnamn",
+      "lastNameLabel": "Efternamn",
+      "companyLabel": "Företag (valfritt)",
+      "streetLabel": "Gatuadress",
+      "addressLine2Label": "c/o, våning, etc. (valfritt)",
+      "postalCodeLabel": "Postnummer",
+      "cityLabel": "Stad",
+      "phoneLabel": "Telefon",
+      "emailLabel": "E-post"
+    },
+    "step10": {
+      "title": "Granska din beställning",
+      "subtitle": "Kontrollera att allt stämmer innan du skickar",
+      "travelInfo": "Reseinformation",
+      "dates": "Datum",
+      "delivery": "Leverans",
+      "returnAddress": "Leveransadress",
+      "edit": "Ändra",
+      "termsText": "Jag godkänner",
+      "termsLink": "allmänna villkor",
+      "termsAnd": "och",
+      "privacyLink": "integritetspolicy",
+      "submitButton": "Skicka beställning",
+      "submitting": "Skickar...",
+      "successTitle": "Tack för din beställning!",
+      "successMessage": "Vi har mottagit din visumansökan och återkommer inom kort med mer information.",
+      "emailConfirmation": "En bekräftelse har skickats till din e-post.",
+      "contactNote": "Vi kontaktar dig inom 1 arbetsdag med prisuppgift och nästa steg."
+    },
+    "comingSoon": {
+      "title": "Kommer snart",
+      "description": "Detta steg är under utveckling. Kontakta oss för att slutföra din visumansökan."
+    },
+    "summary": {
+      "title": "Din beställning",
+      "destination": "Destination",
+      "nationality": "Nationalitet",
+      "tripType": "Restyp",
+      "entryType": "Inresor",
+      "departure": "Avresa",
+      "return": "Hemresa"
+    }
+  },
   "home": {
     "title": "Legalisering av Dokument | Apostille & Ambassad",
     "description": "Professionell legalisering för utlandet. Apostille, notarisering, UD och ambassad. Snabb service i Stockholm.",
     "servicesHeading": "Välj rätt tjänst för dina behov",
-    "servicesSubheading": "Vi förenklar legaliseringsprocessen med tydliga tjänster anpassade för olika situationer",
+    "servicesSubheading": "Vi förenklar legalisering och visumansökningar med tydliga tjänster anpassade för olika situationer",
     "from": "Från",
     "inclVat": "inkl. moms",
     "exclVat": "exkl. moms",
@@ -156,15 +350,15 @@
     "howItWorksSubtitle": "Vår process är enkel och effektiv för att spara dig tid och besvär",
     "steps": {
       "1": { "title": "Beställ online", "description": "Fyll i vårt enkla beställningsformulär och välj önskad tjänst" },
-      "2": { "title": "Vi hanterar dina dokument", "description": "Våra experter ser till att dina dokument blir korrekt legaliserade" },
-      "3": { "title": "Få dina legaliserade dokument", "description": "Vi levererar dina legaliserade dokument enligt vald leveransmetod" }
+      "2": { "title": "Vi hanterar ditt ärende", "description": "Våra experter hanterar din legalisering eller visumansökan" },
+      "3": { "title": "Få dina dokument", "description": "Vi levererar dina legaliserade dokument eller godkända visum" }
     },
     "servicesTitle": "Våra tjänster",
     "allServices": "Se alla tjänster",
     "processTitle": "Så här fungerar det",
     "processSubtitle": "Vår process är enkel och effektiv för att spara dig tid och besvär",
     "ctaTitle": "Redo att beställa?",
-    "ctaText": "Vi hjälper dig med legalisering av dina dokument snabbt och enkelt",
+    "ctaText": "Vi hjälper dig med dokumentlegalisering och visumansökningar snabbt och enkelt",
     "ctaButton": "Beställ nu",
     "popularLabel": "Populär",
     "servicesFeatures": {
@@ -202,6 +396,12 @@
         "Högsta myndighet",
         "Internationell giltighet",
         "Officiell legalisering"
+      ],
+      "visa": [
+        "Alla länder",
+        "E-visum & sticker-visum",
+        "Snabb handläggning",
+        "Personlig service"
       ]
     }
   },
@@ -334,6 +534,18 @@
       "feature2": "Internationell giltighet",
       "feature3": "Företagshandlingar",
       "feature4": "Officiell legalisering"
+    },
+    "visa": {
+      "title": "Visum",
+      "description": "Ansök om visum till alla länder med vår hjälp",
+      "shortDesc": "Visumansökan till alla länder",
+      "longDescription": "Vi hjälper dig med visumansökningar till alla länder. Oavsett om du behöver e-visum eller sticker-visum, hanterar vi hela processen åt dig. Snabb handläggning och personlig service.",
+      "price": "Offert",
+      "timeframe": "Varierar",
+      "feature1": "Alla länder",
+      "feature2": "E-visum & sticker-visum",
+      "feature3": "Snabb handläggning",
+      "feature4": "Personlig service"
     },
     "details": {
       "process": "Process",
@@ -691,7 +903,7 @@
   },
   "faq": {
     "title": "Vanliga frågor",
-    "subtitle": "Hitta svar på de vanligaste frågorna om våra legaliseringstjänster",
+    "subtitle": "Hitta svar på de vanligaste frågorna om våra legaliserings- och visumtjänster",
     "question1": "Vad är skillnaden mellan apostille och ambassadlegalisering?",
     "answer1": "Apostille är en förenklad legaliseringsprocess för länder som är anslutna till 1961 års Haagkonvention. Ambassadlegalisering krävs för länder som inte är anslutna till konventionen och innebär legalisering genom det specifika landets ambassad eller konsulat.",
     "question2": "Hur lång tid tar legaliseringsprocessen?",
@@ -708,6 +920,10 @@
     "answer7": "En Notarius Publicus är en av staten förordnad tjänsteman som har behörighet att bestyrka handlingar, bevittna underskrifter och utfärda apostille. I Sverige utses Notarius Publicus av länsstyrelsen.",
     "question8": "Vilka länder kräver ambassadlegalisering?",
     "answer8": "Länder som inte är anslutna till Haagkonventionen kräver ambassadlegalisering. Detta inkluderar bland annat Qatar, Kuwait, Förenade Arabemiraten (UAE), Egypten och många afrikanska länder.",
+    "question9": "Hur ansöker jag om visum?",
+    "answer9": "Du kan ansöka om visum via vår webbplats. Välj destinationsland och nationalitet, välj den visumtyp du behöver, så guidar vi dig genom ansökningsprocessen.",
+    "question10": "Hur lång tid tar det att få visum?",
+    "answer10": "Handläggningstiden varierar beroende på destinationsland och visumtyp. E-visum behandlas vanligtvis inom 1-5 arbetsdagar, medan sticker-visum kan ta 5-20 arbetsdagar.",
     "moreQuestions": "Hittar du inte svaret på din fråga?",
     "contactUs": "Kontakta oss"
   },

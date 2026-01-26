@@ -21,6 +21,7 @@ interface CustomerInfoFormProps {
   locale: string;
   addressInputRef?: React.RefObject<HTMLInputElement>;
   showValidation?: boolean;
+  hideReturnAddressOption?: boolean; // Hide "Same as return address" checkbox (e.g., for e-visa)
 }
 
 export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
@@ -28,7 +29,8 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
   setAnswers,
   locale,
   addressInputRef,
-  showValidation = false
+  showValidation = false,
+  hideReturnAddressOption = false
 }) => {
   const { t } = useTranslation('common');
   const hasPrefilledRef = useRef(false);
@@ -297,8 +299,8 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
           subtitle={isEn ? 'For invoice and contact' : 'För faktura och kontakt'}
         />
 
-        {/* Same as return address checkbox - only show if return address is provided */}
-        {!answers.confirmReturnAddressLater && (
+        {/* Same as return address checkbox - only show if return address is provided and not hidden (e.g., for e-visa) */}
+        {!answers.confirmReturnAddressLater && !hideReturnAddressOption && (
           <label className="flex items-center space-x-2 mb-4 p-3 bg-white border border-green-200 rounded-lg cursor-pointer">
             <input
               type="checkbox"
