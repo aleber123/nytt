@@ -66,6 +66,9 @@ function AdminVisaOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedStatuses, setSelectedStatuses] = useState<VisaOrderStatus[]>(['pending', 'received', 'processing', 'submitted-to-embassy']);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<VisaOrderStatus | ''>('');
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -101,6 +104,67 @@ function AdminVisaOrdersPage() {
         ? prev.filter(s => s !== status)
         : [...prev, status]
     );
+  };
+
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatus || selectedOrderIds.length === 0) return;
+
+    if (bulkStatus === 'cancelled' && typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `Are you sure you want to set ${selectedOrderIds.length} orders to status "Cancelled"?`
+      );
+      if (!confirmed) return;
+    }
+
+    setIsBulkUpdating(true);
+    try {
+      await Promise.all(
+        selectedOrderIds.map(async (orderId) => {
+          const response = await fetch('/api/admin/update-visa-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId, updates: { status: bulkStatus } })
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update order');
+          }
+          return response.json();
+        })
+      );
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id && selectedOrderIds.includes(order.id)
+            ? { ...order, status: bulkStatus }
+            : order
+        )
+      );
+
+      toast.success(`Status updated for ${selectedOrderIds.length} orders`);
+      setSelectedOrderIds([]);
+      setBulkStatus('');
+    } catch (err) {
+      toast.error('Could not update status for all selected orders');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrderIds(prev =>
+      prev.includes(orderId)
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.length === filteredOrders.length) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(filteredOrders.map(o => o.id!).filter(Boolean));
+    }
   };
 
   const filteredOrders = orders.filter(order => {
@@ -323,6 +387,40 @@ function AdminVisaOrdersPage() {
                 </button>
               </div>
             </div>
+
+            {/* Bulk Actions */}
+            {selectedOrderIds.length > 0 && (
+              <div className="p-4 bg-blue-50 border-t border-blue-100">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-blue-800">
+                    {selectedOrderIds.length} order{selectedOrderIds.length > 1 ? 's' : ''} selected
+                  </span>
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value as VisaOrderStatus | '')}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select new status...</option>
+                    {ALL_STATUSES.map(status => (
+                      <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleBulkStatusUpdate}
+                    disabled={!bulkStatus || isBulkUpdating}
+                    className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isBulkUpdating ? 'Updating...' : 'Update Status'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedOrderIds([])}
+                    className="px-3 py-1.5 text-gray-600 hover:text-gray-800 text-sm"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Error State */}
@@ -338,6 +436,14 @@ function AdminVisaOrdersPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Order Number
                     </th>
@@ -367,7 +473,7 @@ function AdminVisaOrdersPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center">
+                      <td colSpan={9} className="px-6 py-12 text-center">
                         <div className="flex justify-center">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
@@ -376,13 +482,21 @@ function AdminVisaOrdersPage() {
                     </tr>
                   ) : filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                         No visa orders found
                       </td>
                     </tr>
                   ) : (
                     filteredOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
+                      <tr key={order.id} className={`hover:bg-gray-50 ${selectedOrderIds.includes(order.id!) ? 'bg-blue-50' : ''}`}>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedOrderIds.includes(order.id!)}
+                            onChange={() => toggleOrderSelection(order.id!)}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Link 
                             href={`/admin/visa-orders/${order.id}`}

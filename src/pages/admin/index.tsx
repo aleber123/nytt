@@ -64,6 +64,7 @@ function AdminIndexPage() {
   };
 
   const adminPages = [
+    // Legalization section
     {
       title: 'Legalization Orders',
       description: 'View and manage legalization orders',
@@ -71,8 +72,27 @@ function AdminIndexPage() {
       color: 'bg-orange-600 hover:bg-orange-700',
       badge: 'SWE-orders',
       icon: 'clipboard-list',
-      category: 'orders'
+      category: 'legalization'
     },
+    {
+      title: 'Embassy Prices',
+      description: 'Manage prices for embassy legalization per country',
+      href: '/admin/simple-embassy-prices',
+      color: 'bg-orange-500 hover:bg-orange-600',
+      icon: 'building',
+      badge: '10+ countries',
+      category: 'legalization'
+    },
+    {
+      title: 'Standard Prices',
+      description: 'Configure prices for legalization services (notarization, apostille, etc.)',
+      href: '/admin/standard-services-prices',
+      color: 'bg-orange-400 hover:bg-orange-500',
+      icon: 'calculator',
+      badge: '6 services',
+      category: 'legalization'
+    },
+    // Visa section
     {
       title: 'Visa Orders',
       description: 'View and manage visa orders',
@@ -80,8 +100,27 @@ function AdminIndexPage() {
       color: 'bg-emerald-600 hover:bg-emerald-700',
       badge: 'VISA-orders',
       icon: 'clipboard-list',
-      category: 'orders'
+      category: 'visa'
     },
+    {
+      title: 'Visa Products & Pricing',
+      description: 'Manage visa types (e-visa/sticker), products and prices per country',
+      href: '/admin/visa-requirements',
+      color: 'bg-emerald-500 hover:bg-emerald-600',
+      icon: 'building',
+      badge: 'Products',
+      category: 'visa'
+    },
+    {
+      title: 'Document Requirements',
+      description: 'Manage required documents for each visa product',
+      href: '/admin/visa-document-requirements',
+      color: 'bg-emerald-400 hover:bg-emerald-500',
+      icon: 'clipboard-list',
+      badge: 'Checklist',
+      category: 'visa'
+    },
+    // Customers
     {
       title: 'Customer Registry',
       description: 'Manage business customers, contacts and terms',
@@ -91,6 +130,7 @@ function AdminIndexPage() {
       icon: 'users',
       category: 'customers'
     },
+    // Operations
     {
       title: 'Driver',
       description: 'Daily runs - drop off and pick up documents from authorities',
@@ -99,33 +139,6 @@ function AdminIndexPage() {
       icon: 'car',
       badge: 'Daily tasks',
       category: 'operations'
-    },
-    {
-      title: 'Embassy Prices',
-      description: 'Manage prices for embassy legalization per country',
-      href: '/admin/simple-embassy-prices',
-      color: 'bg-blue-600 hover:bg-blue-700',
-      icon: 'building',
-      badge: '10+ countries',
-      category: 'pricing'
-    },
-    {
-      title: 'Visa Requirements',
-      description: 'Manage visa types (e-visa/sticker) and rules per country and nationality',
-      href: '/admin/visa-requirements',
-      color: 'bg-cyan-600 hover:bg-cyan-700',
-      icon: 'building',
-      badge: 'Visa',
-      category: 'pricing'
-    },
-    {
-      title: 'Standard Prices',
-      description: 'Configure prices for core services',
-      href: '/admin/standard-services-prices',
-      color: 'bg-blue-600 hover:bg-blue-700',
-      icon: 'calculator',
-      badge: '6 services',
-      category: 'pricing'
     },
     {
       title: 'Shipping & Delivery',
@@ -137,13 +150,13 @@ function AdminIndexPage() {
       category: 'operations'
     },
     {
-      title: 'Invoices',
-      description: 'View and manage customer invoices',
-      href: '/admin/invoices',
-      color: 'bg-purple-600 hover:bg-purple-700',
-      badge: 'All invoices',
-      icon: 'receipt',
-      category: 'billing'
+      title: 'Shipping Settings',
+      description: 'Configure max prices for DHL bookings',
+      href: '/admin/shipping-settings',
+      color: 'bg-yellow-600 hover:bg-yellow-700',
+      badge: 'DHL',
+      icon: 'truck',
+      category: 'operations'
     },
     {
       title: 'Profile',
@@ -155,24 +168,6 @@ function AdminIndexPage() {
       category: 'operations'
     },
     {
-      title: 'Statistics',
-      description: 'Analyze sales and performance',
-      href: '/admin/stats',
-      color: 'bg-red-600 hover:bg-red-700',
-      badge: 'Analytics',
-      icon: 'calculator',
-      category: 'analytics'
-    },
-    {
-      title: 'Shipping Settings',
-      description: 'Configure max prices for DHL bookings',
-      href: '/admin/shipping-settings',
-      color: 'bg-yellow-600 hover:bg-yellow-700',
-      badge: 'DHL',
-      icon: 'truck',
-      category: 'operations'
-    },
-    {
       title: 'GDPR Management',
       description: 'Manage data retention, anonymization and customer data requests',
       href: '/admin/gdpr',
@@ -180,15 +175,35 @@ function AdminIndexPage() {
       badge: 'Privacy',
       icon: 'clipboard-list',
       category: 'operations'
+    },
+    // Billing
+    {
+      title: 'Invoices',
+      description: 'View and manage customer invoices',
+      href: '/admin/invoices',
+      color: 'bg-purple-600 hover:bg-purple-700',
+      badge: 'All invoices',
+      icon: 'receipt',
+      category: 'billing'
+    },
+    {
+      title: 'Statistics',
+      description: 'Analyze sales and performance',
+      href: '/admin/stats',
+      color: 'bg-red-600 hover:bg-red-700',
+      badge: 'Analytics',
+      icon: 'calculator',
+      category: 'analytics'
     }
   ];
 
-  // Group pages by category
+  // Group pages by category - separate Legalization and Visa
   const categories = [
-    { id: 'orders', title: 'Orders & Customers', pages: adminPages.filter(p => p.category === 'orders' || p.category === 'customers') },
-    { id: 'pricing', title: 'Prices', pages: adminPages.filter(p => p.category === 'pricing') },
-    { id: 'operations', title: 'Operations', pages: adminPages.filter(p => p.category === 'operations') },
-    { id: 'billing', title: 'Billing & Analytics', pages: adminPages.filter(p => p.category === 'billing' || p.category === 'analytics') },
+    { id: 'legalization', title: '📜 Legalization', pages: adminPages.filter(p => p.category === 'legalization') },
+    { id: 'visa', title: '🛂 Visa', pages: adminPages.filter(p => p.category === 'visa') },
+    { id: 'customers', title: '👥 Customers', pages: adminPages.filter(p => p.category === 'customers') },
+    { id: 'operations', title: '⚙️ Operations', pages: adminPages.filter(p => p.category === 'operations') },
+    { id: 'billing', title: '💰 Billing & Analytics', pages: adminPages.filter(p => p.category === 'billing' || p.category === 'analytics') },
   ];
 
   return (

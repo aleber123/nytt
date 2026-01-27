@@ -12,11 +12,15 @@ import {
   deleteVisaRequirement,
   setNationalityRule,
   removeNationalityRule,
+  updateProductDocumentRequirements,
+  getDefaultDocumentRequirements,
   VisaRequirement,
   VisaType,
   VisaCategory,
   VisaProduct,
-  NationalityRule
+  NationalityRule,
+  DocumentRequirement,
+  DocumentType
 } from '@/firebase/visaRequirementsService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 
@@ -280,6 +284,18 @@ function VisaRequirementsAdminPage() {
             <p className="mt-2 text-gray-600">
               Manage visa types and rules for each destination country. Set up nationality-specific rules for different requirements.
             </p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-6">
+            <a
+              href="/admin/visa-document-requirements"
+              className="inline-flex items-center px-4 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors"
+            >
+              <span className="mr-2">📋</span>
+              Manage Document Requirements
+              <span className="ml-2 text-xs bg-amber-200 px-2 py-0.5 rounded">Per visa product</span>
+            </a>
           </div>
 
           {/* Stats */}

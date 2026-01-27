@@ -21,6 +21,24 @@ import {
 // Visa types available (e-visa vs sticker)
 export type VisaType = 'e-visa' | 'sticker' | 'both' | 'not-required' | 'not-supported';
 
+// Document requirement types
+export type DocumentType = 'passport' | 'photo' | 'form' | 'financial' | 'invitation' | 'insurance' | 'itinerary' | 'accommodation' | 'employment' | 'other';
+
+// Single document requirement
+export interface DocumentRequirement {
+  id: string;
+  type: DocumentType;
+  name: string;           // Swedish name
+  nameEn: string;         // English name
+  description: string;    // Swedish description
+  descriptionEn: string;  // English description
+  required: boolean;      // Is this mandatory?
+  uploadable: boolean;    // Can customer upload this?
+  templateUrl?: string;   // Link to downloadable template/form
+  order: number;          // Display order
+  isActive: boolean;
+}
+
 // Visa categories (purpose of travel)
 export type VisaCategory = 'tourist' | 'business' | 'transit' | 'student' | 'work' | 'medical' | 'conference' | 'non-immigrant';
 
@@ -51,6 +69,8 @@ export interface VisaProduct {
   urgentEmbassyFee?: number; // Embassy urgent fee (0% VAT)
   urgentDoxFee?: number; // DOX urgent service fee (25% VAT)
   isActive: boolean;
+  // Document requirements specific to this visa product
+  documentRequirements?: DocumentRequirement[];
 }
 
 // Nationality-specific rule (overrides default country rule)
@@ -437,4 +457,190 @@ export const removeNationalityRule = async (
     console.error('Error removing nationality rule:', error);
     throw error;
   }
+};
+
+// Get document requirements for a specific visa product
+export const getDocumentRequirementsForProduct = async (
+  countryCode: string,
+  productId: string
+): Promise<DocumentRequirement[]> => {
+  try {
+    const requirement = await getVisaRequirement(countryCode);
+    if (!requirement) return [];
+
+    const product = requirement.visaProducts?.find(p => p.id === productId);
+    if (!product || !product.documentRequirements) return [];
+
+    return product.documentRequirements
+      .filter(doc => doc.isActive)
+      .sort((a, b) => a.order - b.order);
+  } catch (error) {
+    console.error('Error getting document requirements:', error);
+    return [];
+  }
+};
+
+// Update document requirements for a visa product
+export const updateProductDocumentRequirements = async (
+  countryCode: string,
+  productId: string,
+  documentRequirements: DocumentRequirement[],
+  updatedBy: string
+): Promise<void> => {
+  try {
+    const requirement = await getVisaRequirement(countryCode);
+    if (!requirement) {
+      throw new Error('Visa requirement not found for country: ' + countryCode);
+    }
+
+    const products = requirement.visaProducts || [];
+    const productIndex = products.findIndex(p => p.id === productId);
+    
+    if (productIndex === -1) {
+      throw new Error('Visa product not found: ' + productId);
+    }
+
+    // Update the product's document requirements
+    products[productIndex] = {
+      ...products[productIndex],
+      documentRequirements
+    };
+
+    await updateVisaRequirement(countryCode, {
+      visaProducts: products,
+      updatedBy
+    });
+  } catch (error) {
+    console.error('Error updating document requirements:', error);
+    throw error;
+  }
+};
+
+// Default document requirements templates for common visa types
+export const getDefaultDocumentRequirements = (visaCategory: VisaCategory): DocumentRequirement[] => {
+  const baseRequirements: DocumentRequirement[] = [
+    {
+      id: 'passport',
+      type: 'passport',
+      name: 'Pass',
+      nameEn: 'Passport',
+      description: 'Giltigt i minst 6 månader efter planerad hemresa. Minst 2 tomma sidor.',
+      descriptionEn: 'Valid for at least 6 months after planned return. At least 2 blank pages.',
+      required: true,
+      uploadable: false,
+      order: 1,
+      isActive: true
+    },
+    {
+      id: 'photo',
+      type: 'photo',
+      name: 'Passfoto',
+      nameEn: 'Passport Photo',
+      description: '2 st passfoto (35x45mm, vit bakgrund, tagna inom 6 månader)',
+      descriptionEn: '2 passport photos (35x45mm, white background, taken within 6 months)',
+      required: true,
+      uploadable: true,
+      order: 2,
+      isActive: true
+    },
+    {
+      id: 'application_form',
+      type: 'form',
+      name: 'Ansökningsformulär',
+      nameEn: 'Application Form',
+      description: 'Ifyllt och undertecknat ansökningsformulär',
+      descriptionEn: 'Completed and signed application form',
+      required: true,
+      uploadable: false,
+      order: 3,
+      isActive: true
+    }
+  ];
+
+  // Add category-specific requirements
+  if (visaCategory === 'business') {
+    baseRequirements.push(
+      {
+        id: 'invitation_letter',
+        type: 'invitation',
+        name: 'Inbjudningsbrev',
+        nameEn: 'Invitation Letter',
+        description: 'Officiellt inbjudningsbrev från företag/organisation i destinationslandet',
+        descriptionEn: 'Official invitation letter from company/organization in destination country',
+        required: true,
+        uploadable: true,
+        order: 4,
+        isActive: true
+      },
+      {
+        id: 'employment_letter',
+        type: 'employment',
+        name: 'Anställningsintyg',
+        nameEn: 'Employment Letter',
+        description: 'Intyg från arbetsgivare med uppgifter om anställning och resans syfte',
+        descriptionEn: 'Letter from employer with employment details and purpose of trip',
+        required: true,
+        uploadable: true,
+        order: 5,
+        isActive: true
+      }
+    );
+  } else if (visaCategory === 'tourist') {
+    baseRequirements.push(
+      {
+        id: 'itinerary',
+        type: 'itinerary',
+        name: 'Resplan',
+        nameEn: 'Travel Itinerary',
+        description: 'Flygbokningar eller resplan (tur och retur)',
+        descriptionEn: 'Flight bookings or travel itinerary (round trip)',
+        required: true,
+        uploadable: true,
+        order: 4,
+        isActive: true
+      },
+      {
+        id: 'accommodation',
+        type: 'accommodation',
+        name: 'Hotellbokning',
+        nameEn: 'Hotel Booking',
+        description: 'Hotellbokning eller inbjudan från värd i destinationslandet',
+        descriptionEn: 'Hotel booking or invitation from host in destination country',
+        required: true,
+        uploadable: true,
+        order: 5,
+        isActive: true
+      }
+    );
+  }
+
+  // Common additional requirements
+  baseRequirements.push(
+    {
+      id: 'bank_statement',
+      type: 'financial',
+      name: 'Kontoutdrag',
+      nameEn: 'Bank Statement',
+      description: 'Kontoutdrag från de senaste 3 månaderna som visar tillräckliga medel',
+      descriptionEn: 'Bank statement from the last 3 months showing sufficient funds',
+      required: true,
+      uploadable: true,
+      order: 6,
+      isActive: true
+    },
+    {
+      id: 'travel_insurance',
+      type: 'insurance',
+      name: 'Reseförsäkring',
+      nameEn: 'Travel Insurance',
+      description: 'Reseförsäkring som täcker hela vistelsen (minst 30 000 EUR)',
+      descriptionEn: 'Travel insurance covering the entire stay (minimum 30,000 EUR)',
+      required: false,
+      uploadable: true,
+      order: 7,
+      isActive: true
+    }
+  );
+
+  return baseRequirements;
 };

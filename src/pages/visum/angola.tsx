@@ -3,10 +3,36 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
 import CountryFlag from '@/components/ui/CountryFlag';
+import { getVisaRequirement, DocumentRequirement } from '@/firebase/visaRequirementsService';
 
 export default function AngolaVisumPage() {
   const { t } = useTranslation('common');
+  const router = useRouter();
+  const locale = router.locale || 'sv';
+  const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
+  const [selectedProductName, setSelectedProductName] = useState<string>('');
+
+  useEffect(() => {
+    const fetchRequirements = async () => {
+      try {
+        const requirement = await getVisaRequirement('AO');
+        if (requirement?.visaProducts && requirement.visaProducts.length > 0) {
+          // Get the first product's document requirements
+          const firstProduct = requirement.visaProducts[0];
+          setSelectedProductName(locale === 'en' ? (firstProduct.nameEn || firstProduct.name) : firstProduct.name);
+          if (firstProduct.documentRequirements) {
+            setDocumentRequirements(firstProduct.documentRequirements.filter((d: DocumentRequirement) => d.isActive));
+          }
+        }
+      } catch {
+        // Silent fail - use static list as fallback
+      }
+    };
+    fetchRequirements();
+  }, [locale]);
 
   const embassyInfo = {
     name: 'Angolas ambassad i Stockholm',
@@ -151,15 +177,63 @@ export default function AngolaVisumPage() {
                 </p>
               </div>
               <div className="bg-[#CE1126]/5 p-6 rounded-lg border border-[#CE1126]/20">
-                <h3 className="font-semibold text-lg mb-4">Dokument som krävs:</h3>
-                <ul className="space-y-2 text-gray-700">
-                  {requiredDocuments.map((doc, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="text-[#CE1126] mr-2">✓</span>
-                      {doc}
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="font-semibold text-lg mb-4">
+                  {documentRequirements.length > 0 && selectedProductName
+                    ? `Dokument som krävs för ${selectedProductName}:`
+                    : 'Dokument som krävs:'}
+                </h3>
+                {documentRequirements.length > 0 ? (
+                  <ul className="space-y-3 text-gray-700">
+                    {documentRequirements.sort((a, b) => a.order - b.order).map((doc) => (
+                      <li key={doc.id} className="flex items-start">
+                        <span className={`mr-2 flex-shrink-0 ${doc.required ? 'text-[#CE1126]' : 'text-gray-400'}`}>
+                          {doc.required ? '✓' : '○'}
+                        </span>
+                        <div>
+                          <span className="font-medium">
+                            {locale === 'en' ? doc.nameEn : doc.name}
+                            {doc.required && <span className="text-[#CE1126] ml-1">*</span>}
+                          </span>
+                          <p className="text-sm text-gray-600 mt-0.5">
+                            {locale === 'en' ? doc.descriptionEn : doc.description}
+                          </p>
+                          {doc.templateUrl && (
+                            <a 
+                              href={doc.templateUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mt-1"
+                            >
+                              📎 {locale === 'en' ? 'Download form' : 'Ladda ner formulär'}
+                            </a>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="space-y-2 text-gray-700">
+                    {requiredDocuments.map((doc, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-[#CE1126] mr-2">✓</span>
+                        {doc}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-gray-500 mt-4">* = Obligatoriskt</p>
+                
+                {/* Download application form */}
+                <div className="mt-6 pt-4 border-t border-[#CE1126]/20">
+                  <a 
+                    href="/documents/angola-visa-application-form.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-[#CE1126] hover:bg-[#A00D1E] text-white font-medium px-4 py-2 rounded-lg transition-colors"
+                  >
+                    📄 {locale === 'en' ? 'Download Visa Application Form (PDF)' : 'Ladda ner visumansökan (PDF)'}
+                  </a>
+                </div>
               </div>
             </div>
           </div>

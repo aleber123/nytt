@@ -14,6 +14,7 @@ import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { createVisaOrder, getVisaOrder, updateVisaOrder } from '@/firebase/visaOrderService';
 import { generateVisaConfirmationEmail, generateVisaBusinessNotificationEmail } from '../templates/visaConfirmationEmail';
+import { getDocumentRequirementsForProduct } from '@/firebase/visaRequirementsService';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Props {
@@ -161,12 +162,27 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       // Fetch the created order to get full data for email
       const createdOrder = await getVisaOrder(createdOrderId);
       
+      // Fetch document requirements for this visa product
+      let documentRequirements: Awaited<ReturnType<typeof getDocumentRequirementsForProduct>> = [];
+      if (createdOrder?.destinationCountryCode && createdOrder?.visaProduct?.id) {
+        try {
+          documentRequirements = await getDocumentRequirementsForProduct(
+            createdOrder.destinationCountryCode,
+            createdOrder.visaProduct.id
+          );
+        } catch {
+          // Silent fail - document requirements are optional
+        }
+      }
+      
       // Send confirmation email to customer
       if (createdOrder && customerEmail) {
         try {
           const customerEmailHtml = generateVisaConfirmationEmail({
             order: createdOrder,
-            locale: router.locale || 'sv'
+            locale: router.locale || 'sv',
+            documentRequirements,
+            confirmationToken
           });
           
           const customerEmailData = {
@@ -215,8 +231,6 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       
       // Trigger save customer info event (for "Save my information" checkbox)
       window.dispatchEvent(new Event('saveCustomerInfo'));
-      
-      toast.success(t('visaOrder.step10.successToast', 'Beställning skickad!'));
       
       // Redirect to confirmation page with secure token
       router.push(`/visum/bekraftelse?token=${confirmationToken}`);

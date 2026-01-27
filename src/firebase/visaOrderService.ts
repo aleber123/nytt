@@ -526,6 +526,29 @@ export const getVisaOrderConfirmationByToken = async (token: string): Promise<an
   }
 };
 
+// Get full visa order by token (for document upload page)
+export const getVisaOrderByToken = async (token: string): Promise<VisaOrder | null> => {
+  try {
+    if (!token) return null;
+    
+    // First get the confirmation to find the orderId
+    const confirmationRef = doc(db, ORDER_CONFIRMATIONS_COLLECTION, token);
+    const confirmationSnap = await getDoc(confirmationRef);
+    
+    if (!confirmationSnap.exists()) return null;
+    
+    const confirmationData = confirmationSnap.data();
+    const orderId = confirmationData?.orderId;
+    
+    if (!orderId) return null;
+    
+    // Now get the full order
+    return await getVisaOrder(orderId);
+  } catch (error) {
+    return null;
+  }
+};
+
 // Get all visa orders
 export const getAllVisaOrders = async (): Promise<VisaOrder[]> => {
   try {

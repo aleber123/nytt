@@ -4,10 +4,13 @@
  */
 
 import { VisaOrder } from '@/firebase/visaOrderService';
+import { DocumentRequirement } from '@/firebase/visaRequirementsService';
 
 interface VisaEmailParams {
   order: VisaOrder;
   locale: string;
+  documentRequirements?: DocumentRequirement[];
+  confirmationToken?: string;
 }
 
 // Translation helper for nationality names
@@ -54,7 +57,7 @@ const translateVisaProductName = (name: string, isEnglish: boolean): string => {
 };
 
 export const generateVisaConfirmationEmail = (params: VisaEmailParams): string => {
-  const { order, locale } = params;
+  const { order, locale, documentRequirements = [], confirmationToken } = params;
   const isEnglish = locale === 'en';
   const date = new Date().toLocaleDateString(isEnglish ? 'en-GB' : 'sv-SE');
   
@@ -68,6 +71,61 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
   const customerName = order.customerInfo?.companyName 
     || `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim()
     || 'Customer';
+
+  // Generate document requirements HTML section
+  const generateDocumentRequirementsHtml = (docs: DocumentRequirement[], isEn: boolean, token?: string): string => {
+    if (!docs || docs.length === 0) return '';
+    
+    const title = isEn ? '📋 Required Documents' : '📋 Dokument som krävs';
+    const subtitle = isEn 
+      ? 'Please prepare the following documents for your visa application:'
+      : 'Vänligen förbered följande dokument för din visumansökan:';
+    const requiredLabel = isEn ? 'Required' : 'Obligatoriskt';
+    const downloadLabel = isEn ? 'Download form/template' : 'Ladda ner formulär/mall';
+    
+    const hasUploadable = docs.some(d => d.uploadable);
+    const uploadButtonText = isEn ? 'Upload Documents Now' : 'Ladda upp dokument nu';
+    const uploadNoteText = isEn 
+      ? 'You can upload your documents directly through our secure portal.'
+      : 'Du kan ladda upp dina dokument direkt via vår säkra portal.';
+    
+    const docItems = docs.map((doc, index) => `
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #fde68a;">
+          <div style="display: flex; align-items: flex-start;">
+            <span style="display: inline-block; width: 24px; height: 24px; background: ${doc.required ? '#fee2e2' : '#f3f4f6'}; color: ${doc.required ? '#b91c1c' : '#6b7280'}; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px; flex-shrink: 0;">${index + 1}</span>
+            <div>
+              <strong style="color: #1f2937;">${isEn ? doc.nameEn : doc.name}</strong>
+              ${doc.required ? `<span style="display: inline-block; margin-left: 8px; padding: 2px 6px; background: #fee2e2; color: #b91c1c; font-size: 10px; border-radius: 4px;">${requiredLabel}</span>` : ''}
+              <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">${isEn ? doc.descriptionEn : doc.description}</p>
+              ${doc.templateUrl ? `<a href="${doc.templateUrl}" style="color: #2563eb; font-size: 12px; text-decoration: none;">📎 ${downloadLabel}</a>` : ''}
+            </div>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    
+    const uploadButton = hasUploadable && token ? `
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #fcd34d; text-align: center;">
+        <a href="https://www.doxvl.se/visum/dokument?token=${token}" 
+           style="display: inline-block; background: #d97706; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          📤 ${uploadButtonText}
+        </a>
+        <p style="color: #a16207; font-size: 11px; margin: 8px 0 0 0;">${uploadNoteText}</p>
+      </div>
+    ` : '';
+    
+    return `
+      <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 16px;">${title}</h3>
+        <p style="color: #a16207; font-size: 14px; margin: 0 0 16px 0;">${subtitle}</p>
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden;">
+          ${docItems}
+        </table>
+        ${uploadButton}
+      </div>
+    `;
+  };
 
   const styles = `
     body {
@@ -239,6 +297,8 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
         </ol>
       </div>
 
+      ${generateDocumentRequirementsHtml(documentRequirements, true, confirmationToken)}
+
       <div class="contact-info">
         <h3>Questions about your visa?</h3>
         <p>Our visa experts are here to help:</p>
@@ -359,6 +419,8 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           `}
         </ol>
       </div>
+
+      ${generateDocumentRequirementsHtml(documentRequirements, false, confirmationToken)}
 
       <div class="contact-info">
         <h3>Frågor om ditt visum?</h3>
