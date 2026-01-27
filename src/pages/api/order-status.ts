@@ -31,20 +31,54 @@ export default async function handler(
     const normalizedOrderNumber = orderNumber.trim().toUpperCase();
     const normalizedEmail = email.trim().toLowerCase();
 
-    // First try to get the order directly by document ID
-    let orderDoc = await db.collection('orders').doc(normalizedOrderNumber).get();
-    let orderData = orderDoc.exists ? orderDoc.data() : null;
+    let orderData: any = null;
+    let orderDocId: string = '';
+    let isVisaOrder = false;
 
-    // If not found by ID, try querying by orderNumber field
+    // Check if it's a visa order (starts with VISA)
+    if (normalizedOrderNumber.startsWith('VISA')) {
+      // Try visa orders collection first
+      let orderDoc = await db.collection('visaOrders').doc(normalizedOrderNumber).get();
+      orderData = orderDoc.exists ? orderDoc.data() : null;
+      orderDocId = orderDoc.id;
+
+      // If not found by ID, try querying by orderNumber field
+      if (!orderData) {
+        const querySnapshot = await db.collection('visaOrders')
+          .where('orderNumber', '==', normalizedOrderNumber)
+          .limit(1)
+          .get();
+
+        if (!querySnapshot.empty) {
+          orderDoc = querySnapshot.docs[0];
+          orderData = orderDoc.data();
+          orderDocId = orderDoc.id;
+        }
+      }
+
+      if (orderData) {
+        isVisaOrder = true;
+      }
+    }
+
+    // If not a visa order or not found in visa orders, check legalization orders
     if (!orderData) {
-      const querySnapshot = await db.collection('orders')
-        .where('orderNumber', '==', normalizedOrderNumber)
-        .limit(1)
-        .get();
+      let orderDoc = await db.collection('orders').doc(normalizedOrderNumber).get();
+      orderData = orderDoc.exists ? orderDoc.data() : null;
+      orderDocId = orderDoc.id;
 
-      if (!querySnapshot.empty) {
-        orderDoc = querySnapshot.docs[0];
-        orderData = orderDoc.data();
+      // If not found by ID, try querying by orderNumber field
+      if (!orderData) {
+        const querySnapshot = await db.collection('orders')
+          .where('orderNumber', '==', normalizedOrderNumber)
+          .limit(1)
+          .get();
+
+        if (!querySnapshot.empty) {
+          orderDoc = querySnapshot.docs[0];
+          orderData = orderDoc.data();
+          orderDocId = orderDoc.id;
+        }
       }
     }
 
@@ -65,39 +99,87 @@ export default async function handler(
     }
 
     // Format order data for customer display (exclude sensitive admin data)
-    const safeOrderData = {
-      orderNumber: orderData.orderNumber || orderDoc.id,
-      status: orderData.status,
-      createdAt: orderData.createdAt?._seconds 
-        ? new Date(orderData.createdAt._seconds * 1000).toISOString()
-        : orderData.createdAt,
-      updatedAt: orderData.updatedAt?._seconds
-        ? new Date(orderData.updatedAt._seconds * 1000).toISOString()
-        : orderData.updatedAt,
-      services: orderData.services,
-      country: orderData.country,
-      documentType: orderData.documentType,
-      quantity: orderData.quantity,
-      totalPrice: orderData.totalPrice,
-      returnService: orderData.returnService,
-      returnTrackingNumber: orderData.returnTrackingNumber,
-      returnTrackingUrl: orderData.returnTrackingUrl,
-      pickupService: orderData.pickupService,
-      pickupTrackingNumber: orderData.pickupTrackingNumber,
-      // Processing steps for customer view (simplified)
-      processingSteps: orderData.processingSteps?.map((step: any) => ({
-        id: step.id,
-        name: step.name,
-        status: step.status,
-        completedAt: step.completedAt
-      })),
-      // Customer info (only their own data)
-      customerInfo: {
-        firstName: orderData.customerInfo?.firstName,
-        lastName: orderData.customerInfo?.lastName,
-        email: orderData.customerInfo?.email
-      }
-    };
+    let safeOrderData: any;
+
+    if (isVisaOrder) {
+      // Visa order format
+      safeOrderData = {
+        orderNumber: orderData.orderNumber || orderDocId,
+        orderType: 'visa',
+        status: orderData.status,
+        createdAt: orderData.createdAt?._seconds 
+          ? new Date(orderData.createdAt._seconds * 1000).toISOString()
+          : orderData.createdAt,
+        updatedAt: orderData.updatedAt?._seconds
+          ? new Date(orderData.updatedAt._seconds * 1000).toISOString()
+          : orderData.updatedAt,
+        // Visa-specific fields
+        destinationCountry: orderData.destinationCountry,
+        nationality: orderData.nationality,
+        visaProduct: orderData.visaProduct ? {
+          name: orderData.visaProduct.name,
+          visaType: orderData.visaProduct.visaType,
+          entryType: orderData.visaProduct.entryType,
+          validityDays: orderData.visaProduct.validityDays,
+          processingDays: orderData.visaProduct.processingDays
+        } : null,
+        departureDate: orderData.departureDate,
+        returnDate: orderData.returnDate,
+        totalPrice: orderData.totalPrice,
+        returnService: orderData.returnService,
+        returnTrackingNumber: orderData.returnTrackingNumber,
+        returnTrackingUrl: orderData.returnTrackingUrl,
+        // Processing steps for customer view (simplified)
+        processingSteps: orderData.processingSteps?.map((step: any) => ({
+          id: step.id,
+          name: step.name,
+          status: step.status,
+          completedAt: step.completedAt
+        })),
+        // Customer info (only their own data)
+        customerInfo: {
+          firstName: orderData.customerInfo?.firstName,
+          lastName: orderData.customerInfo?.lastName,
+          email: orderData.customerInfo?.email
+        }
+      };
+    } else {
+      // Legalization order format
+      safeOrderData = {
+        orderNumber: orderData.orderNumber || orderDocId,
+        orderType: 'legalization',
+        status: orderData.status,
+        createdAt: orderData.createdAt?._seconds 
+          ? new Date(orderData.createdAt._seconds * 1000).toISOString()
+          : orderData.createdAt,
+        updatedAt: orderData.updatedAt?._seconds
+          ? new Date(orderData.updatedAt._seconds * 1000).toISOString()
+          : orderData.updatedAt,
+        services: orderData.services,
+        country: orderData.country,
+        documentType: orderData.documentType,
+        quantity: orderData.quantity,
+        totalPrice: orderData.totalPrice,
+        returnService: orderData.returnService,
+        returnTrackingNumber: orderData.returnTrackingNumber,
+        returnTrackingUrl: orderData.returnTrackingUrl,
+        pickupService: orderData.pickupService,
+        pickupTrackingNumber: orderData.pickupTrackingNumber,
+        // Processing steps for customer view (simplified)
+        processingSteps: orderData.processingSteps?.map((step: any) => ({
+          id: step.id,
+          name: step.name,
+          status: step.status,
+          completedAt: step.completedAt
+        })),
+        // Customer info (only their own data)
+        customerInfo: {
+          firstName: orderData.customerInfo?.firstName,
+          lastName: orderData.customerInfo?.lastName,
+          email: orderData.customerInfo?.email
+        }
+      };
+    }
 
     return res.status(200).json({
       success: true,

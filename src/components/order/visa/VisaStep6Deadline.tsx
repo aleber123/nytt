@@ -18,8 +18,8 @@ interface Props {
 
 const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack }) => {
   const { t, i18n } = useTranslation('common');
-  const [showExpressModal, setShowExpressModal] = useState(false);
   const [expressAccepted, setExpressAccepted] = useState(answers.expressRequired || false);
+  const [urgentAccepted, setUrgentAccepted] = useState(answers.urgentRequired || false);
   const locale = i18n.language;
   const isSv = locale === 'sv' || locale?.startsWith('sv');
 
@@ -34,16 +34,28 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
   const expressAvailable = answers.selectedVisaProduct?.expressAvailable || false;
   const expressPrice = answers.selectedVisaProduct?.expressPrice || 0;
   
+  // Urgent processing times
+  const urgentProcessingDays = answers.selectedVisaProduct?.urgentDays || 1;
+  const urgentAvailable = answers.selectedVisaProduct?.urgentAvailable || false;
+  const urgentPrice = answers.selectedVisaProduct?.urgentPrice || 0;
+  
   const daysUntilDeadline = answers.passportNeededBy 
     ? Math.ceil((new Date(answers.passportNeededBy).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
   // Determine urgency based on actual processing times
-  const needsExpress = daysUntilDeadline !== null && daysUntilDeadline < normalProcessingDays;
-  const canDoExpress = daysUntilDeadline !== null && daysUntilDeadline >= expressProcessingDays && expressAvailable;
-  const tooShort = daysUntilDeadline !== null && daysUntilDeadline < expressProcessingDays;
-  const isUrgent = daysUntilDeadline !== null && daysUntilDeadline < normalProcessingDays + 3;
-  const isVeryUrgent = needsExpress;
+  // Priority: Normal > Express > Urgent > Too Short
+  const needsExpress = daysUntilDeadline !== null && daysUntilDeadline < normalProcessingDays && daysUntilDeadline >= expressProcessingDays;
+  const needsUrgent = daysUntilDeadline !== null && daysUntilDeadline < expressProcessingDays && daysUntilDeadline >= urgentProcessingDays;
+  const canDoExpress = needsExpress && expressAvailable;
+  const canDoUrgent = needsUrgent && urgentAvailable;
+  const tooShort = daysUntilDeadline !== null && (
+    (needsUrgent && !urgentAvailable) || 
+    (needsExpress && !expressAvailable && !urgentAvailable) ||
+    (daysUntilDeadline < urgentProcessingDays && urgentAvailable) ||
+    (daysUntilDeadline < expressProcessingDays && !urgentAvailable)
+  );
+  const isWarning = daysUntilDeadline !== null && daysUntilDeadline < normalProcessingDays + 3 && !needsExpress && !needsUrgent;
 
   // Different text for E-Visa vs Sticker
   const title = isEVisa 
@@ -63,7 +75,9 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
     : t('visaOrder.step6.hint', 'Tips: Planera för att ha passet tillbaka minst 1 vecka före avresa för oförutsedda förseningar.');
 
   // Determine if we can proceed
-  const canProceed = answers.passportNeededBy && !tooShort && (!needsExpress || !canDoExpress || expressAccepted);
+  const canProceed = answers.passportNeededBy && !tooShort && 
+    (!needsExpress || expressAccepted) && 
+    (!needsUrgent || urgentAccepted);
 
   return (
     <StepContainer
@@ -95,17 +109,17 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
         {/* Time remaining display */}
         {daysUntilDeadline !== null && (
           <div className={`p-4 rounded-lg ${
-            tooShort ? 'bg-red-50' : needsExpress ? 'bg-amber-50' : isUrgent ? 'bg-yellow-50' : 'bg-green-50'
+            tooShort ? 'bg-red-50' : needsUrgent ? 'bg-red-50' : needsExpress ? 'bg-amber-50' : isWarning ? 'bg-yellow-50' : 'bg-green-50'
           }`}>
             <div className="flex items-start gap-3">
-              {(isUrgent || needsExpress || tooShort) && (
+              {(isWarning || needsExpress || needsUrgent || tooShort) && (
                 <ExclamationTriangleIcon className={`h-5 w-5 flex-shrink-0 ${
-                  tooShort ? 'text-red-500' : needsExpress ? 'text-amber-500' : 'text-yellow-500'
+                  tooShort ? 'text-red-500' : needsUrgent ? 'text-red-500' : needsExpress ? 'text-amber-500' : 'text-yellow-500'
                 }`} />
               )}
               <div className="flex-1">
                 <p className={`text-sm font-medium ${
-                  tooShort ? 'text-red-800' : needsExpress ? 'text-amber-800' : isUrgent ? 'text-yellow-800' : 'text-green-800'
+                  tooShort ? 'text-red-800' : needsUrgent ? 'text-red-800' : needsExpress ? 'text-amber-800' : isWarning ? 'text-yellow-800' : 'text-green-800'
                 }`}>
                   {daysUntilDeadline} {isSv ? 'dagar kvar' : 'days remaining'}
                 </p>
@@ -115,6 +129,9 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
                     : `Normal processing: ~${normalProcessingDays} business days`}
                   {expressAvailable && (
                     <span> • Express: ~{expressProcessingDays} {isSv ? 'dagar' : 'days'}</span>
+                  )}
+                  {urgentAvailable && (
+                    <span> • 🚨 Urgent: ~{urgentProcessingDays} {isSv ? 'dag' : 'day'}</span>
                   )}
                 </p>
                 
@@ -127,11 +144,45 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
                   </p>
                 )}
                 
+                {/* Needs urgent - show warning and acceptance */}
+                {needsUrgent && canDoUrgent && !tooShort && (
+                  <div className="mt-2">
+                    <p className="text-sm text-red-700 font-medium">
+                      🚨 {isSv 
+                        ? 'Mycket kort tid! Urgent-hantering krävs.'
+                        : 'Very short deadline! Urgent processing is required.'}
+                    </p>
+                    {urgentPrice > 0 && (
+                      <p className="text-sm text-red-600 font-medium mt-1">
+                        {isSv 
+                          ? `Urgent-avgift: +${urgentPrice.toLocaleString()} kr`
+                          : `Urgent fee: +${urgentPrice.toLocaleString()} kr`}
+                      </p>
+                    )}
+                    <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={urgentAccepted}
+                        onChange={(e) => {
+                          setUrgentAccepted(e.target.checked);
+                          onUpdate({ urgentRequired: e.target.checked, expressRequired: false });
+                        }}
+                        className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-red-800">
+                        {isSv 
+                          ? 'Jag accepterar att urgent-hantering krävs och att extra avgifter tillkommer'
+                          : 'I accept that urgent processing is required and additional fees apply'}
+                      </span>
+                    </label>
+                  </div>
+                )}
+                
                 {/* Needs express - show warning and acceptance */}
                 {needsExpress && canDoExpress && !tooShort && (
                   <div className="mt-2">
                     <p className="text-sm text-amber-700">
-                      {isSv 
+                      ⚡ {isSv 
                         ? 'Kort tid! Expresshantering krävs.'
                         : 'Short deadline! Express processing is required.'}
                     </p>
@@ -148,7 +199,7 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
                         checked={expressAccepted}
                         onChange={(e) => {
                           setExpressAccepted(e.target.checked);
-                          onUpdate({ expressRequired: e.target.checked });
+                          onUpdate({ expressRequired: e.target.checked, urgentRequired: false });
                         }}
                         className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
                       />
@@ -161,8 +212,8 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
                   </div>
                 )}
                 
-                {/* Urgent but still within normal processing */}
-                {isUrgent && !needsExpress && (
+                {/* Warning but still within normal processing */}
+                {isWarning && !needsExpress && !needsUrgent && (
                   <p className="text-sm text-yellow-600 mt-1">
                     {isSv 
                       ? 'Kort tid. Vi rekommenderar att du skickar in din ansökan så snart som möjligt.'
@@ -171,7 +222,7 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
                 )}
                 
                 {/* Good time */}
-                {!isUrgent && !needsExpress && (
+                {!isWarning && !needsExpress && !needsUrgent && !tooShort && (
                   <p className="text-sm text-green-600 mt-1">
                     {isSv 
                       ? 'God tid för normal handläggning.'

@@ -22,7 +22,7 @@ import {
 export type VisaType = 'e-visa' | 'sticker' | 'both' | 'not-required' | 'not-supported';
 
 // Visa categories (purpose of travel)
-export type VisaCategory = 'tourist' | 'business' | 'transit' | 'student' | 'work' | 'medical' | 'conference';
+export type VisaCategory = 'tourist' | 'business' | 'transit' | 'student' | 'work' | 'medical' | 'conference' | 'non-immigrant';
 
 // Visa product offered for a specific country
 export interface VisaProduct {
@@ -42,7 +42,14 @@ export interface VisaProduct {
   processingDays: number; // Standard processing time
   expressAvailable?: boolean;
   expressDays?: number;
-  expressPrice?: number;
+  expressPrice?: number; // Total express price (for backwards compatibility)
+  expressEmbassyFee?: number; // Embassy express fee (0% VAT)
+  expressDoxFee?: number; // DOX express service fee (25% VAT)
+  urgentAvailable?: boolean;
+  urgentDays?: number;
+  urgentPrice?: number; // Total urgent price (for backwards compatibility)
+  urgentEmbassyFee?: number; // Embassy urgent fee (0% VAT)
+  urgentDoxFee?: number; // DOX urgent service fee (25% VAT)
   isActive: boolean;
 }
 

@@ -24,6 +24,7 @@ interface OrderConfirmation {
   nationalityCode: string;
   visaProduct: {
     name: string;
+    nameEn?: string;
     visaType: 'e-visa' | 'sticker';
     entryType: 'single' | 'multiple';
     validityDays: number;
@@ -34,6 +35,12 @@ interface OrderConfirmation {
   returnDate: string;
   passportNeededBy: string;
   totalPrice: number;
+  pricingBreakdown?: {
+    serviceFee?: number;
+    embassyFee?: number;
+    expressPrice?: number;
+    urgentPrice?: number;
+  };
   customerType: 'private' | 'company';
   customerInfo: {
     firstName?: string;
@@ -53,6 +60,49 @@ interface OrderConfirmation {
   };
   status: string;
 }
+
+// Translation helper for nationality names
+const translateNationality = (nationality: string, locale: string): string => {
+  if (locale !== 'en') return nationality;
+  const translations: Record<string, string> = {
+    'Svensk': 'Swedish',
+    'Norsk': 'Norwegian',
+    'Dansk': 'Danish',
+    'Finsk': 'Finnish',
+    'Tysk': 'German',
+    'Brittisk': 'British',
+    'Amerikansk': 'American',
+    'Fransk': 'French',
+    'Spansk': 'Spanish',
+    'Italiensk': 'Italian',
+    'Nederländsk': 'Dutch',
+    'Belgisk': 'Belgian',
+    'Schweizisk': 'Swiss',
+    'Österrikisk': 'Austrian',
+    'Polsk': 'Polish',
+    'Tjeckisk': 'Czech',
+    'Ungersk': 'Hungarian',
+    'Portugisisk': 'Portuguese',
+    'Grekisk': 'Greek',
+    'Irländsk': 'Irish',
+  };
+  return translations[nationality] || nationality;
+};
+
+// Translation helper for visa product names
+const translateVisaProductName = (name: string, locale: string): string => {
+  if (locale !== 'en') return name;
+  const translations: Record<string, string> = {
+    'Korttidsvisum': 'Short-term Visa',
+    'Långtidsvisum': 'Long-term Visa',
+    'Turistvisum': 'Tourist Visa',
+    'Affärsvisum': 'Business Visa',
+    'Transitvisum': 'Transit Visa',
+    'Studentvisum': 'Student Visa',
+    'Arbetsvisum': 'Work Visa',
+  };
+  return translations[name] || name;
+};
 
 export default function VisaConfirmationPage() {
   const router = useRouter();
@@ -189,7 +239,7 @@ export default function VisaConfirmationPage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{order.visaProduct?.name}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{locale === 'en' && order.visaProduct?.nameEn ? order.visaProduct.nameEn : translateVisaProductName(order.visaProduct?.name || '', locale)}</h3>
                         <div className="flex items-center gap-2 mt-2">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
                             order.visaProduct?.visaType === 'e-visa' 
@@ -209,6 +259,22 @@ export default function VisaConfirmationPage() {
                         <span className="text-2xl font-bold text-gray-900">
                           {order.totalPrice?.toLocaleString()} kr
                         </span>
+                        {/* Show fee breakdown if express or urgent */}
+                        {(order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) && (
+                          <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                            <div>{locale === 'en' ? 'Base' : 'Grund'}: {order.visaProduct?.price?.toLocaleString()} kr</div>
+                            {order.pricingBreakdown?.expressPrice ? (
+                              <div className="text-orange-600">
+                                {locale === 'en' ? 'Express' : 'Express'}: +{order.pricingBreakdown.expressPrice.toLocaleString()} kr
+                              </div>
+                            ) : null}
+                            {order.pricingBreakdown?.urgentPrice ? (
+                              <div className="text-red-600">
+                                {locale === 'en' ? 'Urgent' : 'Brådskande'}: +{order.pricingBreakdown.urgentPrice.toLocaleString()} kr
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -242,7 +308,7 @@ export default function VisaConfirmationPage() {
                       </h3>
                       <div className="flex items-center">
                         <CountryFlag code={order.nationalityCode} size={32} />
-                        <span className="ml-3 text-lg font-medium text-gray-900">{order.nationality}</span>
+                        <span className="ml-3 text-lg font-medium text-gray-900">{translateNationality(order.nationality, locale)}</span>
                       </div>
                     </div>
                   </div>

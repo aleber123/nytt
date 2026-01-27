@@ -18,9 +18,18 @@ import {
   updateVisaOrder, 
   updateVisaOrderStatus,
   updateVisaProcessingStep,
+  getDefaultVisaProcessingSteps,
   VisaOrder, 
   VisaProcessingStep 
 } from '@/firebase/visaOrderService';
+import { 
+  convertVisaOrderToInvoice, 
+  storeInvoice, 
+  getInvoicesByOrderId, 
+  generateInvoicePDF, 
+  sendInvoiceEmail,
+  Invoice 
+} from '@/services/invoiceService';
 
 type VisaOrderStatus = VisaOrder['status'];
 
@@ -72,6 +81,11 @@ function VisaOrderDetailPage() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [adjustments, setAdjustments] = useState<Array<{ description: string; amount: number }>>([]);
   const [lineOverrides, setLineOverrides] = useState<Array<{ index: number; label: string; baseAmount: number; overrideAmount?: number | null; vatPercent?: number | null; include: boolean }>>([]);
+  
+  // Invoice state
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
 
   useEffect(() => {
     if (id && typeof id === 'string') {
@@ -112,21 +126,57 @@ function VisaOrderDetailPage() {
     }
     
     // Build line items from visa order pricing
-    const items: Array<{ label: string; amount: number }> = [];
+    // Split into embassy fee (0% VAT) and service fee (25% VAT) - same as legalizations
+    const items: Array<{ label: string; amount: number; defaultVat: number }> = [];
     
-    // Visa product price
-    if (order.visaProduct?.price) {
-      items.push({ label: `Visa Product (${order.visaProduct.name})`, amount: order.visaProduct.price });
+    // Embassy fee - 0% VAT (official government fee)
+    if (order.pricingBreakdown?.embassyFee) {
+      items.push({ 
+        label: `Embassy Fee - ${order.visaProduct?.name || 'Visa'}`, 
+        amount: order.pricingBreakdown.embassyFee,
+        defaultVat: 0 
+      });
     }
     
-    // Shipping fee
+    // Service fee - 25% VAT (DOX service fee)
+    if (order.pricingBreakdown?.serviceFee) {
+      items.push({ 
+        label: `DOX Service Fee - ${order.visaProduct?.name || 'Visa'}`, 
+        amount: order.pricingBreakdown.serviceFee,
+        defaultVat: 25 
+      });
+    }
+    
+    // Fallback: if no breakdown, use total visa product price
+    if (!order.pricingBreakdown?.embassyFee && !order.pricingBreakdown?.serviceFee && order.visaProduct?.price) {
+      const basePrice = order.visaProduct.price - 
+        (order.pricingBreakdown?.expressPrice || 0) - 
+        (order.pricingBreakdown?.urgentPrice || 0);
+      items.push({ 
+        label: `Visa Product (${order.visaProduct.name})`, 
+        amount: basePrice > 0 ? basePrice : order.visaProduct.price,
+        defaultVat: 25 
+      });
+    }
+    
+    // Express fee - 25% VAT
+    if (order.pricingBreakdown?.expressPrice) {
+      items.push({ label: 'Express Processing', amount: order.pricingBreakdown.expressPrice, defaultVat: 25 });
+    }
+    
+    // Urgent fee - 25% VAT
+    if (order.pricingBreakdown?.urgentPrice) {
+      items.push({ label: 'Urgent Processing', amount: order.pricingBreakdown.urgentPrice, defaultVat: 25 });
+    }
+    
+    // Shipping fee - 25% VAT
     if (order.pricingBreakdown?.shippingFee) {
-      items.push({ label: 'Shipping', amount: order.pricingBreakdown.shippingFee });
+      items.push({ label: 'Shipping', amount: order.pricingBreakdown.shippingFee, defaultVat: 25 });
     }
     
-    // Expedited fee
+    // Expedited fee (legacy) - 25% VAT
     if (order.pricingBreakdown?.expeditedFee) {
-      items.push({ label: 'Expedited Processing', amount: order.pricingBreakdown.expeditedFee });
+      items.push({ label: 'Expedited Processing', amount: order.pricingBreakdown.expeditedFee, defaultVat: 25 });
     }
     
     const initial = items.map((item, idx) => ({
@@ -134,7 +184,7 @@ function VisaOrderDetailPage() {
       label: item.label,
       baseAmount: item.amount,
       overrideAmount: null,
-      vatPercent: null,
+      vatPercent: item.defaultVat,
       include: true
     }));
     
@@ -205,8 +255,21 @@ function VisaOrderDetailPage() {
     try {
       const orderData = await getVisaOrder(orderId);
       if (orderData) {
+        // Initialize processing steps if they don't exist or are empty
+        if (!orderData.processingSteps || orderData.processingSteps.length === 0) {
+          const defaultSteps = getDefaultVisaProcessingSteps(orderData);
+          orderData.processingSteps = defaultSteps;
+          // Save the initialized steps to the database
+          try {
+            await updateVisaOrder(orderId, { processingSteps: defaultSteps });
+          } catch (e) {
+            // Silent fail - steps will still show in UI
+          }
+        }
         setOrder(orderData);
         setInternalNotes(orderData.internalNotes || '');
+        // Fetch invoices for this order
+        await fetchInvoices(orderId);
       } else {
         toast.error('Order not found');
         router.push('/admin/visa-orders');
@@ -238,10 +301,63 @@ function VisaOrderDetailPage() {
     
     setSaving(true);
     try {
+      // Check if we should send customer notification email
+      const shouldSendSubmissionEmail = 
+        newStatus === 'completed' && 
+        (stepId === 'embassy_delivery' || stepId === 'portal_submission');
+      
       await updateVisaProcessingStep(order.id, stepId, { 
         status: newStatus,
         completedBy: currentUser?.email || 'admin'
       });
+      
+      // Send customer notification email when application is submitted
+      if (shouldSendSubmissionEmail && order.customerInfo?.email) {
+        try {
+          const isEVisa = order.visaProduct?.visaType === 'e-visa';
+          const locale = order.locale || 'sv';
+          const customerEmail = order.customerInfo.email;
+          const customerName = order.customerInfo.companyName || 
+            `${order.customerInfo.firstName || ''} ${order.customerInfo.lastName || ''}`.trim() || 
+            'Kund';
+          
+          // Generate email based on locale and visa type
+          const subject = locale === 'en'
+            ? `Your visa application has been submitted – ${order.orderNumber}`
+            : `Din visumansökan har lämnats in – ${order.orderNumber}`;
+          
+          const emailBody = locale === 'en'
+            ? (isEVisa 
+                ? `<p>Dear ${customerName},</p><p>Your e-visa application for ${order.destinationCountry} has been submitted through the online portal.</p><p>We will notify you as soon as we receive a response.</p><p>Best regards,<br>DOX Visumpartner</p>`
+                : `<p>Dear ${customerName},</p><p>Your visa application for ${order.destinationCountry} has been submitted to the embassy.</p><p>We will notify you as soon as we receive a response.</p><p>Best regards,<br>DOX Visumpartner</p>`)
+            : (isEVisa
+                ? `<p>Hej ${customerName},</p><p>Din e-visumansökan för ${order.destinationCountry} har skickats in via onlineportalen.</p><p>Vi meddelar dig så snart vi får svar.</p><p>Med vänliga hälsningar,<br>DOX Visumpartner</p>`
+                : `<p>Hej ${customerName},</p><p>Din visumansökan för ${order.destinationCountry} har lämnats in på ambassaden.</p><p>Vi meddelar dig så snart vi får svar.</p><p>Med vänliga hälsningar,<br>DOX Visumpartner</p>`);
+          
+          // Save email to Firestore for sending
+          const { collection, addDoc, Timestamp } = await import('firebase/firestore');
+          const { db } = await import('@/firebase/config');
+          
+          await addDoc(collection(db, 'emailQueue'), {
+            name: customerName,
+            email: customerEmail,
+            subject: subject,
+            message: emailBody,
+            source: 'visa-submission-notification',
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            createdAt: Timestamp.now(),
+            status: 'pending'
+          });
+          
+          toast.success(locale === 'en' 
+            ? 'Customer notified about submission' 
+            : 'Kund meddelad om inlämning');
+        } catch (emailError) {
+          // Don't fail the step update if email fails
+          toast.error('Could not send notification email');
+        }
+      }
       
       // Reload order to get updated steps
       await loadOrder(order.id);
@@ -264,6 +380,67 @@ function VisaOrderDetailPage() {
       toast.error('Failed to save notes');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Invoice functions
+  const fetchInvoices = async (orderId: string) => {
+    try {
+      const invoicesData = await getInvoicesByOrderId(orderId);
+      setInvoices(invoicesData);
+    } catch (err) {
+      // Don't set error state for invoices, just log it
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!order) return;
+
+    setCreatingInvoice(true);
+    try {
+      // Convert visa order to invoice
+      const invoice = await convertVisaOrderToInvoice(order);
+
+      // Store the invoice
+      const invoiceId = await storeInvoice(invoice);
+
+      toast.success('Invoice created successfully');
+
+      // Refresh invoices list
+      await fetchInvoices(order.id || '');
+
+      // Switch to invoice tab
+      setActiveTab('invoice');
+    } catch (err) {
+      toast.error('Could not create invoice');
+    } finally {
+      setCreatingInvoice(false);
+    }
+  };
+
+  const handleSendInvoice = async (invoice: Invoice) => {
+    setSendingInvoice(invoice.id!);
+    try {
+      const success = await sendInvoiceEmail(invoice);
+      if (success) {
+        toast.success('Invoice sent via email');
+        await fetchInvoices(order?.id || '');
+      } else {
+        toast.error('Could not send invoice via email');
+      }
+    } catch (err) {
+      toast.error('Could not send invoice via email');
+    } finally {
+      setSendingInvoice(null);
+    }
+  };
+
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    try {
+      await generateInvoicePDF(invoice);
+      toast.success('Invoice downloading');
+    } catch (err) {
+      toast.error('Could not download invoice');
     }
   };
 
@@ -517,7 +694,7 @@ function VisaOrderDetailPage() {
                             'border-gray-200'
                           }`}
                         >
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between mb-3">
                             <div className="flex items-start">
                               <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mr-3 ${
                                 step.status === 'completed' ? 'bg-green-500 text-white' :
@@ -551,6 +728,72 @@ function VisaOrderDetailPage() {
                               <option value="skipped">Skipped</option>
                             </select>
                           </div>
+                          
+                          {/* Embassy delivery date input */}
+                          {step.id === 'embassy_delivery' && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <label className="block text-xs text-gray-500 mb-1">Date submitted to embassy</label>
+                              <input
+                                type="date"
+                                className="text-sm border border-gray-300 rounded px-2 py-1 w-40"
+                                placeholder="yyyy-mm-dd"
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Embassy pickup expected date input */}
+                          {step.id === 'embassy_pickup' && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <label className="block text-xs text-gray-500 mb-1">Expected completion date</label>
+                              <input
+                                type="date"
+                                className="text-sm border border-gray-300 rounded px-2 py-1 w-40"
+                                placeholder="yyyy-mm-dd"
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Return shipping tracking number input */}
+                          {step.id === 'return_shipping' && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <div className="mb-2">
+                                <span className="text-xs text-gray-500">Customer selected return service:</span>
+                                <span className="ml-2 text-sm font-medium text-gray-900">
+                                  📦 {order.returnService === 'own-delivery' ? 'Own Delivery' : order.returnService || 'Standard'}
+                                </span>
+                              </div>
+                              <label className="block text-xs text-gray-500 mb-1">Return tracking number</label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  defaultValue={order.returnTrackingNumber || ''}
+                                  className="text-sm border border-gray-300 rounded px-2 py-1 flex-1"
+                                  placeholder="Enter tracking number"
+                                />
+                                <button 
+                                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                                  onClick={async () => {
+                                    const input = document.querySelector(`input[placeholder="Enter tracking number"]`) as HTMLInputElement;
+                                    if (input && order?.id) {
+                                      try {
+                                        await updateVisaOrder(order.id, { returnTrackingNumber: input.value });
+                                        toast.success('Tracking number saved');
+                                      } catch (e) {
+                                        toast.error('Could not save tracking number');
+                                      }
+                                    }
+                                  }}
+                                >
+                                  Save
+                                </button>
+                              </div>
+                              {order.returnService === 'own-delivery' && (
+                                <p className="text-xs text-blue-600 mt-2">
+                                  ℹ️ Customer selected: Own delivery - No return shipment booking is needed for this return option.
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -772,7 +1015,82 @@ function VisaOrderDetailPage() {
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Files & Documents</h3>
                       
-                      {order.visaProduct?.visaType !== 'e-visa' && (
+                      {/* Return Shipping Label Section - for own-delivery */}
+                      {order.returnService === 'own-delivery' && (
+                        <div className={`border rounded-lg p-4 ${
+                          order.uploadedFiles?.find((f: any) => f.originalName === order.returnLabelFileName)
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-amber-50 border-amber-200'
+                        }`}>
+                          <div className="flex items-center mb-3">
+                            <span className="text-2xl mr-2">📦</span>
+                            <h4 className={`text-lg font-medium ${
+                              order.uploadedFiles?.find((f: any) => f.originalName === order.returnLabelFileName)
+                                ? 'text-blue-900'
+                                : 'text-amber-900'
+                            }`}>Return Shipping Label</h4>
+                          </div>
+                          <p className={`text-sm mb-3 ${
+                            order.uploadedFiles?.find((f: any) => f.originalName === order.returnLabelFileName)
+                              ? 'text-blue-700'
+                              : 'text-amber-700'
+                          }`}>
+                            Customer uploaded their own return shipping label. Print and attach to package.
+                          </p>
+                          {order.uploadedFiles?.find((f: any) => f.originalName === order.returnLabelFileName) ? (
+                            <div className="flex space-x-2">
+                              <a
+                                href={order.uploadedFiles.find((f: any) => f.originalName === order.returnLabelFileName)?.downloadURL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
+                              >
+                                📥 Download Label
+                              </a>
+                              <button
+                                onClick={() => {
+                                  const labelFile = order.uploadedFiles?.find((f: any) => f.originalName === order.returnLabelFileName);
+                                  if (labelFile?.downloadURL) {
+                                    const printWindow = window.open(labelFile.downloadURL, '_blank');
+                                    if (printWindow) {
+                                      printWindow.onload = () => printWindow.print();
+                                    }
+                                  }
+                                }}
+                                className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm font-medium"
+                              >
+                                🖨️ Print Label
+                              </button>
+                            </div>
+                          ) : order.hasReturnLabel ? (
+                            <div className="bg-amber-100 border border-amber-300 rounded p-3">
+                              <p className="text-amber-800 font-medium">⚠️ Return label missing</p>
+                              <p className="text-amber-700 text-sm mt-1">
+                                Customer selected own return but the label was not uploaded correctly.
+                                {order.returnLabelFileName && (
+                                  <span> Expected filename: <code className="bg-amber-200 px-1 rounded">{order.returnLabelFileName}</code></span>
+                                )}
+                              </p>
+                              <p className="text-amber-700 text-sm mt-2">
+                                <strong>Action:</strong> Contact the customer and ask them to send the return label via email.
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500">Customer did not upload a return label.</p>
+                          )}
+                          
+                          {/* Show tracking number if provided */}
+                          {order.returnTrackingNumber && (
+                            <div className="mt-3 pt-3 border-t border-blue-200">
+                              <span className="text-sm text-gray-500">Tracking Number:</span>
+                              <span className="ml-2 font-mono text-gray-900">{order.returnTrackingNumber}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Return Shipping for non-own-delivery */}
+                      {order.visaProduct?.visaType !== 'e-visa' && order.returnService !== 'own-delivery' && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                           <h4 className="font-medium text-gray-900 mb-2">Return Shipping</h4>
                           {order.returnTrackingNumber ? (
@@ -786,14 +1104,75 @@ function VisaOrderDetailPage() {
                         </div>
                       )}
                       
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                        <span className="text-4xl mb-3 block">📎</span>
-                        <p className="text-gray-600 mb-2">Document uploads and attachments</p>
-                        <p className="text-sm text-gray-500">Passport copies, photos, and other required documents</p>
-                        <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                          Upload Document
-                        </button>
-                      </div>
+                      {/* Uploaded Files List */}
+                      {order.uploadedFiles && order.uploadedFiles.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3">Uploaded Files</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {order.uploadedFiles.map((file: any, index: number) => {
+                              const isReturnLabel = order.returnLabelFileName && file.originalName === order.returnLabelFileName;
+                              return (
+                                <div key={index} className={`border rounded-lg p-4 ${isReturnLabel ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
+                                  <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-center">
+                                      {isReturnLabel ? (
+                                        <span className="text-2xl mr-3">📦</span>
+                                      ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                      )}
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-medium text-gray-900">{file.originalName}</p>
+                                          {isReturnLabel && (
+                                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                              Return Label
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-sm text-gray-500">
+                                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <a
+                                      href={file.downloadURL}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                    >
+                                      Download
+                                    </a>
+                                    <a
+                                      href={file.downloadURL}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                                    >
+                                      View
+                                    </a>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Upload placeholder if no files */}
+                      {(!order.uploadedFiles || order.uploadedFiles.length === 0) && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                          <span className="text-4xl mb-3 block">📎</span>
+                          <p className="text-gray-600 mb-2">No documents uploaded yet</p>
+                          <p className="text-sm text-gray-500">Passport copies, photos, and other required documents</p>
+                          <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Upload Document
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -802,14 +1181,60 @@ function VisaOrderDetailPage() {
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Invoice</h3>
                       
+                      {/* Existing Invoices */}
+                      {invoices.length > 0 && (
+                        <div className="space-y-4 mb-6">
+                          <h4 className="font-medium text-gray-900">Existing Invoices</h4>
+                          {invoices.map((invoice) => (
+                            <div key={invoice.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <span className="font-medium text-gray-900">{invoice.invoiceNumber}</span>
+                                  <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                                    invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                    invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                    invoice.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {invoice.status}
+                                  </span>
+                                </div>
+                                <span className="font-semibold text-gray-900">{invoice.totalAmount?.toLocaleString()} kr</span>
+                              </div>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleDownloadInvoice(invoice)}
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                                >
+                                  Download PDF
+                                </button>
+                                {invoice.status === 'draft' && (
+                                  <button
+                                    onClick={() => handleSendInvoice(invoice)}
+                                    disabled={sendingInvoice === invoice.id}
+                                    className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                                  >
+                                    {sendingInvoice === invoice.id ? 'Sending...' : 'Send Invoice'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                         <div className="flex items-center justify-between mb-4">
                           <div>
                             <h4 className="font-medium text-gray-900">Create Invoice</h4>
                             <p className="text-sm text-gray-500">Generate an invoice for this visa order</p>
                           </div>
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                            Create Invoice
+                          <button 
+                            onClick={handleCreateInvoice}
+                            disabled={creatingInvoice}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {creatingInvoice ? 'Creating...' : 'Create Invoice'}
                           </button>
                         </div>
                         
@@ -830,12 +1255,18 @@ function VisaOrderDetailPage() {
                             )}
                             <div className="flex justify-between">
                               <span className="text-gray-500">Amount:</span>
-                              <span className="font-medium text-gray-900">{order.totalPrice?.toLocaleString()} kr</span>
+                              <span className="font-medium text-gray-900">{getComputedTotal().toLocaleString()} kr</span>
                             </div>
-                            {order.customerType === 'company' && (
+                            {order.customerType !== 'company' && (
                               <div className="flex justify-between">
                                 <span className="text-gray-500">VAT (25%):</span>
-                                <span className="text-gray-900">{((order.totalPrice || 0) * 0.25).toLocaleString()} kr</span>
+                                <span className="text-gray-900">{(getComputedTotal() * 0.25).toLocaleString()} kr</span>
+                              </div>
+                            )}
+                            {order.customerType === 'company' && (
+                              <div className="flex justify-between text-gray-500 italic">
+                                <span>VAT:</span>
+                                <span>Excl. (company)</span>
                               </div>
                             )}
                           </div>

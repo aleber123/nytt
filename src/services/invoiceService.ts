@@ -2006,3 +2006,243 @@ async function generateInvoicePDFBlob(invoice: Invoice): Promise<Uint8Array> {
     }
   });
 }
+
+// Convert visa order to invoice
+export const convertVisaOrderToInvoice = async (order: any): Promise<Invoice> => {
+  try {
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber();
+
+    // Check if customer is VAT exempt
+    const customerVatExempt = order.customerPricing?.vatExempt || false;
+
+    // Check if customer is a foreign company (for VAT exemption / reverse charge)
+    const customerCountry = order.customerInfo?.countryCode || order.customerInfo?.country || '';
+    const isSwedishCustomer = !customerCountry || customerCountry.toUpperCase() === 'SE' || customerCountry.toLowerCase() === 'sweden' || customerCountry.toLowerCase() === 'sverige';
+    const isForeignCompany = !isSwedishCustomer && !!order.customerInfo?.companyName;
+    const isReverseCharge = isForeignCompany && isEUCountryExceptSweden(customerCountry);
+    const isExport = isForeignCompany && isNonEUCountry(customerCountry);
+    
+    // Apply zero VAT if: foreign company (reverse charge/export) OR customer is VAT exempt in registry
+    const applyZeroVAT = isReverseCharge || isExport || customerVatExempt;
+
+    // Build line items from visa order
+    const lineItems: InvoiceLineItem[] = [];
+    
+    // Check if admin has set price adjustments (lineOverrides)
+    const adminPrice = order.adminPrice;
+    
+    if (adminPrice && Array.isArray(adminPrice.lineOverrides) && adminPrice.lineOverrides.length > 0) {
+      // Use admin price adjustments
+      for (const override of adminPrice.lineOverrides) {
+        if (override.include === false) continue;
+        
+        const amount = override.overrideAmount !== null && override.overrideAmount !== undefined
+          ? Number(override.overrideAmount)
+          : Number(override.baseAmount || 0);
+        
+        if (amount <= 0) continue;
+        
+        // Get VAT rate
+        let vatRate = applyZeroVAT ? 0 : (override.vatPercent !== null && override.vatPercent !== undefined ? override.vatPercent / 100 : 0.25);
+        const vatAmount = Math.round(amount * vatRate * 100) / 100;
+        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
+        
+        lineItems.push({
+          id: `visa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: override.label || 'Visa Service',
+          quantity: 1,
+          unitPrice: amount,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: 'visa'
+        });
+      }
+    } else {
+      // Build from visa order pricing breakdown
+      // Split visa product into embassy fee (0% VAT) and service fee (25% VAT)
+      // Same logic as legalization invoices
+      
+      // Embassy fee - 0% VAT (official government fee)
+      const embassyFee = order.pricingBreakdown?.embassyFee || 0;
+      if (embassyFee > 0) {
+        const vatRate = 0; // Embassy fees are always 0% VAT
+        const vatAmount = 0;
+        const totalPrice = embassyFee;
+        
+        lineItems.push({
+          id: `embassy_fee_${Date.now()}`,
+          description: `Ambassadavgift - ${order.visaProduct?.name || 'Visa'} (${order.destinationCountry || ''})`,
+          quantity: 1,
+          unitPrice: embassyFee,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: 'embassy_fee',
+          officialFee: embassyFee
+        });
+      }
+      
+      // Service fee - 25% VAT (DOX service fee)
+      const serviceFee = order.pricingBreakdown?.serviceFee || 0;
+      if (serviceFee > 0) {
+        const vatRate = applyZeroVAT ? 0 : 0.25;
+        const vatAmount = Math.round(serviceFee * vatRate * 100) / 100;
+        const totalPrice = Math.round((serviceFee + vatAmount) * 100) / 100;
+        
+        lineItems.push({
+          id: `service_fee_${Date.now()}`,
+          description: `DOX Visumpartner serviceavgift - ${order.visaProduct?.name || 'Visa'}`,
+          quantity: 1,
+          unitPrice: serviceFee,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: 'service_fee',
+          serviceFee: serviceFee
+        });
+      }
+      
+      // Fallback: if no breakdown, use total visa product price with 25% VAT
+      if (embassyFee === 0 && serviceFee === 0 && order.visaProduct?.price) {
+        const basePrice = order.visaProduct.price - 
+          (order.pricingBreakdown?.expressPrice || 0) - 
+          (order.pricingBreakdown?.urgentPrice || 0);
+        
+        const amount = basePrice > 0 ? basePrice : order.visaProduct.price;
+        const vatRate = applyZeroVAT ? 0 : 0.25;
+        const vatAmount = Math.round(amount * vatRate * 100) / 100;
+        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
+        
+        lineItems.push({
+          id: `visa_product_${Date.now()}`,
+          description: `Visa - ${order.visaProduct.name || 'Visa Service'} (${order.destinationCountry || ''})`,
+          quantity: 1,
+          unitPrice: amount,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: 'visa'
+        });
+      }
+      
+      // Express fee - 25% VAT (service fee)
+      if (order.pricingBreakdown?.expressPrice) {
+        const amount = order.pricingBreakdown.expressPrice;
+        const vatRate = applyZeroVAT ? 0 : 0.25;
+        const vatAmount = Math.round(amount * vatRate * 100) / 100;
+        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
+        
+        lineItems.push({
+          id: `express_${Date.now()}`,
+          description: 'Expresshantering',
+          quantity: 1,
+          unitPrice: amount,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: 'express'
+        });
+      }
+      
+      // Urgent fee - 25% VAT (service fee)
+      if (order.pricingBreakdown?.urgentPrice) {
+        const amount = order.pricingBreakdown.urgentPrice;
+        const vatRate = applyZeroVAT ? 0 : 0.25;
+        const vatAmount = Math.round(amount * vatRate * 100) / 100;
+        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
+        
+        lineItems.push({
+          id: `urgent_${Date.now()}`,
+          description: 'Brådskande hantering',
+          quantity: 1,
+          unitPrice: amount,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: 'urgent'
+        });
+      }
+      
+      // Shipping fee - 25% VAT
+      if (order.pricingBreakdown?.shippingFee) {
+        const amount = order.pricingBreakdown.shippingFee;
+        const vatRate = applyZeroVAT ? 0 : 0.25;
+        const vatAmount = Math.round(amount * vatRate * 100) / 100;
+        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
+        
+        lineItems.push({
+          id: `shipping_${Date.now()}`,
+          description: 'Frakt',
+          quantity: 1,
+          unitPrice: amount,
+          totalPrice: totalPrice,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          serviceType: 'shipping'
+        });
+      }
+    }
+
+    // Calculate totals
+    const subtotal = lineItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const vatTotal = lineItems.reduce((sum, item) => sum + item.vatAmount, 0);
+    const totalAmount = subtotal;
+
+    // Set due date (30 days from now)
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+
+    // Create customer info
+    const customerInfo = {
+      firstName: order.customerInfo?.firstName || '',
+      lastName: order.customerInfo?.lastName || '',
+      email: order.customerInfo?.email || '',
+      phone: order.customerInfo?.phone || '',
+      address: order.customerInfo?.address || '',
+      postalCode: order.customerInfo?.postalCode || '',
+      city: order.customerInfo?.city || '',
+      companyName: order.customerInfo?.companyName || '',
+      orgNumber: order.billingInfo?.organizationNumber || ''
+    };
+
+    // Build payment terms and notes based on VAT status
+    let paymentTerms = 'Payment within 30 days';
+    let notes = '';
+    
+    if (isReverseCharge) {
+      notes = 'Reverse charge - VAT to be accounted for by the recipient. Article 196 Council Directive 2006/112/EC.';
+    } else if (isExport) {
+      notes = 'Export of services - VAT exempt.';
+    } else if (customerVatExempt) {
+      notes = 'VAT exempt customer.';
+    }
+
+    const invoice: Invoice = {
+      invoiceNumber,
+      orderId: order.id || '',
+      orderNumber: order.orderNumber || order.id || '',
+      customerInfo,
+      lineItems,
+      subtotal,
+      vatTotal,
+      totalAmount,
+      currency: 'SEK',
+      issueDate: Timestamp.now(),
+      dueDate: Timestamp.fromDate(dueDate),
+      status: 'draft',
+      paymentTerms,
+      paymentReference: order.invoiceReference || invoiceNumber,
+      notes,
+      companyInfo: COMPANY_INFO,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    };
+
+    return invoice;
+  } catch (error) {
+    console.error('Error converting visa order to invoice:', error);
+    throw error;
+  }
+};

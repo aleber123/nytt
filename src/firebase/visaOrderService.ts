@@ -39,6 +39,7 @@ export interface VisaOrder {
   visaProduct: {
     id: string;
     name: string;
+    nameEn?: string;
     category: VisaCategory;
     visaType: 'e-visa' | 'sticker';
     entryType: 'single' | 'double' | 'multiple';
@@ -65,6 +66,16 @@ export interface VisaOrder {
   };
   pickupDate?: string;
   returnService?: string;
+  hasReturnLabel?: boolean;
+  returnLabelFileName?: string;
+  uploadedFiles?: {
+    originalName: string;
+    downloadURL: string;
+    storagePath: string;
+    size: number;
+    type: string;
+    uploadedAt: any;
+  }[];
   returnAddress?: {
     firstName?: string;
     lastName?: string;
@@ -118,6 +129,8 @@ export interface VisaOrder {
     embassyFee: number; // Embassy/government fee
     shippingFee?: number;
     expeditedFee?: number;
+    expressPrice?: number;
+    urgentPrice?: number;
   };
   
   // Status
@@ -133,6 +146,10 @@ export interface VisaOrder {
   // Tracking
   returnTrackingNumber?: string;
   returnTrackingUrl?: string;
+  
+  // File uploads
+  filesUploaded?: boolean;
+  filesUploadedAt?: any;
   
   // Timestamps
   createdAt?: Timestamp;
@@ -161,78 +178,210 @@ export interface AdminNote {
 }
 
 // Default processing steps for visa orders
-export const getDefaultVisaProcessingSteps = (isEVisa: boolean): VisaProcessingStep[] => {
-  const baseSteps: VisaProcessingStep[] = [
-    {
-      id: 'order-verification',
-      name: 'Order Verification',
-      description: 'Verify order details, pricing and customer information',
+// Similar structure to legalization orders for consistency
+export const getDefaultVisaProcessingSteps = (
+  order: {
+    visaProduct?: { visaType?: string; name?: string };
+    destinationCountry?: string;
+    returnService?: string;
+    hasReturnLabel?: boolean;
+    pickupService?: boolean;
+    confirmReturnAddressLater?: boolean;
+    returnAddressConfirmed?: boolean;
+  }
+): VisaProcessingStep[] => {
+  const isEVisa = order.visaProduct?.visaType === 'e-visa';
+  const destinationCountry = order.destinationCountry || 'destination country';
+  const steps: VisaProcessingStep[] = [];
+
+  // STEP 1: Order verification - Always first
+  steps.push({
+    id: 'order_verification',
+    name: '✓ Order verification',
+    description: 'Check order details, pricing and customer information',
+    status: 'pending'
+  });
+
+  // STEP 2: Pickup booking - If customer selected pickup service (sticker visa only)
+  if (!isEVisa && order.pickupService) {
+    steps.push({
+      id: 'pickup_booking',
+      name: '📦 Schedule pickup',
+      description: 'Schedule pickup of passport from customer',
       status: 'pending'
-    },
-    {
-      id: 'documents-review',
-      name: 'Documents Review',
-      description: 'Review uploaded documents for completeness and accuracy',
+    });
+  }
+
+  // STEP 3: Documents received (sticker visa) or Documents uploaded (e-visa)
+  if (isEVisa) {
+    steps.push({
+      id: 'documents_received',
+      name: '📄 Documents uploaded',
+      description: 'Verify customer has uploaded all required documents',
       status: 'pending'
-    },
-    {
-      id: 'application-preparation',
-      name: 'Application Preparation',
-      description: 'Prepare visa application forms and supporting documents',
+    });
+  } else {
+    steps.push({
+      id: 'documents_received',
+      name: '📄 Passport received',
+      description: order.pickupService 
+        ? 'Passport has been picked up and registered'
+        : 'Passport has been received and registered',
       status: 'pending'
-    },
-    {
-      id: 'submission',
-      name: 'Submit to Embassy/Portal',
-      description: isEVisa ? 'Submit application through e-visa portal' : 'Submit application to embassy',
-      status: 'pending'
-    },
-    {
-      id: 'processing',
-      name: 'Embassy Processing',
-      description: 'Application is being processed by the embassy',
-      status: 'pending'
-    },
-    {
-      id: 'result',
-      name: 'Visa Result',
-      description: 'Visa approved or rejected',
-      status: 'pending'
-    }
-  ];
+    });
+  }
+
+  // STEP 4: Quality control
+  steps.push({
+    id: 'quality_control',
+    name: '🔍 Quality control',
+    description: 'Review documents – completeness, validity, correct format',
+    status: 'pending'
+  });
+
+  // STEP 5: Application preparation
+  steps.push({
+    id: 'application_preparation',
+    name: '📝 Application preparation',
+    description: 'Prepare visa application forms and supporting documents',
+    status: 'pending'
+  });
 
   if (isEVisa) {
-    baseSteps.push({
-      id: 'delivery',
-      name: 'E-Visa Delivery',
+    // E-VISA STEPS
+    steps.push({
+      id: 'portal_submission',
+      name: '🌐 Submit to e-visa portal',
+      description: `Submit application through ${destinationCountry} e-visa portal`,
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'portal_processing',
+      name: '⏳ Portal processing',
+      description: 'Application is being processed by the e-visa system',
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'visa_result',
+      name: '📋 Visa result',
+      description: 'E-visa approved or rejected',
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'evisa_delivery',
+      name: '📧 E-Visa delivery',
       description: 'Send approved e-visa to customer via email',
       status: 'pending'
     });
   } else {
-    baseSteps.push(
-      {
-        id: 'prepare-return',
-        name: 'Prepare Return',
-        description: 'Pack passport with visa for return shipping',
+    // STICKER VISA STEPS
+    steps.push({
+      id: 'print_embassy_cover_letter',
+      name: '✉️ Print Embassy cover letter',
+      description: `Print cover letter for ${destinationCountry} embassy`,
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'embassy_payment',
+      name: '💳 Embassy fee – payment',
+      description: `Pay embassy fee for ${destinationCountry} (in advance or on-site)`,
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'embassy_delivery',
+      name: '📤 Embassy – drop off',
+      description: `Submit passport and documents at the ${destinationCountry} embassy`,
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'embassy_processing',
+      name: '⏳ Embassy processing',
+      description: `Application is being processed by the ${destinationCountry} embassy`,
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'embassy_pickup',
+      name: '📦 Embassy – pick up',
+      description: `Pick up passport with visa from the ${destinationCountry} embassy`,
+      status: 'pending'
+    });
+
+    steps.push({
+      id: 'visa_result',
+      name: '📋 Visa result',
+      description: 'Visa approved or rejected',
+      status: 'pending'
+    });
+
+    // Print packing slip
+    steps.push({
+      id: 'print_packing_slip',
+      name: '🖨️ Print packing slip',
+      description: 'Print the packing slip PDF and attach it to the passport',
+      status: 'pending'
+    });
+
+    // Final check
+    steps.push({
+      id: 'final_check',
+      name: '✅ Final check',
+      description: 'Verify visa is correct and all documents are complete',
+      status: 'pending'
+    });
+
+    // Print customer's return label - If customer uploaded their own shipping label
+    if (order.returnService === 'own-delivery' && order.hasReturnLabel) {
+      steps.push({
+        id: 'print_customer_return_label',
+        name: '🏷️ Print customer return label',
+        description: 'Print the customer\'s uploaded shipping label and attach to package',
         status: 'pending'
-      },
-      {
-        id: 'return-shipment',
-        name: 'Return Shipment',
-        description: 'Ship passport back to customer',
-        status: 'pending'
-      }
-    );
+      });
+    }
+
+    // Await return address confirmation (if customer chose to confirm later)
+    if (order.confirmReturnAddressLater) {
+      steps.push({
+        id: 'await_return_address_confirmation',
+        name: '📍 Await return address confirmation',
+        description: 'Customer needs to confirm return address via email',
+        status: order.returnAddressConfirmed ? 'completed' : 'pending'
+      });
+    }
+
+    // Prepare return
+    steps.push({
+      id: 'prepare_return',
+      name: '📦 Prepare return',
+      description: `Pack passport for ${order.returnService === 'own-delivery' ? 'Own Delivery' : order.returnService || 'return shipping'}`,
+      status: 'pending'
+    });
+
+    // Return shipping
+    steps.push({
+      id: 'return_shipping',
+      name: '🚚 Return shipment sent',
+      description: 'Passport sent to the customer – add tracking number',
+      status: 'pending'
+    });
   }
 
-  baseSteps.push({
+  // Invoicing - Always last
+  steps.push({
     id: 'invoicing',
-    name: 'Invoicing',
-    description: 'Create and send invoice to customer',
+    name: '🧾 Invoicing',
+    description: 'Create and send invoice to the customer',
     status: 'pending'
   });
 
-  return baseSteps;
+  return steps;
 };
 
 const VISA_ORDERS_COLLECTION = 'visaOrders';
@@ -300,7 +449,7 @@ export const createVisaOrder = async (
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
       orderNumber: formattedOrderId,
-      processingSteps: getDefaultVisaProcessingSteps(isEVisa)
+      processingSteps: getDefaultVisaProcessingSteps(orderData)
     };
     
     // Only add userId if user is logged in
@@ -334,6 +483,7 @@ export const createVisaOrder = async (
       returnDate: orderData.returnDate,
       passportNeededBy: orderData.passportNeededBy,
       totalPrice: orderData.totalPrice,
+      pricingBreakdown: orderData.pricingBreakdown,
       customerType: orderData.customerType,
       customerInfo: {
         firstName: orderData.customerInfo?.firstName || '',

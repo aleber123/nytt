@@ -381,6 +381,38 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       if (description === 'Sverige') {
         return 'Sweden';
       }
+      // Return service translations
+      if (description === 'own-delivery' || description === 'Egen returfrakt') {
+        return 'Own return shipping';
+      }
+      if (description === 'office-pickup' || description === 'Hämtning på kontor') {
+        return 'Office pickup';
+      }
+      if (description === 'dhl-sweden' || description === 'DHL Express Sverige') {
+        return 'DHL Express Sweden';
+      }
+      if (description === 'dhl-europe' || description === 'DHL Express Europa') {
+        return 'DHL Express Europe';
+      }
+      if (description === 'dhl-world' || description === 'DHL Express Världen') {
+        return 'DHL Express Worldwide';
+      }
+    }
+    // Swedish translations (when locale is Swedish)
+    if (description === 'own-delivery') {
+      return 'Egen returfrakt';
+    }
+    if (description === 'office-pickup') {
+      return 'Hämtning på kontor';
+    }
+    if (description === 'dhl-sweden') {
+      return 'DHL Express Sverige';
+    }
+    if (description === 'dhl-europe') {
+      return 'DHL Express Europa';
+    }
+    if (description === 'dhl-world') {
+      return 'DHL Express Världen';
     }
     return description;
   };

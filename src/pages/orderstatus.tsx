@@ -70,14 +70,37 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
     const status = orderData.status;
     const createdAtIso = orderData.createdAt;
     const updatedAtIso = orderData.updatedAt;
+    const isVisaOrder = orderData.orderType === 'visa';
 
     const processingSteps = orderData.processingSteps as any[] | undefined;
     const hasProcessingSteps = Array.isArray(processingSteps) && processingSteps.length > 0;
 
-    const isProcessingStarted = ['processing', 'completed', 'shipped', 'delivered'].includes(status);
-    const isProcessingCompleted = ['completed', 'shipped', 'delivered'].includes(status);
-    const isShipped = ['shipped', 'delivered'].includes(status);
-    const isDelivered = status === 'delivered';
+    // Status mappings for visa orders
+    const visaStatusMappings: Record<string, { processing: boolean; approved: boolean; shipped: boolean; delivered: boolean }> = {
+      'pending': { processing: false, approved: false, shipped: false, delivered: false },
+      'received': { processing: false, approved: false, shipped: false, delivered: false },
+      'documents-required': { processing: false, approved: false, shipped: false, delivered: false },
+      'processing': { processing: true, approved: false, shipped: false, delivered: false },
+      'submitted-to-embassy': { processing: true, approved: false, shipped: false, delivered: false },
+      'approved': { processing: true, approved: true, shipped: false, delivered: false },
+      'ready-for-return': { processing: true, approved: true, shipped: false, delivered: false },
+      'completed': { processing: true, approved: true, shipped: true, delivered: true },
+      'rejected': { processing: true, approved: false, shipped: false, delivered: false },
+      'cancelled': { processing: false, approved: false, shipped: false, delivered: false }
+    };
+
+    const isProcessingStarted = isVisaOrder 
+      ? (visaStatusMappings[status]?.processing || false)
+      : ['processing', 'completed', 'shipped', 'delivered'].includes(status);
+    const isProcessingCompleted = isVisaOrder
+      ? (visaStatusMappings[status]?.approved || false)
+      : ['completed', 'shipped', 'delivered'].includes(status);
+    const isShipped = isVisaOrder
+      ? (visaStatusMappings[status]?.shipped || false)
+      : ['shipped', 'delivered'].includes(status);
+    const isDelivered = isVisaOrder
+      ? (visaStatusMappings[status]?.delivered || false)
+      : status === 'delivered';
 
     let steps: {
       name: string;
@@ -162,8 +185,46 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
       };
 
       steps = [orderReceivedStep, processingStep, legalizedStep, shippedStep, deliveredStep];
+    } else if (isVisaOrder) {
+      // Visa order steps
+      const isSubmittedToEmbassy = ['submitted-to-embassy', 'approved', 'ready-for-return', 'completed'].includes(status);
+      const isApproved = ['approved', 'ready-for-return', 'completed'].includes(status);
+      const isReadyForReturn = ['ready-for-return', 'completed'].includes(status);
+      
+      steps = [
+        { 
+          name: t('orderStatus.steps.orderReceived.name', 'Order Received'), 
+          description: t('orderStatus.steps.orderReceived.description', 'Your order has been received'), 
+          completed: true, 
+          date: createdAtIso 
+        },
+        { 
+          name: t('orderStatus.steps.visaProcessing.name', 'Processing'), 
+          description: t('orderStatus.steps.visaProcessing.description', 'Your visa application is being processed'), 
+          completed: isProcessingStarted, 
+          date: isProcessingStarted ? updatedAtIso : undefined 
+        },
+        { 
+          name: t('orderStatus.steps.submittedToEmbassy.name', 'Submitted to Embassy'), 
+          description: t('orderStatus.steps.submittedToEmbassy.description', 'Your application has been submitted to the embassy'), 
+          completed: isSubmittedToEmbassy, 
+          date: isSubmittedToEmbassy ? updatedAtIso : undefined 
+        },
+        { 
+          name: t('orderStatus.steps.visaApproved.name', 'Visa Approved'), 
+          description: t('orderStatus.steps.visaApproved.description', 'Your visa has been approved'), 
+          completed: isApproved, 
+          date: isApproved ? updatedAtIso : undefined 
+        },
+        { 
+          name: t('orderStatus.steps.delivered.name', 'Delivered'), 
+          description: t('orderStatus.steps.delivered.description', 'Your documents have been delivered'), 
+          completed: isDelivered, 
+          date: isDelivered ? updatedAtIso : undefined 
+        }
+      ];
     } else {
-      // Fallback: customer-facing steps based on high-level order status
+      // Fallback: customer-facing steps based on high-level order status (legalization)
       steps = [
         { name: t('orderStatus.steps.orderReceived.name'), description: t('orderStatus.steps.orderReceived.description'), completed: true, date: createdAtIso },
         { name: t('orderStatus.steps.processing.name'), description: t('orderStatus.steps.processing.description'), completed: isProcessingCompleted || isShipped || isDelivered, date: isProcessingStarted ? updatedAtIso : undefined },
@@ -198,11 +259,20 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
 
     return {
       orderNumber: orderData.orderNumber,
+      orderType: orderData.orderType || 'legalization',
       status: orderData.status,
       createdAt: createdAtIso,
       estimatedDelivery: estimatedDeliveryDate.toISOString().split('T')[0],
-      service: Array.isArray(orderData.services) ? orderData.services[0] : orderData.services,
+      service: isVisaOrder 
+        ? (orderData.visaProduct?.name || 'Visa') 
+        : (Array.isArray(orderData.services) ? orderData.services[0] : orderData.services),
       services: orderData.services,
+      // Visa-specific fields
+      visaProduct: orderData.visaProduct,
+      destinationCountry: orderData.destinationCountry,
+      nationality: orderData.nationality,
+      departureDate: orderData.departureDate,
+      returnDate: orderData.returnDate,
       customer: {
         name: orderData.customerInfo ? `${orderData.customerInfo.firstName || ''} ${orderData.customerInfo.lastName || ''}`.trim() || t('common.notSpecified', 'Not specified') : t('common.notSpecified', 'Not specified'),
         email: orderData.customerInfo?.email || t('common.noEmailProvided', 'No email provided')
@@ -211,7 +281,7 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
       totalPrice: orderData.totalPrice,
       returnTrackingNumber: orderData.returnTrackingNumber || null,
       returnTrackingUrl: orderData.returnTrackingUrl || null,
-      returnDate: orderData.status === 'cancelled' ? updatedAtIso : null
+      cancelledDate: orderData.status === 'cancelled' ? updatedAtIso : null
     };
   };
 
@@ -261,6 +331,31 @@ const OrderStatusPage: React.FC<OrderStatusProps> = () => {
           text: t('orderStatus.statuses.action-required'),
           color: 'bg-orange-100 text-orange-800',
           description: t('orderStatus.statusDescriptions.action-required')
+        };
+      // Visa-specific statuses
+      case 'documents-required':
+        return {
+          text: t('orderStatus.statuses.documents-required', 'Documents Required'),
+          color: 'bg-orange-100 text-orange-800',
+          description: t('orderStatus.statusDescriptions.documents-required', 'Additional documents are required for your visa application')
+        };
+      case 'submitted-to-embassy':
+        return {
+          text: t('orderStatus.statuses.submitted-to-embassy', 'Submitted to Embassy'),
+          color: 'bg-indigo-100 text-indigo-800',
+          description: t('orderStatus.statusDescriptions.submitted-to-embassy', 'Your application has been submitted to the embassy')
+        };
+      case 'approved':
+        return {
+          text: t('orderStatus.statuses.approved', 'Approved'),
+          color: 'bg-green-100 text-green-800',
+          description: t('orderStatus.statusDescriptions.approved', 'Your visa has been approved')
+        };
+      case 'rejected':
+        return {
+          text: t('orderStatus.statuses.rejected', 'Rejected'),
+          color: 'bg-red-100 text-red-800',
+          description: t('orderStatus.statusDescriptions.rejected', 'Your visa application was rejected')
         };
       case 'ready-for-return':
         return {

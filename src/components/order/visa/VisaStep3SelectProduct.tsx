@@ -61,6 +61,7 @@ export default function VisaStep3SelectProduct({
     const selectedProduct: SelectedVisaProduct = {
       id: product.id,
       name: product.name,
+      nameEn: product.nameEn,
       category: product.category,
       visaType: product.visaType as 'e-visa' | 'sticker',
       entryType: product.entryType as 'single' | 'double' | 'multiple',
@@ -72,6 +73,13 @@ export default function VisaStep3SelectProduct({
       expressAvailable: product.expressAvailable,
       expressDays: product.expressDays,
       expressPrice: product.expressPrice,
+      expressEmbassyFee: product.expressEmbassyFee,
+      expressDoxFee: product.expressDoxFee,
+      urgentAvailable: product.urgentAvailable,
+      urgentDays: product.urgentDays,
+      urgentPrice: product.urgentPrice,
+      urgentEmbassyFee: product.urgentEmbassyFee,
+      urgentDoxFee: product.urgentDoxFee,
     };
 
     onUpdate({
@@ -225,7 +233,7 @@ export default function VisaStep3SelectProduct({
                           </div>
 
                           <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                            {product.name}
+                            {locale === 'en' && product.nameEn ? product.nameEn : product.name}
                           </h4>
 
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">

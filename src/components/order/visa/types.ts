@@ -10,6 +10,7 @@ import type { VisaProduct, VisaCategory } from '@/firebase/visaRequirementsServi
 export interface SelectedVisaProduct {
   id: string;
   name: string;
+  nameEn?: string;
   category: VisaCategory;
   visaType: 'e-visa' | 'sticker';
   entryType: 'single' | 'double' | 'multiple';
@@ -21,6 +22,13 @@ export interface SelectedVisaProduct {
   expressAvailable?: boolean;
   expressDays?: number;
   expressPrice?: number;
+  expressEmbassyFee?: number;
+  expressDoxFee?: number;
+  urgentAvailable?: boolean;
+  urgentDays?: number;
+  urgentPrice?: number;
+  urgentEmbassyFee?: number;
+  urgentDoxFee?: number;
 }
 
 // Visa-specific fields that extend the base OrderAnswers
@@ -39,6 +47,8 @@ export interface VisaOrderAnswers extends OrderAnswers {
   selectedVisaProduct: SelectedVisaProduct | null;
   // Express processing
   expressRequired?: boolean;
+  // Urgent processing
+  urgentRequired?: boolean;
 }
 
 export const initialVisaOrderAnswers: VisaOrderAnswers = {
@@ -54,6 +64,7 @@ export const initialVisaOrderAnswers: VisaOrderAnswers = {
   passportNeededBy: '',
   selectedVisaProduct: null,
   expressRequired: false,
+  urgentRequired: false,
   
   // Base OrderAnswers fields (required for reusing components)
   country: '',

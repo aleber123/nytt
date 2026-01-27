@@ -177,7 +177,20 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   if (answers.returnService) {
     // Find the selected return service to show its name
     const selectedReturnService = returnServices.find((s: any) => s.id === answers.returnService);
-    const returnServiceName = selectedReturnService ? selectedReturnService.name : (currentLocale === 'en' ? 'Return shipping' : 'Returfrakt');
+    let returnServiceName: string;
+    if (answers.returnService === 'own-delivery') {
+      returnServiceName = currentLocale === 'en' ? 'Own return shipping' : 'Egen returfrakt';
+    } else if (answers.returnService === 'office-pickup') {
+      returnServiceName = currentLocale === 'en' ? 'Office pickup' : 'Hämtning på kontor';
+    } else if (answers.returnService === 'dhl-sweden') {
+      returnServiceName = currentLocale === 'en' ? 'DHL Express Sweden' : 'DHL Express Sverige';
+    } else if (answers.returnService === 'dhl-europe') {
+      returnServiceName = currentLocale === 'en' ? 'DHL Express Europe' : 'DHL Express Europa';
+    } else if (answers.returnService === 'dhl-world') {
+      returnServiceName = currentLocale === 'en' ? 'DHL Express Worldwide' : 'DHL Express Världen';
+    } else {
+      returnServiceName = selectedReturnService ? selectedReturnService.name : (currentLocale === 'en' ? 'Return shipping' : 'Returfrakt');
+    }
     additionalServices.push({ 
       name: returnServiceName
     });

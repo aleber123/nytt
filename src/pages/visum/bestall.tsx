@@ -513,16 +513,40 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
             </span>
           </div>
           <div className="font-semibold text-gray-900 text-sm">
-            {answers.selectedVisaProduct.name}
+            {currentLocale === 'en' && answers.selectedVisaProduct.nameEn ? answers.selectedVisaProduct.nameEn : answers.selectedVisaProduct.name}
           </div>
           <div className="flex justify-between items-center mt-2">
             <span className="text-xs text-gray-500">
               {answers.selectedVisaProduct.validityDays} {currentLocale === 'en' ? 'days' : 'dagar'}
             </span>
             <span className="font-bold text-green-600">
-              {answers.selectedVisaProduct.price.toLocaleString()} kr
+              {(answers.selectedVisaProduct.price + 
+                (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + 
+                (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0)
+              ).toLocaleString()} kr
             </span>
           </div>
+          {/* Show express/urgent fee breakdown */}
+          {(answers.expressRequired || answers.urgentRequired) && (
+            <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 space-y-1">
+              <div className="flex justify-between">
+                <span>{currentLocale === 'en' ? 'Base price' : 'Grundpris'}:</span>
+                <span>{answers.selectedVisaProduct.price.toLocaleString()} kr</span>
+              </div>
+              {answers.expressRequired && answers.selectedVisaProduct.expressPrice && (
+                <div className="flex justify-between text-orange-600">
+                  <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}:</span>
+                  <span>+{answers.selectedVisaProduct.expressPrice.toLocaleString()} kr</span>
+                </div>
+              )}
+              {answers.urgentRequired && answers.selectedVisaProduct.urgentPrice && (
+                <div className="flex justify-between text-red-600">
+                  <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}:</span>
+                  <span>+{answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

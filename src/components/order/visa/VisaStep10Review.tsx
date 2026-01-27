@@ -12,8 +12,9 @@ import { CheckCircleIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
-import { createVisaOrder, getVisaOrder } from '@/firebase/visaOrderService';
-import { generateVisaConfirmationEmail } from '../templates/visaConfirmationEmail';
+import { createVisaOrder, getVisaOrder, updateVisaOrder } from '@/firebase/visaOrderService';
+import { generateVisaConfirmationEmail, generateVisaBusinessNotificationEmail } from '../templates/visaConfirmationEmail';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Props {
   answers: VisaOrderAnswers;
@@ -56,6 +57,7 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         visaProduct: {
           id: answers.selectedVisaProduct.id,
           name: answers.selectedVisaProduct.name,
+          nameEn: answers.selectedVisaProduct.nameEn,
           category: answers.selectedVisaProduct.category,
           visaType: answers.selectedVisaProduct.visaType,
           entryType: answers.selectedVisaProduct.entryType,
@@ -78,6 +80,9 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
           pickupMethod: answers.pickupMethod,
           pickupAddress: answers.pickupAddress,
           returnService: answers.returnService,
+          returnTrackingNumber: answers.returnService === 'own-delivery' ? (answers.ownReturnTrackingNumber || '') : undefined,
+          hasReturnLabel: answers.returnService === 'own-delivery' && !!answers.ownReturnLabelFile,
+          returnLabelFileName: answers.ownReturnLabelFile?.name || undefined,
           returnAddress: answers.returnAddress,
         }),
         
@@ -100,11 +105,15 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         invoiceReference: answers.invoiceReference,
         additionalNotes: answers.additionalNotes,
         
-        // Pricing
-        totalPrice: answers.selectedVisaProduct.price,
+        // Pricing - include express and urgent fees in total
+        totalPrice: answers.selectedVisaProduct.price + 
+          (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + 
+          (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0),
         pricingBreakdown: {
           serviceFee: answers.selectedVisaProduct.serviceFee || 0,
           embassyFee: answers.selectedVisaProduct.embassyFee || 0,
+          expressPrice: answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0,
+          urgentPrice: answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0,
         },
         
         // Locale
@@ -112,6 +121,39 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       });
       
       const { orderId: createdOrderId, token: confirmationToken } = orderResult;
+      
+      // Upload return label file if present
+      if (answers.ownReturnLabelFile && answers.returnService === 'own-delivery') {
+        try {
+          const storage = getStorage();
+          const file = answers.ownReturnLabelFile;
+          const fileExtension = file.name.split('.').pop() || 'file';
+          const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const fileName = `${createdOrderId}_return_label_${cleanFileName}`;
+          const storageRef = ref(storage, `visa-documents/${fileName}`);
+          
+          const snapshot = await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          
+          const uploadedFileData = {
+            originalName: file.name,
+            size: file.size,
+            type: file.type,
+            downloadURL: downloadURL,
+            storagePath: `visa-documents/${fileName}`,
+            uploadedAt: Timestamp.now()
+          };
+          
+          // Update the order with the uploaded file
+          await updateVisaOrder(createdOrderId, {
+            uploadedFiles: [uploadedFileData],
+            filesUploaded: true,
+            filesUploadedAt: Timestamp.now()
+          });
+        } catch (uploadError) {
+          // File upload failed but order was created - continue
+        }
+      }
       
       setOrderId(createdOrderId);
       setIsSubmitted(true);
@@ -146,42 +188,27 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         }
       }
       
-      // Send notification email to business
+      // Send notification email to business (styled HTML)
       try {
-        const businessEmailData = {
-          name: customerName || 'Visumkund',
-          email: 'info@doxvl.se,info@visumpartner.se',
-          subject: `Ny visumbeställning ${createdOrderId}: ${answers.destinationCountry}`,
-          message: `
-Ny visumbeställning mottagen!
-
-Order: ${createdOrderId}
-Produkt: ${answers.selectedVisaProduct.name}
-Typ: ${isEVisa ? 'E-Visum' : 'Sticker Visum'}
-
-Destination: ${answers.destinationCountry}
-Nationalitet: ${answers.nationality}
-Giltighet: ${answers.selectedVisaProduct.validityDays} dagar
-Inresor: ${answers.selectedVisaProduct.entryType === 'single' ? 'Single entry' : answers.selectedVisaProduct.entryType === 'double' ? 'Double entry' : 'Multiple entry'}
-
-Avresa: ${answers.departureDate}
-Hemresa: ${answers.returnDateVisa}
-Behöver visum senast: ${answers.passportNeededBy}
-
-Kund: ${customerName}
-E-post: ${customerEmail}
-Telefon: ${customerPhone}
-
-Serviceavgift: ${answers.selectedVisaProduct.serviceFee || 0} kr
-Ambassadavgift: ${answers.selectedVisaProduct.embassyFee || 0} kr
-Totalt: ${answers.selectedVisaProduct.price} kr
-          `.trim(),
-          createdAt: Timestamp.now(),
-          status: 'queued'
-        };
-        
-        const emailsRef = collection(db, 'customerEmails');
-        await addDoc(emailsRef, businessEmailData);
+        if (createdOrder) {
+          const businessEmailHtml = generateVisaBusinessNotificationEmail({
+            order: createdOrder,
+            locale: 'sv'
+          });
+          
+          const businessEmailData = {
+            name: customerName || 'Visumkund',
+            email: 'info@doxvl.se,info@visumpartner.se',
+            subject: `🛂 Ny visumbeställning ${createdOrderId}: ${answers.destinationCountry}`,
+            message: businessEmailHtml,
+            orderId: createdOrderId,
+            createdAt: Timestamp.now(),
+            status: 'queued'
+          };
+          
+          const emailsRef = collection(db, 'customerEmails');
+          await addDoc(emailsRef, businessEmailData);
+        }
       } catch (emailError) {
         // Don't fail the order if email fails
       }
@@ -289,21 +316,22 @@ Totalt: ${answers.selectedVisaProduct.price} kr
       ],
     },
     {
-      title: t('visaOrder.step10.visaProduct', 'Visumprodukt'),
+      title: locale === 'en' ? 'Visa Product' : 'Visumprodukt',
       step: 3,
       items: [
-        { label: t('visaOrder.summary.product', 'Produkt'), value: answers.selectedVisaProduct?.name },
-        { label: t('visaOrder.summary.visaType', 'Visumtyp'), value: answers.selectedVisaProduct?.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa' },
-        { label: t('visaOrder.summary.entryType', 'Inresor'), value: answers.selectedVisaProduct?.entryType === 'single' 
-          ? (locale === 'sv' ? 'Enkelinresa' : 'Single entry') 
+        { label: locale === 'en' ? 'Product' : 'Produkt', value: locale === 'en' && answers.selectedVisaProduct?.nameEn ? answers.selectedVisaProduct.nameEn : answers.selectedVisaProduct?.name },
+        { label: locale === 'en' ? 'Visa Type' : 'Visumtyp', value: answers.selectedVisaProduct?.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa' },
+        { label: locale === 'en' ? 'Entries' : 'Inresor', value: answers.selectedVisaProduct?.entryType === 'single' 
+          ? (locale === 'en' ? 'Single entry' : 'Enkelinresa') 
           : answers.selectedVisaProduct?.entryType === 'double' 
-            ? (locale === 'sv' ? 'Dubbelinresa' : 'Double entry') 
-            : (locale === 'sv' ? 'Flerresor' : 'Multiple entry') },
-        { label: t('visaOrder.summary.validity', 'Giltighet'), value: answers.selectedVisaProduct ? `${answers.selectedVisaProduct.validityDays} ${locale === 'sv' ? 'dagar' : 'days'}` : undefined },
-        { label: t('visaOrder.summary.serviceFee', 'Serviceavgift'), value: answers.selectedVisaProduct?.serviceFee ? `${answers.selectedVisaProduct.serviceFee.toLocaleString()} kr` : undefined },
-        { label: t('visaOrder.summary.embassyFee', 'Ambassadavgift'), value: answers.selectedVisaProduct?.embassyFee ? `${answers.selectedVisaProduct.embassyFee.toLocaleString()} kr` : undefined },
-        ...(answers.expressRequired && answers.selectedVisaProduct?.expressPrice ? [{ label: t('visaOrder.summary.expressFee', 'Expressavgift'), value: `+${answers.selectedVisaProduct.expressPrice.toLocaleString()} kr` }] : []),
-        { label: t('visaOrder.summary.totalPrice', 'Totalt'), value: answers.selectedVisaProduct ? `${(answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0)).toLocaleString()} kr` : undefined },
+            ? (locale === 'en' ? 'Double entry' : 'Dubbelinresa') 
+            : (locale === 'en' ? 'Multiple entry' : 'Flerresor') },
+        { label: locale === 'en' ? 'Validity' : 'Giltighet', value: answers.selectedVisaProduct ? `${answers.selectedVisaProduct.validityDays} ${locale === 'en' ? 'days' : 'dagar'}` : undefined },
+        { label: locale === 'en' ? 'Service fee' : 'Serviceavgift', value: answers.selectedVisaProduct?.serviceFee ? `${answers.selectedVisaProduct.serviceFee.toLocaleString()} kr` : undefined },
+        { label: locale === 'en' ? 'Embassy fee' : 'Ambassadavgift', value: answers.selectedVisaProduct?.embassyFee ? `${answers.selectedVisaProduct.embassyFee.toLocaleString()} kr` : undefined },
+        ...(answers.expressRequired && answers.selectedVisaProduct?.expressPrice ? [{ label: locale === 'en' ? 'Express fee' : 'Expressavgift', value: `+${answers.selectedVisaProduct.expressPrice.toLocaleString()} kr` }] : []),
+        ...(answers.urgentRequired && answers.selectedVisaProduct?.urgentPrice ? [{ label: locale === 'en' ? 'Urgent fee' : 'Brådskande avgift', value: `+${answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr` }] : []),
+        { label: locale === 'en' ? 'Total' : 'Totalt', value: answers.selectedVisaProduct ? `${(answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0)).toLocaleString()} kr` : undefined },
       ],
     },
     {
@@ -327,7 +355,15 @@ Totalt: ${answers.selectedVisaProduct.price} kr
       step: 6,
       items: [
         { label: t('visaOrder.step7.title', 'Hämtning'), value: answers.pickupService ? t('visaOrder.step7.yesPickup.title', 'Ja, hämta mitt pass') : t('visaOrder.step7.noPickup.title', 'Nej, jag skickar själv') },
-        { label: t('visaOrder.step8.title', 'Retur'), value: answers.returnService || '-' },
+        { label: t('visaOrder.step8.title', 'Retur'), value: (() => {
+          if (!answers.returnService) return '-';
+          if (answers.returnService === 'own-delivery') return locale === 'en' ? 'Own return shipping' : 'Egen returfrakt';
+          if (answers.returnService === 'office-pickup') return locale === 'en' ? 'Office pickup' : 'Hämtning på kontor';
+          if (answers.returnService === 'dhl-sweden') return locale === 'en' ? 'DHL Express Sweden' : 'DHL Express Sverige';
+          if (answers.returnService === 'dhl-europe') return locale === 'en' ? 'DHL Express Europe' : 'DHL Express Europa';
+          if (answers.returnService === 'dhl-world') return locale === 'en' ? 'DHL Express Worldwide' : 'DHL Express Världen';
+          return answers.returnService;
+        })() },
       ],
     });
 
@@ -352,13 +388,13 @@ Totalt: ${answers.selectedVisaProduct.price} kr
   
   if (customerName || customerEmail) {
     sections.push({
-      title: t('visaOrder.step10.customerInfo', 'Kontaktuppgifter'),
+      title: locale === 'en' ? 'Contact Information' : 'Kontaktuppgifter',
       step: 9,
       items: [
-        { label: t('visaOrder.summary.name', 'Namn'), value: customerName },
-        { label: t('visaOrder.summary.email', 'E-post'), value: customerEmail },
-        { label: t('visaOrder.summary.phone', 'Telefon'), value: customerPhone },
-        ...(answers.billingInfo?.street ? [{ label: t('visaOrder.summary.address', 'Adress'), value: `${answers.billingInfo.street}, ${answers.billingInfo.postalCode} ${answers.billingInfo.city}` }] : []),
+        { label: locale === 'en' ? 'Name' : 'Namn', value: customerName },
+        { label: locale === 'en' ? 'Email' : 'E-post', value: customerEmail },
+        { label: locale === 'en' ? 'Phone' : 'Telefon', value: customerPhone },
+        ...(answers.billingInfo?.street ? [{ label: locale === 'en' ? 'Address' : 'Adress', value: `${answers.billingInfo.street}, ${answers.billingInfo.postalCode} ${answers.billingInfo.city}` }] : []),
       ],
     });
   }

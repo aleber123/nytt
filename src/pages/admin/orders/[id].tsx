@@ -5249,6 +5249,44 @@ function AdminOrderDetailPage() {
                 {/* Services Tab */}
                 {activeTab === 'services' && (
                   <div className="space-y-6">
+                    {/* Document Quantity Section */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <h3 className="text-lg font-medium mb-4">Document Quantity</h3>
+                      <div className="flex items-center gap-4">
+                        <label className="text-sm text-gray-600">Number of documents:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          defaultValue={order.quantity}
+                          className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-md font-medium text-gray-900 text-center"
+                          onBlur={async (e) => {
+                            const newQuantity = parseInt(e.target.value, 10);
+                            if (newQuantity && newQuantity !== order.quantity && newQuantity > 0) {
+                              const orderId = router.query.id as string;
+                              try {
+                                await adminUpdateOrder(orderId, { quantity: newQuantity });
+                                setOrder(prev => prev ? { ...prev, quantity: newQuantity } : null);
+                                toast.success(`Quantity updated to ${newQuantity}`);
+                              } catch (err: any) {
+                                toast.error(`Failed to update: ${err.message || 'Unknown error'}`);
+                                e.target.value = String(order.quantity);
+                              }
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              (e.target as HTMLInputElement).blur();
+                            }
+                          }}
+                        />
+                        <span className="text-sm text-gray-500">document(s)</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Change this if the customer sent a different number of documents than originally ordered.
+                        Price adjustments can be made in the Price tab.
+                      </p>
+                    </div>
+
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                       <h3 className="text-lg font-medium mb-4">Order Services</h3>
                       {(() => {
