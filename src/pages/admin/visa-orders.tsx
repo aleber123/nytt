@@ -488,7 +488,19 @@ function AdminVisaOrdersPage() {
                     </tr>
                   ) : (
                     filteredOrders.map((order) => (
-                      <tr key={order.id} className={`hover:bg-gray-50 ${selectedOrderIds.includes(order.id!) ? 'bg-blue-50' : ''}`}>
+                      <tr 
+                                        key={order.id} 
+                                        className={`hover:bg-gray-50 cursor-pointer ${selectedOrderIds.includes(order.id!) ? 'bg-blue-50' : ''}`}
+                                        onClick={(e) => {
+                                          // Don't navigate if clicking on checkbox or link
+                                          if ((e.target as HTMLElement).tagName === 'INPUT' || 
+                                              (e.target as HTMLElement).tagName === 'A' ||
+                                              (e.target as HTMLElement).closest('a')) {
+                                            return;
+                                          }
+                                          window.location.href = `/admin/visa-orders/${order.id}`;
+                                        }}
+                                      >
                         <td className="px-4 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"

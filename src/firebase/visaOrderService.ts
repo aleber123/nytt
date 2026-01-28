@@ -18,7 +18,7 @@ import {
   setDoc,
   getCountFromServer
 } from 'firebase/firestore';
-import { db, auth } from './config';
+import { getFirebaseDb, getFirebaseAuth } from './config';
 import type { VisaCategory } from './visaRequirementsService';
 
 // Visa Order interface
@@ -401,6 +401,8 @@ function generateConfirmationToken(): string {
 // Get the next visa order number using counter document (avoids getCountFromServer permission issues)
 async function getNextVisaOrderNumber(): Promise<number> {
   try {
+    const db = getFirebaseDb();
+    if (!db) throw new Error('Firebase not initialized');
     const counterRef = doc(db, COUNTERS_COLLECTION, 'visaOrders');
     const counterSnap = await getDoc(counterRef);
     
@@ -434,7 +436,10 @@ export const createVisaOrder = async (
   orderData: Omit<VisaOrder, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'userId' | 'orderNumber' | 'orderType' | 'processingSteps'>
 ): Promise<{ orderId: string; token: string }> => {
   try {
-    const currentUser = auth.currentUser;
+    const db = getFirebaseDb();
+    const auth = getFirebaseAuth();
+    if (!db) throw new Error('Firebase not initialized');
+    const currentUser = auth?.currentUser;
     const nextNumber = await getNextVisaOrderNumber();
     const formattedOrderId = formatVisaOrderId(nextNumber);
     const confirmationToken = generateConfirmationToken();
@@ -464,8 +469,8 @@ export const createVisaOrder = async (
       }
     });
 
-    // Save the order
-    await setDoc(doc(db, VISA_ORDERS_COLLECTION, formattedOrderId), orderWithTimestamps);
+    // Save the order (db is already defined at the start of this function)
+    await setDoc(doc(db!, VISA_ORDERS_COLLECTION, formattedOrderId), orderWithTimestamps);
     
     // Create public confirmation document with token for secure access
     const confirmationData: Record<string, any> = {
@@ -500,7 +505,7 @@ export const createVisaOrder = async (
       confirmationData.returnAddress = orderData.returnAddress;
     }
     
-    await setDoc(doc(db, ORDER_CONFIRMATIONS_COLLECTION, confirmationToken), confirmationData);
+    await setDoc(doc(db!, ORDER_CONFIRMATIONS_COLLECTION, confirmationToken), confirmationData);
     
     return { orderId: formattedOrderId, token: confirmationToken };
   } catch (error) {
@@ -513,6 +518,8 @@ export const getVisaOrderConfirmationByToken = async (token: string): Promise<an
   try {
     if (!token) return null;
     
+    const db = getFirebaseDb();
+    if (!db) return null;
     const confirmationRef = doc(db, ORDER_CONFIRMATIONS_COLLECTION, token);
     const confirmationSnap = await getDoc(confirmationRef);
     
@@ -531,6 +538,8 @@ export const getVisaOrderByToken = async (token: string): Promise<VisaOrder | nu
   try {
     if (!token) return null;
     
+    const db = getFirebaseDb();
+    if (!db) return null;
     // First get the confirmation to find the orderId
     const confirmationRef = doc(db, ORDER_CONFIRMATIONS_COLLECTION, token);
     const confirmationSnap = await getDoc(confirmationRef);
@@ -552,6 +561,8 @@ export const getVisaOrderByToken = async (token: string): Promise<VisaOrder | nu
 // Get all visa orders
 export const getAllVisaOrders = async (): Promise<VisaOrder[]> => {
   try {
+    const db = getFirebaseDb();
+    if (!db) return [];
     const ordersQuery = query(
       collection(db, VISA_ORDERS_COLLECTION),
       orderBy('createdAt', 'desc')
@@ -571,6 +582,8 @@ export const getAllVisaOrders = async (): Promise<VisaOrder[]> => {
 // Get a single visa order by ID
 export const getVisaOrder = async (orderId: string): Promise<VisaOrder | null> => {
   try {
+    const db = getFirebaseDb();
+    if (!db) return null;
     const docRef = doc(db, VISA_ORDERS_COLLECTION, orderId);
     const docSnap = await getDoc(docRef);
     
@@ -589,6 +602,8 @@ export const getVisaOrder = async (orderId: string): Promise<VisaOrder | null> =
 // Update a visa order
 export const updateVisaOrder = async (orderId: string, updates: Partial<VisaOrder>): Promise<void> => {
   try {
+    const db = getFirebaseDb();
+    if (!db) throw new Error('Firebase not initialized');
     const docRef = doc(db, VISA_ORDERS_COLLECTION, orderId);
     await updateDoc(docRef, {
       ...updates,
@@ -647,6 +662,8 @@ export const updateVisaProcessingStep = async (
 // Get visa orders by customer email
 export const getVisaOrdersByEmail = async (email: string): Promise<VisaOrder[]> => {
   try {
+    const db = getFirebaseDb();
+    if (!db) return [];
     const ordersQuery = query(
       collection(db, VISA_ORDERS_COLLECTION),
       where('customerInfo.email', '==', email),
@@ -667,6 +684,8 @@ export const getVisaOrdersByEmail = async (email: string): Promise<VisaOrder[]> 
 // Get visa orders by status
 export const getVisaOrdersByStatus = async (status: VisaOrder['status']): Promise<VisaOrder[]> => {
   try {
+    const db = getFirebaseDb();
+    if (!db) return [];
     const ordersQuery = query(
       collection(db, VISA_ORDERS_COLLECTION),
       where('status', '==', status),
@@ -687,6 +706,8 @@ export const getVisaOrdersByStatus = async (status: VisaOrder['status']): Promis
 // Delete a visa order (admin only)
 export const deleteVisaOrder = async (orderId: string): Promise<void> => {
   try {
+    const db = getFirebaseDb();
+    if (!db) throw new Error('Firebase not initialized');
     await deleteDoc(doc(db, VISA_ORDERS_COLLECTION, orderId));
   } catch (error) {
     throw error;

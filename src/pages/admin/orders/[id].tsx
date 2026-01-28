@@ -4410,6 +4410,8 @@ function AdminOrderDetailPage() {
         return 'bg-blue-100 text-blue-800';
       case 'received':
         return 'bg-purple-100 text-purple-800';
+      case 'waiting-for-documents':
+        return 'bg-orange-100 text-orange-800';
       case 'processing':
         return 'bg-amber-100 text-amber-800';
       case 'submitted':
@@ -4510,6 +4512,7 @@ function AdminOrderDetailPage() {
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeColor(order.status)}`}>
                       {order.status === 'pending' ? 'Pending' :
                        order.status === 'received' ? 'Received' :
+                       order.status === 'waiting-for-documents' ? 'Waiting for Documents' :
                        order.status === 'processing' ? 'Processing' :
                        order.status === 'submitted' ? 'Submitted' :
                        order.status === 'action-required' ? 'Action Required' :
@@ -4528,6 +4531,7 @@ function AdminOrderDetailPage() {
                     >
                       <option value="pending">Pending</option>
                       <option value="received">Received</option>
+                      <option value="waiting-for-documents">Waiting for Documents</option>
                       <option value="processing">Processing</option>
                       <option value="submitted">Submitted</option>
                       <option value="action-required">Action Required</option>
@@ -4904,121 +4908,44 @@ function AdminOrderDetailPage() {
 
                           {/* Customer Info Sidebar */}
                           <div className="space-y-6">
-                            {/* Customer Information - Contact details only */}
+                            {/* Customer Information - Read-only display */}
                             <div className="bg-white border border-gray-200 rounded-lg p-6">
                               <h3 className="text-lg font-medium mb-4">Customer information</h3>
-                              <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">First name</label>
-                                    <input
-                                      type="text"
-                                      value={editedCustomer.firstName}
-                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, firstName: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Last name</label>
-                                    <input
-                                      type="text"
-                                      value={editedCustomer.lastName}
-                                      onChange={(e) => setEditedCustomer({ ...editedCustomer, lastName: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
+                              <div className="space-y-3 text-sm">
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Name</label>
+                                  <div className="font-medium text-gray-900">
+                                    {order.customerInfo?.firstName} {order.customerInfo?.lastName}
                                   </div>
                                 </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Company name</label>
-                                  <input
-                                    type="text"
-                                    value={editedCustomer.companyName}
-                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, companyName: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Email</label>
-                                  <input
-                                    type="email"
-                                    value={editedCustomer.email}
-                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, email: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
-                                  <input
-                                    type="tel"
-                                    value={editedCustomer.phone}
-                                    onChange={(e) => setEditedCustomer({ ...editedCustomer, phone: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                {order.pickupService && (
-                                  <div className="mt-4 border-t border-gray-200 pt-3 space-y-2">
-                                    <p className="text-sm font-medium text-gray-700">Pickup address</p>
-                                    <input
-                                      type="text"
-                                      placeholder="Company name"
-                                      value={editedPickupAddress.company}
-                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, company: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="Contact name"
-                                      value={editedPickupAddress.name}
-                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, name: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="Street address"
-                                      value={editedPickupAddress.street}
-                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, street: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <input
-                                        type="text"
-                                        placeholder="Postal code"
-                                        value={editedPickupAddress.postalCode}
-                                        onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, postalCode: e.target.value })}
-                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
-                                      />
-                                      <input
-                                        type="text"
-                                        placeholder="City"
-                                        value={editedPickupAddress.city}
-                                        onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, city: e.target.value })}
-                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
-                                      />
-                                    </div>
-                                    <input
-                                      type="text"
-                                      placeholder="Country"
-                                      value={editedPickupAddress.country}
-                                      onChange={(e) => setEditedPickupAddress({ ...editedPickupAddress, country: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
+                                {order.customerInfo?.companyName && (
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Company</label>
+                                    <div className="font-medium text-gray-900">{order.customerInfo.companyName}</div>
                                   </div>
                                 )}
-
-                                <div className="mt-4 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={saveCustomerInfo}
-                                    disabled={savingCustomerInfo}
-                                    className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {savingCustomerInfo ? 'Saving...' : 'Save customer info'}
-                                  </button>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Email</label>
+                                  <a href={`mailto:${order.customerInfo?.email}`} className="text-blue-600 hover:underline">
+                                    {order.customerInfo?.email}
+                                  </a>
                                 </div>
+                                <div>
+                                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
+                                  <a href={`tel:${order.customerInfo?.phone}`} className="text-blue-600 hover:underline">
+                                    {order.customerInfo?.phone || '-'}
+                                  </a>
+                                </div>
+                                {order.customerInfo?.address && (
+                                  <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Address</label>
+                                    <div className="text-gray-900">
+                                      {order.customerInfo.address}<br />
+                                      {order.customerInfo.postalCode} {order.customerInfo.city}<br />
+                                      {order.customerInfo.country}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -7018,10 +6945,7 @@ function AdminOrderDetailPage() {
                                   <div className="border-t pt-4">
                                     <p className="text-sm text-gray-600 mb-3">
                                       Download the Chamber of Commerce form and fill it in using Adobe Acrobat. 
-                                      <strong className="text-amber-600"> Print 2 copies.</strong>
-                                    </p>
-                                    <p className="text-xs text-gray-500 mb-4">
-                                      Fill in: Document type, Number (Original/Copy), Date
+                                      <strong className="text-amber-600 bg-yellow-100 px-1"> Attach 1 copy of the original document.</strong>
                                     </p>
                                     
                                     <div className="flex items-center space-x-2">

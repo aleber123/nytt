@@ -44,7 +44,7 @@ interface Order {
   };
   deliveryMethod: string;
   paymentMethod: string;
-  status: 'pending' | 'received' | 'processing' | 'submitted' | 'action-required' | 'ready-for-return' | 'completed' | 'cancelled';
+  status: 'pending' | 'received' | 'waiting-for-documents' | 'processing' | 'submitted' | 'action-required' | 'ready-for-return' | 'completed' | 'cancelled';
   totalPrice: number;
   createdAt?: any;
   updatedAt?: any;
@@ -58,8 +58,8 @@ interface Order {
 }
 import { toast } from 'react-hot-toast';
 
-const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending', 'received', 'processing', 'submitted'];
-const ALL_STATUSES: Order['status'][] = ['pending', 'received', 'processing', 'submitted', 'action-required', 'ready-for-return', 'completed', 'cancelled'];
+const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted'];
+const ALL_STATUSES: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted', 'action-required', 'ready-for-return', 'completed', 'cancelled'];
 
 function AdminOrdersPage() {
   const { t } = useTranslation('common');
@@ -259,6 +259,8 @@ function AdminOrdersPage() {
         return 'bg-blue-100 text-blue-800';
       case 'received':
         return 'bg-purple-100 text-purple-800';
+      case 'waiting-for-documents':
+        return 'bg-orange-100 text-orange-800';
       case 'processing':
         return 'bg-amber-100 text-amber-800';
       case 'submitted':

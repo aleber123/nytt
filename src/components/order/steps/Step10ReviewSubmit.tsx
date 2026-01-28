@@ -1095,7 +1095,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                         totalPrice: pricingResult.totalPrice,
                         documentSource: answers.documentSource as 'upload' | 'original',
                         returnService: returfraktText,
-                        locale: locale
+                        locale: locale,
+                        invoiceReference: answers.invoiceReference || undefined
                       });
 
                       // Use same format as original documents flow - message field contains HTML

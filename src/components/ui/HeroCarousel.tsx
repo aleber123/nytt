@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -16,6 +16,8 @@ const HeroCarousel: React.FC = () => {
   const { t } = useTranslation('common');
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   const slides: HeroSlide[] = [
     {
@@ -48,12 +50,39 @@ const HeroCarousel: React.FC = () => {
     setCurrentSlide(index);
   };
 
+  // Touch handlers for swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const diff = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+    
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0) {
+        nextSlide(); // Swipe left = next
+      } else {
+        prevSlide(); // Swipe right = prev
+      }
+    }
+    
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   useEffect(() => {
     if (isPaused) return;
 
     const interval = setInterval(() => {
       nextSlide();
-    }, 6000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [isPaused, nextSlide]);
@@ -62,9 +91,12 @@ const HeroCarousel: React.FC = () => {
 
   return (
     <section 
-      className="relative overflow-hidden bg-cover bg-center bg-no-repeat"
+      className="relative overflow-hidden bg-cover bg-center bg-no-repeat touch-pan-y"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       aria-roledescription="carousel"
       aria-label={t('heroCarousel.ariaLabel', 'Tjänster karusell')}
     >
@@ -109,21 +141,21 @@ const HeroCarousel: React.FC = () => {
           </div>
         </div>
 
-        {/* Navigation arrows */}
+        {/* Navigation arrows - hidden on mobile, visible on md+ */}
         <button
           onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+          className="hidden md:block absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 p-2 lg:p-3 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white"
           aria-label={t('heroCarousel.prevSlide', 'Föregående')}
         >
-          <ChevronLeftIcon className="h-6 w-6" />
+          <ChevronLeftIcon className="h-6 w-6 lg:h-8 lg:w-8" />
         </button>
         
         <button
           onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+          className="hidden md:block absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 p-2 lg:p-3 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white"
           aria-label={t('heroCarousel.nextSlide', 'Nästa')}
         >
-          <ChevronRightIcon className="h-6 w-6" />
+          <ChevronRightIcon className="h-6 w-6 lg:h-8 lg:w-8" />
         </button>
 
         {/* Dots indicator */}

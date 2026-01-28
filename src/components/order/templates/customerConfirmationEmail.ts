@@ -15,6 +15,7 @@ interface CustomerEmailParams {
   documentSource: 'upload' | 'original';
   returnService: string;
   locale: string;
+  invoiceReference?: string;
 }
 
 export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): string => {
@@ -29,7 +30,8 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
     totalPrice,
     documentSource,
     returnService,
-    locale
+    locale,
+    invoiceReference
   } = params;
 
   const isEnglish = locale === 'en';
@@ -138,6 +140,10 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
             <span class="detail-label">Selected services:</span>
             <span class="detail-value">${services}</span>
           </div>
+          ${invoiceReference ? `<div class="detail-row">
+            <span class="detail-label">Your reference:</span>
+            <span class="detail-value">${invoiceReference}</span>
+          </div>` : ''}
         </div>
       </div>
 
@@ -263,6 +269,10 @@ export const generateCustomerConfirmationEmail = (params: CustomerEmailParams): 
             <span class="detail-label">Valda tjänster:</span>
             <span class="detail-value">${services}</span>
           </div>
+          ${invoiceReference ? `<div class="detail-row">
+            <span class="detail-label">Er referens:</span>
+            <span class="detail-value">${invoiceReference}</span>
+          </div>` : ''}
         </div>
       </div>
 
