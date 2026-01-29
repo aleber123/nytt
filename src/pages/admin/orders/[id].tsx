@@ -720,6 +720,8 @@ function AdminOrderDetailPage() {
       // Check if notarization or apostille is needed (they share the same cover letter)
       const hasNotarization = orderData.services.includes('notarization');
       const hasApostille = orderData.services.includes('apostille');
+      const hasChamber = orderData.services.includes('chamber');
+      const hasEmbassy = orderData.services.includes('embassy');
       
       // Print cover letter for Notarius Publicus (covers both notarization and apostille)
       if (hasNotarization || hasApostille) {
@@ -764,7 +766,14 @@ function AdminOrderDetailPage() {
       }
 
       // Chamber legalization
-      if (orderData.services.includes('chamber')) {
+      if (hasChamber) {
+        // Copy of document before Chamber submission
+        steps.push({
+          id: 'copy_of_document_chamber',
+          name: '📄 Copy of document (Chamber)',
+          description: 'Make a copy of the document for Chamber of Commerce submission',
+          status: 'pending'
+        });
         steps.push({
           id: 'print_chamber_cover_letter',
           name: '✉️ Print Chamber of Commerce cover letter',
@@ -808,7 +817,7 @@ function AdminOrderDetailPage() {
       }
 
       // Embassy legalization (usually after UD)
-      if (orderData.services.includes('embassy')) {
+      if (hasEmbassy) {
         const embassyCountry = getCountryInfo(orderData.country);
         
         // Add price confirmation step if order has unconfirmed embassy prices
@@ -820,6 +829,14 @@ function AdminOrderDetailPage() {
             status: 'pending'
           });
         }
+        
+        // Copy of document before Embassy submission
+        steps.push({
+          id: 'copy_of_document_embassy',
+          name: '📄 Copy of document (Embassy)',
+          description: `Make a copy of the document for ${embassyCountry.name || embassyCountry.code || orderData.country} embassy submission`,
+          status: 'pending'
+        });
         
         steps.push({
           id: 'print_embassy_cover_letter',

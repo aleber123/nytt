@@ -6,6 +6,8 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { getAllOrders, updateOrder } from '@/firebase/orderService';
 import type { Order } from '@/firebase/orderService';
+import { getAllVisaOrders, updateVisaOrder } from '@/firebase/visaOrderService';
+import type { VisaOrder } from '@/firebase/visaOrderService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import { saveDriverDailyReport, getDriverMonthlySummary, type DriverMonthlySummary } from '@/firebase/driverReportService';
 import { jsPDF } from 'jspdf';
@@ -35,6 +37,7 @@ interface DriverTask {
   address?: string;
   notes?: string;
   stepId: string; // Add stepId to track which processing step this corresponds to
+  orderType: 'legalization' | 'visa'; // Track order type for linking
 }
 
 function DriverDashboardPage() {
@@ -623,7 +626,8 @@ function DriverDashboardPage() {
                     status: step.status === 'completed' ? 'completed' : step.status === 'in_progress' ? 'in_progress' : 'pending',
                     address,
                     notes: step.notes,
-                    stepId: step.id // Include the actual step ID from processingSteps
+                    stepId: step.id,
+                    orderType: 'legalization'
                   });
                 }
               } catch (dateError) {
@@ -642,6 +646,93 @@ function DriverDashboardPage() {
           }
         }
       }
+
+      // ========== VISA ORDERS ==========
+      // Fetch visa orders and create driver tasks for embassy visits
+      const visaOrders = (await getAllVisaOrders()).filter(
+        (order) => order.status === 'pending' || order.status === 'received' || order.status === 'processing' || order.status === 'submitted-to-embassy'
+      );
+
+      visaOrders.forEach((visaOrder: VisaOrder) => {
+        const processingSteps = visaOrder.processingSteps;
+        if (!processingSteps || !Array.isArray(processingSteps)) return;
+
+        // Get destination country info for embassy name
+        const destCountry = ALL_COUNTRIES.find(c => 
+          c.code === visaOrder.destinationCountryCode?.toUpperCase() ||
+          c.name.toLowerCase() === visaOrder.destinationCountry?.toLowerCase()
+        );
+        const embassyName = destCountry?.name || visaOrder.destinationCountry || 'Unknown';
+
+        processingSteps.forEach((step: ProcessingStep) => {
+          let taskType: 'pickup' | 'delivery' | null = null;
+          let authority = '';
+          let address = '';
+
+          // Embassy delivery (drop off passport)
+          if (step.id === 'embassy_delivery') {
+            taskType = 'delivery';
+            authority = `${embassyName} Embassy (Visa)`;
+            address = `${embassyName} Embassy`;
+          }
+          // Embassy pickup (pick up passport with visa)
+          else if (step.id === 'embassy_pickup') {
+            taskType = 'pickup';
+            authority = `${embassyName} Embassy (Visa)`;
+            address = `${embassyName} Embassy`;
+          }
+          // Stockholm courier pickup for visa
+          else if (step.id === 'pickup_booking' && visaOrder.pickupService) {
+            taskType = 'pickup';
+            authority = 'Kundadress (Visa)';
+            const pickupAddr = (visaOrder as any).pickupAddress || {};
+            address = [pickupAddr.street, pickupAddr.postalCode, pickupAddr.city].filter(Boolean).join(', ');
+          }
+
+          // Only add tasks that have dates and are not completed
+          if (taskType && step.status !== 'completed' && step.status !== 'skipped') {
+            try {
+              // Use expectedCompletionDate or submittedAt if available, otherwise use today
+              let taskDate = selectedDate; // Default to selected date
+              if (step.submittedAt) {
+                taskDate = new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0];
+              } else if (step.expectedCompletionDate) {
+                taskDate = new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0];
+              }
+
+              // Only show tasks for the selected date
+              if (taskDate === selectedDate) {
+                // Get customer name from visa order
+                const extVisaOrder = visaOrder as any;
+                const travelerName = extVisaOrder.travelers?.[0] 
+                  ? `${extVisaOrder.travelers[0].firstName || ''} ${extVisaOrder.travelers[0].lastName || ''}`.trim()
+                  : '';
+                const customerName = travelerName || 
+                  `${visaOrder.customerInfo?.firstName || ''} ${visaOrder.customerInfo?.lastName || ''}`.trim() || 
+                  'Unknown customer';
+
+                driverTasks.push({
+                  orderId: visaOrder.id || '',
+                  orderNumber: visaOrder.orderNumber || visaOrder.id || '',
+                  customerName,
+                  stepName: `🛂 ${step.name || 'Visa task'}`,
+                  stepDescription: step.description || 'No description',
+                  authority,
+                  date: taskDate,
+                  type: taskType,
+                  status: step.status === 'in_progress' ? 'in_progress' : 'pending',
+                  address,
+                  notes: step.notes,
+                  stepId: step.id,
+                  orderType: 'visa'
+                });
+              }
+            } catch (dateError) {
+              // Skip tasks with invalid dates
+            }
+          }
+        });
+      });
 
       setTasks(driverTasks);
     } catch (error) {
@@ -1221,7 +1312,7 @@ function DriverDashboardPage() {
                                         {/* Actions */}
                                         <div className="w-32 text-right">
                                           <a
-                                            href={`/admin/orders/${task.orderId}`}
+                                            href={task.orderType === 'visa' ? `/admin/visa-orders/${task.orderId}` : `/admin/orders/${task.orderId}`}
                                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
                                           >
                                             View
@@ -1313,7 +1404,7 @@ function DriverDashboardPage() {
                                         {/* Actions */}
                                         <div className="w-32 text-right">
                                           <a
-                                            href={`/admin/orders/${task.orderId}`}
+                                            href={task.orderType === 'visa' ? `/admin/visa-orders/${task.orderId}` : `/admin/orders/${task.orderId}`}
                                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
                                           >
                                             View
