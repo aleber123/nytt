@@ -127,12 +127,12 @@ export default function AngolaVisumNorskPage() {
               fra søknad til godkjent visum. Kontakt oss for personlig rådgivning.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link href="/kontakt" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
+              <Link href="/visum/bestall?destination=AO" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
+                Bestill visum til Angola
+              </Link>
+              <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                 Kontakt oss for tilbud
               </Link>
-              <a href="tel:+46812345678" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
-                Ring oss
-              </a>
             </div>
           </div>
         </section>
@@ -395,11 +395,11 @@ export default function AngolaVisumNorskPage() {
               Kontakt oss i dag for personlig rådgivning og et tilbud. Vi hjelper deg gjennom hele visumprosessen.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/kontakt" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
-                Kontakt oss
+              <Link href="/visum/bestall?destination=AO" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
+                Bestill visum nå
               </Link>
-              <Link href="/visum/angola" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
-                Svenska versionen
+              <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
+                Kontakt oss
               </Link>
             </div>
           </div>

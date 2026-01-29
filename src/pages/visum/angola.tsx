@@ -124,12 +124,12 @@ export default function AngolaVisumPage() {
               från ansökan till godkänt visum. Kontakta oss för personlig rådgivning.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link href="/kontakt" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
+              <Link href="/visum/bestall?destination=AO" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
+                Beställ visum till Angola
+              </Link>
+              <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                 Kontakta oss för offert
               </Link>
-              <a href="tel:+46812345678" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
-                Ring oss
-              </a>
             </div>
           </div>
         </section>
@@ -379,11 +379,11 @@ export default function AngolaVisumPage() {
               Kontakta oss idag för personlig rådgivning och en offert. Vi hjälper dig genom hela visumprocessen.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/kontakt" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
-                Kontakta oss
+              <Link href="/visum/bestall?destination=AO" className="bg-white hover:bg-gray-100 text-[#CE1126] font-semibold px-8 py-4 rounded-lg transition-colors">
+                Beställ visum nu
               </Link>
-              <Link href="/legalisering/angola" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
-                Behöver du legalisering?
+              <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-[#CE1126] text-white font-semibold px-8 py-4 rounded-lg transition-colors">
+                Kontakta oss
               </Link>
             </div>
           </div>
