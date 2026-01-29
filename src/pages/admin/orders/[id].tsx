@@ -1492,6 +1492,10 @@ function AdminOrderDetailPage() {
             const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer';
             const orderNumber = order.orderNumber || orderId;
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
+            // Get destination country name
+            const destinationCountry = ALL_COUNTRIES.find(c => c.code === order.country?.toUpperCase());
+            const destinationCountryNameEn = destinationCountry?.nameEn || destinationCountry?.name || order.country || '';
+            const destinationCountryNameSv = destinationCountry?.name || order.country || '';
             const messageHtml = emailLocale === 'en'
               ? `
 <!DOCTYPE html>
@@ -1567,6 +1571,12 @@ function AdminOrderDetailPage() {
             <span class="detail-label">Date:</span>
             <span class="detail-value">${new Date().toLocaleDateString('en-GB')}</span>
           </div>
+          ${destinationCountryNameEn ? `
+          <div class="detail-row">
+            <span class="detail-label">Destination country:</span>
+            <span class="detail-value">${destinationCountryNameEn}</span>
+          </div>
+          ` : ''}
           ${order.invoiceReference ? `
           <div class="detail-row">
             <span class="detail-label">Your reference:</span>
@@ -1680,6 +1690,12 @@ function AdminOrderDetailPage() {
             <span class="detail-label">Datum:</span>
             <span class="detail-value">${new Date().toLocaleDateString('sv-SE')}</span>
           </div>
+          ${destinationCountryNameSv ? `
+          <div class="detail-row">
+            <span class="detail-label">Destinationsland:</span>
+            <span class="detail-value">${destinationCountryNameSv}</span>
+          </div>
+          ` : ''}
           ${order.invoiceReference ? `
           <div class="detail-row">
             <span class="detail-label">Er referens:</span>
@@ -2087,6 +2103,7 @@ function AdminOrderDetailPage() {
 
       <div class="order-summary">
         <div class="order-number">Order number: #${orderNumber}</div>
+        ${order.invoiceReference ? `<p style="margin-top:8px; font-size:14px;"><strong>Your reference:</strong> ${order.invoiceReference}</p>` : ''}
       </div>
 
       ${pricesHtmlEnOwn}
@@ -2171,6 +2188,7 @@ function AdminOrderDetailPage() {
 
       <div class="order-summary">
         <div class="order-number">Ordernummer: #${orderNumber}</div>
+        ${order.invoiceReference ? `<p style="margin-top:8px; font-size:14px;"><strong>Er referens:</strong> ${order.invoiceReference}</p>` : ''}
       </div>
 
       ${pricesHtmlSvOwn}
@@ -2355,6 +2373,7 @@ function AdminOrderDetailPage() {
 
       <div class="order-summary">
         <div class="order-number">Order number: #${orderNumber}</div>
+        ${order.invoiceReference ? `<p style="margin-top:8px; font-size:14px;"><strong>Your reference:</strong> ${order.invoiceReference}</p>` : ''}
       </div>
 
       <div class="address-box">
@@ -2445,6 +2464,7 @@ function AdminOrderDetailPage() {
 
       <div class="order-summary">
         <div class="order-number">Ordernummer: #${orderNumber}</div>
+        ${order.invoiceReference ? `<p style="margin-top:8px; font-size:14px;"><strong>Er referens:</strong> ${order.invoiceReference}</p>` : ''}
       </div>
 
       <div class="address-box">
@@ -2649,6 +2669,7 @@ function AdminOrderDetailPage() {
         <div class="order-number">
           Order number: #${orderNumber}
         </div>
+        ${order.invoiceReference ? `<p style="margin-top:8px; font-size:14px;"><strong>Your reference:</strong> ${order.invoiceReference}</p>` : ''}
       </div>
 
       ${pricesHtmlEn}
@@ -2732,6 +2753,7 @@ function AdminOrderDetailPage() {
         <div class="order-number">
           Ordernummer: #${orderNumber}
         </div>
+        ${order.invoiceReference ? `<p style="margin-top:8px; font-size:14px;"><strong>Er referens:</strong> ${order.invoiceReference}</p>` : ''}
       </div>
 
       ${pricesHtmlSv}
