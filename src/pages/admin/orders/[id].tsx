@@ -132,6 +132,11 @@ function AdminOrderDetailPage() {
   const [pickupTrackingNumber, setPickupTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
   const [savingTracking, setSavingTracking] = useState(false);
+  const [receivedDocumentsDescription, setReceivedDocumentsDescription] = useState('');
+  const [savingReceivedDocs, setSavingReceivedDocs] = useState(false);
+  // Confirmed prices for return shipment email
+  const [confirmedPrices, setConfirmedPrices] = useState<Array<{ label: string; amount: string }>>([]);
+  const [savingConfirmedPrices, setSavingConfirmedPrices] = useState(false);
   const [bookingDhlShipment, setBookingDhlShipment] = useState(false);
   const [bookingDhlPickup, setBookingDhlPickup] = useState(false);
   const [bookingPostNordShipment, setBookingPostNordShipment] = useState(false);
@@ -957,6 +962,8 @@ function AdminOrderDetailPage() {
         setTrackingNumber(extendedOrder.returnTrackingNumber || '');
         setTrackingUrl(extendedOrder.returnTrackingUrl || '');
         setPickupTrackingNumber((extendedOrder as any).pickupTrackingNumber || '');
+        setReceivedDocumentsDescription((extendedOrder as any).receivedDocumentsDescription || '');
+        setConfirmedPrices((extendedOrder as any).confirmedPrices || []);
 
         const ci = extendedOrder.customerInfo || {};
         setEditedCustomer({
@@ -1560,10 +1567,23 @@ function AdminOrderDetailPage() {
             <span class="detail-label">Date:</span>
             <span class="detail-value">${new Date().toLocaleDateString('en-GB')}</span>
           </div>
+          ${order.invoiceReference ? `
+          <div class="detail-row">
+            <span class="detail-label">Your reference:</span>
+            <span class="detail-value">${order.invoiceReference}</span>
+          </div>
+          ` : ''}
+          ${(order as any).receivedDocumentsDescription ? `
+          <div class="detail-row">
+            <span class="detail-label">Documents received:</span>
+            <span class="detail-value">${(order as any).receivedDocumentsDescription}</span>
+          </div>
+          ` : `
           <div class="detail-row">
             <span class="detail-label">Number of documents:</span>
             <span class="detail-value">${order.quantity || ''}</span>
           </div>
+          `}
         </div>
       </div>
 
@@ -1660,10 +1680,23 @@ function AdminOrderDetailPage() {
             <span class="detail-label">Datum:</span>
             <span class="detail-value">${new Date().toLocaleDateString('sv-SE')}</span>
           </div>
+          ${order.invoiceReference ? `
+          <div class="detail-row">
+            <span class="detail-label">Er referens:</span>
+            <span class="detail-value">${order.invoiceReference}</span>
+          </div>
+          ` : ''}
+          ${(order as any).receivedDocumentsDescription ? `
+          <div class="detail-row">
+            <span class="detail-label">Mottagna dokument:</span>
+            <span class="detail-value">${(order as any).receivedDocumentsDescription}</span>
+          </div>
+          ` : `
           <div class="detail-row">
             <span class="detail-label">Antal dokument:</span>
             <span class="detail-value">${order.quantity || ''}</span>
           </div>
+          `}
         </div>
       </div>
 
@@ -1948,6 +1981,42 @@ function AdminOrderDetailPage() {
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
             const trackingNumberText = trackingNumberForEmail || '';
 
+            // Get confirmed prices from order
+            const savedConfirmedPricesOwn = (order as any).confirmedPrices || [];
+            const hasConfirmedPricesOwn = savedConfirmedPricesOwn.length > 0;
+            
+            const pricesHtmlEnOwn = hasConfirmedPricesOwn
+              ? `
+              <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:16px; margin:20px 0;">
+                <h3 style="margin:0 0 12px 0; color:#166534; font-size:16px;">💰 Confirmed Prices</h3>
+                <table style="width:100%; border-collapse:collapse;">
+                  ${savedConfirmedPricesOwn.map((p: {label: string; amount: string}) => `
+                  <tr>
+                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
+              `
+              : '';
+            
+            const pricesHtmlSvOwn = hasConfirmedPricesOwn
+              ? `
+              <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:16px; margin:20px 0;">
+                <h3 style="margin:0 0 12px 0; color:#166534; font-size:16px;">💰 Bekräftade priser</h3>
+                <table style="width:100%; border-collapse:collapse;">
+                  ${savedConfirmedPricesOwn.map((p: {label: string; amount: string}) => `
+                  <tr>
+                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
+              `
+              : '';
+
             if (!trackingNumberText) {
               toast.error('Tracking number is missing – cannot send Own delivery email');
             } else {
@@ -2019,6 +2088,8 @@ function AdminOrderDetailPage() {
       <div class="order-summary">
         <div class="order-number">Order number: #${orderNumber}</div>
       </div>
+
+      ${pricesHtmlEnOwn}
 
       <p>If you have any questions, you are welcome to contact us at
         <a href="mailto:info@doxvl.se">info@doxvl.se</a> or by phone.
@@ -2102,6 +2173,8 @@ function AdminOrderDetailPage() {
         <div class="order-number">Ordernummer: #${orderNumber}</div>
       </div>
 
+      ${pricesHtmlSvOwn}
+
       <p>Har du frågor är du välkommen att kontakta oss på
         <a href="mailto:info@doxvl.se">info@doxvl.se</a> eller via telefon.
       </p>
@@ -2121,6 +2194,7 @@ function AdminOrderDetailPage() {
                 ? `Update: Tracking number registered – ${orderNumber}`
                 : `Uppdatering: Spårningsnummer registrerat – ${orderNumber}`;
 
+              // Send to customer
               await addDoc(collection(db, 'customerEmails'), {
                 name: customerName,
                 email: customerEmail,
@@ -2132,6 +2206,20 @@ function AdminOrderDetailPage() {
                 status: 'unread'
               });
 
+              // If confirmed prices exist, also send to fakturor@visumpartner.se
+              if (hasConfirmedPricesOwn) {
+                await addDoc(collection(db, 'customerEmails'), {
+                  name: 'Fakturering',
+                  email: 'fakturor@visumpartner.se',
+                  phone: '',
+                  subject: `[Prisbekräftelse] ${orderNumber} - ${customerName}`,
+                  message: messageHtml,
+                  orderId: orderNumber,
+                  createdAt: serverTimestamp(),
+                  status: 'unread'
+                });
+              }
+
               await adminUpdateOrder(orderId, {
                 ownDeliveryReturnEmailSent: true,
                 ownDeliveryReturnEmailSentAt: new Date().toISOString()
@@ -2142,7 +2230,7 @@ function AdminOrderDetailPage() {
                 ownDeliveryReturnEmailSent: true,
                 ownDeliveryReturnEmailSentAt: sentAt
               }) as ExtendedOrder);
-              toast.success('Own delivery mail has been queued');
+              toast.success(hasConfirmedPricesOwn ? 'Own delivery mail sent to customer and fakturor@visumpartner.se' : 'Own delivery mail has been queued');
             }
           }
         } catch (ownDeliveryEmailErr) {
@@ -2168,6 +2256,42 @@ function AdminOrderDetailPage() {
             const openingHours = emailLocale === 'en'
               ? 'Mon–Thu 09:00–16:00, Fri 09:00–15:00'
               : 'Mån–Tor 09:00–16:00, Fre 09:00–15:00';
+
+            // Get confirmed prices from order
+            const savedConfirmedPricesPickup = (order as any).confirmedPrices || [];
+            const hasConfirmedPricesPickup = savedConfirmedPricesPickup.length > 0;
+            
+            const pricesHtmlEnPickup = hasConfirmedPricesPickup
+              ? `
+              <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:16px; margin:20px 0;">
+                <h3 style="margin:0 0 12px 0; color:#166534; font-size:16px;">💰 Confirmed Prices</h3>
+                <table style="width:100%; border-collapse:collapse;">
+                  ${savedConfirmedPricesPickup.map((p: {label: string; amount: string}) => `
+                  <tr>
+                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
+              `
+              : '';
+            
+            const pricesHtmlSvPickup = hasConfirmedPricesPickup
+              ? `
+              <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:16px; margin:20px 0;">
+                <h3 style="margin:0 0 12px 0; color:#166534; font-size:16px;">💰 Bekräftade priser</h3>
+                <table style="width:100%; border-collapse:collapse;">
+                  ${savedConfirmedPricesPickup.map((p: {label: string; amount: string}) => `
+                  <tr>
+                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
+              `
+              : '';
 
             const messageHtml = emailLocale === 'en'
               ? `
@@ -2243,6 +2367,8 @@ function AdminOrderDetailPage() {
       </div>
 
       <p>Please bring valid ID and your order number when collecting your documents.</p>
+
+      ${pricesHtmlEnPickup}
 
       <p>If you have any questions, you are welcome to contact us at
         <a href="mailto:info@doxvl.se">info@doxvl.se</a> or by phone.
@@ -2332,6 +2458,8 @@ function AdminOrderDetailPage() {
 
       <p>Ta med giltig legitimation och ditt ordernummer när du hämtar dina dokument.</p>
 
+      ${pricesHtmlSvPickup}
+
       <p>Har du frågor är du välkommen att kontakta oss på
         <a href="mailto:info@doxvl.se">info@doxvl.se</a> eller via telefon.
       </p>
@@ -2351,6 +2479,7 @@ function AdminOrderDetailPage() {
               ? `Your documents are ready for pickup – ${orderNumber}`
               : `Dina dokument är klara för upphämtning – ${orderNumber}`;
 
+            // Send to customer
             await addDoc(collection(db, 'customerEmails'), {
               name: customerName,
               email: customerEmail,
@@ -2362,6 +2491,20 @@ function AdminOrderDetailPage() {
               status: 'unread'
             });
 
+            // If confirmed prices exist, also send to fakturor@visumpartner.se
+            if (hasConfirmedPricesPickup) {
+              await addDoc(collection(db, 'customerEmails'), {
+                name: 'Fakturering',
+                email: 'fakturor@visumpartner.se',
+                phone: '',
+                subject: `[Prisbekräftelse] ${orderNumber} - ${customerName}`,
+                message: messageHtml,
+                orderId: orderNumber,
+                createdAt: serverTimestamp(),
+                status: 'unread'
+              });
+            }
+
             await adminUpdateOrder(orderId, {
               officePickupReadyEmailSent: true,
               officePickupReadyEmailSentAt: new Date().toISOString()
@@ -2372,7 +2515,7 @@ function AdminOrderDetailPage() {
               officePickupReadyEmailSent: true,
               officePickupReadyEmailSentAt: sentAt
             }) as ExtendedOrder);
-            toast.success('Office pickup mail has been queued');
+            toast.success(hasConfirmedPricesPickup ? 'Office pickup mail sent to customer and fakturor@visumpartner.se' : 'Office pickup mail has been queued');
           }
         } catch (officePickupEmailErr) {
           console.error('Error queuing office pickup ready email:', officePickupEmailErr);
@@ -2402,6 +2545,42 @@ function AdminOrderDetailPage() {
               : '';
             const trackingLinkEn = trackingUrlText
               ? `<p>You can track your shipment here: <a href="${trackingUrlText}">${trackingUrlText}</a></p>`
+              : '';
+
+            // Get confirmed prices from order
+            const savedConfirmedPrices = (order as any).confirmedPrices || [];
+            const hasConfirmedPrices = savedConfirmedPrices.length > 0;
+            
+            const pricesHtmlEn = hasConfirmedPrices
+              ? `
+              <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:16px; margin:20px 0;">
+                <h3 style="margin:0 0 12px 0; color:#166534; font-size:16px;">💰 Confirmed Prices</h3>
+                <table style="width:100%; border-collapse:collapse;">
+                  ${savedConfirmedPrices.map((p: {label: string; amount: string}) => `
+                  <tr>
+                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
+              `
+              : '';
+            
+            const pricesHtmlSv = hasConfirmedPrices
+              ? `
+              <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:16px; margin:20px 0;">
+                <h3 style="margin:0 0 12px 0; color:#166534; font-size:16px;">💰 Bekräftade priser</h3>
+                <table style="width:100%; border-collapse:collapse;">
+                  ${savedConfirmedPrices.map((p: {label: string; amount: string}) => `
+                  <tr>
+                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
+              `
               : '';
 
             const messageHtml = emailLocale === 'en'
@@ -2471,6 +2650,8 @@ function AdminOrderDetailPage() {
           Order number: #${orderNumber}
         </div>
       </div>
+
+      ${pricesHtmlEn}
 
       <p>If you have any questions, you are welcome to contact us at
         <a href="mailto:info@doxvl.se">info@doxvl.se</a> or by phone.
@@ -2553,6 +2734,8 @@ function AdminOrderDetailPage() {
         </div>
       </div>
 
+      ${pricesHtmlSv}
+
       <p>Har du frågor är du välkommen att kontakta oss på
         <a href="mailto:info@doxvl.se">info@doxvl.se</a> eller via telefon.
       </p>
@@ -2572,6 +2755,7 @@ function AdminOrderDetailPage() {
               ? `Your documents have been shipped – ${orderNumber}`
               : `Dina dokument har skickats – ${orderNumber}`;
 
+            // Send to customer
             await addDoc(collection(db, 'customerEmails'), {
               name: customerName,
               email: customerEmail,
@@ -2583,7 +2767,22 @@ function AdminOrderDetailPage() {
               status: 'unread'
             });
 
-            toast.success('Return shipment email to customer queued');
+            // If confirmed prices exist, also send to fakturor@visumpartner.se
+            if (hasConfirmedPrices) {
+              await addDoc(collection(db, 'customerEmails'), {
+                name: 'Fakturering',
+                email: 'fakturor@visumpartner.se',
+                phone: '',
+                subject: `[Prisbekräftelse] ${orderNumber} - ${customerName}`,
+                message: messageHtml,
+                orderId: orderNumber,
+                createdAt: serverTimestamp(),
+                status: 'unread'
+              });
+              toast.success('Return shipment email sent to customer and fakturor@visumpartner.se');
+            } else {
+              toast.success('Return shipment email to customer queued');
+            }
           }
         } catch (returnEmailErr) {
           console.error('Error queuing return shipment email:', returnEmailErr);
@@ -3736,6 +3935,48 @@ function AdminOrderDetailPage() {
       toast.error('Could not save pickup tracking');
     } finally {
       setSavingTracking(false);
+    }
+  };
+
+  // Save received documents description
+  const saveReceivedDocumentsDescription = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    setSavingReceivedDocs(true);
+
+    try {
+      await adminUpdateOrder(orderId, {
+        receivedDocumentsDescription
+      });
+      setOrder({ ...order, receivedDocumentsDescription } as ExtendedOrder);
+      toast.success('Document description saved');
+    } catch (err) {
+      console.error('Error saving document description:', err);
+      toast.error('Could not save document description');
+    } finally {
+      setSavingReceivedDocs(false);
+    }
+  };
+
+  // Save confirmed prices for return shipment email
+  const saveConfirmedPrices = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    setSavingConfirmedPrices(true);
+
+    try {
+      // Filter out empty entries
+      const validPrices = confirmedPrices.filter(p => p.label.trim() && p.amount.trim());
+      await adminUpdateOrder(orderId, {
+        confirmedPrices: validPrices
+      });
+      setOrder({ ...order, confirmedPrices: validPrices } as ExtendedOrder);
+      toast.success('Confirmed prices saved');
+    } catch (err) {
+      console.error('Error saving confirmed prices:', err);
+      toast.error('Could not save confirmed prices');
+    } finally {
+      setSavingConfirmedPrices(false);
     }
   };
 
@@ -5871,6 +6112,39 @@ function AdminOrderDetailPage() {
                                 {step.notes}
                               </div>
                             )}
+                            {/* Documents received description field */}
+                            {(step.id === 'document_receipt' || step.id === 'email_documents_received') && (
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <label className="block text-sm font-medium text-blue-900 mb-2">
+                                  📋 Received documents
+                                </label>
+                                <p className="text-xs text-blue-700 mb-2">
+                                  Describe which documents were received (e.g. "1 x Power of Attorney, 2 x Certificate of Incorporation")
+                                </p>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={receivedDocumentsDescription}
+                                    onChange={(e) => setReceivedDocumentsDescription(e.target.value)}
+                                    placeholder="e.g. 1 x Power of Attorney, 2 x Birth Certificate"
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                  />
+                                  <button
+                                    onClick={saveReceivedDocumentsDescription}
+                                    disabled={savingReceivedDocs}
+                                    className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
+                                  >
+                                    {savingReceivedDocs ? 'Saving...' : 'Save'}
+                                  </button>
+                                </div>
+                                {(order as any)?.receivedDocumentsDescription && (
+                                  <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
+                                    <span>✓</span> Saved: {(order as any).receivedDocumentsDescription}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
                             {step.id === 'pickup_booking' && (
                               <div className="mt-3 space-y-3">
                                 <div>
@@ -6038,6 +6312,79 @@ function AdminOrderDetailPage() {
                                       </>
                                     ) : '❌ No return service selected'}
                                   </p>
+                                </div>
+
+                                {/* Confirmed prices for email - optional */}
+                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                  <label className="block text-sm font-medium text-amber-900 mb-2">
+                                    💰 Confirm prices for customer email (optional)
+                                  </label>
+                                  <p className="text-xs text-amber-700 mb-3">
+                                    If you enter prices here, they will be included in the completion email sent to both the customer and fakturor@visumpartner.se
+                                  </p>
+                                  
+                                  {confirmedPrices.map((price, index) => (
+                                    <div key={index} className="flex gap-2 mb-2">
+                                      <input
+                                        type="text"
+                                        value={price.label}
+                                        onChange={(e) => {
+                                          const newPrices = [...confirmedPrices];
+                                          newPrices[index] = { ...newPrices[index], label: e.target.value };
+                                          setConfirmedPrices(newPrices);
+                                        }}
+                                        placeholder="Service name (e.g. Embassy Official Fee)"
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={price.amount}
+                                        onChange={(e) => {
+                                          const newPrices = [...confirmedPrices];
+                                          newPrices[index] = { ...newPrices[index], amount: e.target.value };
+                                          setConfirmedPrices(newPrices);
+                                        }}
+                                        placeholder="Amount (e.g. 1200 kr)"
+                                        className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          const newPrices = confirmedPrices.filter((_, i) => i !== index);
+                                          setConfirmedPrices(newPrices);
+                                        }}
+                                        className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"
+                                        title="Remove"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                  
+                                  <div className="flex gap-2 mt-2">
+                                    <button
+                                      onClick={() => setConfirmedPrices([...confirmedPrices, { label: '', amount: '' }])}
+                                      className="px-3 py-1.5 text-sm text-amber-700 border border-amber-300 rounded hover:bg-amber-100"
+                                    >
+                                      + Add price row
+                                    </button>
+                                    {confirmedPrices.length > 0 && (
+                                      <button
+                                        onClick={saveConfirmedPrices}
+                                        disabled={savingConfirmedPrices}
+                                        className="px-4 py-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 text-sm font-medium"
+                                      >
+                                        {savingConfirmedPrices ? 'Saving...' : 'Save prices'}
+                                      </button>
+                                    )}
+                                  </div>
+                                  
+                                  {(order as any)?.confirmedPrices?.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-amber-200">
+                                      <p className="text-xs text-green-700 flex items-center gap-1">
+                                        <span>✓</span> Saved prices will be included in completion email
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Hide tracking number input for office-pickup since no shipping is needed */}

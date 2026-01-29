@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { getAllOrders } from '@/services/hybridOrderService';
 import { getInvoicesByOrderId, convertOrderToInvoice, storeInvoice } from '@/services/invoiceService';
+import { ALL_COUNTRIES } from '@/components/order/data/countries';
 
 // Admin email check (temporary solution until custom claims work)
 const ADMIN_EMAILS = ['admin@doxvl.se', 'sofia@sofia.se'];
@@ -60,6 +61,13 @@ import { toast } from 'react-hot-toast';
 
 const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted'];
 const ALL_STATUSES: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted', 'action-required', 'ready-for-return', 'completed', 'cancelled'];
+
+// Helper function to get country name from country code
+const getCountryName = (countryCode: string): string => {
+  if (!countryCode) return '—';
+  const country = ALL_COUNTRIES.find(c => c.code === countryCode.toUpperCase());
+  return country?.nameEn || countryCode;
+};
 
 function AdminOrdersPage() {
   const { t } = useTranslation('common');
@@ -782,7 +790,7 @@ function AdminOrdersPage() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-100 text-blue-800">
-                            {order.country || '—'}
+                            {getCountryName(order.country)}
                           </span>
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
