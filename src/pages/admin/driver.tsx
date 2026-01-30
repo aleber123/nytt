@@ -100,6 +100,18 @@ function DriverDashboardPage() {
   const [monthlyMessage, setMonthlyMessage] = useState<string | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<DriverMonthlySummary | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingReport, setEditingReport] = useState<{
+    date: string;
+    hoursWorked: string;
+    parkingCost: string;
+    embassyCost: string;
+    otherCost: string;
+    notes: string;
+  } | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const getCountryInfo = (codeOrName: string | undefined | null) => {
     const value = (codeOrName || '').trim();
@@ -138,6 +150,46 @@ function DriverDashboardPage() {
     } finally {
       setIsSavingDailyReport(false);
     }
+  };
+
+  // Handle saving edit from modal
+  const handleSaveEditReport = async () => {
+    if (!editingReport) return;
+    
+    try {
+      setIsSavingEdit(true);
+
+      await saveDriverDailyReport({
+        driverId: 'default-driver',
+        date: editingReport.date,
+        hoursWorked: editingReport.hoursWorked,
+        parkingCost: editingReport.parkingCost,
+        embassyCost: editingReport.embassyCost,
+        otherCost: editingReport.otherCost,
+        notes: editingReport.notes,
+      });
+
+      setEditModalOpen(false);
+      setEditingReport(null);
+      await loadMonthlySummaryForSelectedDate();
+    } catch (error) {
+      // Error handling - keep modal open
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Open edit modal with report data
+  const openEditModal = (report: any) => {
+    setEditingReport({
+      date: report.date,
+      hoursWorked: report.hoursWorked.toString(),
+      parkingCost: report.parkingCost.toString(),
+      embassyCost: report.embassyCost.toString(),
+      otherCost: report.otherCost.toString(),
+      notes: report.notes || '',
+    });
+    setEditModalOpen(true);
   };
 
   const loadMonthlySummaryForSelectedDate = async () => {
@@ -1073,74 +1125,247 @@ function DriverDashboardPage() {
         `}</style>
       </Head>
 
+      {/* Edit Report Modal - WCAG optimized */}
+      {editModalOpen && editingReport && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
+          onClick={() => setEditModalOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-blue-600 text-white p-5 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 id="edit-modal-title" className="text-2xl font-bold">
+                  ✏️ Edit Report
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="p-2 hover:bg-blue-700 rounded-xl transition-colors"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-xl text-blue-100 mt-2">
+                📆 {new Date(editingReport.date + 'T00:00:00').toLocaleDateString('en-GB', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-5">
+              {/* Hours */}
+              <div>
+                <label htmlFor="edit-hours" className="block text-xl font-bold text-gray-900 mb-2">
+                  ⏱️ Hours Worked
+                </label>
+                <input
+                  id="edit-hours"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.25"
+                  value={editingReport.hoursWorked}
+                  onChange={(e) => setEditingReport({...editingReport, hoursWorked: e.target.value})}
+                  className="w-full px-4 py-4 text-2xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Parking */}
+              <div>
+                <label htmlFor="edit-parking" className="block text-xl font-bold text-gray-900 mb-2">
+                  🅿️ Parking (SEK)
+                </label>
+                <input
+                  id="edit-parking"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={editingReport.parkingCost}
+                  onChange={(e) => setEditingReport({...editingReport, parkingCost: e.target.value})}
+                  className="w-full px-4 py-4 text-2xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Embassy */}
+              <div>
+                <label htmlFor="edit-embassy" className="block text-xl font-bold text-gray-900 mb-2">
+                  🏛️ Embassy (SEK)
+                </label>
+                <input
+                  id="edit-embassy"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={editingReport.embassyCost}
+                  onChange={(e) => setEditingReport({...editingReport, embassyCost: e.target.value})}
+                  className="w-full px-4 py-4 text-2xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Other */}
+              <div>
+                <label htmlFor="edit-other" className="block text-xl font-bold text-gray-900 mb-2">
+                  📋 Other (SEK)
+                </label>
+                <input
+                  id="edit-other"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={editingReport.otherCost}
+                  onChange={(e) => setEditingReport({...editingReport, otherCost: e.target.value})}
+                  className="w-full px-4 py-4 text-2xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label htmlFor="edit-notes" className="block text-xl font-bold text-gray-900 mb-2">
+                  📝 Notes
+                </label>
+                <textarea
+                  id="edit-notes"
+                  rows={3}
+                  value={editingReport.notes}
+                  onChange={(e) => setEditingReport({...editingReport, notes: e.target.value})}
+                  className="w-full px-4 py-4 text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                  placeholder="Optional notes..."
+                />
+              </div>
+
+              {/* Total display */}
+              <div className="p-4 bg-green-100 rounded-xl">
+                <div className="flex justify-between items-center">
+                  <span className="text-xl font-bold text-green-800">💰 Total Expenses</span>
+                  <span className="text-3xl font-black text-green-800">
+                    {(parseInt(editingReport.parkingCost) || 0) + (parseInt(editingReport.embassyCost) || 0) + (parseInt(editingReport.otherCost) || 0)} SEK
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-100 p-5 rounded-b-2xl space-y-3">
+              <button
+                type="button"
+                onClick={handleSaveEditReport}
+                disabled={isSavingEdit}
+                className="w-full py-5 bg-green-600 text-white rounded-xl hover:bg-green-700 active:bg-green-800 transition-colors text-2xl font-bold disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {isSavingEdit ? (
+                  <>
+                    <svg className="animate-spin w-7 h-7" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>✅ SAVE CHANGES</>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(false)}
+                className="w-full py-4 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 active:bg-gray-500 transition-colors text-xl font-bold"
+              >
+                ❌ Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">🚗 Driver Dashboard</h1>
-                <p className="text-gray-600 mt-2 text-sm sm:text-base">Overview of pickups and deliveries - {formatDate(selectedDate)}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={generatePDF}
-                  className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center text-sm"
-                  title="Download PDF"
-                >
-                  <svg className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span className="hidden sm:inline">Download PDF</span>
-                  <span className="sm:hidden">PDF</span>
-                </button>
-                <Link
-                  href="/admin"
-                  className="px-3 sm:px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm"
-                >
-                  <span className="hidden sm:inline">Back to Admin</span>
-                  <span className="sm:hidden">Admin</span>
-                </Link>
-              </div>
+          {/* Header - Mobile optimized */}
+          <div className="mb-6">
+            <div className="text-center mb-4">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">🚗 Driver</h1>
+              <p className="text-lg text-gray-600 mt-1">{formatDate(selectedDate)}</p>
+            </div>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={generatePDF}
+                className="flex-1 max-w-[150px] py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2 text-base font-semibold"
+                title="Download PDF"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                PDF
+              </button>
+              <Link
+                href="/admin"
+                className="flex-1 max-w-[150px] py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 active:bg-gray-800 transition-colors flex items-center justify-center text-base font-semibold"
+              >
+                ← Admin
+              </Link>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Filters - Mobile optimized with large touch targets */}
+          <div className="bg-white rounded-xl shadow p-4 mb-6">
+            <div className="space-y-4">
+              {/* Date picker - Large and prominent */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date
+                <label htmlFor="date-picker" className="block text-lg font-bold text-gray-900 mb-2">
+                  📅 Date
                 </label>
                 <input
+                  id="date-picker"
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-4 text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
                 />
               </div>
+              
+              {/* Task type filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Task Type
+                <label htmlFor="task-filter" className="block text-lg font-bold text-gray-900 mb-2">
+                  📋 Task Type
                 </label>
                 <select
+                  id="task-filter"
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-4 text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500 bg-white"
                 >
                   <option value="all">All tasks</option>
-                  <option value="pickup">Pickups</option>
-                  <option value="delivery">Deliveries</option>
+                  <option value="pickup">📥 Pickups only</option>
+                  <option value="delivery">📤 Deliveries only</option>
                 </select>
               </div>
-              <div className="flex items-end">
-                <button
-                  onClick={fetchDriverTasks}
-                  className="w-full px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors"
-                >
-                  Refresh List
-                </button>
-              </div>
+              
+              {/* Refresh button */}
+              <button
+                onClick={fetchDriverTasks}
+                className="w-full py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-xl font-bold flex items-center justify-center gap-2"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Tasks
+              </button>
             </div>
           </div>
 
@@ -1151,17 +1376,16 @@ function DriverDashboardPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Tasks for {formatDate(selectedDate)}
+              <div className="bg-white rounded-xl shadow p-4">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+                  📋 Tasks for {formatDate(selectedDate)}
                 </h2>
 
                 {Object.keys(groupedTasks).length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <svg className="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2m9 5v-2a2 2 0 00-2-2H9a2 2 0 00-2 2v4m0-4h2m-2 4h2m-4-4h2m-2 4h-2m2-4H9a2 2 0 00-2 2m2-4h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m2-4h2m-4 4h2m-2 4h-2m2-4H5a2 2 0 00-2 2m2-4h6a2 2 0 012 2" />
-                    </svg>
-                    <p>No tasks scheduled for this date</p>
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">✅</div>
+                    <p className="text-2xl font-bold text-gray-700 mb-2">No tasks today!</p>
+                    <p className="text-lg text-gray-500">Check another date or refresh the list</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -1762,71 +1986,99 @@ function DriverDashboardPage() {
             )}
 
             {monthlySummary && (
-              <div className="mt-6 border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                  {`Saved daily reports – ${new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}`}
+              <div className="mt-8 pt-6 border-t-2 border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
+                  📊 Saved Reports – {new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}
                 </h3>
 
                 {isLoadingSummary ? (
-                  <p className="text-sm text-gray-500">Loading saved reports...</p>
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-lg text-gray-500">Loading...</p>
+                  </div>
                 ) : monthlySummary.reports.length === 0 ? (
-                  <p className="text-sm text-gray-500">No saved daily reports for this month.</p>
+                  <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <div className="text-4xl mb-2">📭</div>
+                    <p className="text-lg text-gray-500">No saved reports this month</p>
+                  </div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-200 bg-gray-50">
-                            <th className="px-2 py-1 text-left font-medium text-gray-700">Date</th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-700">Hours</th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-700">Parking</th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-700">Embassy</th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-700">Other</th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-700">Notes</th>
-                            <th className="px-2 py-1 text-center font-medium text-gray-700">Edit</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {monthlySummary.reports.map((report) => (
-                            <tr
+                    {/* Mobile-friendly card layout - WCAG optimized */}
+                    <div className="space-y-4" role="list" aria-label="Saved daily reports">
+                      {monthlySummary.reports
+                        .sort((a, b) => b.date.localeCompare(a.date))
+                        .map((report) => {
+                          const dayTotal = report.parkingCost + report.embassyCost + report.otherCost;
+                          const dateFormatted = new Date(report.date + 'T00:00:00').toLocaleDateString('en-GB', { 
+                            weekday: 'long', 
+                            day: 'numeric', 
+                            month: 'long' 
+                          });
+                          return (
+                            <button
                               key={report.id || report.date}
-                              className="hover:bg-blue-50 cursor-pointer transition-colors"
-                              onClick={() => {
-                                setSelectedDate(report.date);
-                                setHoursWorked(report.hoursWorked.toString());
-                                setParkingCosts([report.parkingCost.toString()]);
-                                setEmbassyCosts([report.embassyCost.toString()]);
-                                setOtherCosts([report.otherCost.toString()]);
-                                setDriverNotes(report.notes || '');
-                                // Scroll to form
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
+                              type="button"
+                              role="listitem"
+                              aria-label={`Edit report for ${dateFormatted}. Hours: ${report.hoursWorked}, Parking: ${report.parkingCost} SEK, Embassy: ${report.embassyCost} SEK, Other: ${report.otherCost} SEK${report.notes ? `, Notes: ${report.notes}` : ''}`}
+                              className="w-full text-left bg-white hover:bg-blue-50 active:bg-blue-100 rounded-2xl p-5 border-3 border-gray-300 hover:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:border-blue-500 transition-all shadow-sm hover:shadow-md"
+                              onClick={() => openEditModal(report)}
                             >
-                              <td className="px-2 py-1 whitespace-nowrap">{report.date}</td>
-                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.hoursWorked.toLocaleString('sv-SE')}</td>
-                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.parkingCost} kr</td>
-                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.embassyCost} kr</td>
-                              <td className="px-2 py-1 text-right whitespace-nowrap">{report.otherCost} kr</td>
-                              <td className="px-2 py-1 text-left max-w-xs truncate" title={report.notes || ''}>{report.notes || '-'}</td>
-                              <td className="px-2 py-1 text-center">
-                                <span className="inline-flex items-center text-blue-600 hover:text-blue-800">
-                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                  </svg>
+                              {/* Header with date and edit indicator */}
+                              <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-gray-200">
+                                <span className="text-xl font-black text-gray-900">📆 {dateFormatted}</span>
+                                <span className="px-4 py-2 bg-blue-600 text-white rounded-lg text-lg font-bold">
+                                  ✏️ EDIT
                                 </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              </div>
+                              
+                              {/* Data grid - larger text for visibility */}
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                  <span className="text-xl text-gray-700 font-medium">⏱️ Hours</span>
+                                  <span className="text-2xl font-black text-gray-900">{report.hoursWorked}h</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                  <span className="text-xl text-gray-700 font-medium">🅿️ Parking</span>
+                                  <span className="text-2xl font-black text-gray-900">{report.parkingCost} SEK</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                  <span className="text-xl text-gray-700 font-medium">🏛️ Embassy</span>
+                                  <span className="text-2xl font-black text-gray-900">{report.embassyCost} SEK</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                  <span className="text-xl text-gray-700 font-medium">📋 Other</span>
+                                  <span className="text-2xl font-black text-gray-900">{report.otherCost} SEK</span>
+                                </div>
+                              </div>
+                              
+                              {/* Day total - prominent display */}
+                              {dayTotal > 0 && (
+                                <div className="mt-4 p-4 bg-green-100 rounded-xl flex justify-between items-center">
+                                  <span className="text-xl font-bold text-green-800">💰 DAY TOTAL</span>
+                                  <span className="text-3xl font-black text-green-800">{dayTotal} SEK</span>
+                                </div>
+                              )}
+                              
+                              {/* Notes section */}
+                              {report.notes && (
+                                <div className="mt-4 p-4 bg-yellow-50 rounded-xl border-2 border-yellow-200">
+                                  <span className="text-xl text-yellow-800 font-medium">📝 Notes:</span>
+                                  <p className="text-xl text-yellow-900 mt-1">{report.notes}</p>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                     </div>
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center">
-                      <svg className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-sm text-blue-800">
-                        <strong>Click on any row to edit</strong> – the values will be loaded into the form above. Make your changes and click "Save Daily Report" to update.
-                      </span>
+                    
+                    {/* Instructions - high contrast */}
+                    <div className="mt-6 p-5 bg-blue-600 rounded-2xl text-center">
+                      <p className="text-xl text-white font-bold">
+                        👆 TAP ANY CARD TO EDIT
+                      </p>
+                      <p className="text-lg text-blue-100 mt-1">
+                        Values will load in the form above
+                      </p>
                     </div>
                   </>
                 )}
@@ -1834,88 +2086,66 @@ function DriverDashboardPage() {
             )}
           </div>
 
-          {/* Footer sections like order management */}
+          {/* Monthly Summary Section - Mobile & WCAG friendly */}
+          {monthlySummary && (
           <div className="mt-8 space-y-6">
-            {/* Summary section */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium mb-4">Today's Summary</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <svg className="h-8 w-8 text-blue-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-blue-800">Total Tasks</p>
-                      <p className="text-2xl font-bold text-blue-900">{tasks.length}</p>
-                    </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+                📊 Monthly Summary – {new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(new Date(monthlySummary.year, monthlySummary.month - 1, 1))}
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Working Days */}
+                <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-blue-800">📅 Days</p>
+                    <p className="text-4xl font-black text-blue-900">{monthlySummary.reports.length}</p>
                   </div>
                 </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <svg className="h-8 w-8 text-green-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-green-800">Completed</p>
-                      <p className="text-2xl font-bold text-green-900">{tasks.filter(t => t.status === 'completed').length}</p>
-                    </div>
+                {/* Total Hours */}
+                <div className="bg-purple-100 border-2 border-purple-300 rounded-xl p-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-purple-800">⏱️ Hours</p>
+                    <p className="text-4xl font-black text-purple-900">{monthlySummary.totalHours}</p>
                   </div>
                 </div>
 
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <svg className="h-8 w-8 text-orange-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-orange-800">In Progress</p>
-                      <p className="text-2xl font-bold text-orange-900">{tasks.filter(t => t.status === 'in_progress').length}</p>
-                    </div>
+                {/* Parking */}
+                <div className="bg-cyan-100 border-2 border-cyan-300 rounded-xl p-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-cyan-800">🅿️ Parking</p>
+                    <p className="text-3xl font-black text-cyan-900">{monthlySummary.totalParking} <span className="text-xl">SEK</span></p>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <svg className="h-8 w-8 text-gray-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">Pending</p>
-                      <p className="text-2xl font-bold text-gray-900">{tasks.filter(t => t.status === 'pending').length}</p>
-                    </div>
+                {/* Embassy */}
+                <div className="bg-amber-100 border-2 border-amber-300 rounded-xl p-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-amber-800">🏛️ Embassy</p>
+                    <p className="text-3xl font-black text-amber-900">{monthlySummary.totalEmbassy} <span className="text-xl">SEK</span></p>
+                  </div>
+                </div>
+
+                {/* Other */}
+                <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-gray-800">📋 Other</p>
+                    <p className="text-3xl font-black text-gray-900">{monthlySummary.totalOther} <span className="text-xl">SEK</span></p>
+                  </div>
+                </div>
+
+                {/* Total Expenses */}
+                <div className="bg-green-100 border-2 border-green-400 rounded-xl p-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-green-800">💰 TOTAL</p>
+                    <p className="text-3xl font-black text-green-900">{monthlySummary.totalParking + monthlySummary.totalEmbassy + monthlySummary.totalOther} <span className="text-xl">SEK</span></p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Driver notes section */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium mb-4">Driver Notes</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Add note for the day
-                  </label>
-                  <textarea
-                    placeholder="Write your notes for the day here..."
-                    className="w-full border border-gray-300 rounded-lg p-3"
-                    rows={3}
-                  />
-                </div>
-                <div className="flex items-center space-x-3">
-                  <button className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-                    Save Note
-                  </button>
-                  <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                    Report Day Complete
-                  </button>
-                </div>
-              </div>
-            </div>
-
           </div>
+          )}
+
         </div>
       </div>
     </ProtectedRoute>
