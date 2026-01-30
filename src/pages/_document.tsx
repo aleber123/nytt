@@ -14,7 +14,7 @@ class MyDocument extends Document {
           {/* Google Ads (gtag.js) */}
           <script
             async
-            src="https://www.googletagmanager.com/gtag/js?id=AW-940620817"
+            src="https://www.googletagmanager.com/gtag/js?id=AW-1001886627"
           />
           <script
             dangerouslySetInnerHTML={{
@@ -22,7 +22,27 @@ class MyDocument extends Document {
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
+                gtag('config', 'AW-1001886627');
                 gtag('config', 'AW-940620817');
+              `,
+            }}
+          />
+          {/* Google Ads Conversion - Request Quote */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                function gtag_report_conversion(url) {
+                  var callback = function () {
+                    if (typeof(url) != 'undefined') {
+                      window.location = url;
+                    }
+                  };
+                  gtag('event', 'conversion', {
+                    'send_to': 'AW-1001886627/mL9jCNbbuu8bEKOn3t0D',
+                    'event_callback': callback
+                  });
+                  return false;
+                }
               `,
             }}
           />

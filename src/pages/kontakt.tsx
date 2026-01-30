@@ -52,6 +52,12 @@ const ContactPage: React.FC = () => {
       };
 
       await addDoc(collection(db, 'contactMessages'), contactMessage);
+      
+      // Track Google Ads conversion for 'Request quote'
+      if (typeof window !== 'undefined' && (window as any).gtag_report_conversion) {
+        (window as any).gtag_report_conversion();
+      }
+      
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error saving contact message:', error);

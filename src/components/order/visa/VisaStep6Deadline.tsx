@@ -16,6 +16,25 @@ interface Props {
   onBack: () => void;
 }
 
+// Calculate business days between two dates (excludes Saturdays and Sundays)
+const getBusinessDays = (startDate: Date, endDate: Date): number => {
+  let count = 0;
+  const current = new Date(startDate);
+  current.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  
+  while (current < end) {
+    const dayOfWeek = current.getDay();
+    // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+};
+
 const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack }) => {
   const { t, i18n } = useTranslation('common');
   const [expressAccepted, setExpressAccepted] = useState(answers.expressRequired || false);
@@ -28,7 +47,7 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
   // Check if this is an E-Visa based on selected product
   const isEVisa = answers.selectedVisaProduct?.visaType === 'e-visa';
   
-  // Get processing times from selected product
+  // Get processing times from selected product (in business days)
   const normalProcessingDays = answers.selectedVisaProduct?.processingDays || 10;
   const expressProcessingDays = answers.selectedVisaProduct?.expressDays || Math.ceil(normalProcessingDays / 2);
   const expressAvailable = answers.selectedVisaProduct?.expressAvailable || false;
@@ -39,23 +58,29 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
   const urgentAvailable = answers.selectedVisaProduct?.urgentAvailable || false;
   const urgentPrice = answers.selectedVisaProduct?.urgentPrice || 0;
   
+  // Calculate business days until deadline (excludes weekends)
+  const businessDaysUntilDeadline = answers.passportNeededBy 
+    ? getBusinessDays(new Date(), new Date(answers.passportNeededBy))
+    : null;
+  
+  // Keep calendar days for display purposes
   const daysUntilDeadline = answers.passportNeededBy 
     ? Math.ceil((new Date(answers.passportNeededBy).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
-  // Determine urgency based on actual processing times
+  // Determine urgency based on actual processing times (using business days)
   // Priority: Normal > Express > Urgent > Too Short
-  const needsExpress = daysUntilDeadline !== null && daysUntilDeadline < normalProcessingDays && daysUntilDeadline >= expressProcessingDays;
-  const needsUrgent = daysUntilDeadline !== null && daysUntilDeadline < expressProcessingDays && daysUntilDeadline >= urgentProcessingDays;
+  const needsExpress = businessDaysUntilDeadline !== null && businessDaysUntilDeadline < normalProcessingDays && businessDaysUntilDeadline >= expressProcessingDays;
+  const needsUrgent = businessDaysUntilDeadline !== null && businessDaysUntilDeadline < expressProcessingDays && businessDaysUntilDeadline >= urgentProcessingDays;
   const canDoExpress = needsExpress && expressAvailable;
   const canDoUrgent = needsUrgent && urgentAvailable;
-  const tooShort = daysUntilDeadline !== null && (
+  const tooShort = businessDaysUntilDeadline !== null && (
     (needsUrgent && !urgentAvailable) || 
     (needsExpress && !expressAvailable && !urgentAvailable) ||
-    (daysUntilDeadline < urgentProcessingDays && urgentAvailable) ||
-    (daysUntilDeadline < expressProcessingDays && !urgentAvailable)
+    (businessDaysUntilDeadline < urgentProcessingDays && urgentAvailable) ||
+    (businessDaysUntilDeadline < expressProcessingDays && !urgentAvailable)
   );
-  const isWarning = daysUntilDeadline !== null && daysUntilDeadline < normalProcessingDays + 3 && !needsExpress && !needsUrgent;
+  const isWarning = businessDaysUntilDeadline !== null && businessDaysUntilDeadline < normalProcessingDays + 3 && !needsExpress && !needsUrgent;
 
   // Different text for E-Visa vs Sticker
   const title = isEVisa 
@@ -121,17 +146,18 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
                 <p className={`text-sm font-medium ${
                   tooShort ? 'text-red-800' : needsUrgent ? 'text-red-800' : needsExpress ? 'text-amber-800' : isWarning ? 'text-yellow-800' : 'text-green-800'
                 }`}>
-                  {daysUntilDeadline} {isSv ? 'dagar kvar' : 'days remaining'}
+                  {businessDaysUntilDeadline} {isSv ? 'arbetsdagar kvar' : 'business days remaining'}
+                  <span className="text-gray-500 font-normal"> ({daysUntilDeadline} {isSv ? 'kalenderdagar' : 'calendar days'})</span>
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {isSv 
                     ? `Normal handläggning: ~${normalProcessingDays} arbetsdagar`
                     : `Normal processing: ~${normalProcessingDays} business days`}
                   {expressAvailable && (
-                    <span> • Express: ~{expressProcessingDays} {isSv ? 'dagar' : 'days'}</span>
+                    <span> • Express: ~{expressProcessingDays} {isSv ? 'arbetsdagar' : 'business days'}</span>
                   )}
                   {urgentAvailable && (
-                    <span> • 🚨 Urgent: ~{urgentProcessingDays} {isSv ? 'dag' : 'day'}</span>
+                    <span> • 🚨 Urgent: ~{urgentProcessingDays} {isSv ? 'arbetsdag' : 'business day'}{urgentProcessingDays > 1 ? (isSv ? 'ar' : 's') : ''}</span>
                   )}
                 </p>
                 

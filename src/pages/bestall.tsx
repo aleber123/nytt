@@ -1196,6 +1196,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       });
 
       if (orderId) {
+        // Track Google Ads conversion for 'Request quote' / order submission
+        if (typeof window !== 'undefined' && (window as any).gtag_report_conversion) {
+          (window as any).gtag_report_conversion();
+        }
+        
         toast.success('Beställning mottagen!');
         clearProgress();
         router.push(`/order-confirmation?id=${orderId}`);
