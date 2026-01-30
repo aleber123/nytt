@@ -361,6 +361,13 @@
     "ctaText": "Vi hjälper dig med dokumentlegalisering och visumansökningar snabbt och enkelt",
     "ctaButton": "Beställ nu",
     "popularLabel": "Populär",
+    "trustBadges": {
+      "customers": "500+ nöjda kunder",
+      "fastDelivery": "Snabb leverans",
+      "secureHandling": "Säker hantering",
+      "personalService": "Personlig service",
+      "gdpr": "GDPR-säkrat"
+    },
     "servicesFeatures": {
       "apostille": [
         "Officiell legalisering",

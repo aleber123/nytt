@@ -411,6 +411,13 @@
     "ctaText": "We help you with document legalization and visa applications quickly and easily",
     "ctaButton": "Order now",
     "popularLabel": "Popular",
+    "trustBadges": {
+      "customers": "500+ satisfied customers",
+      "fastDelivery": "Fast delivery",
+      "secureHandling": "Secure handling",
+      "personalService": "Personal service",
+      "gdpr": "GDPR compliant"
+    },
     "servicesFeatures": {
       "apostille": [
         "Official legalization",
