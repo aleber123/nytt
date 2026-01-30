@@ -40,7 +40,7 @@ export interface DocumentRequirement {
 }
 
 // Visa categories (purpose of travel)
-export type VisaCategory = 'tourist' | 'business' | 'transit' | 'student' | 'work' | 'medical' | 'conference' | 'non-immigrant';
+export type VisaCategory = 'tourist' | 'business' | 'transit' | 'student' | 'work' | 'medical' | 'conference' | 'non-immigrant' | 'other';
 
 // Visa product offered for a specific country
 export interface VisaProduct {
@@ -75,12 +75,15 @@ export interface VisaProduct {
 
 // Nationality-specific rule (overrides default country rule)
 export interface NationalityRule {
-  nationalityCode: string; // e.g., 'SE' for Swedish
+  nationalityCode: string; // e.g., 'SE' for Swedish, '*' for all others
   nationalityName: string;
   visaType: VisaType;
   availableProducts?: string[]; // IDs of available visa products for this nationality
   processingTime?: number; // days
-  price?: number; // override price for this nationality
+  price?: number; // override total price for this nationality
+  embassyFeeOverride?: number; // Override embassy fee for this nationality (0% VAT)
+  useStandardPricing?: boolean; // true = use product prices, false = TBC pricing
+  pricingNote?: string; // e.g., "Pris bekräftas efter ansökan"
   notes?: string;
 }
 
@@ -235,27 +238,46 @@ export const getVisaTypeForNationality = async (
   }
 };
 
+// Result type for getAvailableVisaProducts
+export interface VisaProductsResult {
+  products: VisaProduct[];
+  visaType: VisaType;
+  isSupported: boolean;
+  nationalityRule?: NationalityRule;
+  useStandardPricing: boolean;
+  pricingNote?: string;
+}
+
 // Get available visa products for a destination + nationality combination
 export const getAvailableVisaProducts = async (
   destinationCode: string,
   nationalityCode: string
-): Promise<{ products: VisaProduct[]; visaType: VisaType; isSupported: boolean }> => {
+): Promise<VisaProductsResult> => {
   try {
     const requirement = await getVisaRequirement(destinationCode);
 
     if (!requirement || !requirement.isSupported || !requirement.isActive) {
-      return { products: [], visaType: 'not-supported', isSupported: false };
+      return { products: [], visaType: 'not-supported', isSupported: false, useStandardPricing: false };
     }
 
-    // Check for nationality-specific rule
-    const nationalityRule = requirement.nationalityRules?.find(
+    // Check for nationality-specific rule (first exact match, then wildcard)
+    let nationalityRule = requirement.nationalityRules?.find(
       rule => rule.nationalityCode === nationalityCode
     );
+    
+    // If no exact match, check for wildcard rule
+    if (!nationalityRule) {
+      nationalityRule = requirement.nationalityRules?.find(
+        rule => rule.nationalityCode === '*'
+      );
+    }
 
     const visaType = nationalityRule?.visaType || requirement.defaultVisaType;
+    const useStandardPricing = nationalityRule?.useStandardPricing !== false; // Default to true
+    const pricingNote = nationalityRule?.pricingNote;
     
     if (visaType === 'not-supported' || visaType === 'not-required') {
-      return { products: [], visaType, isSupported: visaType === 'not-required' };
+      return { products: [], visaType, isSupported: visaType === 'not-required', useStandardPricing, pricingNote };
     }
 
     // Get active products
@@ -263,7 +285,7 @@ export const getAvailableVisaProducts = async (
 
     // If nationality has specific available products, filter by those
     if (nationalityRule?.availableProducts && nationalityRule.availableProducts.length > 0) {
-      products = products.filter(p => nationalityRule.availableProducts!.includes(p.id));
+      products = products.filter(p => nationalityRule!.availableProducts!.includes(p.id));
     }
 
     // If visa type is e-visa only, filter out sticker products
@@ -274,9 +296,18 @@ export const getAvailableVisaProducts = async (
     }
     // If 'both', show all products
 
-    return { products, visaType, isSupported: true };
+    // Apply embassy fee override if specified
+    if (nationalityRule?.embassyFeeOverride !== undefined) {
+      products = products.map(p => ({
+        ...p,
+        embassyFee: nationalityRule!.embassyFeeOverride!,
+        price: p.serviceFee + nationalityRule!.embassyFeeOverride!
+      }));
+    }
+
+    return { products, visaType, isSupported: true, nationalityRule, useStandardPricing, pricingNote };
   } catch (error) {
-    return { products: [], visaType: 'not-supported', isSupported: false };
+    return { products: [], visaType: 'not-supported', isSupported: false, useStandardPricing: false };
   }
 };
 

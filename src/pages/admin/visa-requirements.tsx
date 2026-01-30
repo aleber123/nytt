@@ -32,7 +32,7 @@ const VISA_TYPE_LABELS: Record<VisaType, { label: string; color: string; descrip
   'not-supported': { label: 'Not Supported', color: 'bg-red-100 text-red-800', description: 'We cannot help with this destination' }
 };
 
-const VISA_CATEGORY_LABELS: Record<VisaCategory, { label: string; labelSv: string; color: string }> = {
+const VISA_CATEGORY_LABELS: Record<string, { label: string; labelSv: string; color: string }> = {
   'tourist': { label: 'Tourist', labelSv: 'Turist', color: 'bg-sky-100 text-sky-800' },
   'business': { label: 'Business', labelSv: 'Affärs', color: 'bg-amber-100 text-amber-800' },
   'transit': { label: 'Transit', labelSv: 'Transit', color: 'bg-slate-100 text-slate-800' },
@@ -40,7 +40,8 @@ const VISA_CATEGORY_LABELS: Record<VisaCategory, { label: string; labelSv: strin
   'work': { label: 'Work', labelSv: 'Arbete', color: 'bg-orange-100 text-orange-800' },
   'medical': { label: 'Medical', labelSv: 'Medicinsk', color: 'bg-rose-100 text-rose-800' },
   'conference': { label: 'Conference', labelSv: 'Konferens', color: 'bg-teal-100 text-teal-800' },
-  'non-immigrant': { label: 'Non-Immigrant', labelSv: 'Non-Immigrant', color: 'bg-violet-100 text-violet-800' }
+  'non-immigrant': { label: 'Non-Immigrant', labelSv: 'Non-Immigrant', color: 'bg-violet-100 text-violet-800' },
+  'other': { label: 'Other', labelSv: 'Övrigt', color: 'bg-gray-100 text-gray-800' }
 };
 
 function VisaRequirementsAdminPage() {
@@ -143,7 +144,13 @@ function VisaRequirementsAdminPage() {
     try {
       setSaving(true);
       await setNationalityRule(countryCode, rule, currentUser?.email || 'admin');
-      await loadRequirements();
+      const data = await getAllVisaRequirements();
+      setRequirements(data);
+      // Update editingCountry with fresh data
+      const updatedCountry = data.find(r => r.countryCode === countryCode);
+      if (updatedCountry) {
+        setEditingCountry(updatedCountry);
+      }
       toast.success('Nationality rule added!');
     } catch (error) {
       toast.error('Could not add nationality rule');
@@ -155,7 +162,13 @@ function VisaRequirementsAdminPage() {
   const handleRemoveNationalityRule = async (countryCode: string, nationalityCode: string) => {
     try {
       await removeNationalityRule(countryCode, nationalityCode, currentUser?.email || 'admin');
-      await loadRequirements();
+      const data = await getAllVisaRequirements();
+      setRequirements(data);
+      // Update editingCountry with fresh data
+      const updatedCountry = data.find(r => r.countryCode === countryCode);
+      if (updatedCountry) {
+        setEditingCountry(updatedCountry);
+      }
       toast.success('Nationality rule removed!');
     } catch (error) {
       toast.error('Could not remove nationality rule');
@@ -173,7 +186,10 @@ function VisaRequirementsAdminPage() {
         visaProducts: updatedProducts,
         updatedBy: currentUser?.email || 'admin'
       });
-      await loadRequirements();
+      const data = await getAllVisaRequirements();
+      setRequirements(data);
+      const updatedCountry = data.find(r => r.countryCode === countryCode);
+      if (updatedCountry) setEditingCountry(updatedCountry);
       toast.success('Visa product added!');
     } catch (error) {
       toast.error('Could not add visa product');
@@ -192,7 +208,10 @@ function VisaRequirementsAdminPage() {
         visaProducts: updatedProducts,
         updatedBy: currentUser?.email || 'admin'
       });
-      await loadRequirements();
+      const data = await getAllVisaRequirements();
+      setRequirements(data);
+      const updatedCountry = data.find(r => r.countryCode === countryCode);
+      if (updatedCountry) setEditingCountry(updatedCountry);
       toast.success('Visa product removed!');
     } catch (error) {
       toast.error('Could not remove visa product');
@@ -212,7 +231,10 @@ function VisaRequirementsAdminPage() {
         visaProducts: updatedProducts,
         updatedBy: currentUser?.email || 'admin'
       });
-      await loadRequirements();
+      const data = await getAllVisaRequirements();
+      setRequirements(data);
+      const updatedCountry = data.find(r => r.countryCode === countryCode);
+      if (updatedCountry) setEditingCountry(updatedCountry);
       toast.success('Visa product updated!');
     } catch (error) {
       toast.error('Could not update visa product');
@@ -735,9 +757,13 @@ function UnifiedEditModal({
   const [notes, setNotes] = useState(requirement.notes || '');
 
   // Nationality tab state
+  const [editingRuleCode, setEditingRuleCode] = useState<string | null>(null);
   const [nationalityCode, setNationalityCode] = useState('');
   const [nationalityName, setNationalityName] = useState('');
   const [nationalityVisaType, setNationalityVisaType] = useState<VisaType>('e-visa');
+  const [ruleUseStandardPricing, setRuleUseStandardPricing] = useState(true);
+  const [ruleEmbassyFeeOverride, setRuleEmbassyFeeOverride] = useState('');
+  const [rulePricingNote, setRulePricingNote] = useState('');
 
   // Products tab state
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -810,21 +836,57 @@ function UnifiedEditModal({
 
   const handleNationalitySelect = (code: string) => {
     setNationalityCode(code);
-    const country = ALL_COUNTRIES.find(c => c.code === code);
-    if (country) {
-      setNationalityName(country.nameEn || country.name);
+    if (code === '*') {
+      setNationalityName('Övriga nationaliteter');
+    } else {
+      const country = ALL_COUNTRIES.find(c => c.code === code);
+      if (country) {
+        setNationalityName(country.nameEn || country.name);
+      }
     }
+  };
+
+  const handleEditRule = (rule: NationalityRule) => {
+    setEditingRuleCode(rule.nationalityCode);
+    setNationalityCode(rule.nationalityCode);
+    setNationalityName(rule.nationalityName);
+    setNationalityVisaType(rule.visaType);
+    setRuleUseStandardPricing(rule.useStandardPricing !== false);
+    setRuleEmbassyFeeOverride(rule.embassyFeeOverride?.toString() || '');
+    setRulePricingNote(rule.pricingNote || '');
+  };
+
+  const resetRuleForm = () => {
+    setEditingRuleCode(null);
+    setNationalityCode('');
+    setNationalityName('');
+    setNationalityVisaType('e-visa');
+    setRuleUseStandardPricing(true);
+    setRuleEmbassyFeeOverride('');
+    setRulePricingNote('');
   };
 
   const handleAddNationalityRule = () => {
     if (nationalityCode && nationalityName) {
-      onAddRule(requirement.countryCode, {
+      const rule: NationalityRule = {
         nationalityCode: nationalityCode.toUpperCase(),
         nationalityName,
-        visaType: nationalityVisaType
-      });
-      setNationalityCode('');
-      setNationalityName('');
+        visaType: nationalityVisaType,
+        useStandardPricing: ruleUseStandardPricing,
+      };
+      if (ruleEmbassyFeeOverride) {
+        rule.embassyFeeOverride = parseInt(ruleEmbassyFeeOverride);
+      }
+      if (rulePricingNote) {
+        rule.pricingNote = rulePricingNote;
+      }
+      
+      if (editingRuleCode) {
+        // Remove old rule first, then add updated one
+        onRemoveRule(requirement.countryCode, editingRuleCode);
+      }
+      onAddRule(requirement.countryCode, rule);
+      resetRuleForm();
     }
   };
 
@@ -1373,38 +1435,65 @@ function UnifiedEditModal({
                     {requirement.nationalityRules.map((rule) => (
                       <div
                         key={rule.nationalityCode}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="p-3 bg-gray-50 rounded-lg"
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">{rule.nationalityName}</span>
-                          <span className={`px-2 py-0.5 text-xs rounded ${VISA_TYPE_LABELS[rule.visaType]?.color}`}>
-                            {VISA_TYPE_LABELS[rule.visaType]?.label}
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="font-medium">{rule.nationalityName}</span>
+                            <span className={`px-2 py-0.5 text-xs rounded ${VISA_TYPE_LABELS[rule.visaType]?.color}`}>
+                              {VISA_TYPE_LABELS[rule.visaType]?.label}
+                            </span>
+                            {rule.useStandardPricing !== false && rule.embassyFeeOverride && (
+                              <span className="px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">
+                                Ambassad: {rule.embassyFeeOverride} kr
+                              </span>
+                            )}
+                            {rule.useStandardPricing === false && (
+                              <span className="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-800">
+                                Pris TBC
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditRule(rule)}
+                              className="text-primary-600 hover:text-primary-800 text-sm"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => onRemoveRule(requirement.countryCode, rule.nationalityCode)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => onRemoveRule(requirement.countryCode, rule.nationalityCode)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Remove
-                        </button>
+                        {rule.pricingNote && (
+                          <div className="mt-1 text-xs text-gray-500">{rule.pricingNote}</div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Add New Rule */}
+              {/* Add/Edit Rule */}
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Add Nationality Rule</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  {editingRuleCode ? 'Edit Nationality Rule' : 'Add Nationality Rule'}
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Nationality</label>
                     <select
                       value={nationalityCode}
                       onChange={(e) => handleNationalitySelect(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                      disabled={!!editingRuleCode}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
                     >
                       <option value="">Select...</option>
+                      <option value="*">* Övriga nationaliteter</option>
                       {ALL_COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>
                           {country.nameEn || country.name}
@@ -1424,15 +1513,58 @@ function UnifiedEditModal({
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-end">
-                    <button
-                      onClick={handleAddNationalityRule}
-                      disabled={saving || !nationalityCode}
-                      className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                    >
-                      Add Rule
-                    </button>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Embassy Fee Override (kr)</label>
+                    <input
+                      type="number"
+                      value={ruleEmbassyFeeOverride}
+                      onChange={(e) => setRuleEmbassyFeeOverride(e.target.value)}
+                      placeholder="e.g. 1085"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    />
                   </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={ruleUseStandardPricing}
+                        onChange={(e) => setRuleUseStandardPricing(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="text-sm">Use standard pricing (show price)</span>
+                    </label>
+                  </div>
+                  {!ruleUseStandardPricing && (
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Pricing Note (TBC message)</label>
+                      <input
+                        type="text"
+                        value={rulePricingNote}
+                        onChange={(e) => setRulePricingNote(e.target.value)}
+                        placeholder="e.g. Ambassadavgift bekräftas efter ansökan"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={handleAddNationalityRule}
+                    disabled={saving || !nationalityCode}
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    {editingRuleCode ? 'Update Rule' : 'Add Rule'}
+                  </button>
+                  {editingRuleCode && (
+                    <button
+                      onClick={resetRuleForm}
+                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -267,6 +267,7 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           </div>
         </div>
 
+        ${order.totalPrice && order.totalPrice > 0 ? `
         <div class="price-box">
           ${(order.pricingBreakdown?.serviceFee || order.pricingBreakdown?.embassyFee || order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) ? `
           <div style="font-size:14px; color:#6b7280; margin-bottom:8px;">
@@ -279,6 +280,12 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
           <div style="color:#6b7280; font-size:13px;">Total price ${order.customerType === 'company' ? '(excl. VAT)' : '(incl. VAT)'}</div>
         </div>
+        ` : `
+        <div class="price-box" style="background:#fef3c7; border-color:#fcd34d;">
+          <div class="amount" style="color:#92400e; font-size:18px;">Price to be confirmed</div>
+          <div style="color:#a16207; font-size:13px;">We will contact you with pricing information</div>
+        </div>
+        `}
       </div>
 
       <div class="next-steps">
@@ -390,6 +397,7 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           </div>
         </div>
 
+        ${order.totalPrice && order.totalPrice > 0 ? `
         <div class="price-box">
           ${(order.pricingBreakdown?.serviceFee || order.pricingBreakdown?.embassyFee || order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) ? `
           <div style="font-size:14px; color:#6b7280; margin-bottom:8px;">
@@ -402,6 +410,12 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
           <div style="color:#6b7280; font-size:13px;">Totalt pris ${order.customerType === 'company' ? '(exkl. moms)' : '(inkl. moms)'}</div>
         </div>
+        ` : `
+        <div class="price-box" style="background:#fef3c7; border-color:#fcd34d;">
+          <div class="amount" style="color:#92400e; font-size:18px;">Pris meddelas separat</div>
+          <div style="color:#a16207; font-size:13px;">Vi kontaktar dig med prisinformation</div>
+        </div>
+        `}
       </div>
 
       <div class="next-steps">
@@ -594,6 +608,7 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
           </div>
         </div>
 
+        ${order.totalPrice && order.totalPrice > 0 ? `
         <div class="price-box">
           ${(order.pricingBreakdown?.serviceFee || order.pricingBreakdown?.embassyFee || order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) ? `
           <div style="font-size:14px; color:#6b7280; margin-bottom:8px;">
@@ -606,6 +621,12 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
           <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
           <div style="color:#6b7280; font-size:13px;">Total price ${order.customerType === 'company' ? '(excl. VAT)' : '(incl. VAT)'}</div>
         </div>
+        ` : `
+        <div class="price-box" style="background:#fef3c7; border-color:#fcd34d;">
+          <div class="amount" style="color:#92400e; font-size:18px;">⚠️ PRICE TBC</div>
+          <div style="color:#a16207; font-size:13px;">Contact customer with pricing information</div>
+        </div>
+        `}
       </div>
 
       <div class="customer-info">

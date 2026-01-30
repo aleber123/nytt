@@ -29,6 +29,9 @@ export interface SelectedVisaProduct {
   urgentPrice?: number;
   urgentEmbassyFee?: number;
   urgentDoxFee?: number;
+  // Nationality-based pricing
+  useStandardPricing?: boolean; // true = show price, false = TBC
+  pricingNote?: string; // e.g., "Embassy fee confirmed after application"
 }
 
 // Visa-specific fields that extend the base OrderAnswers

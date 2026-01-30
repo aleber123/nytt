@@ -36,13 +36,7 @@ export default function OversattningPage() {
             "@type": "Country",
             "name": "Sweden"
           },
-          "serviceType": "Certified Translation",
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "bestRating": "5",
-            "ratingCount": "1200"
-          }
+          "serviceType": "Certified Translation"
         })}} />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

@@ -45,12 +45,6 @@ export default function UtrikesdepartementetPage() {
             "priceCurrency": "SEK",
             "availability": "https://schema.org/InStock",
             "priceValidUntil": "2027-01-01"
-          },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "bestRating": "5",
-            "ratingCount": "1200"
           }
         })}} />
         

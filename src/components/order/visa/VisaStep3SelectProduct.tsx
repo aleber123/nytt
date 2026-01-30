@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { VisaOrderAnswers, SelectedVisaProduct } from './types';
-import { getAvailableVisaProducts, VisaProduct, VisaType } from '@/firebase/visaRequirementsService';
+import { getAvailableVisaProducts, VisaProduct, VisaType, VisaProductsResult } from '@/firebase/visaRequirementsService';
 
 interface VisaStep3SelectProductProps {
   answers: VisaOrderAnswers;
@@ -23,6 +23,7 @@ const CATEGORY_LABELS: Record<string, { sv: string; en: string; icon: string }> 
   work: { sv: 'Arbete', en: 'Work', icon: '👷' },
   medical: { sv: 'Medicinsk', en: 'Medical', icon: '🏥' },
   conference: { sv: 'Konferens', en: 'Conference', icon: '🎤' },
+  other: { sv: 'Övrigt', en: 'Other', icon: '📋' },
 };
 
 export default function VisaStep3SelectProduct({
@@ -35,6 +36,8 @@ export default function VisaStep3SelectProduct({
   const [products, setProducts] = useState<VisaProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [visaType, setVisaType] = useState<VisaType>('sticker');
+  const [useStandardPricing, setUseStandardPricing] = useState(true);
+  const [pricingNote, setPricingNote] = useState<string | undefined>();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     answers.selectedVisaProduct?.id || null
   );
@@ -49,6 +52,8 @@ export default function VisaStep3SelectProduct({
         );
         setProducts(result.products);
         setVisaType(result.visaType);
+        setUseStandardPricing(result.useStandardPricing);
+        setPricingNote(result.pricingNote);
         setLoading(false);
       }
     };
@@ -66,9 +71,9 @@ export default function VisaStep3SelectProduct({
       visaType: product.visaType as 'e-visa' | 'sticker',
       entryType: product.entryType as 'single' | 'double' | 'multiple',
       validityDays: product.validityDays,
-      price: product.price,
+      price: useStandardPricing ? product.price : 0, // 0 = TBC
       serviceFee: product.serviceFee,
-      embassyFee: product.embassyFee,
+      embassyFee: useStandardPricing ? product.embassyFee : 0, // 0 = TBC
       processingDays: product.processingDays,
       expressAvailable: product.expressAvailable,
       expressDays: product.expressDays,
@@ -80,6 +85,8 @@ export default function VisaStep3SelectProduct({
       urgentPrice: product.urgentPrice,
       urgentEmbassyFee: product.urgentEmbassyFee,
       urgentDoxFee: product.urgentDoxFee,
+      useStandardPricing,
+      pricingNote,
     };
 
     onUpdate({
@@ -263,21 +270,39 @@ export default function VisaStep3SelectProduct({
 
                         {/* Price */}
                         <div className="text-right ml-4">
-                          <div className="text-2xl font-bold text-gray-900">
-                            {product.price.toLocaleString()} kr
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {locale === 'en' ? 'incl. VAT' : 'inkl. moms'}
-                          </div>
-                          {(product.serviceFee || product.embassyFee) ? (
-                            <div className="text-xs text-gray-400 space-y-0.5 mt-1">
-                              <div>{locale === 'en' ? 'Service' : 'Service'}: {(product.serviceFee || 0).toLocaleString()} kr</div>
-                              <div>{locale === 'en' ? 'Embassy' : 'Ambassad'}: {(product.embassyFee || 0).toLocaleString()} kr</div>
-                            </div>
+                          {useStandardPricing ? (
+                            <>
+                              <div className="text-2xl font-bold text-gray-900">
+                                {product.price.toLocaleString()} kr
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {locale === 'en' ? 'incl. VAT' : 'inkl. moms'}
+                              </div>
+                              {(product.serviceFee || product.embassyFee) ? (
+                                <div className="text-xs text-gray-400 space-y-0.5 mt-1">
+                                  <div>{locale === 'en' ? 'Service' : 'Service'}: {(product.serviceFee || 0).toLocaleString()} kr</div>
+                                  <div>{locale === 'en' ? 'Embassy' : 'Ambassad'}: {(product.embassyFee || 0).toLocaleString()} kr</div>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-gray-500">
+                                  {locale === 'en' ? 'incl. service fee' : 'inkl. serviceavgift'}
+                                </div>
+                              )}
+                            </>
                           ) : (
-                            <div className="text-xs text-gray-500">
-                              {locale === 'en' ? 'incl. service fee' : 'inkl. serviceavgift'}
-                            </div>
+                            <>
+                              <div className="text-lg font-bold text-amber-600">
+                                {locale === 'en' ? 'Price TBC' : 'Pris TBC'}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {pricingNote || (locale === 'en' 
+                                  ? 'Embassy fee confirmed after application' 
+                                  : 'Ambassadavgift bekräftas efter ansökan')}
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                {locale === 'en' ? 'Service' : 'Service'}: {(product.serviceFee || 0).toLocaleString()} kr
+                              </div>
+                            </>
                           )}
                         </div>
                       </div>
