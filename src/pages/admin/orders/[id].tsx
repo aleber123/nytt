@@ -3027,10 +3027,37 @@ function AdminOrderDetailPage() {
       }
     }
 
-    // Validate customer info
-    const ci = order.customerInfo;
-    if (!ci?.address || !ci?.postalCode || !ci?.city || !ci?.phone) {
-      toast.error('Customer info missing (address, postal code, city or phone)');
+    // Get return address - prefer dedicated returnAddress object over customerInfo
+    const ra = (order as any).returnAddress || {};
+    const ci = order.customerInfo || {};
+    const hasReturnAddress = ra.street || ra.firstName || ra.lastName;
+    
+    // Build receiver info from returnAddress or fallback to customerInfo
+    const receiverInfo = hasReturnAddress ? {
+      address: ra.street || '',
+      postalCode: ra.postalCode || '',
+      city: ra.city || '',
+      country: ra.country || 'SE',
+      phone: ra.phone || ci.phone || '',
+      email: ra.email || ci.email || '',
+      firstName: ra.firstName || '',
+      lastName: ra.lastName || '',
+      companyName: ra.companyName || ''
+    } : {
+      address: ci.address || '',
+      postalCode: ci.postalCode || '',
+      city: ci.city || '',
+      country: ci.country || 'SE',
+      phone: ci.phone || '',
+      email: ci.email || '',
+      firstName: ci.firstName || '',
+      lastName: ci.lastName || '',
+      companyName: ci.companyName || ''
+    };
+
+    // Validate receiver info
+    if (!receiverInfo.address || !receiverInfo.postalCode || !receiverInfo.city || !receiverInfo.phone) {
+      toast.error('Return address info missing (address, postal code, city or phone)');
       return;
     }
 
@@ -3054,13 +3081,6 @@ function AdminOrderDetailPage() {
       }
 
       // Step 2: Get DHL rate quote first
-      // Validate required fields for rates
-      if (!ci.postalCode || !ci.city) {
-        toast.error('Customer postal code or city is missing - cannot get DHL rate');
-        setBookingDhlShipment(false);
-        return;
-      }
-
       // Convert country name to 2-letter code if needed
       const countryNameToCode: Record<string, string> = {
         'sweden': 'SE', 'sverige': 'SE',
@@ -3080,14 +3100,14 @@ function AdminOrderDetailPage() {
         'poland': 'PL', 'polen': 'PL'
       };
       
-      let countryCode = ci.country || 'SE';
+      let countryCode = receiverInfo.country || 'SE';
       if (countryCode.length > 2) {
         const normalized = countryCode.toLowerCase().trim();
         countryCode = countryNameToCode[normalized] || 'SE';
       }
 
       // Format postal code for DHL (Swedish format: "123 45")
-      let formattedPostalCode = ci.postalCode.replace(/\s/g, ''); // First remove all spaces
+      let formattedPostalCode = receiverInfo.postalCode.replace(/\s/g, ''); // First remove all spaces
       if (countryCode === 'SE' && formattedPostalCode.length === 5) {
         formattedPostalCode = formattedPostalCode.slice(0, 3) + ' ' + formattedPostalCode.slice(3);
       }
@@ -3095,7 +3115,7 @@ function AdminOrderDetailPage() {
       const ratesRequestBody = {
         receiver: {
           postalCode: formattedPostalCode,
-          cityName: ci.city,
+          cityName: receiverInfo.city,
           countryCode: countryCode,
         },
         isPickup: false, // Return shipment: DOX -> Customer
@@ -3133,17 +3153,17 @@ function AdminOrderDetailPage() {
           'poland': 'PL', 'polen': 'PL'
         };
         
-        let countryCode = ci.country || 'SE';
+        let errorCountryCode = receiverInfo.country || 'SE';
         // If country is longer than 2 chars, try to convert it
-        if (countryCode.length > 2) {
-          const normalized = countryCode.toLowerCase().trim();
-          countryCode = countryNameToCode[normalized] || 'SE';
+        if (errorCountryCode.length > 2) {
+          const normalized = errorCountryCode.toLowerCase().trim();
+          errorCountryCode = countryNameToCode[normalized] || 'SE';
         }
         
         setDhlEditAddress({
-          postalCode: ci.postalCode || '',
-          city: ci.city || '',
-          country: countryCode
+          postalCode: receiverInfo.postalCode || '',
+          city: receiverInfo.city || '',
+          country: errorCountryCode
         });
         setShowDhlAddressModal(true);
         setBookingDhlShipment(false);
@@ -3184,16 +3204,16 @@ function AdminOrderDetailPage() {
           shippingDate: new Date().toISOString().split('T')[0],
           receiver: {
             address: {
-              postalCode: ci.postalCode,
-              cityName: ci.city,
-              countryCode: ci.country || 'SE',
-              addressLine1: ci.address
+              postalCode: receiverInfo.postalCode,
+              cityName: receiverInfo.city,
+              countryCode: countryCode,
+              addressLine1: receiverInfo.address
             },
             contact: {
-              companyName: ci.companyName,
-              fullName: `${ci.firstName || ''} ${ci.lastName || ''}`.trim(),
-              phone: ci.phone,
-              email: ci.email
+              companyName: receiverInfo.companyName,
+              fullName: `${receiverInfo.firstName || ''} ${receiverInfo.lastName || ''}`.trim(),
+              phone: receiverInfo.phone,
+              email: receiverInfo.email
             }
           },
           includePickup: false,
