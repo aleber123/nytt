@@ -11,10 +11,10 @@ class MyDocument extends Document {
     return (
       <Html lang={locale}>
         <Head>
-          {/* Google Ads (gtag.js) */}
+          {/* Google Tag (gtag.js) - GA4 + Google Ads */}
           <script
             async
-            src="https://www.googletagmanager.com/gtag/js?id=AW-1001886627"
+            src="https://www.googletagmanager.com/gtag/js?id=G-0LMELBW76W"
           />
           <script
             dangerouslySetInnerHTML={{
@@ -22,6 +22,7 @@ class MyDocument extends Document {
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
+                gtag('config', 'G-0LMELBW76W');
                 gtag('config', 'AW-1001886627');
                 gtag('config', 'AW-940620817');
               `,
@@ -46,19 +47,6 @@ class MyDocument extends Document {
               `,
             }}
           />
-          
-          {/* Google Analytics 4 */}
-          {process.env.NEXT_PUBLIC_GA_ID && (
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
-                    page_path: window.location.pathname,
-                  });
-                `,
-              }}
-            />
-          )}
           
           {/* Microsoft Clarity */}
           {process.env.NEXT_PUBLIC_CLARITY_ID && (
