@@ -6556,18 +6556,43 @@ function AdminOrderDetailPage() {
                                               </a>
                                             )}
                                             {(order as any).postnordLabelBase64 && (
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  const link = document.createElement('a');
-                                                  link.href = `data:application/pdf;base64,${(order as any).postnordLabelBase64}`;
-                                                  link.download = `postnord-label-${order.orderNumber}.pdf`;
-                                                  link.click();
-                                                }}
-                                                className="text-xs text-green-600 hover:underline"
-                                              >
-                                                📄 Download label
-                                              </button>
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const link = document.createElement('a');
+                                                    link.href = `data:application/pdf;base64,${(order as any).postnordLabelBase64}`;
+                                                    link.download = `postnord-label-${order.orderNumber}.pdf`;
+                                                    link.click();
+                                                  }}
+                                                  className="text-xs text-green-600 hover:underline"
+                                                >
+                                                  📄 Download label
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const pdfData = (order as any).postnordLabelBase64;
+                                                    const byteCharacters = atob(pdfData);
+                                                    const byteNumbers = new Array(byteCharacters.length);
+                                                    for (let i = 0; i < byteCharacters.length; i++) {
+                                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                                    }
+                                                    const byteArray = new Uint8Array(byteNumbers);
+                                                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const printWindow = window.open(url, '_blank');
+                                                    if (printWindow) {
+                                                      printWindow.onload = () => {
+                                                        printWindow.print();
+                                                      };
+                                                    }
+                                                  }}
+                                                  className="text-xs text-purple-600 hover:underline"
+                                                >
+                                                  🖨️ Print label
+                                                </button>
+                                              </>
                                             )}
                                           </div>
                                         </div>
