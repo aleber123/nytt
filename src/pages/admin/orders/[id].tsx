@@ -1600,10 +1600,10 @@ function AdminOrderDetailPage() {
             <span class="detail-value">${order.invoiceReference}</span>
           </div>
           ` : ''}
-          ${(order as any).receivedDocumentsDescription ? `
+          ${receivedDocumentsDescription || (order as any).receivedDocumentsDescription ? `
           <div class="detail-row">
             <span class="detail-label">Documents received:</span>
-            <span class="detail-value">${(order as any).receivedDocumentsDescription}</span>
+            <span class="detail-value">${receivedDocumentsDescription || (order as any).receivedDocumentsDescription}</span>
           </div>
           ` : `
           <div class="detail-row">
@@ -1719,10 +1719,10 @@ function AdminOrderDetailPage() {
             <span class="detail-value">${order.invoiceReference}</span>
           </div>
           ` : ''}
-          ${(order as any).receivedDocumentsDescription ? `
+          ${receivedDocumentsDescription || (order as any).receivedDocumentsDescription ? `
           <div class="detail-row">
             <span class="detail-label">Mottagna dokument:</span>
-            <span class="detail-value">${(order as any).receivedDocumentsDescription}</span>
+            <span class="detail-value">${receivedDocumentsDescription || (order as any).receivedDocumentsDescription}</span>
           </div>
           ` : `
           <div class="detail-row">
