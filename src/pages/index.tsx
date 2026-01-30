@@ -349,6 +349,34 @@ export default function Home() {
       <main>
         <HeroCarousel />
 
+        {/* Trust Badges Section */}
+        <section className="bg-white border-b py-6">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 text-gray-700">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🏆</span>
+                <span className="font-medium text-sm md:text-base">500+ nöjda kunder</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⚡</span>
+                <span className="font-medium text-sm md:text-base">Snabb leverans</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🔒</span>
+                <span className="font-medium text-sm md:text-base">Säker hantering</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">💬</span>
+                <span className="font-medium text-sm md:text-base">Personlig service</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">✅</span>
+                <span className="font-medium text-sm md:text-base">GDPR-säkrat</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">

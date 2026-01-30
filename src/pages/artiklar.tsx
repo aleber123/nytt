@@ -101,6 +101,71 @@ const ArticlesPage: React.FC = () => {
       tags: ['faq', 'frågor', 'svar', 'kundservice'],
       seoTitle: 'FAQ Dokumentlegalisering - Svar på vanliga frågor',
       seoDescription: 'Vanliga frågor och svar om dokumentlegalisering. Få svar på allt från apostille till leveranstider och priser.'
+    },
+    {
+      id: '7',
+      title: 'Skillnaden mellan Apostille och Ambassadlegalisering',
+      excerpt: 'Förstå när du behöver apostille och när full ambassadlegalisering krävs för dina dokument.',
+      content: 'Apostille och ambassadlegalisering är två olika sätt att legalisera dokument för internationellt bruk. Apostille används för länder som är anslutna till Haagkonventionen (över 120 länder), medan ambassadlegalisering krävs för länder utanför konventionen som Saudiarabien, UAE, Kina och Qatar. Apostille är snabbare och billigare, medan ambassadlegalisering kräver flera steg: Notarius Publicus, Handelskammare, UD och slutligen ambassaden.',
+      slug: 'skillnad-apostille-ambassadlegalisering',
+      date: '2026-01-25',
+      readTime: '6 min',
+      category: 'Legaliseringsguide',
+      tags: ['apostille', 'ambassadlegalisering', 'haagkonventionen', 'jämförelse'],
+      seoTitle: 'Skillnaden mellan Apostille och Ambassadlegalisering 2026',
+      seoDescription: 'Lär dig skillnaden mellan apostille och ambassadlegalisering. När behöver du vilken typ av legalisering? Komplett guide med priser och handläggningstider.'
+    },
+    {
+      id: '8',
+      title: 'Hur legaliserar man dokument för Saudiarabien?',
+      excerpt: 'Komplett guide för att legalisera svenska dokument för användning i Saudiarabien.',
+      content: 'Saudiarabien är inte anslutet till Haagkonventionen, vilket innebär att full ambassadlegalisering krävs. Processen inkluderar: 1) Notarius Publicus verifierar dokumentet, 2) Handelskammaren bekräftar notariens underskrift, 3) Utrikesdepartementet (UD) stämplar dokumentet, 4) Saudiarabiens ambassad i Stockholm legaliserar slutligt. Handläggningstiden är vanligtvis 2-3 veckor. Vi rekommenderar att även översätta dokumentet till arabiska.',
+      slug: 'legalisera-dokument-saudiarabien',
+      date: '2026-01-20',
+      readTime: '8 min',
+      category: 'Länderguide',
+      tags: ['saudiarabien', 'mellanöstern', 'ambassadlegalisering', 'arabiska'],
+      seoTitle: 'Legalisera dokument för Saudiarabien - Komplett guide 2026',
+      seoDescription: 'Steg-för-steg guide för att legalisera dokument för Saudiarabien. Priser, handläggningstider och krav för svenska dokument.'
+    },
+    {
+      id: '9',
+      title: 'Vanliga misstag vid visumansökan',
+      excerpt: 'Undvik dessa vanliga misstag som försenar eller avslår din visumansökan.',
+      content: 'Många visumansökningar avslås eller försenas på grund av enkla misstag. De vanligaste är: 1) Ofullständiga dokument - saknade bilagor eller intyg, 2) Fel foto - fel storlek eller bakgrund, 3) Utgångna dokument - pass eller intyg som snart går ut, 4) Felaktig information - stavfel eller inkonsekventa uppgifter, 5) Saknad legalisering - dokument som inte är korrekt legaliserade. Vi hjälper dig undvika dessa misstag genom att granska din ansökan innan inlämning.',
+      slug: 'vanliga-misstag-visumansökan',
+      date: '2026-01-15',
+      readTime: '5 min',
+      category: 'Processguide',
+      tags: ['visum', 'ansökan', 'misstag', 'tips'],
+      seoTitle: 'Vanliga misstag vid visumansökan - Så undviker du dem 2026',
+      seoDescription: 'Undvik vanliga misstag som försenar din visumansökan. Expertråd om dokument, foton och legalisering för en smidig process.'
+    },
+    {
+      id: '10',
+      title: 'Checklista: Dokument för arbete i UAE',
+      excerpt: 'Komplett checklista för alla dokument du behöver för att arbeta i Förenade Arabemiraten.',
+      content: 'För att arbeta i UAE behöver du flera legaliserade dokument: 1) Examensbevis/diplom - legaliserat och översatt till arabiska, 2) Arbetsgivarintyg - från tidigare arbetsgivare, 3) Straffregisterutdrag - max 3 månader gammalt, 4) Läkarintyg - utfärdat i UAE, 5) Passfoton - enligt UAE:s krav. Alla svenska dokument måste genomgå full ambassadlegalisering via Notarius, Handelskammare, UD och UAE:s ambassad.',
+      slug: 'checklista-dokument-arbete-uae',
+      date: '2026-01-10',
+      readTime: '7 min',
+      category: 'Länderguide',
+      tags: ['uae', 'dubai', 'arbete', 'checklista', 'dokument'],
+      seoTitle: 'Checklista: Dokument för arbete i UAE/Dubai 2026',
+      seoDescription: 'Komplett checklista för dokument du behöver för att arbeta i UAE. Examensbevis, intyg och legalisering - allt du behöver veta.'
+    },
+    {
+      id: '11',
+      title: 'Hur lång tid tar dokumentlegalisering?',
+      excerpt: 'Översikt över handläggningstider för olika typer av legalisering och länder.',
+      content: 'Handläggningstiden varierar beroende på typ av legalisering: Apostille tar vanligtvis 5-7 arbetsdagar. Full ambassadlegalisering tar 2-4 veckor beroende på land. Expresstjänst kan korta tiden till 2-3 dagar för apostille. Faktorer som påverkar tiden: ambassadens handläggningstid, dokumenttyp, och om översättning behövs. Vi rekommenderar att planera minst 3-4 veckor i förväg för ambassadlegalisering.',
+      slug: 'hur-lang-tid-dokumentlegalisering',
+      date: '2026-01-05',
+      readTime: '4 min',
+      category: 'Processguide',
+      tags: ['handläggningstid', 'leveranstid', 'express', 'planering'],
+      seoTitle: 'Hur lång tid tar dokumentlegalisering? Guide 2026',
+      seoDescription: 'Översikt över handläggningstider för apostille och ambassadlegalisering. Planera rätt med vår tidsguide.'
     }
   ];
 
