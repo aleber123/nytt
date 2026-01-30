@@ -6555,7 +6555,7 @@ function AdminOrderDetailPage() {
                                                 🔍 Track shipment
                                               </a>
                                             )}
-                                            {(order as any).postnordLabelBase64 && (
+                                            {(order as any).postnordLabelBase64 ? (
                                               <>
                                                 <button
                                                   type="button"
@@ -6593,6 +6593,15 @@ function AdminOrderDetailPage() {
                                                   🖨️ Print label
                                                 </button>
                                               </>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                onClick={bookPostNordShipment}
+                                                disabled={bookingPostNordShipment}
+                                                className="text-xs text-orange-600 hover:underline disabled:opacity-50"
+                                              >
+                                                {bookingPostNordShipment ? '⏳ Re-booking...' : '🔄 Re-book (label missing)'}
+                                              </button>
                                             )}
                                           </div>
                                         </div>
