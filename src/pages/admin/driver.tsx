@@ -48,10 +48,52 @@ function DriverDashboardPage() {
 
   // Simple daily report state for hours & expenses
   const [hoursWorked, setHoursWorked] = useState('');
-  const [parkingCost, setParkingCost] = useState('');
-  const [embassyCost, setEmbassyCost] = useState('');
-  const [otherCost, setOtherCost] = useState('');
+  const [parkingCosts, setParkingCosts] = useState<string[]>(['']);
+  const [embassyCosts, setEmbassyCosts] = useState<string[]>(['']);
+  const [otherCosts, setOtherCosts] = useState<string[]>(['']);
   const [driverNotes, setDriverNotes] = useState('');
+
+  // Helper functions for multi-expense fields
+  const addParkingField = () => setParkingCosts([...parkingCosts, '']);
+  const removeParkingField = (index: number) => {
+    if (parkingCosts.length > 1) {
+      setParkingCosts(parkingCosts.filter((_, i) => i !== index));
+    }
+  };
+  const updateParkingCost = (index: number, value: string) => {
+    const updated = [...parkingCosts];
+    updated[index] = value;
+    setParkingCosts(updated);
+  };
+
+  const addEmbassyField = () => setEmbassyCosts([...embassyCosts, '']);
+  const removeEmbassyField = (index: number) => {
+    if (embassyCosts.length > 1) {
+      setEmbassyCosts(embassyCosts.filter((_, i) => i !== index));
+    }
+  };
+  const updateEmbassyCost = (index: number, value: string) => {
+    const updated = [...embassyCosts];
+    updated[index] = value;
+    setEmbassyCosts(updated);
+  };
+
+  const addOtherField = () => setOtherCosts([...otherCosts, '']);
+  const removeOtherField = (index: number) => {
+    if (otherCosts.length > 1) {
+      setOtherCosts(otherCosts.filter((_, i) => i !== index));
+    }
+  };
+  const updateOtherCost = (index: number, value: string) => {
+    const updated = [...otherCosts];
+    updated[index] = value;
+    setOtherCosts(updated);
+  };
+
+  // Calculate totals from arrays
+  const totalParking = parkingCosts.reduce((sum, cost) => sum + (parseInt(cost, 10) || 0), 0);
+  const totalEmbassy = embassyCosts.reduce((sum, cost) => sum + (parseInt(cost, 10) || 0), 0);
+  const totalOther = otherCosts.reduce((sum, cost) => sum + (parseInt(cost, 10) || 0), 0);
   const [isSavingDailyReport, setIsSavingDailyReport] = useState(false);
   const [saveDailyMessage, setSaveDailyMessage] = useState<string | null>(null);
   const [isOpeningMonthlyEmail, setIsOpeningMonthlyEmail] = useState(false);
@@ -83,9 +125,9 @@ function DriverDashboardPage() {
         driverId: 'default-driver',
         date: selectedDate,
         hoursWorked,
-        parkingCost,
-        embassyCost,
-        otherCost,
+        parkingCost: totalParking.toString(),
+        embassyCost: totalEmbassy.toString(),
+        otherCost: totalOther.toString(),
         notes: driverNotes,
       });
 
@@ -129,9 +171,9 @@ function DriverDashboardPage() {
     const bodyLines = [
       `Date: ${formatDate(selectedDate)} (${selectedDate})`,
       `Hours worked: ${hoursWorked || '-'}`,
-      `Parking: ${parkingCost || '0'} kr`,
-      `Embassy expenses: ${embassyCost || '0'} kr`,
-      `Other expenses: ${otherCost || '0'} kr`,
+      `Parking: ${totalParking} kr${parkingCosts.filter(c => c).length > 1 ? ` (${parkingCosts.filter(c => c).join(' + ')})` : ''}`,
+      `Embassy expenses: ${totalEmbassy} kr${embassyCosts.filter(c => c).length > 1 ? ` (${embassyCosts.filter(c => c).join(' + ')})` : ''}`,
+      `Other expenses: ${totalOther} kr${otherCosts.filter(c => c).length > 1 ? ` (${otherCosts.filter(c => c).join(' + ')})` : ''}`,
       '',
       'Comment:',
       driverNotes || '-',
@@ -173,30 +215,67 @@ function DriverDashboardPage() {
       const to = 'info@doxvl.se,info@visumpartner.se';
       const subject = `Monthly Driver Report – ${monthLabel}`;
 
+      // Calculate total expenses
+      const totalExpenses = summary.totalParking + summary.totalEmbassy + summary.totalOther;
+      const workingDays = summary.reports.length;
+
+      // Format reports sorted by date
+      const sortedReports = [...summary.reports].sort((a, b) => a.date.localeCompare(b.date));
+
       const headerLines = [
-        `Month: ${monthLabel} (${year}-${String(month).padStart(2, '0')})`,
+        '═══════════════════════════════════════════',
+        `       MONTHLY DRIVER REPORT`,
+        `       ${monthLabel.toUpperCase()}`,
+        '═══════════════════════════════════════════',
         '',
-        `Total hours: ${summary.totalHours.toLocaleString('en-GB')}`,
-        `Parking: ${summary.totalParking} kr`,
-        `Embassy expenses: ${summary.totalEmbassy} kr`,
-        `Other expenses: ${summary.totalOther} kr`,
+        '📊 SUMMARY',
+        '───────────────────────────────────────────',
+        `   Working days:     ${workingDays} days`,
+        `   Total hours:      ${summary.totalHours.toLocaleString('en-GB')} hours`,
         '',
-        'Details per day:',
+        '💰 EXPENSES',
+        '───────────────────────────────────────────',
+        `   🅿️ Parking:       ${summary.totalParking.toLocaleString('en-GB')} SEK`,
+        `   🏛️ Embassy:       ${summary.totalEmbassy.toLocaleString('en-GB')} SEK`,
+        `   📋 Other:         ${summary.totalOther.toLocaleString('en-GB')} SEK`,
+        '───────────────────────────────────────────',
+        `   💵 TOTAL:         ${totalExpenses.toLocaleString('en-GB')} SEK`,
+        '',
+        '',
+        '📅 DAILY BREAKDOWN',
+        '═══════════════════════════════════════════',
       ];
 
-      const detailLines = summary.reports.length
-        ? summary.reports.map((report) => {
-            const notePart = report.notes ? ` – ${report.notes}` : '';
-            return `- ${report.date}: ${report.hoursWorked} h, parking ${report.parkingCost} kr, embassy ${report.embassyCost} kr, other ${report.otherCost} kr${notePart}`;
+      const detailLines = sortedReports.length
+        ? sortedReports.map((report) => {
+            const dateFormatted = new Date(report.date + 'T00:00:00').toLocaleDateString('en-GB', { 
+              weekday: 'short', 
+              day: 'numeric', 
+              month: 'short' 
+            });
+            const dayExpenses = report.parkingCost + report.embassyCost + report.otherCost;
+            const lines = [
+              ``,
+              `📆 ${dateFormatted}`,
+              `   Hours: ${report.hoursWorked}h`,
+            ];
+            if (report.parkingCost > 0) lines.push(`   Parking: ${report.parkingCost} SEK`);
+            if (report.embassyCost > 0) lines.push(`   Embassy: ${report.embassyCost} SEK`);
+            if (report.otherCost > 0) lines.push(`   Other: ${report.otherCost} SEK`);
+            if (dayExpenses > 0) lines.push(`   Day total: ${dayExpenses} SEK`);
+            if (report.notes) lines.push(`   📝 ${report.notes}`);
+            return lines.join('\n');
           })
-        : ['(No saved daily reports for this month.)'];
+        : ['', '(No saved daily reports for this month.)'];
 
       const bodyLines = [
         ...headerLines,
         ...detailLines,
         '',
-        '---',
-        'Sent from DOX driver page',
+        '',
+        '═══════════════════════════════════════════',
+        'Generated from DOX Driver Dashboard',
+        `Report date: ${new Date().toLocaleDateString('en-GB')}`,
       ];
 
       if (typeof window !== 'undefined') {
@@ -1312,7 +1391,7 @@ function DriverDashboardPage() {
                                         {/* Actions */}
                                         <div className="w-32 text-right">
                                           <a
-                                            href={task.orderType === 'visa' ? `/admin/visa-orders/${task.orderId}` : `/admin/orders/${task.orderId}`}
+                                            href={`/admin/orders/${task.orderId}`}
                                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
                                           >
                                             View
@@ -1404,7 +1483,7 @@ function DriverDashboardPage() {
                                         {/* Actions */}
                                         <div className="w-32 text-right">
                                           <a
-                                            href={task.orderType === 'visa' ? `/admin/visa-orders/${task.orderId}` : `/admin/orders/${task.orderId}`}
+                                            href={`/admin/orders/${task.orderId}`}
                                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-blue-600 bg-white hover:bg-gray-50 hover:text-blue-800"
                                           >
                                             View
@@ -1437,105 +1516,249 @@ function DriverDashboardPage() {
               Save the daily report each workday, and at the end of the month you can open a monthly summary as a ready email to the office.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="space-y-6 mb-6">
+              {/* HOURS - Mobile & WCAG friendly */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hours Worked
+                <label htmlFor="hours-input" className="block text-lg font-bold text-gray-900 mb-2">
+                  ⏱️ Hours Worked
                 </label>
                 <input
+                  id="hours-input"
                   type="number"
                   inputMode="decimal"
                   min="0"
                   step="0.25"
                   value={hoursWorked}
                   onChange={(e) => setHoursWorked(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-4 text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
                   placeholder="e.g. 7.5"
+                  aria-label="Hours worked"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Parking (SEK)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  value={parkingCost}
-                  onChange={(e) => setParkingCost(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g. 120"
-                />
+              {/* PARKING - Mobile & WCAG friendly */}
+              <div className="col-span-full">
+                <div className="flex items-center justify-between mb-2">
+                  <label id="parking-label" className="block text-lg font-bold text-gray-900">
+                    🅿️ Parking (SEK)
+                  </label>
+                  {totalParking > 0 && (
+                    <span className="text-xl font-bold text-green-700 bg-green-100 px-3 py-1 rounded-lg">
+                      Total: {totalParking} SEK
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3" role="group" aria-labelledby="parking-label">
+                  {parkingCosts.map((cost, index) => (
+                    <div key={`parking-${index}`} className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        step="1"
+                        value={cost}
+                        onChange={(e) => updateParkingCost(index, e.target.value)}
+                        className="flex-1 px-4 py-4 text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                        placeholder="0"
+                        aria-label={`Parking ${index + 1}`}
+                      />
+                      {parkingCosts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeParkingField(index)}
+                          className="min-w-[56px] min-h-[56px] flex items-center justify-center bg-red-100 text-red-700 rounded-xl hover:bg-red-200 active:bg-red-300 transition-colors"
+                          aria-label={`Remove parking ${index + 1}`}
+                        >
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addParkingField}
+                  className="mt-3 w-full py-4 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 font-bold text-lg rounded-xl border-2 border-dashed border-blue-300 hover:bg-blue-100 active:bg-blue-200 transition-colors"
+                  aria-label="Add more parking"
+                >
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Parking
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Embassy Expenses (SEK)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  value={embassyCost}
-                  onChange={(e) => setEmbassyCost(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g. 300"
-                />
+
+              {/* EMBASSY - Mobile & WCAG friendly */}
+              <div className="col-span-full">
+                <div className="flex items-center justify-between mb-2">
+                  <label id="embassy-label" className="block text-lg font-bold text-gray-900">
+                    🏛️ Embassy (SEK)
+                  </label>
+                  {totalEmbassy > 0 && (
+                    <span className="text-xl font-bold text-green-700 bg-green-100 px-3 py-1 rounded-lg">
+                      Total: {totalEmbassy} SEK
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3" role="group" aria-labelledby="embassy-label">
+                  {embassyCosts.map((cost, index) => (
+                    <div key={`embassy-${index}`} className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        step="1"
+                        value={cost}
+                        onChange={(e) => updateEmbassyCost(index, e.target.value)}
+                        className="flex-1 px-4 py-4 text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                        placeholder="0"
+                        aria-label={`Embassy expense ${index + 1}`}
+                      />
+                      {embassyCosts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEmbassyField(index)}
+                          className="min-w-[56px] min-h-[56px] flex items-center justify-center bg-red-100 text-red-700 rounded-xl hover:bg-red-200 active:bg-red-300 transition-colors"
+                          aria-label={`Remove embassy expense ${index + 1}`}
+                        >
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addEmbassyField}
+                  className="mt-3 w-full py-4 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 font-bold text-lg rounded-xl border-2 border-dashed border-blue-300 hover:bg-blue-100 active:bg-blue-200 transition-colors"
+                  aria-label="Add more embassy expenses"
+                >
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Embassy
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Other Expenses (SEK)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="1"
-                  value={otherCost}
-                  onChange={(e) => setOtherCost(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="e.g. 0"
-                />
+
+              {/* OTHER EXPENSES - Mobile & WCAG friendly */}
+              <div className="col-span-full">
+                <div className="flex items-center justify-between mb-2">
+                  <label id="other-label" className="block text-lg font-bold text-gray-900">
+                    📋 Other (SEK)
+                  </label>
+                  {totalOther > 0 && (
+                    <span className="text-xl font-bold text-green-700 bg-green-100 px-3 py-1 rounded-lg">
+                      Total: {totalOther} SEK
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3" role="group" aria-labelledby="other-label">
+                  {otherCosts.map((cost, index) => (
+                    <div key={`other-${index}`} className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        step="1"
+                        value={cost}
+                        onChange={(e) => updateOtherCost(index, e.target.value)}
+                        className="flex-1 px-4 py-4 text-xl border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                        placeholder="0"
+                        aria-label={`Other expense ${index + 1}`}
+                      />
+                      {otherCosts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeOtherField(index)}
+                          className="min-w-[56px] min-h-[56px] flex items-center justify-center bg-red-100 text-red-700 rounded-xl hover:bg-red-200 active:bg-red-300 transition-colors"
+                          aria-label={`Remove other expense ${index + 1}`}
+                        >
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addOtherField}
+                  className="mt-3 w-full py-4 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 font-bold text-lg rounded-xl border-2 border-dashed border-blue-300 hover:bg-blue-100 active:bg-blue-200 transition-colors"
+                  aria-label="Add more other expenses"
+                >
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Other
+                </button>
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes (optional)
+            {/* NOTES - Mobile & WCAG friendly */}
+            <div className="mb-6">
+              <label htmlFor="notes-input" className="block text-lg font-bold text-gray-900 mb-2">
+                📝 Notes (optional)
               </label>
               <textarea
-                rows={3}
+                id="notes-input"
+                rows={4}
                 value={driverNotes}
                 onChange={(e) => setDriverNotes(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="E.g. which embassy, extra info about parking or trips..."
+                className="w-full px-4 py-4 text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500"
+                placeholder="E.g. which embassy, extra info about parking..."
+                aria-label="Notes"
               />
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+            {/* ACTION BUTTONS - Large touch targets for mobile */}
+            <div className="space-y-4">
               <button
                 type="button"
                 onClick={handleSaveDailyReport}
                 disabled={isSavingDailyReport}
-                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-5 flex items-center justify-center gap-3 bg-green-600 text-white rounded-xl hover:bg-green-700 active:bg-green-800 transition-colors text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                aria-label="Save daily report"
               >
-                {isSavingDailyReport ? 'Saving report...' : 'Save Daily Report'}
+                {isSavingDailyReport ? (
+                  <>
+                    <svg className="animate-spin w-7 h-7" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    💾 SAVE REPORT
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 onClick={handleOpenMonthlyReportEmail}
                 disabled={isOpeningMonthlyEmail}
-                className="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 flex items-center justify-center gap-3 bg-indigo-100 text-indigo-800 rounded-xl hover:bg-indigo-200 active:bg-indigo-300 transition-colors text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border-2 border-indigo-300"
+                aria-label="Open monthly summary"
               >
-                {isOpeningMonthlyEmail ? 'Opening monthly summary...' : 'Open Monthly Summary'}
+                {isOpeningMonthlyEmail ? 'Opening...' : '📧 Send Monthly Report'}
               </button>
             </div>
             {saveDailyMessage && (
-              <p className="mt-3 text-sm text-gray-600">{saveDailyMessage}</p>
+              <p className="mt-4 text-lg font-medium text-green-700 bg-green-50 p-3 rounded-lg text-center" role="status">
+                ✅ {saveDailyMessage}
+              </p>
             )}
             {monthlyMessage && (
-              <p className="mt-1 text-sm text-gray-600">{monthlyMessage}</p>
+              <p className="mt-2 text-base text-gray-700 bg-gray-50 p-3 rounded-lg text-center" role="status">
+                {monthlyMessage}
+              </p>
             )}
 
             {monthlySummary && (
@@ -1571,9 +1794,9 @@ function DriverDashboardPage() {
                               onClick={() => {
                                 setSelectedDate(report.date);
                                 setHoursWorked(report.hoursWorked.toString());
-                                setParkingCost(report.parkingCost.toString());
-                                setEmbassyCost(report.embassyCost.toString());
-                                setOtherCost(report.otherCost.toString());
+                                setParkingCosts([report.parkingCost.toString()]);
+                                setEmbassyCosts([report.embassyCost.toString()]);
+                                setOtherCosts([report.otherCost.toString()]);
                                 setDriverNotes(report.notes || '');
                                 // Scroll to form
                                 window.scrollTo({ top: 0, behavior: 'smooth' });

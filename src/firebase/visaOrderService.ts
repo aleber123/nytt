@@ -384,7 +384,7 @@ export const getDefaultVisaProcessingSteps = (
   return steps;
 };
 
-const VISA_ORDERS_COLLECTION = 'visaOrders';
+const VISA_ORDERS_COLLECTION = 'orders'; // Changed from 'visaOrders' to merge with legalization orders
 const COUNTERS_COLLECTION = 'counters';
 const ORDER_CONFIRMATIONS_COLLECTION = 'orderConfirmations';
 
@@ -558,13 +558,14 @@ export const getVisaOrderByToken = async (token: string): Promise<VisaOrder | nu
   }
 };
 
-// Get all visa orders
+// Get all visa orders (filtered by orderType='visa' since they're now in 'orders' collection)
 export const getAllVisaOrders = async (): Promise<VisaOrder[]> => {
   try {
     const db = getFirebaseDb();
     if (!db) return [];
     const ordersQuery = query(
       collection(db, VISA_ORDERS_COLLECTION),
+      where('orderType', '==', 'visa'),
       orderBy('createdAt', 'desc')
     );
     

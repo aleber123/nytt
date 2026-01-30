@@ -181,9 +181,97 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
       
       return lineItems;
     }
+    
+    // Handle visa orders with object-based pricingBreakdown
+    if ((order as any).orderType === 'visa' && order.pricingBreakdown && !Array.isArray(order.pricingBreakdown)) {
+      const pb = order.pricingBreakdown as any;
+      const visaProduct = (order as any).visaProduct;
+      const destinationCountry = (order as any).destinationCountry || '';
+      
+      // Service Fee
+      if (pb.serviceFee && pb.serviceFee > 0) {
+        const vatAmount = Math.round(pb.serviceFee * VAT_RATES.STANDARD * 100) / 100;
+        lineItems.push({
+          id: `visa_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: `Visumtjänst - ${visaProduct?.name || 'Visum'} (${destinationCountry})`,
+          quantity: 1,
+          unitPrice: pb.serviceFee,
+          totalPrice: pb.serviceFee + vatAmount,
+          vatRate: VAT_RATES.STANDARD,
+          vatAmount: vatAmount,
+          serviceType: 'visa_service'
+        });
+      }
+      
+      // Embassy/Government Fee (VAT exempt)
+      if (pb.embassyFee && pb.embassyFee > 0) {
+        lineItems.push({
+          id: `visa_embassy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: `Ambassadavgift - ${destinationCountry}`,
+          quantity: 1,
+          unitPrice: pb.embassyFee,
+          totalPrice: pb.embassyFee,
+          vatRate: VAT_RATES.ZERO,
+          vatAmount: 0,
+          serviceType: 'visa_embassy'
+        });
+      }
+      
+      // Express processing
+      if (pb.expressPrice && pb.expressPrice > 0) {
+        const vatAmount = Math.round(pb.expressPrice * VAT_RATES.STANDARD * 100) / 100;
+        lineItems.push({
+          id: `visa_express_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: 'Express-handläggning',
+          quantity: 1,
+          unitPrice: pb.expressPrice,
+          totalPrice: pb.expressPrice + vatAmount,
+          vatRate: VAT_RATES.STANDARD,
+          vatAmount: vatAmount,
+          serviceType: 'visa_express'
+        });
+      }
+      
+      // Urgent processing
+      if (pb.urgentPrice && pb.urgentPrice > 0) {
+        const vatAmount = Math.round(pb.urgentPrice * VAT_RATES.STANDARD * 100) / 100;
+        lineItems.push({
+          id: `visa_urgent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: 'Brådskande handläggning',
+          quantity: 1,
+          unitPrice: pb.urgentPrice,
+          totalPrice: pb.urgentPrice + vatAmount,
+          vatRate: VAT_RATES.STANDARD,
+          vatAmount: vatAmount,
+          serviceType: 'visa_urgent'
+        });
+      }
+      
+      // Shipping fee
+      if (pb.shippingFee && pb.shippingFee > 0) {
+        const vatAmount = Math.round(pb.shippingFee * VAT_RATES.STANDARD * 100) / 100;
+        lineItems.push({
+          id: `visa_shipping_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          description: 'Fraktavgift',
+          quantity: 1,
+          unitPrice: pb.shippingFee,
+          totalPrice: pb.shippingFee + vatAmount,
+          vatRate: VAT_RATES.STANDARD,
+          vatAmount: vatAmount,
+          serviceType: 'visa_shipping'
+        });
+      }
+      
+      return lineItems;
+    }
 
     // FALLBACK: If no pricingBreakdown, calculate from Firebase pricing rules
     // This should rarely happen for new orders
+    // Skip if order.services is not an array (e.g., visa orders don't have services)
+    if (!Array.isArray(order.services)) {
+      return lineItems;
+    }
+    
     for (const serviceId of order.services) {
       try {
         const { getPricingRule } = await import('@/firebase/pricingService');

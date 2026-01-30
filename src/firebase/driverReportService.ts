@@ -35,15 +35,6 @@ export const saveDriverDailyReport = async (params: SaveDriverReportParams): Pro
 
   const cleanDriverId = driverId || 'default-driver';
 
-  console.log('📝 saveDriverDailyReport called', {
-    driverId: cleanDriverId,
-    date,
-    hoursWorked,
-    parkingCost,
-    embassyCost,
-    otherCost,
-    notes,
-  });
 
   if (!db) {
     console.error('❌ Firestore db is not initialized in saveDriverDailyReport');
@@ -75,7 +66,6 @@ export const saveDriverDailyReport = async (params: SaveDriverReportParams): Pro
 
   try {
     await setDoc(ref, payload, { merge: true });
-    console.log('✅ Driver daily report saved', { docId, payload });
   } catch (error) {
     console.error('❌ Error saving driver daily report', { docId, payload, error });
     throw error;

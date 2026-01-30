@@ -335,15 +335,41 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
   if (customerName) details.push(['Customer', customerName]);
 
-  details.push(['Document type', getAllDocumentTypesDisplay(order)]);
-  details.push(['Country of use', getCountryName(order.country)]);
-  details.push(['Quantity', `${order.quantity}`]);
+  // Check if this is a visa order
+  const isVisaOrder = (order as any).orderType === 'visa';
+  
+  if (isVisaOrder) {
+    // Visa order specific fields
+    const visaProduct = (order as any).visaProduct;
+    const destinationCountry = (order as any).destinationCountry || '';
+    const nationality = (order as any).nationality || '';
+    
+    details.push(['Visa type', visaProduct?.name || 'Visa']);
+    details.push(['Destination', destinationCountry]);
+    details.push(['Nationality', nationality]);
+    if (visaProduct?.visaType) {
+      details.push(['Format', visaProduct.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa']);
+    }
+    if (visaProduct?.entryType) {
+      details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : 'Multiple entry']);
+    }
+    if ((order as any).departureDate) {
+      details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('sv-SE')]);
+    }
+  } else {
+    // Legalization order specific fields
+    details.push(['Document type', getAllDocumentTypesDisplay(order)]);
+    details.push(['Country of use', getCountryName(order.country)]);
+    details.push(['Quantity', `${order.quantity}`]);
+  }
 
-  const serviceNames: string[] = Array.isArray(order.services)
-    ? order.services.map(getServiceName)
-    : order.services
-      ? [getServiceName(order.services as unknown as string)]
-      : [];
+  const serviceNames: string[] = isVisaOrder 
+    ? [] // Visa orders don't have services array
+    : Array.isArray(order.services)
+      ? order.services.map(getServiceName)
+      : order.services
+        ? [getServiceName(order.services as unknown as string)]
+        : [];
 
   const leftX = 20;
   const midX = 110;
@@ -388,12 +414,14 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
 
   // Removed checklist per request
 
-  // Service checklist for driver (only for selected core services)
-  const serviceIds = Array.isArray(order.services)
-    ? order.services
-    : order.services
-      ? [order.services as unknown as string]
-      : [];
+  // Service checklist for driver (only for selected core services) - skip for visa orders
+  const serviceIds = isVisaOrder 
+    ? []
+    : Array.isArray(order.services)
+      ? order.services
+      : order.services
+        ? [order.services as unknown as string]
+        : [];
 
   const hasNotarization = serviceIds.some((id) => id === 'notarisering' || id === 'notarization');
   const hasApostille = serviceIds.some((id) => id === 'apostille');
@@ -573,15 +601,41 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
   if (customerName) details.push(['Customer', customerName]);
 
-  details.push(['Document type', getAllDocumentTypesDisplay(order)]);
-  details.push(['Country of use', getCountryName(order.country)]);
-  details.push(['Quantity', `${order.quantity}`]);
+  // Check if this is a visa order
+  const isVisaOrderConfirm = (order as any).orderType === 'visa';
+  
+  if (isVisaOrderConfirm) {
+    // Visa order specific fields
+    const visaProduct = (order as any).visaProduct;
+    const destinationCountry = (order as any).destinationCountry || '';
+    const nationality = (order as any).nationality || '';
+    
+    details.push(['Visa type', visaProduct?.name || 'Visa']);
+    details.push(['Destination', destinationCountry]);
+    details.push(['Nationality', nationality]);
+    if (visaProduct?.visaType) {
+      details.push(['Format', visaProduct.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa']);
+    }
+    if (visaProduct?.entryType) {
+      details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : 'Multiple entry']);
+    }
+    if ((order as any).departureDate) {
+      details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('sv-SE')]);
+    }
+  } else {
+    // Legalization order specific fields
+    details.push(['Document type', getAllDocumentTypesDisplay(order)]);
+    details.push(['Country of use', getCountryName(order.country)]);
+    details.push(['Quantity', `${order.quantity}`]);
+  }
 
-  const serviceNames: string[] = Array.isArray(order.services)
-    ? order.services.map(getServiceName)
-    : order.services
-      ? [getServiceName(order.services as unknown as string)]
-      : [];
+  const serviceNames: string[] = isVisaOrderConfirm
+    ? []
+    : Array.isArray(order.services)
+      ? order.services.map(getServiceName)
+      : order.services
+        ? [getServiceName(order.services as unknown as string)]
+        : [];
 
   // Return address (from customer info)
   const addressParts: string[] = [];

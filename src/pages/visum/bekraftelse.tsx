@@ -275,21 +275,22 @@ export default function VisaConfirmationPage() {
                           {order.totalPrice?.toLocaleString()} kr
                         </span>
                         {/* Show fee breakdown if express or urgent */}
-                        {(order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) && (
+                        {(order.pricingBreakdown?.expressPrice && order.pricingBreakdown.expressPrice > 0) || 
+                         (order.pricingBreakdown?.urgentPrice && order.pricingBreakdown.urgentPrice > 0) ? (
                           <div className="text-xs text-gray-500 mt-1 space-y-0.5">
                             <div>{locale === 'en' ? 'Base' : 'Grund'}: {order.visaProduct?.price?.toLocaleString()} kr</div>
-                            {order.pricingBreakdown?.expressPrice ? (
+                            {order.pricingBreakdown?.expressPrice && order.pricingBreakdown.expressPrice > 0 ? (
                               <div className="text-orange-600">
                                 {locale === 'en' ? 'Express' : 'Express'}: +{order.pricingBreakdown.expressPrice.toLocaleString()} kr
                               </div>
                             ) : null}
-                            {order.pricingBreakdown?.urgentPrice ? (
+                            {order.pricingBreakdown?.urgentPrice && order.pricingBreakdown.urgentPrice > 0 ? (
                               <div className="text-red-600">
                                 {locale === 'en' ? 'Urgent' : 'Brådskande'}: +{order.pricingBreakdown.urgentPrice.toLocaleString()} kr
                               </div>
                             ) : null}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
 

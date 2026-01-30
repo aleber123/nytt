@@ -30,14 +30,14 @@ export default async function handler(
     // Get Firestore instance lazily at runtime
     const db = getAdminDb();
 
-    // First try direct document ID
-    let docRef = db.collection('visaOrders').doc(orderId);
+    // First try direct document ID in 'orders' collection (merged with legalization orders)
+    let docRef = db.collection('orders').doc(orderId);
     let docSnap = await docRef.get();
     let actualDocId = orderId;
 
     // If not found by ID, try searching by orderNumber
     if (!docSnap.exists) {
-      const querySnapshot = await db.collection('visaOrders')
+      const querySnapshot = await db.collection('orders')
         .where('orderNumber', '==', orderId)
         .limit(1)
         .get();
@@ -45,7 +45,7 @@ export default async function handler(
       if (!querySnapshot.empty) {
         const foundDoc = querySnapshot.docs[0];
         actualDocId = foundDoc.id;
-        docRef = db.collection('visaOrders').doc(actualDocId);
+        docRef = db.collection('orders').doc(actualDocId);
       } else {
         return res.status(404).json({ error: 'Visa order not found: ' + orderId });
       }

@@ -88,7 +88,7 @@ export const setPricingRule = async (rule: Omit<PricingRule, 'id' | 'lastUpdated
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, cannot set pricing rule');
+      // Firebase not initialized
       throw new Error('Firebase not available');
     }
 
@@ -114,7 +114,7 @@ export const getPricingRule = async (countryCode: string, serviceType: string): 
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, returning null');
+      // Firebase not initialized
       return null;
     }
 
@@ -137,7 +137,7 @@ export const getCountryPricingRules = async (countryCode: string): Promise<Prici
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, using mock data for country:', countryCode);
+      // Firebase not initialized, using mock data
       const mockRules = getMockPricingRules();
       return mockRules.filter(rule => rule.countryCode === countryCode);
     }
@@ -166,7 +166,7 @@ export const getCountryPricingRules = async (countryCode: string): Promise<Prici
   } catch (error) {
     console.error('Error getting country pricing rules:', error);
     // Return mock data filtered by country if Firebase fails
-    console.log('🔄 Using mock pricing data for country:', countryCode);
+    // Using mock pricing data for country
     const mockRules = getMockPricingRules();
     return mockRules.filter(rule => rule.countryCode === countryCode);
   }
@@ -177,7 +177,7 @@ export const getAllActivePricingRules = async (): Promise<PricingRule[]> => {
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, using mock pricing data');
+      // Firebase not initialized, using mock pricing data
       return getMockPricingRules();
     }
 
@@ -208,7 +208,7 @@ export const getAllActivePricingRules = async (): Promise<PricingRule[]> => {
   } catch (error) {
     console.error('Error getting all active pricing rules:', error);
     // Return mock data if Firebase fails
-    console.log('🔄 Using mock pricing data due to Firebase connection issues');
+    // Using mock pricing data due to Firebase connection issues
     return getMockPricingRules();
   }
 };
@@ -221,7 +221,7 @@ export const updatePricingRule = async (
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, cannot update pricing rule');
+      // Firebase not initialized
       throw new Error('Firebase not available');
     }
 
@@ -256,40 +256,31 @@ export const updateOrCreatePricingRule = async (
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, cannot update or create pricing rule');
+      // Firebase not initialized
       throw new Error('Firebase not available');
     }
 
-    console.log(`🔥 Firebase: updateOrCreatePricingRule called for ${ruleId}`);
-    console.log('🔥 Firebase: updates:', updates);
-    console.log('🔥 Firebase: createData:', createData);
 
     const ruleRef = doc(db, 'pricing', ruleId);
 
     // Check if document exists first
     const docSnap = await getDoc(ruleRef);
-    console.log(`🔥 Firebase: Document ${ruleId} exists:`, docSnap.exists());
 
     if (docSnap.exists()) {
       // Document exists, update it
-      console.log('🔥 Firebase: Updating existing document');
       await updateDoc(ruleRef, {
         ...updates,
         lastUpdated: Timestamp.now()
       });
-      console.log('🔥 Firebase: Update successful');
     } else if (createData) {
       // Document doesn't exist, create it
-      console.log('🔥 Firebase: Creating new document');
       const ruleData: PricingRule = {
         ...createData,
         ...updates,
         id: ruleId,
         lastUpdated: Timestamp.now()
       };
-      console.log('🔥 Firebase: Final ruleData to save:', ruleData);
       await setDoc(ruleRef, ruleData);
-      console.log('🔥 Firebase: Create successful');
     } else {
       throw new Error(`Document ${ruleId} does not exist and no createData provided.`);
     }
@@ -777,7 +768,7 @@ export const getPricingStats = async (): Promise<PricingStats> => {
   } catch (error) {
     console.error('Error getting pricing stats:', error);
     // Return mock stats if Firebase fails
-    console.log('🔄 Using mock pricing stats due to Firebase connection issues');
+    // Using mock pricing stats
     const mockRules = getMockPricingRules();
     return {
       totalRules: mockRules.length,
@@ -851,7 +842,6 @@ export const initializeDefaultPricing = async (): Promise<void> => {
       await setPricingRule(rule);
     }
 
-    console.log('Default pricing rules initialized');
   } catch (error) {
     console.error('Error initializing default pricing:', error);
     throw error;
@@ -2047,7 +2037,7 @@ export const trackCountrySelection = async (countryCode: string): Promise<void> 
   try {
     // Check if Firebase is initialized (client-side only)
     if (!db) {
-      console.log('Firebase not initialized, skipping country selection tracking');
+      // Firebase not initialized
       return;
     }
 
@@ -2457,7 +2447,7 @@ const getAllCountries = () => [
 export const getAllPickupPricing = async (): Promise<PickupPricing[]> => {
   try {
     if (!db) {
-      console.log('Firebase not initialized, returning empty array');
+      // Firebase not initialized
       return [];
     }
 
@@ -2475,7 +2465,7 @@ export const getAllPickupPricing = async (): Promise<PickupPricing[]> => {
 export const getActivePickupPricing = async (): Promise<PickupPricing[]> => {
   try {
     if (!db) {
-      console.log('Firebase not initialized, returning empty array');
+      // Firebase not initialized
       return [];
     }
 
@@ -2515,7 +2505,7 @@ export const getPickupPricingByMethod = async (method: 'dhl' | 'stockholm_courie
 export const setPickupPricing = async (pricing: Omit<PickupPricing, 'lastUpdated'>): Promise<void> => {
   try {
     if (!db) {
-      console.log('Firebase not initialized, cannot set pickup pricing');
+      // Firebase not initialized
       throw new Error('Firebase not available');
     }
 
@@ -2540,7 +2530,7 @@ export const updatePickupPricing = async (
 ): Promise<void> => {
   try {
     if (!db) {
-      console.log('Firebase not initialized, cannot update pickup pricing');
+      // Firebase not initialized
       throw new Error('Firebase not available');
     }
 
@@ -2560,7 +2550,7 @@ export const updatePickupPricing = async (
 export const initializePickupPricing = async (updatedBy: string): Promise<void> => {
   try {
     if (!db) {
-      console.log('Firebase not initialized, cannot initialize pickup pricing');
+      // Firebase not initialized
       throw new Error('Firebase not available');
     }
 
@@ -2625,7 +2615,6 @@ export const initializePickupPricing = async (updatedBy: string): Promise<void> 
       await setPickupPricing(pricing);
     }
 
-    console.log('✅ Pickup pricing initialized successfully');
   } catch (error) {
     console.error('Error initializing pickup pricing:', error);
     throw error;

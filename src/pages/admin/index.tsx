@@ -64,16 +64,17 @@ function AdminIndexPage() {
   };
 
   const adminPages = [
-    // Legalization section
+    // Orders section - unified for both legalization and visa
     {
-      title: 'Legalization Orders',
-      description: 'View and manage legalization orders',
+      title: 'All Orders',
+      description: 'View and manage all orders (legalization & visa)',
       href: '/admin/orders',
-      color: 'bg-orange-600 hover:bg-orange-700',
-      badge: 'SWE-orders',
+      color: 'bg-blue-600 hover:bg-blue-700',
+      badge: 'All orders',
       icon: 'clipboard-list',
-      category: 'legalization'
+      category: 'orders'
     },
+    // Legalization section
     {
       title: 'Embassy Prices',
       description: 'Manage prices for embassy legalization per country',
@@ -93,15 +94,6 @@ function AdminIndexPage() {
       category: 'legalization'
     },
     // Visa section
-    {
-      title: 'Visa Orders',
-      description: 'View and manage visa orders',
-      href: '/admin/visa-orders',
-      color: 'bg-emerald-600 hover:bg-emerald-700',
-      badge: 'VISA-orders',
-      icon: 'clipboard-list',
-      category: 'visa'
-    },
     {
       title: 'Visa Products & Pricing',
       description: 'Manage visa types (e-visa/sticker), products and prices per country',
@@ -197,10 +189,11 @@ function AdminIndexPage() {
     }
   ];
 
-  // Group pages by category - separate Legalization and Visa
+  // Group pages by category
   const categories = [
-    { id: 'legalization', title: '📜 Legalization', pages: adminPages.filter(p => p.category === 'legalization') },
-    { id: 'visa', title: '🛂 Visa', pages: adminPages.filter(p => p.category === 'visa') },
+    { id: 'orders', title: '📋 Orders', pages: adminPages.filter(p => p.category === 'orders') },
+    { id: 'legalization', title: '📜 Legalization Pricing', pages: adminPages.filter(p => p.category === 'legalization') },
+    { id: 'visa', title: '🛂 Visa Configuration', pages: adminPages.filter(p => p.category === 'visa') },
     { id: 'customers', title: '👥 Customers', pages: adminPages.filter(p => p.category === 'customers') },
     { id: 'operations', title: '⚙️ Operations', pages: adminPages.filter(p => p.category === 'operations') },
     { id: 'billing', title: '💰 Billing & Analytics', pages: adminPages.filter(p => p.category === 'billing' || p.category === 'analytics') },
@@ -274,9 +267,10 @@ function AdminIndexPage() {
                   {category.pages.map((page, index) => (
                     <Link key={`${category.id}-${index}`} href={page.href}>
                       <div className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group h-full flex flex-col ${
-                        page.category === 'pricing' ? 'border-blue-100 hover:border-blue-200' :
+                        page.category === 'orders' ? 'border-blue-100 hover:border-blue-200' :
+                        page.category === 'legalization' ? 'border-orange-100 hover:border-orange-200' :
+                        page.category === 'visa' ? 'border-emerald-100 hover:border-emerald-200' :
                         page.category === 'operations' ? 'border-green-100 hover:border-green-200' :
-                        page.category === 'orders' ? 'border-orange-100 hover:border-orange-200' :
                         page.category === 'billing' ? 'border-purple-100 hover:border-purple-200' :
                         page.category === 'customers' ? 'border-teal-100 hover:border-teal-200' :
                         page.category === 'analytics' ? 'border-red-100 hover:border-red-200' :
@@ -284,9 +278,10 @@ function AdminIndexPage() {
                       }`}>
                         <div className="flex items-start flex-1">
                           <div className={`flex-shrink-0 mr-4 p-3 rounded-lg group-hover:opacity-80 transition-colors ${
-                            page.category === 'pricing' ? 'bg-blue-50' :
+                            page.category === 'orders' ? 'bg-blue-50' :
+                            page.category === 'legalization' ? 'bg-orange-50' :
+                            page.category === 'visa' ? 'bg-emerald-50' :
                             page.category === 'operations' ? 'bg-green-50' :
-                            page.category === 'orders' ? 'bg-orange-50' :
                             page.category === 'billing' ? 'bg-purple-50' :
                             page.category === 'customers' ? 'bg-teal-50' :
                             page.category === 'analytics' ? 'bg-red-50' :
@@ -297,9 +292,10 @@ function AdminIndexPage() {
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
                               <h3 className={`text-lg font-semibold text-gray-900 transition-colors ${
-                                page.category === 'pricing' ? 'group-hover:text-blue-700' :
+                                page.category === 'orders' ? 'group-hover:text-blue-700' :
+                                page.category === 'legalization' ? 'group-hover:text-orange-700' :
+                                page.category === 'visa' ? 'group-hover:text-emerald-700' :
                                 page.category === 'operations' ? 'group-hover:text-green-700' :
-                                page.category === 'orders' ? 'group-hover:text-orange-700' :
                                 page.category === 'customers' ? 'group-hover:text-teal-700' :
                                 page.category === 'billing' ? 'group-hover:text-purple-700' :
                                 page.category === 'analytics' ? 'group-hover:text-red-700' :
@@ -309,9 +305,10 @@ function AdminIndexPage() {
                               </h3>
                               {page.badge && (
                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                  page.category === 'pricing' ? 'bg-blue-100 text-blue-800' :
+                                  page.category === 'orders' ? 'bg-blue-100 text-blue-800' :
+                                  page.category === 'legalization' ? 'bg-orange-100 text-orange-800' :
+                                  page.category === 'visa' ? 'bg-emerald-100 text-emerald-800' :
                                   page.category === 'operations' ? 'bg-green-100 text-green-800' :
-                                  page.category === 'orders' ? 'bg-orange-100 text-orange-800' :
                                   page.category === 'customers' ? 'bg-teal-100 text-teal-800' :
                                   page.category === 'billing' ? 'bg-purple-100 text-purple-800' :
                                   page.category === 'analytics' ? 'bg-red-100 text-red-800' :

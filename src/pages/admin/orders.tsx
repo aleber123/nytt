@@ -18,21 +18,22 @@ const ADMIN_EMAILS = ['admin@doxvl.se', 'sofia@sofia.se'];
 interface Order {
   id?: string;
   orderNumber?: string;
+  orderType?: 'visa' | 'legalization'; // To distinguish visa orders from legalization orders
   userId?: string;
-  services: string[];
-  documentType: string;
-  country: string;
-  quantity: number;
-  expedited: boolean;
-  documentSource: string;
-  pickupService: boolean;
+  services?: string[];
+  documentType?: string;
+  country?: string;
+  quantity?: number;
+  expedited?: boolean;
+  documentSource?: string;
+  pickupService?: boolean;
   pickupAddress?: {
     street: string;
     postalCode: string;
     city: string;
   };
-  scannedCopies: boolean;
-  returnService: string;
+  scannedCopies?: boolean;
+  returnService?: string;
   customerInfo?: {
     firstName?: string;
     lastName?: string;
@@ -43,10 +44,10 @@ interface Order {
     postalCode?: string;
     city?: string;
   };
-  deliveryMethod: string;
-  paymentMethod: string;
-  status: 'pending' | 'received' | 'waiting-for-documents' | 'processing' | 'submitted' | 'action-required' | 'ready-for-return' | 'completed' | 'cancelled';
-  totalPrice: number;
+  deliveryMethod?: string;
+  paymentMethod?: string;
+  status: 'pending' | 'received' | 'waiting-for-documents' | 'processing' | 'submitted' | 'action-required' | 'ready-for-return' | 'completed' | 'cancelled' | 'documents-required' | 'submitted-to-embassy' | 'approved' | 'rejected';
+  totalPrice?: number;
   createdAt?: any;
   updatedAt?: any;
   uploadedFiles?: any[];
@@ -56,11 +57,18 @@ interface Order {
   invoiceReference?: string;
   additionalNotes?: string;
   linkedOrders?: string[]; // Linked orders for combined shipping
+  // Visa-specific fields
+  destinationCountry?: string;
+  destinationCountryCode?: string;
+  visaProduct?: {
+    name?: string;
+    category?: string;
+  };
 }
 import { toast } from 'react-hot-toast';
 
-const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted'];
-const ALL_STATUSES: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted', 'action-required', 'ready-for-return', 'completed', 'cancelled'];
+const DEFAULT_STATUS_FILTER: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted', 'documents-required', 'submitted-to-embassy'];
+const ALL_STATUSES: Order['status'][] = ['pending', 'received', 'waiting-for-documents', 'processing', 'submitted', 'action-required', 'ready-for-return', 'completed', 'cancelled', 'documents-required', 'submitted-to-embassy', 'approved', 'rejected'];
 
 // Helper function to get country name from country code
 const getCountryName = (countryCode: string): string => {
@@ -753,6 +761,14 @@ function AdminOrdersPage() {
                         <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">
                           <span className="flex items-center gap-1">
                             #{order.orderNumber || order.id}
+                            {order.orderType === 'visa' && (
+                              <span 
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800"
+                                title="Visa order"
+                              >
+                                🛂 Visa
+                              </span>
+                            )}
                             {order.linkedOrders && order.linkedOrders.length > 0 && (
                               <span 
                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800"
@@ -770,16 +786,22 @@ function AdminOrdersPage() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700">
                           <div className="flex flex-wrap gap-1">
-                            {Array.isArray(order.services) ? (
+                            {order.orderType === 'visa' ? (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-purple-100 text-purple-800">
+                                {order.visaProduct?.name || order.visaProduct?.category || 'Visa'}
+                              </span>
+                            ) : Array.isArray(order.services) ? (
                               order.services.slice(0, 3).map((service, idx) => (
                                 <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-indigo-100 text-indigo-800">
                                   {getServiceName(service)}
                                 </span>
                               ))
-                            ) : (
+                            ) : order.services ? (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-indigo-100 text-indigo-800">
                                 {getServiceName(order.services as unknown as string)}
                               </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
                             )}
                             {Array.isArray(order.services) && order.services.length > 3 && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600">
@@ -790,7 +812,9 @@ function AdminOrdersPage() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-100 text-blue-800">
-                            {getCountryName(order.country)}
+                            {order.orderType === 'visa' 
+                              ? (order.destinationCountry || getCountryName(order.destinationCountryCode || ''))
+                              : getCountryName(order.country || '')}
                           </span>
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">

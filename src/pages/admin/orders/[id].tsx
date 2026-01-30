@@ -42,6 +42,27 @@ interface ExtendedOrder extends Order {
   returnAddressConfirmedAt?: string;
   returnAddressConfirmationSent?: boolean;
   returnAddressConfirmationSentAt?: string;
+  // Visa order specific fields
+  orderType?: 'visa' | 'legalization';
+  destinationCountry?: string;
+  destinationCountryCode?: string;
+  nationality?: string;
+  nationalityCode?: string;
+  visaProduct?: {
+    id?: string;
+    name?: string;
+    nameEn?: string;
+    visaType?: 'e-visa' | 'sticker';
+    entryType?: 'single' | 'multiple';
+    category?: string;
+    validityDays?: number;
+    processingDays?: number;
+    price?: number;
+  };
+  departureDate?: string;
+  returnDate?: string;
+  passportNeededBy?: string;
+  locale?: string;
 }
 
 interface ProcessingStep {
@@ -150,6 +171,13 @@ function AdminOrderDetailPage() {
   const [documentRequestMessage, setDocumentRequestMessage] = useState('');
   const [sendingDocumentRequest, setSendingDocumentRequest] = useState(false);
   const [unreadSupplementaryCount, setUnreadSupplementaryCount] = useState(0);
+  // Admin file upload state
+  const [adminUploadFiles, setAdminUploadFiles] = useState<File[]>([]);
+  const [uploadingAdminFiles, setUploadingAdminFiles] = useState(false);
+  const [selectedFilesToSend, setSelectedFilesToSend] = useState<string[]>([]);
+  const [sendingFilesToCustomer, setSendingFilesToCustomer] = useState(false);
+  const [fileMessageToCustomer, setFileMessageToCustomer] = useState('');
+  const adminFileInputRef = useRef<HTMLInputElement | null>(null);
   // Cover letter editable data
   const [notaryApostilleData, setNotaryApostilleData] = useState<NotaryApostilleCoverLetterData | null>(null);
   const [embassyData, setEmbassyData] = useState<EmbassyCoverLetterData | null>(null);
@@ -298,13 +326,40 @@ function AdminOrderDetailPage() {
 
   // If no stored overrides, initialize defaults from breakdown once order loads
   useEffect(() => {
-    if (!order || !Array.isArray(order.pricingBreakdown)) return;
+    if (!order) return;
     
     // Skip if we already have saved lineOverrides from adminPrice
     const ap = order.adminPrice as any;
     if (ap && Array.isArray(ap.lineOverrides) && ap.lineOverrides.length > 0) {
       return; // Don't overwrite saved overrides
     }
+    
+    // Handle visa orders with object-based pricingBreakdown
+    if (order.orderType === 'visa' && order.pricingBreakdown && !Array.isArray(order.pricingBreakdown)) {
+      const pb = order.pricingBreakdown as any;
+      const visaLineItems = [
+        { key: 'serviceFee', label: 'Service Fee', amount: pb.serviceFee || 0 },
+        { key: 'embassyFee', label: 'Embassy/Government Fee', amount: pb.embassyFee || 0 },
+        ...(pb.shippingFee ? [{ key: 'shippingFee', label: 'Shipping Fee', amount: pb.shippingFee }] : []),
+        ...(pb.expeditedFee ? [{ key: 'expeditedFee', label: 'Expedited Fee', amount: pb.expeditedFee }] : []),
+        ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice }] : []),
+        ...(pb.urgentPrice ? [{ key: 'urgentPrice', label: 'Urgent Processing', amount: pb.urgentPrice }] : []),
+      ].filter(item => item.amount > 0);
+      
+      const initial = visaLineItems.map((item, idx) => ({
+        index: idx,
+        label: item.label,
+        baseAmount: item.amount,
+        overrideAmount: null,
+        vatPercent: null,
+        include: true
+      }));
+      setLineOverrides(initial);
+      return;
+    }
+    
+    // Handle legalization orders with array-based pricingBreakdown
+    if (!Array.isArray(order.pricingBreakdown)) return;
     
     // Initialize from pricingBreakdown only if no saved overrides exist
     const initial = order.pricingBreakdown.map((item: any, idx: number) => {
@@ -324,13 +379,32 @@ function AdminOrderDetailPage() {
       return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
     });
     setLineOverrides(initial);
-  }, [order?.pricingBreakdown, order?.adminPrice]);
+  }, [order?.pricingBreakdown, order?.adminPrice, order?.orderType]);
 
   const getBreakdownTotal = () => {
     try {
       if (!order) {
         return 0;
       }
+      
+      // Handle visa orders with object-based pricingBreakdown
+      if (order.orderType === 'visa' && order.pricingBreakdown && !Array.isArray(order.pricingBreakdown)) {
+        const pb = order.pricingBreakdown as any;
+        const visaTotal = (pb.serviceFee || 0) + (pb.embassyFee || 0) + (pb.shippingFee || 0) + 
+                         (pb.expeditedFee || 0) + (pb.expressPrice || 0) + (pb.urgentPrice || 0);
+        
+        // If overrides exist, use them
+        if (lineOverrides.length > 0) {
+          const overrideTotal = lineOverrides.reduce((sum, o) => {
+            if (!o.include) return sum;
+            const val = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
+            return sum + (isNaN(val) ? 0 : val);
+          }, 0);
+          return overrideTotal;
+        }
+        return visaTotal;
+      }
+      
       if (order.pricingBreakdown && Array.isArray(order.pricingBreakdown)) {
         // If overrides exist, use them respecting include toggle
         if (lineOverrides.length === order.pricingBreakdown.length) {
@@ -357,7 +431,6 @@ function AdminOrderDetailPage() {
       // Fallback to existing totalPrice if breakdown missing
       return Number(order.totalPrice || 0);
     } catch (e) {
-      console.error('❌ Error calculating breakdown total:', e);
       return Number(order?.totalPrice || 0);
     }
   };
@@ -4299,6 +4372,108 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Handle admin file upload
+  const handleAdminFileUpload = async () => {
+    if (adminUploadFiles.length === 0 || !order) return;
+    
+    setUploadingAdminFiles(true);
+    try {
+      const orderId = router.query.id as string;
+      
+      // Convert files to base64
+      const filesData = await Promise.all(
+        adminUploadFiles.map(async (file) => {
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]); // Remove data:...;base64, prefix
+            };
+            reader.readAsDataURL(file);
+          });
+          return {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: base64
+          };
+        })
+      );
+
+      const response = await fetch('/api/admin/upload-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          files: filesData,
+          uploadedBy: adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin'
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      toast.success(`${adminUploadFiles.length} file${adminUploadFiles.length > 1 ? 's' : ''} uploaded successfully`);
+      setAdminUploadFiles([]);
+      
+      // Refresh order data
+      const { getOrderById } = await import('@/services/hybridOrderService');
+      const refreshedOrder = await getOrderById(orderId);
+      if (refreshedOrder) {
+        setOrder(refreshedOrder as ExtendedOrder);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to upload files');
+    } finally {
+      setUploadingAdminFiles(false);
+    }
+  };
+
+  // Send files to customer
+  const handleSendFilesToCustomer = async () => {
+    if (selectedFilesToSend.length === 0 || !order) return;
+    
+    setSendingFilesToCustomer(true);
+    try {
+      const orderId = router.query.id as string;
+      
+      const response = await fetch('/api/admin/send-files-to-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          fileUrls: selectedFilesToSend,
+          customMessage: fileMessageToCustomer.trim() || undefined,
+          sentBy: adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin'
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send files');
+      }
+
+      toast.success(`${selectedFilesToSend.length} file${selectedFilesToSend.length > 1 ? 's' : ''} sent to customer`);
+      setSelectedFilesToSend([]);
+      setFileMessageToCustomer('');
+      
+      // Refresh order data
+      const { getOrderById } = await import('@/services/hybridOrderService');
+      const refreshedOrder = await getOrderById(orderId);
+      if (refreshedOrder) {
+        setOrder(refreshedOrder as ExtendedOrder);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send files');
+    } finally {
+      setSendingFilesToCustomer(false);
+    }
+  };
+
   // Mark supplementary files as viewed
   const markSupplementaryAsViewed = async () => {
     if (!currentUser?.uid) return;
@@ -5047,77 +5222,151 @@ function AdminOrderDetailPage() {
                             <div>
                               <h3 className="text-sm font-semibold mb-1 text-gray-800">
                                 Order information
+                                {order.orderType === 'visa' && (
+                                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                                    🛂 Visa
+                                  </span>
+                                )}
                               </h3>
-                              {(() => {
-                                const c = getCountryInfo(order.country);
-                                return (
-                                  <div className="space-y-0.5 text-xs">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">
-                                        Document type:
-                                      </span>
-                                      <span className="font-medium text-gray-900">
-                                        {(() => {
-                                          const getDocTypeName = (typeId: string): string => {
-                                            const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
-                                            if (predefined) return predefined.nameEn || predefined.name;
-                                            if (typeId?.startsWith('custom_')) {
-                                              const name = typeId.replace('custom_', '').replace(/_/g, ' ');
-                                              return name.charAt(0).toUpperCase() + name.slice(1);
-                                            }
-                                            return typeId || 'Other document';
-                                          };
-                                          const types = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
-                                            ? (order as any).documentTypes
-                                            : order.documentType ? [order.documentType] : [];
-                                          return types.map(getDocTypeName).join(', ') || 'Other document';
-                                        })()}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">
-                                        Country:
-                                      </span>
-                                      <span className="flex items-center space-x-1 font-medium text-gray-900">
-                                        <span aria-hidden="true">
-                                          <CountryFlag code={c.code || order.country || ''} size={16} />
+                              {order.orderType === 'visa' ? (
+                                /* Visa Order Information */
+                                (() => {
+                                  const destCountry = getCountryInfo(order.destinationCountryCode || order.destinationCountry);
+                                  const natCountry = getCountryInfo(order.nationalityCode || order.nationality);
+                                  return (
+                                    <div className="space-y-0.5 text-xs">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">Visa product:</span>
+                                        <span className="font-medium text-gray-900">{order.visaProduct?.nameEn || order.visaProduct?.name}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">Visa type:</span>
+                                        <span className="font-medium text-gray-900">
+                                          {order.visaProduct?.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa'}
                                         </span>
-                                        <span>{c.name || c.code}</span>
-                                      </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">Entry type:</span>
+                                        <span className="font-medium text-gray-900">
+                                          {order.visaProduct?.entryType === 'single' ? 'Single' : 'Multiple'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">Destination:</span>
+                                        <span className="flex items-center space-x-1 font-medium text-gray-900">
+                                          <CountryFlag code={destCountry.code || ''} size={16} />
+                                          <span>{destCountry.name}</span>
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">Nationality:</span>
+                                        <span className="flex items-center space-x-1 font-medium text-gray-900">
+                                          <CountryFlag code={natCountry.code || ''} size={16} />
+                                          <span>{natCountry.name}</span>
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">Validity:</span>
+                                        <span className="font-medium text-gray-900">{order.visaProduct?.validityDays} days</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">Processing time:</span>
+                                        <span className="font-medium text-gray-900">~{order.visaProduct?.processingDays} days</span>
+                                      </div>
+                                      {order.departureDate && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-500">Departure:</span>
+                                          <span className="font-medium text-gray-900">{new Date(order.departureDate).toLocaleDateString('en-GB')}</span>
+                                        </div>
+                                      )}
+                                      {order.returnDate && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-500">Return:</span>
+                                          <span className="font-medium text-gray-900">{new Date(order.returnDate).toLocaleDateString('en-GB')}</span>
+                                        </div>
+                                      )}
+                                      {order.customerInfo?.companyName && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-500">Company:</span>
+                                          <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
+                                        </div>
+                                      )}
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">
-                                        Quantity:
-                                      </span>
-                                      <span className="font-medium text-gray-900">{order.quantity}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">
-                                        Source:
-                                      </span>
-                                      <span className="font-medium text-gray-900">
-                                        {order.documentSource === 'original'
-                                          ? 'Original documents'
-                                          : 'Uploaded files'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-500">
-                                        Customer ref:
-                                      </span>
-                                      <span className="font-medium text-gray-900">{order.invoiceReference}</span>
-                                    </div>
-                                    {order.customerInfo?.companyName && (
+                                  );
+                                })()
+                              ) : (
+                                /* Legalization Order Information */
+                                (() => {
+                                  const c = getCountryInfo(order.country);
+                                  return (
+                                    <div className="space-y-0.5 text-xs">
                                       <div className="flex items-center justify-between">
                                         <span className="text-gray-500">
-                                          Company:
+                                          Document type:
                                         </span>
-                                        <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
+                                        <span className="font-medium text-gray-900">
+                                          {(() => {
+                                            const getDocTypeName = (typeId: string): string => {
+                                              const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
+                                              if (predefined) return predefined.nameEn || predefined.name;
+                                              if (typeId?.startsWith('custom_')) {
+                                                const name = typeId.replace('custom_', '').replace(/_/g, ' ');
+                                                return name.charAt(0).toUpperCase() + name.slice(1);
+                                              }
+                                              return typeId || 'Other document';
+                                            };
+                                            const types = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
+                                              ? (order as any).documentTypes
+                                              : order.documentType ? [order.documentType] : [];
+                                            return types.map(getDocTypeName).join(', ') || 'Other document';
+                                          })()}
+                                        </span>
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">
+                                          Country:
+                                        </span>
+                                        <span className="flex items-center space-x-1 font-medium text-gray-900">
+                                          <span aria-hidden="true">
+                                            <CountryFlag code={c.code || order.country || ''} size={16} />
+                                          </span>
+                                          <span>{c.name || c.code}</span>
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">
+                                          Quantity:
+                                        </span>
+                                        <span className="font-medium text-gray-900">{order.quantity}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">
+                                          Source:
+                                        </span>
+                                        <span className="font-medium text-gray-900">
+                                          {order.documentSource === 'original'
+                                            ? 'Original documents'
+                                            : 'Uploaded files'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">
+                                          Customer ref:
+                                        </span>
+                                        <span className="font-medium text-gray-900">{order.invoiceReference}</span>
+                                      </div>
+                                      {order.customerInfo?.companyName && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-500">
+                                            Company:
+                                          </span>
+                                          <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()
+                              )}
                             </div>
 
                             {/* Processing Steps Overview */}
@@ -5645,7 +5894,73 @@ function AdminOrderDetailPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {Array.isArray(order?.pricingBreakdown) && order!.pricingBreakdown.length > 0 ? (
+                            {/* Handle visa orders with object-based pricingBreakdown */}
+                            {order?.orderType === 'visa' && order?.pricingBreakdown && !Array.isArray(order.pricingBreakdown) ? (
+                              (() => {
+                                const pb = order.pricingBreakdown as any;
+                                const visaLineItems = [
+                                  { key: 'serviceFee', label: 'Service Fee', amount: pb.serviceFee || 0 },
+                                  { key: 'embassyFee', label: 'Embassy/Government Fee', amount: pb.embassyFee || 0 },
+                                  ...(pb.shippingFee ? [{ key: 'shippingFee', label: 'Shipping Fee', amount: pb.shippingFee }] : []),
+                                  ...(pb.expeditedFee ? [{ key: 'expeditedFee', label: 'Expedited Fee', amount: pb.expeditedFee }] : []),
+                                  ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice }] : []),
+                                  ...(pb.urgentPrice ? [{ key: 'urgentPrice', label: 'Urgent Processing', amount: pb.urgentPrice }] : []),
+                                ].filter(item => item.amount > 0);
+                                
+                                return visaLineItems.length > 0 ? visaLineItems.map((item, idx) => {
+                                  const o = lineOverrides[idx] || { index: idx, label: item.label, baseAmount: item.amount, include: true };
+                                  return (
+                                    <tr key={item.key} className="border-t">
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="checkbox"
+                                          checked={o.include !== false}
+                                          onChange={(e) => {
+                                            const next = [...lineOverrides];
+                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, include: e.target.checked };
+                                            setLineOverrides(next);
+                                          }}
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">{item.label}</td>
+                                      <td className="px-3 py-2 text-right">{item.amount.toFixed(2)} kr</td>
+                                      <td className="px-3 py-2 text-right">
+                                        <input
+                                          type="number"
+                                          className="w-28 border rounded px-2 py-1 text-right"
+                                          value={o.overrideAmount ?? ''}
+                                          placeholder=""
+                                          onChange={(e) => {
+                                            const val = e.target.value === '' ? null : Number(e.target.value);
+                                            const next = [...lineOverrides];
+                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, overrideAmount: val };
+                                            setLineOverrides(next);
+                                          }}
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2 text-right">
+                                        <input
+                                          type="number"
+                                          className="w-20 border rounded px-2 py-1 text-right"
+                                          value={o.vatPercent ?? ''}
+                                          placeholder=""
+                                          onChange={(e) => {
+                                            const val = e.target.value === '' ? null : Number(e.target.value);
+                                            const next = [...lineOverrides];
+                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, vatPercent: val };
+                                            setLineOverrides(next);
+                                          }}
+                                        />
+                                      </td>
+                                    </tr>
+                                  );
+                                }) : (
+                                  <tr>
+                                    <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
+                                  </tr>
+                                );
+                              })()
+                            ) : Array.isArray(order?.pricingBreakdown) && order!.pricingBreakdown.length > 0 ? (
                               order!.pricingBreakdown.map((item: any, idx: number) => {
                                 const o = lineOverrides[idx] || { index: idx, label: item.description || getServiceName(item.service) || 'Line', baseAmount: 0, include: true };
                                 const base = o.baseAmount || (() => {
@@ -6863,6 +7178,215 @@ function AdminOrderDetailPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Admin Files - Files to send to customer */}
+                    <div className="border-t border-gray-200 pt-6">
+                      <h3 className="text-lg font-medium mb-4">📤 Files for Customer</h3>
+                      <p className="text-gray-600 mb-4">
+                        Upload files here that you want to send to the customer (e.g., approved visa, processed documents).
+                      </p>
+                      
+                      {/* Upload Section */}
+                      <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 mb-4">
+                        <input
+                          type="file"
+                          ref={adminFileInputRef}
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              setAdminUploadFiles(Array.from(e.target.files));
+                            }
+                          }}
+                        />
+                        <div className="text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <button
+                            onClick={() => adminFileInputRef.current?.click()}
+                            className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                          >
+                            Select Files
+                          </button>
+                          <p className="text-sm text-gray-500 mt-2">PDF, images, documents (max 25 MB per file)</p>
+                        </div>
+                        
+                        {adminUploadFiles.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <p className="font-medium text-gray-700">Selected files:</p>
+                            {adminUploadFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border">
+                                <span className="text-sm truncate">{file.name}</span>
+                                <button
+                                  onClick={() => setAdminUploadFiles(adminUploadFiles.filter((_, i) => i !== idx))}
+                                  className="text-red-500 hover:text-red-700 ml-2"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={handleAdminFileUpload}
+                              disabled={uploadingAdminFiles}
+                              className="w-full mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center justify-center"
+                            >
+                              {uploadingAdminFiles ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                  </svg>
+                                  Upload {adminUploadFiles.length} file{adminUploadFiles.length > 1 ? 's' : ''}
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Uploaded Admin Files */}
+                      {(order as any).adminFiles && (order as any).adminFiles.length > 0 && (
+                        <div className="space-y-4">
+                          <h4 className="font-medium text-gray-700">Uploaded files ready to send:</h4>
+                          <div className="grid grid-cols-1 gap-4">
+                            {(order as any).adminFiles.map((file: any, index: number) => (
+                              <div key={index} className={`border rounded-lg p-4 ${file.sentToCustomer ? 'border-green-200 bg-green-50' : 'border-purple-200 bg-purple-50'}`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center flex-1 min-w-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-10 w-10 mr-4 flex-shrink-0 ${file.sentToCustomer ? 'text-green-500' : 'text-purple-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-gray-900 truncate">{file.name}</p>
+                                      <p className="text-sm text-gray-500">
+                                        {file.size ? `${(file.size / 1024).toFixed(0)} KB` : ''} 
+                                        {file.uploadedAt && ` • Uploaded ${new Date(file.uploadedAt).toLocaleDateString('en-GB')}`}
+                                      </p>
+                                      {file.sentToCustomer && (
+                                        <p className="text-sm text-green-600 font-medium mt-1">
+                                          ✓ Sent to customer {file.sentAt && new Date(file.sentAt).toLocaleDateString('en-GB')}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2 ml-4">
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm"
+                                    >
+                                      Preview
+                                    </a>
+                                    {!file.sentToCustomer ? (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedFilesToSend([file.url]);
+                                          setFileMessageToCustomer('');
+                                        }}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium flex items-center"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                        Send to Customer
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedFilesToSend([file.url]);
+                                          setFileMessageToCustomer('');
+                                        }}
+                                        className="px-4 py-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 text-sm flex items-center"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Resend
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Send Confirmation Modal */}
+                          {selectedFilesToSend.length > 0 && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                              <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h3 className="text-lg font-bold text-gray-900">Send File to Customer</h3>
+                                  <button
+                                    onClick={() => setSelectedFilesToSend([])}
+                                    className="text-gray-400 hover:text-gray-600"
+                                  >
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                                
+                                <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                                  <p className="text-sm text-gray-600">
+                                    Sending to: <strong>{order.customerInfo?.email}</strong>
+                                  </p>
+                                  <p className="text-sm text-gray-500 mt-1">
+                                    File: {(order as any).adminFiles?.find((f: any) => f.url === selectedFilesToSend[0])?.name}
+                                  </p>
+                                </div>
+
+                                <div className="mb-4">
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Message to customer (optional)
+                                  </label>
+                                  <textarea
+                                    value={fileMessageToCustomer}
+                                    onChange={(e) => setFileMessageToCustomer(e.target.value)}
+                                    placeholder="e.g., Here is your approved visa document..."
+                                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    rows={3}
+                                  />
+                                </div>
+
+                                <div className="flex space-x-3">
+                                  <button
+                                    onClick={() => setSelectedFilesToSend([])}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={handleSendFilesToCustomer}
+                                    disabled={sendingFilesToCustomer}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center font-medium"
+                                  >
+                                    {sendingFilesToCustomer ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Sending...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                        </svg>
+                                        Send Email
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Request Additional Documents */}
                     <div className="border-t border-gray-200 pt-6">
