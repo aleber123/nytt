@@ -6594,14 +6594,9 @@ function AdminOrderDetailPage() {
                                                 </button>
                                               </>
                                             ) : (
-                                              <button
-                                                type="button"
-                                                onClick={bookPostNordShipment}
-                                                disabled={bookingPostNordShipment}
-                                                className="text-xs text-orange-600 hover:underline disabled:opacity-50"
-                                              >
-                                                {bookingPostNordShipment ? '⏳ Re-booking...' : '🔄 Re-book (label missing)'}
-                                              </button>
+                                              <span className="text-xs text-orange-600">
+                                                ⚠️ Label missing
+                                              </span>
                                             )}
                                           </div>
                                         </div>
