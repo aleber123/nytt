@@ -214,7 +214,7 @@ function AdminOrdersPage() {
       }
 
       // Create new invoice from order
-      const invoice = await convertOrderToInvoice(order);
+      const invoice = await convertOrderToInvoice(order as any);
       const invoiceId = await storeInvoice(invoice);
 
       toast.success(`Invoice ${invoice.invoiceNumber} created for order ${order.orderNumber}`);
