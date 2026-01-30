@@ -110,15 +110,35 @@ export default async function handler(
         phone: order?.customerInfo?.phone || ''
       };
     } else {
-      address = {
-        street: order?.customerInfo?.address || '',
-        postalCode: order?.customerInfo?.postalCode || '',
-        city: order?.customerInfo?.city || '',
-        country: order?.customerInfo?.country || 'Sverige',
-        companyName: order?.customerInfo?.companyName || '',
-        contactName: customerName,
-        phone: order?.customerInfo?.phone || ''
-      };
+      // For return address, check if there's a dedicated returnAddress object first
+      // This is used when the return address differs from the customer's address (e.g., traveler's address)
+      const ra = order?.returnAddress || {};
+      const hasReturnAddress = ra.street || ra.firstName || ra.lastName;
+      
+      if (hasReturnAddress) {
+        // Use the dedicated return address (e.g., traveler's address)
+        const returnName = `${ra.firstName || ''} ${ra.lastName || ''}`.trim();
+        address = {
+          street: ra.street || '',
+          postalCode: ra.postalCode || '',
+          city: ra.city || '',
+          country: ra.country || 'Sverige',
+          companyName: ra.companyName || '',
+          contactName: returnName || customerName,
+          phone: ra.phone || order?.customerInfo?.phone || ''
+        };
+      } else {
+        // Fall back to customer info if no dedicated return address
+        address = {
+          street: order?.customerInfo?.address || '',
+          postalCode: order?.customerInfo?.postalCode || '',
+          city: order?.customerInfo?.city || '',
+          country: order?.customerInfo?.country || 'Sverige',
+          companyName: order?.customerInfo?.companyName || '',
+          contactName: customerName,
+          phone: order?.customerInfo?.phone || ''
+        };
+      }
     }
 
     // Generate unique token
