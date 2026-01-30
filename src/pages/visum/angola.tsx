@@ -91,6 +91,7 @@ export default function AngolaVisumPage() {
         
         <link rel="canonical" href="https://www.doxvl.se/visum/angola" />
         
+        {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
@@ -98,11 +99,96 @@ export default function AngolaVisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Johanneshov",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            },
+            "telephone": "+46-8-409-419-00"
           },
-          "description": "Visumservice för Angola. Vi hjälper dig med ansökan om turistvisum, affärsvisum och arbetsvisum till Angola.",
-          "areaServed": ["SE"],
-          "serviceType": "Visa Application Service"
+          "description": "Visumservice för Angola. Vi hjälper dig med ansökan om turistvisum, affärsvisum och arbetsvisum till Angola via Angolas ambassad i Stockholm.",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Visa Application Service",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SEK",
+            "lowPrice": "2500",
+            "highPrice": "6000",
+            "offerCount": "4"
+          }
+        })}} />
+
+        {/* BreadcrumbList Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Hem",
+              "item": "https://www.doxvl.se"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Visum",
+              "item": "https://www.doxvl.se/visum"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Angola",
+              "item": "https://www.doxvl.se/visum/angola"
+            }
+          ]
+        })}} />
+
+        {/* FAQPage Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar det att få visum till Angola?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Handläggningstiden varierar men är normalt 5-10 arbetsdagar. Vi rekommenderar att ansöka minst 3-4 veckor innan planerad avresa."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Behöver jag gul febervaccination för Angola?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Ja, Angola kräver gul febervaccinationsintyg för alla resenärer. Vaccinationen måste vara gjord minst 10 dagar innan inresa."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag förlänga mitt visum i Angola?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Ja, det är möjligt att förlänga visum i Angola genom att kontakta immigrationsmyndigheten (SME) i Luanda innan ditt nuvarande visum går ut."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad kostar visum till Angola?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Kostnaden varierar beroende på visumtyp och handläggningstid. Kontakta oss för en exakt offert baserad på dina behov."
+              }
+            }
+          ]
         })}} />
       </Head>
 

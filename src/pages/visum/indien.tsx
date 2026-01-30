@@ -75,6 +75,7 @@ export default function IndienVisumPage() {
         
         <link rel="canonical" href="https://www.doxvl.se/visum/indien" />
         
+        {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
@@ -82,11 +83,96 @@ export default function IndienVisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Johanneshov",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            },
+            "telephone": "+46-8-409-419-00"
           },
           "description": "E-visum och visumservice för Indien. Vi hjälper dig med ansökan om turistvisum, affärsvisum och medicinskt visum till Indien.",
-          "areaServed": ["SE"],
-          "serviceType": "Visa Application Service"
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Visa Application Service",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SEK",
+            "lowPrice": "995",
+            "highPrice": "2995",
+            "offerCount": "5"
+          }
+        })}} />
+
+        {/* BreadcrumbList Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Hem",
+              "item": "https://www.doxvl.se"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Visum",
+              "item": "https://www.doxvl.se/visum"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Indien",
+              "item": "https://www.doxvl.se/visum/indien"
+            }
+          ]
+        })}} />
+
+        {/* FAQPage Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar det att få e-visum till Indien?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "E-visum handläggs normalt inom 2-4 arbetsdagar. Vi rekommenderar att ansöka minst en vecka innan avresa för att ha marginal."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag använda e-visum vid alla gränsövergångar?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "E-visum är giltigt vid 28 utvalda flygplatser och 5 hamnar i Indien. De flesta internationella flygplatser accepterar e-visum, inklusive Delhi, Mumbai, Bangalore, Chennai och Kolkata."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur länge är e-visum giltigt?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "E-turistvisum finns i varianter på 30 dagar (dubbel inresa) och 1 år/5 år (multipla inresor). E-affärsvisum är giltigt i 1 år med multipla inresor."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Behöver jag vaccinationer för Indien?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Inga vaccinationer är obligatoriska för svenska medborgare, men hepatit A och B, tyfoid och malariatabletter rekommenderas. Kontakta en vaccinationsmottagning för personlig rådgivning."
+              }
+            }
+          ]
         })}} />
       </Head>
 

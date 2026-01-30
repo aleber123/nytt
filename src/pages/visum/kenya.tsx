@@ -79,6 +79,7 @@ export default function KenyaVisumPage() {
         
         <link rel="canonical" href="https://www.doxvl.se/visum/kenya" />
         
+        {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
@@ -86,11 +87,66 @@ export default function KenyaVisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Johanneshov",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            },
+            "telephone": "+46-8-409-419-00"
           },
-          "description": "E-visum och visumservice för Kenya. Vi hjälper dig med ansökan om turistvisum och affärsvisum till Kenya.",
-          "areaServed": ["SE"],
-          "serviceType": "Visa Application Service"
+          "description": "E-visum och visumservice för Kenya. Vi hjälper dig med ansökan om turistvisum och affärsvisum till Kenya för safari i Masai Mara.",
+          "areaServed": { "@type": "Country", "name": "Sweden" },
+          "serviceType": "Visa Application Service",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SEK",
+            "lowPrice": "1200",
+            "highPrice": "2500",
+            "offerCount": "4"
+          }
+        })}} />
+
+        {/* BreadcrumbList Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://www.doxvl.se/visum" },
+            { "@type": "ListItem", "position": 3, "name": "Kenya", "item": "https://www.doxvl.se/visum/kenya" }
+          ]
+        })}} />
+
+        {/* FAQPage Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar det att få e-visum till Kenya?",
+              "acceptedAnswer": { "@type": "Answer", "text": "E-visum handläggs normalt inom 2-3 arbetsdagar. Vi rekommenderar att ansöka minst 1-2 veckor innan avresa för att ha marginal." }
+            },
+            {
+              "@type": "Question",
+              "name": "Behöver jag gul febervaccination för Kenya?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Gul febervaccination rekommenderas starkt och kan krävas vid inresa, särskilt om du reser från eller via ett land där gula febern förekommer." }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad är East Africa Tourist Visa?",
+              "acceptedAnswer": { "@type": "Answer", "text": "East Africa Tourist Visa är ett gemensamt visum som är giltigt i Kenya, Uganda och Rwanda i 90 dagar. Det kostar lite mer men är perfekt om du planerar att besöka flera länder." }
+            },
+            {
+              "@type": "Question",
+              "name": "När är bästa tiden för safari i Kenya?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Den stora migrationen sker juli-oktober i Masai Mara. Torrperioderna (januari-februari och juni-oktober) är generellt bäst för safari då djuren samlas vid vattenhål." }
+            }
+          ]
         })}} />
       </Head>
 

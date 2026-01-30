@@ -79,6 +79,7 @@ export default function TanzaniaVisumPage() {
         
         <link rel="canonical" href="https://www.doxvl.se/visum/tanzania" />
         
+        {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
@@ -86,11 +87,66 @@ export default function TanzaniaVisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Johanneshov",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            },
+            "telephone": "+46-8-409-419-00"
           },
-          "description": "E-visum och visumservice för Tanzania. Vi hjälper dig med ansökan om turistvisum och affärsvisum till Tanzania.",
-          "areaServed": ["SE"],
-          "serviceType": "Visa Application Service"
+          "description": "E-visum och visumservice för Tanzania. Vi hjälper dig med ansökan om turistvisum och affärsvisum till Tanzania för safari i Serengeti och Zanzibar.",
+          "areaServed": { "@type": "Country", "name": "Sweden" },
+          "serviceType": "Visa Application Service",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SEK",
+            "lowPrice": "1500",
+            "highPrice": "3500",
+            "offerCount": "4"
+          }
+        })}} />
+
+        {/* BreadcrumbList Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://www.doxvl.se/visum" },
+            { "@type": "ListItem", "position": 3, "name": "Tanzania", "item": "https://www.doxvl.se/visum/tanzania" }
+          ]
+        })}} />
+
+        {/* FAQPage Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar det att få e-visum till Tanzania?",
+              "acceptedAnswer": { "@type": "Answer", "text": "E-visum handläggs normalt inom 3-5 arbetsdagar. Vi rekommenderar att ansöka minst 2 veckor innan avresa för att ha marginal." }
+            },
+            {
+              "@type": "Question",
+              "name": "Behöver jag gul febervaccination för Tanzania?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Gul febervaccination krävs om du reser från eller via ett land där gula febern förekommer. Det rekommenderas även för alla resenärer." }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag resa till Zanzibar med samma visum?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Ja, Zanzibar är en del av Tanzania och samma visum gäller. Du behöver inte ansöka om separat visum för Zanzibar." }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad kostar visum till Tanzania?",
+              "acceptedAnswer": { "@type": "Answer", "text": "E-visum för turism kostar från ca 1 500 kr inklusive vår serviceavgift. Kontakta oss för exakt pris baserat på din situation." }
+            }
+          ]
         })}} />
       </Head>
 

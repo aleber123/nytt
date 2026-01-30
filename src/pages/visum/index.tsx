@@ -14,6 +14,66 @@ export default function VisumPage() {
         title={t('visa.pageTitle', 'Visumtjänster | DOX Visumpartner')} 
         description={t('visa.pageDescription', 'Vi hjälper dig med visum till alla länder. Snabb och professionell service.')} 
       />
+      
+      <Head>
+        <meta name="keywords" content="visum, visumtjänster, visumansökan, e-visum, turistvisum, affärsvisum, visum Sverige, DOX Visumpartner" />
+        <link rel="canonical" href="https://www.doxvl.se/visum" />
+        
+        {/* Service Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Visumtjänster",
+          "provider": {
+            "@type": "Organization",
+            "name": "DOX Visumpartner AB",
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Johanneshov",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            },
+            "telephone": "+46-8-409-419-00"
+          },
+          "description": "Professionell visumservice för alla länder. Vi hjälper dig med e-visum, turistvisum och affärsvisum. Snabb handläggning och personlig service.",
+          "areaServed": { "@type": "Country", "name": "Sweden" },
+          "serviceType": "Visa Application Service",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SEK",
+            "lowPrice": "800",
+            "highPrice": "6000"
+          }
+        })}} />
+
+        {/* BreadcrumbList Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://www.doxvl.se/visum" }
+          ]
+        })}} />
+
+        {/* ItemList Schema - Popular Destinations */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "Populära visumdestinationer",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Visum till Indien", "url": "https://www.doxvl.se/visum/indien" },
+            { "@type": "ListItem", "position": 2, "name": "Visum till Thailand", "url": "https://www.doxvl.se/visum/thailand" },
+            { "@type": "ListItem", "position": 3, "name": "Visum till Kenya", "url": "https://www.doxvl.se/visum/kenya" },
+            { "@type": "ListItem", "position": 4, "name": "Visum till Tanzania", "url": "https://www.doxvl.se/visum/tanzania" },
+            { "@type": "ListItem", "position": 5, "name": "Visum till Sri Lanka", "url": "https://www.doxvl.se/visum/sri-lanka" },
+            { "@type": "ListItem", "position": 6, "name": "Visum till Angola", "url": "https://www.doxvl.se/visum/angola" }
+          ]
+        })}} />
+      </Head>
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}

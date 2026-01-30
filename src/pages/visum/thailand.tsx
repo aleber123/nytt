@@ -79,6 +79,7 @@ export default function ThailandVisumPage() {
         
         <link rel="canonical" href="https://www.doxvl.se/visum/thailand" />
         
+        {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
@@ -86,11 +87,96 @@ export default function ThailandVisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Johanneshov",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            },
+            "telephone": "+46-8-409-419-00"
           },
           "description": "Visumservice för Thailand. Vi hjälper dig med ansökan om turistvisum, affärsvisum och pensionärsvisum till Thailand.",
-          "areaServed": ["SE"],
-          "serviceType": "Visa Application Service"
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Visa Application Service",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SEK",
+            "lowPrice": "1700",
+            "highPrice": "4500",
+            "offerCount": "4"
+          }
+        })}} />
+
+        {/* BreadcrumbList Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Hem",
+              "item": "https://www.doxvl.se"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Visum",
+              "item": "https://www.doxvl.se/visum"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Thailand",
+              "item": "https://www.doxvl.se/visum/thailand"
+            }
+          ]
+        })}} />
+
+        {/* FAQPage Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Hur länge kan jag stanna utan visum i Thailand?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Svenska medborgare kan stanna i Thailand utan visum i upp till 30 dagar vid inresa via flygplats. Detta kan förlängas med ytterligare 30 dagar på plats."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag förlänga mitt turistvisum i Thailand?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Ja, turistvisum kan förlängas med 30 dagar vid ett immigrationskontor i Thailand. Avgiften är 1 900 baht. Ansök innan ditt nuvarande visum går ut."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad kostar visum till Thailand?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Priset varierar beroende på visumtyp. Turistvisum kostar från ca 1 700 kr, medan pensionärsvisum (O-A) kostar mer. Kontakta oss för exakt pris."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar handläggningen för Thailand-visum?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Normal handläggningstid är 3-5 arbetsdagar för turistvisum. Pensionärsvisum kan ta längre tid. Vi erbjuder även expresshantering."
+              }
+            }
+          ]
         })}} />
       </Head>
 

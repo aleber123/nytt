@@ -78,6 +78,7 @@ export default function SriLankaVisumPage() {
         
         <link rel="canonical" href="https://www.doxvl.se/visum/sri-lanka" />
         
+        {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
@@ -85,11 +86,69 @@ export default function SriLankaVisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://www.doxvl.se",
+            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Johanneshov",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            },
+            "telephone": "+46-8-409-419-00"
           },
           "description": "ETA och visumservice för Sri Lanka. Vi hjälper dig med ansökan om turistvisum och affärsvisum till Sri Lanka.",
-          "areaServed": ["SE"],
-          "serviceType": "Visa Application Service"
+          "areaServed": {
+            "@type": "Country",
+            "name": "Sweden"
+          },
+          "serviceType": "Visa Application Service",
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SEK",
+            "lowPrice": "800",
+            "highPrice": "1500",
+            "offerCount": "4"
+          }
+        })}} />
+
+        {/* BreadcrumbList Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://www.doxvl.se/visum" },
+            { "@type": "ListItem", "position": 3, "name": "Sri Lanka", "item": "https://www.doxvl.se/visum/sri-lanka" }
+          ]
+        })}} />
+
+        {/* FAQPage Schema */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar det att få ETA till Sri Lanka?",
+              "acceptedAnswer": { "@type": "Answer", "text": "ETA handläggs normalt inom 24-48 timmar. Vi rekommenderar att ansöka minst en vecka innan avresa för att ha marginal." }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag förlänga mitt ETA i Sri Lanka?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Ja, ETA kan förlängas på plats vid Department of Immigration i Colombo. Du kan förlänga med upp till 90 dagar totalt (inklusive de första 30 dagarna)." }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad kostar ETA till Sri Lanka?",
+              "acceptedAnswer": { "@type": "Answer", "text": "ETA för turism kostar från ca 800 kr inklusive vår serviceavgift. Kontakta oss för exakt pris." }
+            },
+            {
+              "@type": "Question",
+              "name": "Behöver jag vaccinationer för Sri Lanka?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Inga vaccinationer är obligatoriska för svenska medborgare, men hepatit A och B, tyfoid och japansk encefalit rekommenderas." }
+            }
+          ]
         })}} />
       </Head>
 
