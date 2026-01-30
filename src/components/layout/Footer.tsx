@@ -34,6 +34,11 @@ const Footer: React.FC = () => {
       { name: 'Visum Angola', code: 'AO', href: '/visum/angola' },
       { name: 'Visum Angola (Norsk)', code: 'AO', href: '/visum/angola-no' },
     ],
+    nordic: [
+      { name: '🇳🇴 Norge', href: '/norge' },
+      { name: '🇩🇰 Danmark', href: '/danmark' },
+      { name: '🇫🇮 Finland', href: '/finland' },
+    ],
     support: [
       { name: safeT('footer.support.faq', 'Vanliga frågor'), href: '/faq' },
       { name: safeT('footer.support.contact', 'Kontakta oss'), href: '/kontakt' },
@@ -193,6 +198,20 @@ const Footer: React.FC = () => {
                 <li key={item.name}>
                   <Link href={item.href} className="text-sm text-gray-400 hover:text-white flex items-center gap-1.5">
                     <CountryFlag code={item.code} size={16} />
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-8 xl:mt-0">
+            <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
+              Norden
+            </h3>
+            <ul role="list" className="mt-4 grid grid-cols-3 gap-2">
+              {footerNavigation.nordic.map((item) => (
+                <li key={item.name}>
+                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white">
                     {item.name}
                   </Link>
                 </li>
