@@ -38,16 +38,19 @@ const DOX_COMPANY = {
   email: 'info@doxvl.se'
 };
 
-// PostNord Service Codes for Sweden
-// REK = Rekommenderad post (Registered Mail)
+// PostNord Service Codes for Sweden - Letter Services
+// See: PostNord Appendix Letter-Services (EDI) Version 22.8.1
 const SERVICE_CODES = {
-  // Domestic Sweden
-  REK_DOMESTIC: '38', // Rekommenderat brev inrikes
-  REK_DOMESTIC_RECEIPT: '39', // Rekommenderat brev med mottagningsbevis
+  // Domestic Sweden - Letter Services use letter codes, not numeric
+  REK_DOMESTIC: 'RR', // Rekommenderat Brev (Registered Mail) - domestic
+  REK_DOMESTIC_RECEIPT: 'RR', // Same service, receipt is handled via additional service
   
-  // International
-  REK_INTERNATIONAL: '34', // Rekommenderat brev utrikes
-  REK_INTERNATIONAL_RECEIPT: '35', // Rekommenderat brev utrikes med mottagningsbevis
+  // International - Tracked Letter
+  REK_INTERNATIONAL: '34', // Spårbart Brev Utrikes (Int Tracked Letter)
+  REK_INTERNATIONAL_RECEIPT: '34', // Same service
+  
+  // Return services
+  REK_RETURN: 'RK', // Rek Retur (Registered Mail Return)
 };
 
 interface PostNordShipmentRequest {
@@ -70,18 +73,23 @@ interface PostNordShipmentRequest {
 
 // Generate unique item ID with correct S10 check digit
 // S10 format: 2 letters + 8 digits + check digit + 2 letter country code
-// Check digit calculation: weighted sum mod 11, mapped to 0-9 (5 for 10, 0 for 11)
+// Check digit calculation: weighted modulus 11 (see PostNord Letter-Services EDI docs)
+// 
+// IMPORTANT: For production, you should use number ranges ordered from PostNord:
+// https://www.postnord.se/vara-losningar/supply-chain-och-logistik/digitala-logistiklosningar/bestall-forsandelse-id-eller-kollinummerserie
+// Contact: kundintegration.se@postnord.com
 function generateItemId(): string {
-  const prefix = 'RR'; // Registered mail prefix
+  const prefix = 'RR'; // RR = Registered mail (Rekommenderat Brev)
   const countryCode = 'SE';
   
   // Generate 8 random digits
+  // NOTE: In production, these should come from a pre-allocated number range from PostNord
   let digits = '';
   for (let i = 0; i < 8; i++) {
     digits += Math.floor(Math.random() * 10).toString();
   }
   
-  // Calculate S10 check digit
+  // Calculate S10 check digit using weighted modulus 11
   // Weights: 8, 6, 4, 2, 3, 5, 9, 7 for positions 1-8
   const weights = [8, 6, 4, 2, 3, 5, 9, 7];
   let sum = 0;
@@ -90,6 +98,9 @@ function generateItemId(): string {
   }
   const remainder = sum % 11;
   let checkDigit: number;
+  // If remainder is 0, check digit is 5
+  // If remainder is 1, check digit is 0
+  // Otherwise, check digit is 11 - remainder
   if (remainder === 0) checkDigit = 5;
   else if (remainder === 1) checkDigit = 0;
   else checkDigit = 11 - remainder;
@@ -159,6 +170,10 @@ export default async function handler(
         ? SERVICE_CODES.REK_INTERNATIONAL_RECEIPT 
         : SERVICE_CODES.REK_INTERNATIONAL;
     }
+
+    // Check if this is a letter service - these don't need goodsItem with packageTypeCode
+    // Letter service codes: RR (Registered Mail), RK (Rek Return), 34 (Int Tracked Letter), etc.
+    const isLetterService = ['RR', 'RK', '34', '11', '86', '87', 'LX', 'AF', 'UX', 'VV', 'RL'].includes(serviceCode);
 
     // Generate message date in ISO format
     const messageDate = new Date().toISOString();
@@ -234,8 +249,10 @@ export default async function handler(
             }
           }
         },
+        // For letter services (REK), don't include packageTypeCode to avoid "Kartong XL" default
+        // For parcel services, include packageTypeCode
         goodsItem: [{
-          packageTypeCode: 'EN', // EN = Envelope (for documents)
+          ...(isLetterService ? {} : { packageTypeCode: 'PC' }), // Only include for parcels
           numberOfPackageTypeCodeItems: {
             value: 1
           },

@@ -59,7 +59,7 @@ export default function Home() {
           shortDescription: t(`services.${service.serviceType}.description`),
           icon: getServiceIcon(service.serviceType),
           price:
-            (service.serviceType === 'translation' || service.serviceType === 'visa')
+            (service.serviceType === 'translation' || service.serviceType === 'visa' || service.priceUnconfirmed || !service.totalPrice)
               ? t('home.translationPriceLabel', 'Offert')
               : service.totalPrice,
           timeframe: service.timeframe,
@@ -117,13 +117,17 @@ export default function Home() {
         const fallbackIndex = pricingData.findIndex(p => p.serviceType === serviceType);
 
         if (fallbackIndex !== -1) {
+          // If priceUnconfirmed is true, show "Offert" instead of actual price
+          const showPrice = !rule.priceUnconfirmed && rule.basePrice > 0;
+          
           // Update timeframe for all services from Firebase data
           pricingData[fallbackIndex] = {
             ...pricingData[fallbackIndex],
-            officialFee: `${rule.officialFee} kr`,
-            serviceFee: `${rule.serviceFee} kr`,
-            totalPrice: `${rule.basePrice} kr`,
-            timeframe: `${processingTime} arbetsdagar`
+            officialFee: showPrice ? `${rule.officialFee} kr` : '',
+            serviceFee: showPrice ? `${rule.serviceFee} kr` : '',
+            totalPrice: showPrice ? `${rule.basePrice} kr` : '',
+            timeframe: `${processingTime} arbetsdagar`,
+            priceUnconfirmed: rule.priceUnconfirmed || false
           };
         } else {
           // No fallback entry found for this serviceType

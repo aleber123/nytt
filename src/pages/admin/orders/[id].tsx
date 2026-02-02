@@ -3465,6 +3465,68 @@ function AdminOrderDetailPage() {
     }
   };
 
+  const rebookPostNordShipment = async () => {
+    if (!order) {
+      toast.error('Order missing, cannot rebook PostNord shipment');
+      return;
+    }
+
+    const oldTrackingNumber = (order as any).postnordTrackingNumber || '';
+    
+    // Confirm rebooking
+    const confirmRebook = window.confirm(
+      `Boka om PostNord REK för order ${order.orderNumber}?\n\nDetta kommer att skapa en ny bokning och ersätta den gamla.\n\nGammalt spårningsnummer: ${oldTrackingNumber}\n\nOBS: Den gamla bokningen kommer INTE att avbrytas automatiskt hos PostNord.`
+    );
+    if (!confirmRebook) return;
+
+    // Clear existing PostNord data and rebook
+    const lookupId = (order.orderNumber as string) || (router.query.id as string);
+    
+    try {
+      setBookingPostNordShipment(true);
+
+      // Store old booking info for reference
+      const oldBookingInfo = {
+        trackingNumber: (order as any).postnordTrackingNumber,
+        bookedAt: (order as any).postnordBookedAt,
+        rebookedAt: new Date().toISOString()
+      };
+
+      // Clear existing PostNord booking data
+      await adminUpdateOrder(lookupId, {
+        postnordShipmentBooked: false,
+        postnordTrackingNumber: null,
+        postnordTrackingUrl: null,
+        postnordLabelBase64: null,
+        postnordBookedAt: null,
+        postnordServiceName: null,
+        postnordPreviousBooking: oldBookingInfo
+      });
+
+      // Update local state to trigger rebooking UI
+      setOrder((prev: any) => prev ? {
+        ...prev,
+        postnordShipmentBooked: false,
+        postnordTrackingNumber: null,
+        postnordTrackingUrl: null,
+        postnordLabelBase64: null,
+        postnordPreviousBooking: oldBookingInfo
+      } : prev);
+
+      toast.success('PostNord-bokning rensad. Klicka på "Book PostNord REK" för att boka om.');
+      
+      // Automatically trigger new booking
+      setTimeout(() => {
+        bookPostNordShipment();
+      }, 500);
+
+    } catch (err: any) {
+      toast.error(`Kunde inte boka om PostNord: ${err.message}`);
+    } finally {
+      setBookingPostNordShipment(false);
+    }
+  };
+
   const bookDhlPickup = async () => {
     if (!order) {
       toast.error('Order missing, cannot book DHL pickup');
@@ -6851,9 +6913,20 @@ function AdminOrderDetailPage() {
                                       // PostNord REK booking
                                       (order as any).postnordShipmentBooked ? (
                                         <div className="p-3 bg-green-50 border border-green-200 rounded">
-                                          <p className="text-green-800 font-medium text-sm">
-                                            ✅ PostNord REK booked
-                                          </p>
+                                          <div className="flex justify-between items-start">
+                                            <p className="text-green-800 font-medium text-sm">
+                                              ✅ PostNord REK booked
+                                            </p>
+                                            <button
+                                              type="button"
+                                              onClick={rebookPostNordShipment}
+                                              disabled={bookingPostNordShipment}
+                                              className="text-xs text-orange-600 hover:text-orange-800 hover:underline disabled:opacity-50"
+                                              title="Boka om PostNord REK"
+                                            >
+                                              ⟳ Boka om
+                                            </button>
+                                          </div>
                                           <div className="mt-2 flex flex-wrap gap-2 items-center">
                                             {(order as any).postnordTrackingNumber && (
                                               <span className="text-xs bg-white px-2 py-1 rounded border">

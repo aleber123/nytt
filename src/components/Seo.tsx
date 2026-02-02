@@ -35,7 +35,16 @@ const Seo: React.FC<SeoProps> = ({
 }) => {
   const router = useRouter();
   const baseUrl = siteConfig.url;
-  const url = `${baseUrl}${router.asPath || '/'}`;
+  
+  // Build canonical URL based on current locale
+  // For Swedish (default), use base path without /sv prefix
+  // For English, include /en prefix
+  const currentLocale = router.locale || 'sv';
+  const pathWithoutLocale = router.asPath.replace(/^\/en(\/|$)/, '/').replace(/\/$/, '') || '/';
+  const canonicalPath = currentLocale === 'en' 
+    ? `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`
+    : (pathWithoutLocale === '/' ? '' : pathWithoutLocale);
+  const url = `${baseUrl}${canonicalPath}`;
   const ogImage = image || `${baseUrl}/dox-logo-new.png`;
 
   // Create structured data for local business with AggregateRating
@@ -169,10 +178,10 @@ const Seo: React.FC<SeoProps> = ({
       {/* Canonical URL */}
       <link rel="canonical" href={url} />
 
-      {/* Language alternates */}
-      <link rel="alternate" hrefLang="sv" href={`${baseUrl}${router.asPath}`} />
-      <link rel="alternate" hrefLang="en" href={`${baseUrl}/en${router.asPath}`} />
-      <link rel="alternate" hrefLang="x-default" href={`${baseUrl}${router.asPath}`} />
+      {/* Language alternates - handle locale prefix correctly */}
+      <link rel="alternate" hrefLang="sv" href={`${baseUrl}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`} />
+      <link rel="alternate" hrefLang="en" href={`${baseUrl}/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`} />
+      <link rel="alternate" hrefLang="x-default" href={`${baseUrl}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`} />
 
       {/* Open Graph */}
       <meta property="og:type" content="website" />
