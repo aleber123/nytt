@@ -470,6 +470,20 @@ export const calculateOrderPrice = async (orderData: {
         rule = await getPricingRule('SE', serviceType);
       }
 
+      // If SE rule has priceUnconfirmed with 0 prices, use fallback prices instead
+      // This ensures we always have reasonable default prices for standard services
+      if (rule && rule.priceUnconfirmed && rule.officialFee === 0 && rule.serviceFee === 0) {
+        const fallback = SERVICE_FALLBACK_PRICES[serviceType];
+        if (fallback) {
+          rule = {
+            ...rule,
+            officialFee: fallback.officialFee,
+            serviceFee: fallback.serviceFee,
+            basePrice: fallback.officialFee + fallback.serviceFee
+          };
+        }
+      }
+
       // If still no rule, use fallback prices from centralized config
       if (!rule) {
         const fallback = SERVICE_FALLBACK_PRICES[serviceType];

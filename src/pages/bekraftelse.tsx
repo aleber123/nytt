@@ -295,47 +295,47 @@ export function ConfirmationPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 overflow-hidden">
                       <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.customerInfo')}:</h3>
                       <div className="space-y-3">
-                        <p className="text-gray-700">
+                        <p className="text-gray-700 break-words">
                           <span className="font-medium">{order.customerInfo.firstName} {order.customerInfo.lastName}</span>
                         </p>
-                        <p className="text-gray-700">
+                        <p className="text-gray-700 break-words">
                           <span className="font-medium">{order.customerInfo.email}</span>
                         </p>
-                        <p className="text-gray-700">
+                        <p className="text-gray-700 break-words">
                           <span className="font-medium">{order.customerInfo.phone}</span>
                         </p>
                         {order.invoiceReference && (
-                          <p className="text-gray-700">
+                          <p className="text-gray-700 break-words">
                             <span className="font-medium">Fakturareferens:</span> {order.invoiceReference}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 overflow-hidden">
                       <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.deliveryAddress')}:</h3>
                       <div className="space-y-3">
                         {order.returnAddress ? (
                           <>
                             {order.returnAddress.companyName && (
-                              <p className="text-gray-700 font-medium">{order.returnAddress.companyName}</p>
+                              <p className="text-gray-700 font-medium break-words">{order.returnAddress.companyName}</p>
                             )}
                             {(order.returnAddress.firstName || order.returnAddress.lastName) && (
-                              <p className="text-gray-700">{order.returnAddress.firstName} {order.returnAddress.lastName}</p>
+                              <p className="text-gray-700 break-words">{order.returnAddress.firstName} {order.returnAddress.lastName}</p>
                             )}
-                            <p className="text-gray-700">{order.returnAddress.street}</p>
+                            <p className="text-gray-700 break-words">{order.returnAddress.street}</p>
                             {order.returnAddress.addressLine2 && (
-                              <p className="text-gray-700">{order.returnAddress.addressLine2}</p>
+                              <p className="text-gray-700 break-words">{order.returnAddress.addressLine2}</p>
                             )}
-                            <p className="text-gray-700">{order.returnAddress.postalCode} {order.returnAddress.city}</p>
+                            <p className="text-gray-700 break-words">{order.returnAddress.postalCode} {order.returnAddress.city}</p>
                           </>
                         ) : (
                           <>
-                            <p className="text-gray-700">{order.customerInfo.address}</p>
-                            <p className="text-gray-700">{order.customerInfo.postalCode} {order.customerInfo.city}</p>
+                            <p className="text-gray-700 break-words">{order.customerInfo.address}</p>
+                            <p className="text-gray-700 break-words">{order.customerInfo.postalCode} {order.customerInfo.city}</p>
                           </>
                         )}
                       </div>

@@ -777,14 +777,17 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
           price = item.unitPrice * (item.quantity || 1);
         }
         
-        if (!price) return;
+        // Skip items with 0 price unless they are marked as TBC (To Be Confirmed)
+        if (!price && !item.isTBC) return;
         
         // Get description - translate if needed
         let description = item.description || getServiceName(item.service) || 'Item';
         description = translateDescription(description);
         
         doc.text(description, labelX, y);
-        doc.text(formatCurrency(price), valueX, y, { align: 'right' });
+        // Show "TBC" for items with unconfirmed pricing
+        const priceText = item.isTBC && !price ? 'TBC' : formatCurrency(price);
+        doc.text(priceText, valueX, y, { align: 'right' });
         y += 5;
       });
     }
