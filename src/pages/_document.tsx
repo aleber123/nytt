@@ -25,6 +25,11 @@ class MyDocument extends Document {
                 gtag('config', 'G-0LMELBW76W');
                 gtag('config', 'AW-1001886627');
                 gtag('config', 'AW-940620817');
+                
+                // Page view conversion for Google Ads
+                gtag('event', 'conversion', {
+                  'send_to': 'AW-1001886627/K9N_CL7tv-EbEKOn3t0D'
+                });
               `,
             }}
           />
