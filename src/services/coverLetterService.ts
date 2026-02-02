@@ -682,24 +682,69 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     details.push(['Invoice reference', order.invoiceReference]);
   }
 
-  // Render details in two-column grid
+  // Render details - use two-column grid for short fields, full-width for long fields
   const leftX = 20;
   const midX = 110;
   const rowH = 8;
-  let rowCount = 0;
+  const maxColWidth = 85; // Max width for each column
+  const fullWidth = 170; // Full width for long fields
+  
+  // Fields that should be rendered full-width due to potentially long values
+  const fullWidthFields = ['Return address', 'Contact'];
+  
+  let currentY = y;
+  let colIndex = 0; // 0 = left column, 1 = right column
+  
   details.forEach(([label, value]) => {
-    const colX = rowCount % 2 === 0 ? leftX : midX;
-    const rowY = y + Math.floor(rowCount / 2) * rowH;
-    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
-    doc.text(label, colX, rowY);
-    doc.setTextColor(text[0], text[1], text[2]);
-    doc.setFont('helvetica', 'bold');
-    doc.text(String(value || '—'), colX, rowY + 4);
-    doc.setFont('helvetica', 'normal');
-    rowCount++;
+    const valueStr = String(value || '—');
+    const isFullWidth = fullWidthFields.includes(label) || valueStr.length > 40;
+    
+    if (isFullWidth) {
+      // If we were in the middle of a row (right column pending), move to next row
+      if (colIndex === 1) {
+        currentY += rowH;
+        colIndex = 0;
+      }
+      
+      // Render full-width field
+      doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+      doc.text(label, leftX, currentY);
+      doc.setTextColor(text[0], text[1], text[2]);
+      doc.setFont('helvetica', 'bold');
+      
+      // Split long text into multiple lines
+      const lines = doc.splitTextToSize(valueStr, fullWidth);
+      doc.text(lines, leftX, currentY + 4);
+      doc.setFont('helvetica', 'normal');
+      
+      // Move Y down based on number of lines
+      currentY += 4 + (lines.length * 4) + 4;
+      colIndex = 0;
+    } else {
+      // Render in two-column grid
+      const colX = colIndex === 0 ? leftX : midX;
+      
+      doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+      doc.text(label, colX, currentY);
+      doc.setTextColor(text[0], text[1], text[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.text(valueStr, colX, currentY + 4);
+      doc.setFont('helvetica', 'normal');
+      
+      colIndex++;
+      if (colIndex === 2) {
+        currentY += rowH;
+        colIndex = 0;
+      }
+    }
   });
+  
+  // If we ended on left column, add remaining row height
+  if (colIndex === 1) {
+    currentY += rowH;
+  }
 
-  y += Math.ceil(rowCount / 2) * rowH + 10;
+  y = currentY + 10;
   doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   doc.line(20, y, 190, y);
   y += 10;

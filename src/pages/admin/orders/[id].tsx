@@ -510,19 +510,74 @@ function AdminOrderDetailPage() {
         }
       }
 
+      // Instead of recalculating the entire order price (which loses customer-specific pricing),
+      // we calculate only the new service's price and add it to the existing breakdown
       const { calculateOrderPrice } = await import('@/firebase/pricingService');
-      const pricingResult = await calculateOrderPrice({
-        country: order.country,
-        services: updatedServices,
-        quantity: order.quantity,
-        expedited: updatedExpedited,
-        deliveryMethod: order.deliveryMethod,
-        returnService: updatedReturnService,
-        returnServices: [],
-        scannedCopies: updatedScannedCopies,
-        pickupService: updatedPickupService,
-        premiumPickup: updatedPremiumPickup
-      });
+      
+      // Get existing breakdown or empty array
+      const existingBreakdown = Array.isArray(order.pricingBreakdown) ? [...order.pricingBreakdown] : [];
+      let existingTotal = order.totalPrice || 0;
+      let newBreakdown = existingBreakdown;
+      let newTotal = existingTotal;
+      
+      // For additional services like scanned_copies, pickup, express - calculate just that fee
+      if (serviceToAdd === 'scanned_copies') {
+        const scannedCopiesFee = 200 * order.quantity;
+        newBreakdown.push({
+          service: 'scanned_copies',
+          description: 'Scannade kopior',
+          quantity: order.quantity,
+          unitPrice: 200,
+          total: scannedCopiesFee,
+          vatRate: 25
+        });
+        newTotal += scannedCopiesFee;
+      } else if (serviceToAdd === 'pickup_service') {
+        const pickupFee = 450;
+        newBreakdown.push({
+          service: 'pickup_service',
+          description: 'Dokumenthämtning',
+          quantity: 1,
+          unitPrice: pickupFee,
+          total: pickupFee,
+          vatRate: 25
+        });
+        newTotal += pickupFee;
+      } else if (serviceToAdd === 'express') {
+        const expressFee = 500;
+        newBreakdown.push({
+          service: 'express',
+          description: 'Expresstjänst',
+          quantity: 1,
+          unitPrice: expressFee,
+          total: expressFee,
+          vatRate: 25
+        });
+        newTotal += expressFee;
+      } else {
+        // For main services (apostille, notarization, embassy, etc.), calculate just that service
+        const singleServiceResult = await calculateOrderPrice({
+          country: order.country,
+          services: [serviceToAdd],
+          quantity: order.quantity,
+          expedited: false,
+          deliveryMethod: order.deliveryMethod,
+          returnService: '',
+          returnServices: [],
+          scannedCopies: false,
+          pickupService: false,
+          premiumPickup: undefined
+        });
+        
+        // Add the new service's breakdown items to existing breakdown
+        newBreakdown = [...existingBreakdown, ...singleServiceResult.breakdown];
+        newTotal = existingTotal + singleServiceResult.totalPrice;
+      }
+      
+      const pricingResult = {
+        totalPrice: newTotal,
+        breakdown: newBreakdown
+      };
 
       const baseSteps = (order.processingSteps && order.processingSteps.length > 0)
         ? order.processingSteps
