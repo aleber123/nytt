@@ -8,7 +8,7 @@
  * 3. Billing Information (for invoicing)
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
@@ -76,11 +76,24 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
     setShowSavedInfoBanner(false);
   };
 
+  // Use refs to always have access to latest values in event handler
+  const saveAddressCheckedRef = useRef(saveAddressChecked);
+  const billingInfoRef = useRef(answers.billingInfo);
+  
+  // Keep refs updated
+  useEffect(() => {
+    saveAddressCheckedRef.current = saveAddressChecked;
+  }, [saveAddressChecked]);
+  
+  useEffect(() => {
+    billingInfoRef.current = answers.billingInfo;
+  }, [answers.billingInfo]);
+
   // Function to save current info to localStorage (called when form is complete)
-  const handleSaveInfo = () => {
-    if (!saveAddressChecked) return;
+  const handleSaveInfo = useCallback(() => {
+    if (!saveAddressCheckedRef.current) return;
     
-    const info = answers.billingInfo;
+    const info = billingInfoRef.current;
     if (info.firstName && info.email && info.street) {
       saveCustomerInfo({
         firstName: info.firstName,
@@ -94,14 +107,13 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
         phone: info.phone
       });
     }
-  };
+  }, [saveCustomerInfo]);
 
   // Expose save function to parent via a custom event
   useEffect(() => {
-    const handleSaveEvent = () => handleSaveInfo();
-    window.addEventListener('saveCustomerInfo', handleSaveEvent);
-    return () => window.removeEventListener('saveCustomerInfo', handleSaveEvent);
-  }, [answers.billingInfo, saveAddressChecked]);
+    window.addEventListener('saveCustomerInfo', handleSaveInfo);
+    return () => window.removeEventListener('saveCustomerInfo', handleSaveInfo);
+  }, [handleSaveInfo]);
 
   // Pre-fill return address from pickup address if available
   useEffect(() => {

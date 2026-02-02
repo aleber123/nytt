@@ -186,11 +186,14 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         if (place && place.formatted_address) {
-          const address = place.formatted_address;
-          setInputValue(address);
-          onChangeRef.current(address);
+          const parsed = parsePlace(place);
+          // Use only the street address in the input field, not the full formatted address
+          // This prevents postal code, city, and country from appearing in the street field
+          const streetOnly = parsed.street || place.formatted_address;
+          setInputValue(streetOnly);
+          onChangeRef.current(streetOnly);
           if (onSelectRef.current) {
-            onSelectRef.current(parsePlace(place));
+            onSelectRef.current(parsed);
           }
         }
       });

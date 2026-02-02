@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface HeroSlide {
   id: string;
@@ -16,8 +16,14 @@ const HeroCarousel: React.FC = () => {
   const { t } = useTranslation('common');
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+  
+  const safeT = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
 
   const slides: HeroSlide[] = [
     {
@@ -90,6 +96,7 @@ const HeroCarousel: React.FC = () => {
   const currentSlideData = slides[currentSlide];
 
   return (
+    <>
     <section 
       className="relative overflow-hidden bg-cover bg-center bg-no-repeat touch-pan-y"
       onMouseEnter={() => setIsPaused(true)}
@@ -131,12 +138,12 @@ const HeroCarousel: React.FC = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link
-                href={currentSlideData.ctaLink}
+              <button
+                onClick={() => setShowServiceModal(true)}
                 className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button transition-colors"
               >
-                {t(currentSlideData.ctaTextKey)}
-              </Link>
+                {safeT('hero.cta', 'Kom igång')}
+              </button>
             </div>
           </div>
         </div>
@@ -199,6 +206,77 @@ const HeroCarousel: React.FC = () => {
         }
       `}</style>
     </section>
+
+      {/* Service Selection Modal */}
+      {showServiceModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onClick={() => setShowServiceModal(false)}
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          
+          <div 
+            className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4 transform transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowServiceModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label={safeT('accessibility.closeMenu', 'Stäng')}
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+            
+            <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+              {safeT('serviceModal.title', 'Vad vill du beställa?')}
+            </h2>
+            <p className="text-gray-600 text-center mb-8">
+              {safeT('serviceModal.subtitle', 'Välj den tjänst du behöver')}
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link
+                href="/bestall"
+                onClick={() => setShowServiceModal(false)}
+                className="group flex flex-col items-center p-6 border-2 border-gray-200 rounded-xl hover:border-custom-button hover:bg-custom-button/5 transition-all duration-200"
+              >
+                <div className="w-16 h-16 bg-custom-button/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-custom-button/20 transition-colors">
+                  <svg className="w-8 h-8 text-custom-button" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {safeT('serviceModal.legalization', 'Legalisering')}
+                </h3>
+                <p className="text-sm text-gray-500 text-center">
+                  {safeT('serviceModal.legalizationDesc', 'Apostille, UD, ambassad & notarius')}
+                </p>
+                <ChevronRightIcon className="w-5 h-5 text-custom-button mt-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+              
+              <Link
+                href="/visum/bestall"
+                onClick={() => setShowServiceModal(false)}
+                className="group flex flex-col items-center p-6 border-2 border-gray-200 rounded-xl hover:border-custom-button hover:bg-custom-button/5 transition-all duration-200"
+              >
+                <div className="w-16 h-16 bg-custom-button/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-custom-button/20 transition-colors">
+                  <svg className="w-8 h-8 text-custom-button" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {safeT('serviceModal.visa', 'Visum')}
+                </h3>
+                <p className="text-sm text-gray-500 text-center">
+                  {safeT('serviceModal.visaDesc', 'Ansök om visum till alla länder')}
+                </p>
+                <ChevronRightIcon className="w-5 h-5 text-custom-button mt-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
