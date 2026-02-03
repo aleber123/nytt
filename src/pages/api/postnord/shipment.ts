@@ -17,6 +17,7 @@ import { rateLimiters, getClientIp } from '@/lib/rateLimit';
 const POSTNORD_CONFIG = {
   apiKey: process.env.POSTNORD_API_KEY || '',
   customerNumber: process.env.POSTNORD_CUSTOMER_NUMBER || '',
+  applicationId: process.env.POSTNORD_APPLICATION_ID || '1234', // 4-digit integer required
   useSandbox: process.env.POSTNORD_USE_SANDBOX !== 'false',
 };
 
@@ -183,10 +184,25 @@ export default async function handler(
 
     // Build PostNord EDI Labels API request according to Swagger spec
     // The request body must follow the ediInstruction schema
+    // 
+    // IMPORTANT for Letter Services (RR, RK, 34, etc.):
+    // - FE = Frimärke (Stamp) - customer pays with stamps
+    // - FR = Frankeringsmaskin (Franking machine)
+    // - FS = Företagskonto (Business account - invoiced)
+    // For business customers with an agreement, use FS
+    const paymentServiceCode = 'FS'; // Business account - invoiced to customer number
+    
+    // Build additional service codes array
+    const additionalServiceCodes: string[] = [paymentServiceCode];
+    if (body.withReceipt) {
+      additionalServiceCodes.push('A1'); // Mottagningsbevis (Delivery receipt)
+    }
+    
     const postnordRequest = {
       messageDate: messageDate,
       messageFunction: 'Instruction',
       updateIndicator: 'Original',
+      applicationId: parseInt(POSTNORD_CONFIG.applicationId, 10), // Must be 4-digit integer
       shipment: [{
         shipmentIdentification: {
           shipmentId: body.orderNumber
@@ -196,7 +212,7 @@ export default async function handler(
         },
         service: {
           basicServiceCode: serviceCode,
-          ...(body.withReceipt ? { additionalServiceCode: ['A1'] } : {})
+          additionalServiceCode: additionalServiceCodes
         },
         numberOfPackages: {
           value: 1
