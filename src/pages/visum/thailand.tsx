@@ -208,6 +208,21 @@ export default function ThailandVisumPage() {
           </div>
         </section>
 
+        {/* Legalization Link Banner */}
+        <section className="py-4 bg-[#A51931] text-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <p className="flex items-center gap-2">
+                <span className="text-xl">📄</span>
+                <span>Behöver du legalisera dokument för Thailand? Vi hjälper med UD-legalisering och översättning.</span>
+              </p>
+              <Link href="/legalisering/thailand" className="bg-white text-[#A51931] font-semibold px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap">
+                Läs om legalisering →
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Visa Free Info */}
         <section className="py-8 bg-blue-50 border-y border-blue-200">
           <div className="max-w-6xl mx-auto px-4">
