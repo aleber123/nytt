@@ -7037,9 +7037,14 @@ function AdminOrderDetailPage() {
                                                 </button>
                                               </>
                                             ) : (
-                                              <span className="text-xs text-orange-600">
-                                                ⚠️ Label missing
-                                              </span>
+                                              <a
+                                                href="https://portal.postnord.com/portal/shipments"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                              >
+                                                🖨️ Print from PostNord Portal
+                                              </a>
                                             )}
                                           </div>
                                         </div>
