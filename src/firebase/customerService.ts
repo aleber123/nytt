@@ -72,6 +72,10 @@ export interface CustomerPricing {
   returnDhlFee?: number;              // DHL return shipping
   returnPostnordFee?: number;         // PostNord return shipping
   returnBudFee?: number;              // Local courier return
+  
+  // Visa pricing overrides
+  visaServiceFee?: number;            // Custom DOX service fee for visa orders
+  visaDiscountPercent?: number;       // Discount % on total visa price (0-100)
 }
 
 export interface Customer {

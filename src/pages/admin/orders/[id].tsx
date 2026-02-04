@@ -2142,8 +2142,9 @@ function AdminOrderDetailPage() {
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
             const trackingNumberText = trackingNumberForEmail || '';
 
-            // Get confirmed prices from order
-            const savedConfirmedPricesOwn = (order as any).confirmedPrices || [];
+            // Get confirmed prices from order - filter out any invalid entries
+            const savedConfirmedPricesOwn = ((order as any).confirmedPrices || [])
+              .filter((p: any) => p && p.label && p.amount);
             const hasConfirmedPricesOwn = savedConfirmedPricesOwn.length > 0;
             
             const pricesHtmlEnOwn = hasConfirmedPricesOwn
@@ -2153,8 +2154,8 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesOwn.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
-                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
                 </table>
@@ -2169,8 +2170,8 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesOwn.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
-                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
                 </table>
@@ -2375,7 +2376,7 @@ function AdminOrderDetailPage() {
                   name: 'Fakturering',
                   email: 'fakturor@visumpartner.se',
                   phone: '',
-                  subject: `[Prisbekräftelse] ${orderNumber} - ${customerName}`,
+                  subject: `[Price Confirmation] ${orderNumber} - ${customerName}`,
                   message: messageHtml,
                   orderId: orderNumber,
                   createdAt: serverTimestamp(),
@@ -2420,8 +2421,9 @@ function AdminOrderDetailPage() {
               ? 'Mon–Thu 09:00–16:00, Fri 09:00–15:00'
               : 'Mån–Tor 09:00–16:00, Fre 09:00–15:00';
 
-            // Get confirmed prices from order
-            const savedConfirmedPricesPickup = (order as any).confirmedPrices || [];
+            // Get confirmed prices from order - filter out any invalid entries
+            const savedConfirmedPricesPickup = ((order as any).confirmedPrices || [])
+              .filter((p: any) => p && p.label && p.amount);
             const hasConfirmedPricesPickup = savedConfirmedPricesPickup.length > 0;
             
             const pricesHtmlEnPickup = hasConfirmedPricesPickup
@@ -2431,8 +2433,8 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesPickup.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
-                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
                 </table>
@@ -2447,8 +2449,8 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesPickup.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
-                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
                 </table>
@@ -2712,8 +2714,9 @@ function AdminOrderDetailPage() {
               ? `<p>You can track your shipment here: <a href="${trackingUrlText}">${trackingUrlText}</a></p>`
               : '';
 
-            // Get confirmed prices from order
-            const savedConfirmedPrices = (order as any).confirmedPrices || [];
+            // Get confirmed prices from order - filter out any invalid entries
+            const savedConfirmedPrices = ((order as any).confirmedPrices || [])
+              .filter((p: any) => p && p.label && p.amount);
             const hasConfirmedPrices = savedConfirmedPrices.length > 0;
             
             const pricesHtmlEn = hasConfirmedPrices
@@ -2723,8 +2726,8 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPrices.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
-                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
                 </table>
@@ -2739,8 +2742,8 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPrices.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label}</td>
-                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount}</td>
+                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
                 </table>
@@ -6015,17 +6018,20 @@ function AdminOrderDetailPage() {
                             {order?.orderType === 'visa' && order?.pricingBreakdown && !Array.isArray(order.pricingBreakdown) ? (
                               (() => {
                                 const pb = order.pricingBreakdown as any;
+                                // Always show serviceFee and embassyFee (even if 0), only filter optional fees
                                 const visaLineItems = [
-                                  { key: 'serviceFee', label: 'Service Fee', amount: pb.serviceFee || 0 },
-                                  { key: 'embassyFee', label: 'Embassy/Government Fee', amount: pb.embassyFee || 0 },
-                                  ...(pb.shippingFee ? [{ key: 'shippingFee', label: 'Shipping Fee', amount: pb.shippingFee }] : []),
-                                  ...(pb.expeditedFee ? [{ key: 'expeditedFee', label: 'Expedited Fee', amount: pb.expeditedFee }] : []),
-                                  ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice }] : []),
-                                  ...(pb.urgentPrice ? [{ key: 'urgentPrice', label: 'Urgent Processing', amount: pb.urgentPrice }] : []),
-                                ].filter(item => item.amount > 0);
+                                  { key: 'serviceFee', label: 'Service Fee (25% VAT)', amount: pb.serviceFee || 0, alwaysShow: true },
+                                  { key: 'embassyFee', label: 'Embassy/Government Fee (0% VAT)', amount: pb.embassyFee || 0, alwaysShow: true },
+                                  ...(pb.shippingFee ? [{ key: 'shippingFee', label: 'Shipping Fee', amount: pb.shippingFee, alwaysShow: false }] : []),
+                                  ...(pb.expeditedFee ? [{ key: 'expeditedFee', label: 'Expedited Fee', amount: pb.expeditedFee, alwaysShow: false }] : []),
+                                  ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice, alwaysShow: false }] : []),
+                                  ...(pb.urgentPrice ? [{ key: 'urgentPrice', label: 'Urgent Processing', amount: pb.urgentPrice, alwaysShow: false }] : []),
+                                ].filter(item => item.alwaysShow || item.amount > 0);
                                 
                                 return visaLineItems.length > 0 ? visaLineItems.map((item, idx) => {
-                                  const o = lineOverrides[idx] || { index: idx, label: item.label, baseAmount: item.amount, include: true };
+                                  // Default VAT: 25% for service fees, 0% for embassy fees
+                                  const defaultVat = item.key === 'embassyFee' ? 0 : 25;
+                                  const o = lineOverrides[idx] || { index: idx, label: item.label, baseAmount: item.amount, include: true, vatPercent: defaultVat };
                                   return (
                                     <tr key={item.key} className="border-t">
                                       <td className="px-3 py-2">
@@ -6059,8 +6065,8 @@ function AdminOrderDetailPage() {
                                         <input
                                           type="number"
                                           className="w-20 border rounded px-2 py-1 text-right"
-                                          value={o.vatPercent ?? ''}
-                                          placeholder=""
+                                          value={o.vatPercent ?? defaultVat}
+                                          placeholder={String(defaultVat)}
                                           onChange={(e) => {
                                             const val = e.target.value === '' ? null : Number(e.target.value);
                                             const next = [...lineOverrides];
@@ -6229,7 +6235,39 @@ function AdminOrderDetailPage() {
                 {activeTab === 'processing' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Processing steps</h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-medium">Processing steps</h3>
+                        {order?.orderType === 'visa' && (
+                          <button
+                            onClick={async () => {
+                              if (!order) return;
+                              if (!confirm('This will reset all processing steps to default. Any progress will be lost. Continue?')) return;
+                              try {
+                                const { getDefaultVisaProcessingSteps } = await import('@/firebase/visaOrderService');
+                                const newSteps = getDefaultVisaProcessingSteps({
+                                  visaProduct: order.visaProduct,
+                                  destinationCountry: order.destinationCountry,
+                                  returnService: (order as any).returnService,
+                                  hasReturnLabel: (order as any).hasReturnLabel,
+                                  pickupService: (order as any).pickupService,
+                                  confirmReturnAddressLater: (order as any).confirmReturnAddressLater,
+                                  returnAddressConfirmed: (order as any).returnAddressConfirmed,
+                                });
+                                const orderIdToUpdate = order.orderNumber || order.id || '';
+                                if (!orderIdToUpdate) throw new Error('No order ID');
+                                await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
+                                setProcessingSteps(newSteps);
+                                toast.success('Processing steps regenerated');
+                              } catch (err) {
+                                toast.error('Failed to regenerate steps');
+                              }
+                            }}
+                            className="text-sm px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+                          >
+                            🔄 Regenerate steps
+                          </button>
+                        )}
+                      </div>
                       <div className="space-y-4">
                         {processingSteps.map((step, index) => (
                           <div key={step.id} className={`border ${getProcessingStepCardClasses(step.status)} rounded-lg p-4`}>

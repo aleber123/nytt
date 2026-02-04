@@ -15,6 +15,7 @@ import { db } from '@/firebase/config';
 import { createVisaOrder, getVisaOrder, updateVisaOrder } from '@/firebase/visaOrderService';
 import { generateVisaConfirmationEmail, generateVisaBusinessNotificationEmail } from '../templates/visaConfirmationEmail';
 import { getDocumentRequirementsForProduct } from '@/firebase/visaRequirementsService';
+import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Props {
@@ -45,6 +46,40 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         || `${answers.returnAddress?.firstName || ''} ${answers.returnAddress?.lastName || ''}`.trim();
       const customerEmail = answers.billingInfo?.email || answers.returnAddress?.email || '';
       const customerPhone = answers.billingInfo?.phone || answers.returnAddress?.phone || '';
+      
+      // Check for customer-specific pricing based on email domain
+      let matchedCustomer = null;
+      let customServiceFee: number | undefined = undefined;
+      let customDiscountPercent: number | undefined = undefined;
+      
+      if (customerEmail) {
+        matchedCustomer = await getCustomerByEmailDomain(customerEmail);
+        if (matchedCustomer?.customPricing) {
+          customServiceFee = matchedCustomer.customPricing.visaServiceFee;
+          customDiscountPercent = matchedCustomer.customPricing.visaDiscountPercent;
+        }
+      }
+      
+      // Calculate pricing with customer-specific adjustments
+      const baseServiceFee = answers.selectedVisaProduct.serviceFee || 0;
+      const embassyFee = answers.selectedVisaProduct.embassyFee || 0;
+      const expressPrice = answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0;
+      const urgentPrice = answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0;
+      
+      // Apply custom service fee if set, otherwise use standard
+      const finalServiceFee = customServiceFee !== undefined ? customServiceFee : baseServiceFee;
+      
+      // Calculate subtotal before discount
+      let subtotal = finalServiceFee + embassyFee + expressPrice + urgentPrice;
+      
+      // Apply discount if set
+      let discountAmount = 0;
+      if (customDiscountPercent && customDiscountPercent > 0) {
+        discountAmount = Math.round(subtotal * (customDiscountPercent / 100));
+        subtotal = subtotal - discountAmount;
+      }
+      
+      const finalTotalPrice = subtotal;
       
       // Create visa order using the new service - returns { orderId, token }
       const orderResult = await createVisaOrder({
@@ -106,16 +141,21 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         invoiceReference: answers.invoiceReference,
         additionalNotes: answers.additionalNotes,
         
-        // Pricing - include express and urgent fees in total
-        totalPrice: answers.selectedVisaProduct.price + 
-          (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + 
-          (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0),
+        // Pricing with customer-specific adjustments
+        totalPrice: finalTotalPrice,
         pricingBreakdown: {
-          serviceFee: answers.selectedVisaProduct.serviceFee || 0,
-          embassyFee: answers.selectedVisaProduct.embassyFee || 0,
-          expressPrice: answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0,
-          urgentPrice: answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0,
+          serviceFee: finalServiceFee,
+          embassyFee: embassyFee,
+          expressPrice: expressPrice,
+          urgentPrice: urgentPrice,
+          ...(discountAmount > 0 ? { discountAmount, discountPercent: customDiscountPercent } : {}),
         },
+        
+        // Customer pricing info (for reference in admin)
+        ...(matchedCustomer ? {
+          matchedCustomerId: matchedCustomer.id,
+          matchedCustomerName: matchedCustomer.companyName,
+        } : {}),
         
         // Locale
         locale: router.locale || 'sv',

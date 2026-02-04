@@ -65,7 +65,10 @@ const emptyCustomPricing: CustomerPricing = {
   scannedCopiesFee: undefined,
   returnDhlFee: undefined,
   returnPostnordFee: undefined,
-  returnBudFee: undefined
+  returnBudFee: undefined,
+  // Visa pricing
+  visaServiceFee: undefined,
+  visaDiscountPercent: undefined
 };
 
 const defaultFormData: Omit<CustomerInput, 'createdBy'> = {
@@ -1477,6 +1480,51 @@ export default function CustomersPage() {
                           }
                         }))}
                         placeholder="Standard"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Visa Pricing */}
+                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
+                    Visa Pricing
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Custom pricing for visa orders</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Visa Service Fee</label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.visaServiceFee ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            visaServiceFee: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="Standard"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Visa Discount (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        disabled={modalMode === 'view'}
+                        value={formData.customPricing?.visaDiscountPercent ?? ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          customPricing: { 
+                            ...prev.customPricing, 
+                            visaDiscountPercent: e.target.value !== '' ? parseFloat(e.target.value) : undefined 
+                          }
+                        }))}
+                        placeholder="0"
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
                       />
                     </div>

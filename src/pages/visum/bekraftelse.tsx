@@ -62,6 +62,125 @@ interface OrderConfirmation {
   status: string;
 }
 
+// Translation helper for country names (Swedish to English)
+const translateCountry = (country: string, locale: string): string => {
+  if (locale !== 'en') return country;
+  const translations: Record<string, string> = {
+    'Sydkorea': 'South Korea',
+    'Nordkorea': 'North Korea',
+    'Sydafrika': 'South Africa',
+    'Förenade Arabemiraten': 'United Arab Emirates',
+    'Saudiarabien': 'Saudi Arabia',
+    'Kina': 'China',
+    'Japan': 'Japan',
+    'Indien': 'India',
+    'Ryssland': 'Russia',
+    'Brasilien': 'Brazil',
+    'Mexiko': 'Mexico',
+    'Kanada': 'Canada',
+    'Australien': 'Australia',
+    'Nya Zeeland': 'New Zealand',
+    'Thailand': 'Thailand',
+    'Vietnam': 'Vietnam',
+    'Indonesien': 'Indonesia',
+    'Malaysia': 'Malaysia',
+    'Singapore': 'Singapore',
+    'Filippinerna': 'Philippines',
+    'Turkiet': 'Turkey',
+    'Egypten': 'Egypt',
+    'Marocko': 'Morocco',
+    'Kenya': 'Kenya',
+    'Nigeria': 'Nigeria',
+    'Pakistan': 'Pakistan',
+    'Bangladesh': 'Bangladesh',
+    'Sri Lanka': 'Sri Lanka',
+    'Nepal': 'Nepal',
+    'Myanmar': 'Myanmar',
+    'Kambodja': 'Cambodia',
+    'Laos': 'Laos',
+    'Taiwan': 'Taiwan',
+    'Hongkong': 'Hong Kong',
+    'Mongoliet': 'Mongolia',
+    'Kazakstan': 'Kazakhstan',
+    'Uzbekistan': 'Uzbekistan',
+    'Azerbajdzjan': 'Azerbaijan',
+    'Georgien': 'Georgia',
+    'Armenien': 'Armenia',
+    'Ukraina': 'Ukraine',
+    'Vitryssland': 'Belarus',
+    'Serbien': 'Serbia',
+    'Kroatien': 'Croatia',
+    'Slovenien': 'Slovenia',
+    'Bosnien': 'Bosnia',
+    'Nordmakedonien': 'North Macedonia',
+    'Albanien': 'Albania',
+    'Kosovo': 'Kosovo',
+    'Montenegro': 'Montenegro',
+    'Schweiz': 'Switzerland',
+    'Österrike': 'Austria',
+    'Belgien': 'Belgium',
+    'Nederländerna': 'Netherlands',
+    'Luxemburg': 'Luxembourg',
+    'Irland': 'Ireland',
+    'Storbritannien': 'United Kingdom',
+    'Frankrike': 'France',
+    'Spanien': 'Spain',
+    'Portugal': 'Portugal',
+    'Italien': 'Italy',
+    'Grekland': 'Greece',
+    'Cypern': 'Cyprus',
+    'Malta': 'Malta',
+    'Polen': 'Poland',
+    'Tjeckien': 'Czech Republic',
+    'Slovakien': 'Slovakia',
+    'Ungern': 'Hungary',
+    'Rumänien': 'Romania',
+    'Bulgarien': 'Bulgaria',
+    'Estland': 'Estonia',
+    'Lettland': 'Latvia',
+    'Litauen': 'Lithuania',
+    'Finland': 'Finland',
+    'Norge': 'Norway',
+    'Danmark': 'Denmark',
+    'Island': 'Iceland',
+    'Tyskland': 'Germany',
+    'USA': 'USA',
+    'Förenta staterna': 'United States',
+    'Angola': 'Angola',
+    'Tanzania': 'Tanzania',
+    'Uganda': 'Uganda',
+    'Rwanda': 'Rwanda',
+    'Ghana': 'Ghana',
+    'Senegal': 'Senegal',
+    'Elfenbenskusten': 'Ivory Coast',
+    'Kamerun': 'Cameroon',
+    'Mocambique': 'Mozambique',
+    'Zimbabwe': 'Zimbabwe',
+    'Zambia': 'Zambia',
+    'Botswana': 'Botswana',
+    'Namibia': 'Namibia',
+    'Tunisien': 'Tunisia',
+    'Algeriet': 'Algeria',
+    'Libyen': 'Libya',
+    'Sudan': 'Sudan',
+    'Etiopien': 'Ethiopia',
+    'Qatar': 'Qatar',
+    'Kuwait': 'Kuwait',
+    'Bahrain': 'Bahrain',
+    'Oman': 'Oman',
+    'Jordanien': 'Jordan',
+    'Libanon': 'Lebanon',
+    'Syrien': 'Syria',
+    'Irak': 'Iraq',
+    'Iran': 'Iran',
+    'Israel': 'Israel',
+    'Palestina': 'Palestine',
+    'Jemen': 'Yemen',
+    'Afghanistan': 'Afghanistan',
+  };
+  return translations[country] || country;
+};
+
 // Translation helper for nationality names
 const translateNationality = (nationality: string, locale: string): string => {
   if (locale !== 'en') return nationality;
@@ -86,6 +205,58 @@ const translateNationality = (nationality: string, locale: string): string => {
     'Portugisisk': 'Portuguese',
     'Grekisk': 'Greek',
     'Irländsk': 'Irish',
+    'Slovakisk': 'Slovak',
+    'Slovensk': 'Slovenian',
+    'Kroatisk': 'Croatian',
+    'Serbisk': 'Serbian',
+    'Bosnisk': 'Bosnian',
+    'Makedonsk': 'Macedonian',
+    'Albansk': 'Albanian',
+    'Bulgarisk': 'Bulgarian',
+    'Rumänsk': 'Romanian',
+    'Estnisk': 'Estonian',
+    'Lettisk': 'Latvian',
+    'Litauisk': 'Lithuanian',
+    'Rysk': 'Russian',
+    'Ukrainsk': 'Ukrainian',
+    'Vitrysk': 'Belarusian',
+    'Kinesisk': 'Chinese',
+    'Japansk': 'Japanese',
+    'Koreansk': 'Korean',
+    'Indisk': 'Indian',
+    'Pakistansk': 'Pakistani',
+    'Bangladeshisk': 'Bangladeshi',
+    'Thailändsk': 'Thai',
+    'Vietnamesisk': 'Vietnamese',
+    'Indonesisk': 'Indonesian',
+    'Malaysisk': 'Malaysian',
+    'Filippinsk': 'Filipino',
+    'Singaporeansk': 'Singaporean',
+    'Australisk': 'Australian',
+    'Nyzeeländsk': 'New Zealander',
+    'Kanadensisk': 'Canadian',
+    'Mexikansk': 'Mexican',
+    'Brasiliansk': 'Brazilian',
+    'Argentinsk': 'Argentine',
+    'Chilensk': 'Chilean',
+    'Colombiansk': 'Colombian',
+    'Peruansk': 'Peruvian',
+    'Turkisk': 'Turkish',
+    'Egyptisk': 'Egyptian',
+    'Marockansk': 'Moroccan',
+    'Sydafrikansk': 'South African',
+    'Nigeriansk': 'Nigerian',
+    'Kenyansk': 'Kenyan',
+    'Israelisk': 'Israeli',
+    'Saudisk': 'Saudi',
+    'Emiratisk': 'Emirati',
+    'Qatarisk': 'Qatari',
+    'Kuwaitisk': 'Kuwaiti',
+    'Jordansk': 'Jordanian',
+    'Libanesisk': 'Lebanese',
+    'Iransk': 'Iranian',
+    'Irakisk': 'Iraqi',
+    'Afghansk': 'Afghan',
   };
   return translations[nationality] || nationality;
 };
@@ -271,26 +442,39 @@ export default function VisaConfirmationPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-2xl font-bold text-gray-900">
-                          {order.totalPrice?.toLocaleString()} kr
-                        </span>
-                        {/* Show fee breakdown if express or urgent */}
-                        {(order.pricingBreakdown?.expressPrice && order.pricingBreakdown.expressPrice > 0) || 
-                         (order.pricingBreakdown?.urgentPrice && order.pricingBreakdown.urgentPrice > 0) ? (
-                          <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                            <div>{locale === 'en' ? 'Base' : 'Grund'}: {order.visaProduct?.price?.toLocaleString()} kr</div>
-                            {order.pricingBreakdown?.expressPrice && order.pricingBreakdown.expressPrice > 0 ? (
-                              <div className="text-orange-600">
-                                {locale === 'en' ? 'Express' : 'Express'}: +{order.pricingBreakdown.expressPrice.toLocaleString()} kr
+                        {order.totalPrice && order.totalPrice > 0 ? (
+                          <>
+                            <span className="text-2xl font-bold text-gray-900">
+                              {order.totalPrice.toLocaleString()} kr
+                            </span>
+                            {/* Show fee breakdown if express or urgent */}
+                            {(order.pricingBreakdown?.expressPrice && order.pricingBreakdown.expressPrice > 0) || 
+                             (order.pricingBreakdown?.urgentPrice && order.pricingBreakdown.urgentPrice > 0) ? (
+                              <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                                <div>{locale === 'en' ? 'Base' : 'Grund'}: {order.visaProduct?.price?.toLocaleString()} kr</div>
+                                {order.pricingBreakdown?.expressPrice && order.pricingBreakdown.expressPrice > 0 ? (
+                                  <div className="text-orange-600">
+                                    {locale === 'en' ? 'Express' : 'Express'}: +{order.pricingBreakdown.expressPrice.toLocaleString()} kr
+                                  </div>
+                                ) : null}
+                                {order.pricingBreakdown?.urgentPrice && order.pricingBreakdown.urgentPrice > 0 ? (
+                                  <div className="text-red-600">
+                                    {locale === 'en' ? 'Urgent' : 'Brådskande'}: +{order.pricingBreakdown.urgentPrice.toLocaleString()} kr
+                                  </div>
+                                ) : null}
                               </div>
                             ) : null}
-                            {order.pricingBreakdown?.urgentPrice && order.pricingBreakdown.urgentPrice > 0 ? (
-                              <div className="text-red-600">
-                                {locale === 'en' ? 'Urgent' : 'Brådskande'}: +{order.pricingBreakdown.urgentPrice.toLocaleString()} kr
-                              </div>
-                            ) : null}
+                          </>
+                        ) : (
+                          <div className="bg-amber-100 border border-amber-300 rounded-lg px-4 py-2">
+                            <span className="text-lg font-semibold text-amber-800">
+                              {locale === 'en' ? 'Price TBC' : 'Pris bekräftas'}
+                            </span>
+                            <p className="text-xs text-amber-700 mt-1">
+                              {locale === 'en' ? 'We will contact you with pricing' : 'Vi kontaktar dig med prisinformation'}
+                            </p>
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     </div>
 
@@ -314,7 +498,7 @@ export default function VisaConfirmationPage() {
                       </h3>
                       <div className="flex items-center">
                         <CountryFlag code={order.destinationCountryCode} size={32} />
-                        <span className="ml-3 text-lg font-medium text-gray-900">{order.destinationCountry}</span>
+                        <span className="ml-3 text-lg font-medium text-gray-900">{translateCountry(order.destinationCountry, locale)}</span>
                       </div>
                     </div>
 

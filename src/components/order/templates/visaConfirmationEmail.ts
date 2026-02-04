@@ -13,6 +13,142 @@ interface VisaEmailParams {
   confirmationToken?: string;
 }
 
+// Translation helper for country names (Swedish to English)
+const translateCountry = (country: string): string => {
+  const translations: Record<string, string> = {
+    'Sydkorea': 'South Korea',
+    'Nordkorea': 'North Korea',
+    'Sydafrika': 'South Africa',
+    'Förenade Arabemiraten': 'United Arab Emirates',
+    'Saudiarabien': 'Saudi Arabia',
+    'Kina': 'China',
+    'Japan': 'Japan',
+    'Indien': 'India',
+    'Ryssland': 'Russia',
+    'Brasilien': 'Brazil',
+    'Mexiko': 'Mexico',
+    'Kanada': 'Canada',
+    'Australien': 'Australia',
+    'Nya Zeeland': 'New Zealand',
+    'Thailand': 'Thailand',
+    'Vietnam': 'Vietnam',
+    'Indonesien': 'Indonesia',
+    'Malaysia': 'Malaysia',
+    'Singapore': 'Singapore',
+    'Filippinerna': 'Philippines',
+    'Turkiet': 'Turkey',
+    'Egypten': 'Egypt',
+    'Marocko': 'Morocco',
+    'Kenya': 'Kenya',
+    'Nigeria': 'Nigeria',
+    'Pakistan': 'Pakistan',
+    'Bangladesh': 'Bangladesh',
+    'Sri Lanka': 'Sri Lanka',
+    'Nepal': 'Nepal',
+    'Myanmar': 'Myanmar',
+    'Kambodja': 'Cambodia',
+    'Laos': 'Laos',
+    'Taiwan': 'Taiwan',
+    'Hongkong': 'Hong Kong',
+    'Mongoliet': 'Mongolia',
+    'Kazakstan': 'Kazakhstan',
+    'Uzbekistan': 'Uzbekistan',
+    'Azerbajdzjan': 'Azerbaijan',
+    'Georgien': 'Georgia',
+    'Armenien': 'Armenia',
+    'Ukraina': 'Ukraine',
+    'Vitryssland': 'Belarus',
+    'Serbien': 'Serbia',
+    'Kroatien': 'Croatia',
+    'Slovenien': 'Slovenia',
+    'Bosnien': 'Bosnia',
+    'Nordmakedonien': 'North Macedonia',
+    'Albanien': 'Albania',
+    'Kosovo': 'Kosovo',
+    'Montenegro': 'Montenegro',
+    'Schweiz': 'Switzerland',
+    'Österrike': 'Austria',
+    'Belgien': 'Belgium',
+    'Nederländerna': 'Netherlands',
+    'Luxemburg': 'Luxembourg',
+    'Irland': 'Ireland',
+    'Storbritannien': 'United Kingdom',
+    'Frankrike': 'France',
+    'Spanien': 'Spain',
+    'Portugal': 'Portugal',
+    'Italien': 'Italy',
+    'Grekland': 'Greece',
+    'Cypern': 'Cyprus',
+    'Malta': 'Malta',
+    'Polen': 'Poland',
+    'Tjeckien': 'Czech Republic',
+    'Slovakien': 'Slovakia',
+    'Ungern': 'Hungary',
+    'Rumänien': 'Romania',
+    'Bulgarien': 'Bulgaria',
+    'Estland': 'Estonia',
+    'Lettland': 'Latvia',
+    'Litauen': 'Lithuania',
+    'Finland': 'Finland',
+    'Norge': 'Norway',
+    'Danmark': 'Denmark',
+    'Island': 'Iceland',
+    'Tyskland': 'Germany',
+    'USA': 'USA',
+    'Förenta staterna': 'United States',
+    'Kuba': 'Cuba',
+    'Argentina': 'Argentina',
+    'Chile': 'Chile',
+    'Colombia': 'Colombia',
+    'Peru': 'Peru',
+    'Venezuela': 'Venezuela',
+    'Ecuador': 'Ecuador',
+    'Bolivia': 'Bolivia',
+    'Paraguay': 'Paraguay',
+    'Uruguay': 'Uruguay',
+    'Costa Rica': 'Costa Rica',
+    'Panama': 'Panama',
+    'Guatemala': 'Guatemala',
+    'Honduras': 'Honduras',
+    'El Salvador': 'El Salvador',
+    'Nicaragua': 'Nicaragua',
+    'Dominikanska republiken': 'Dominican Republic',
+    'Jamaica': 'Jamaica',
+    'Qatar': 'Qatar',
+    'Kuwait': 'Kuwait',
+    'Bahrain': 'Bahrain',
+    'Oman': 'Oman',
+    'Jordanien': 'Jordan',
+    'Libanon': 'Lebanon',
+    'Syrien': 'Syria',
+    'Irak': 'Iraq',
+    'Iran': 'Iran',
+    'Israel': 'Israel',
+    'Palestina': 'Palestine',
+    'Jemen': 'Yemen',
+    'Afghanistan': 'Afghanistan',
+    'Etiopien': 'Ethiopia',
+    'Tanzania': 'Tanzania',
+    'Uganda': 'Uganda',
+    'Rwanda': 'Rwanda',
+    'Ghana': 'Ghana',
+    'Senegal': 'Senegal',
+    'Elfenbenskusten': 'Ivory Coast',
+    'Kamerun': 'Cameroon',
+    'Angola': 'Angola',
+    'Mocambique': 'Mozambique',
+    'Zimbabwe': 'Zimbabwe',
+    'Zambia': 'Zambia',
+    'Botswana': 'Botswana',
+    'Namibia': 'Namibia',
+    'Tunisien': 'Tunisia',
+    'Algeriet': 'Algeria',
+    'Libyen': 'Libya',
+    'Sudan': 'Sudan',
+  };
+  return translations[country] || country;
+};
+
 // Translation helper for nationality names
 const translateNationality = (nationality: string, isEnglish: boolean): string => {
   if (!isEnglish) return nationality;
@@ -37,6 +173,58 @@ const translateNationality = (nationality: string, isEnglish: boolean): string =
     'Portugisisk': 'Portuguese',
     'Grekisk': 'Greek',
     'Irländsk': 'Irish',
+    'Slovakisk': 'Slovak',
+    'Slovensk': 'Slovenian',
+    'Kroatisk': 'Croatian',
+    'Serbisk': 'Serbian',
+    'Bosnisk': 'Bosnian',
+    'Makedonsk': 'Macedonian',
+    'Albansk': 'Albanian',
+    'Bulgarisk': 'Bulgarian',
+    'Rumänsk': 'Romanian',
+    'Estnisk': 'Estonian',
+    'Lettisk': 'Latvian',
+    'Litauisk': 'Lithuanian',
+    'Rysk': 'Russian',
+    'Ukrainsk': 'Ukrainian',
+    'Vitrysk': 'Belarusian',
+    'Kinesisk': 'Chinese',
+    'Japansk': 'Japanese',
+    'Koreansk': 'Korean',
+    'Indisk': 'Indian',
+    'Pakistansk': 'Pakistani',
+    'Bangladeshisk': 'Bangladeshi',
+    'Thailändsk': 'Thai',
+    'Vietnamesisk': 'Vietnamese',
+    'Indonesisk': 'Indonesian',
+    'Malaysisk': 'Malaysian',
+    'Filippinsk': 'Filipino',
+    'Singaporeansk': 'Singaporean',
+    'Australisk': 'Australian',
+    'Nyzeeländsk': 'New Zealander',
+    'Kanadensisk': 'Canadian',
+    'Mexikansk': 'Mexican',
+    'Brasiliansk': 'Brazilian',
+    'Argentinsk': 'Argentine',
+    'Chilensk': 'Chilean',
+    'Colombiansk': 'Colombian',
+    'Peruansk': 'Peruvian',
+    'Turkisk': 'Turkish',
+    'Egyptisk': 'Egyptian',
+    'Marockansk': 'Moroccan',
+    'Sydafrikansk': 'South African',
+    'Nigeriansk': 'Nigerian',
+    'Kenyansk': 'Kenyan',
+    'Israelisk': 'Israeli',
+    'Saudisk': 'Saudi',
+    'Emiratisk': 'Emirati',
+    'Qatarisk': 'Qatari',
+    'Kuwaitisk': 'Kuwaiti',
+    'Jordansk': 'Jordanian',
+    'Libanesisk': 'Lebanese',
+    'Iransk': 'Iranian',
+    'Irakisk': 'Iraqi',
+    'Afghansk': 'Afghan',
   };
   return translations[nationality] || nationality;
 };
@@ -536,6 +724,11 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
       ? 'Double entry'
       : 'Multiple entry';
 
+  // Translate values for English admin email
+  const destinationCountryEn = translateCountry(order.destinationCountry || '');
+  const nationalityEn = translateNationality(order.nationality || '', true);
+  const visaProductNameEn = order.visaProduct?.nameEn || translateVisaProductName(order.visaProduct?.name || '', true);
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -573,15 +766,15 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
           </div>
           <div class="detail-row">
             <span class="detail-label">Destination:</span>
-            <span class="detail-value">${order.destinationCountry}</span>
+            <span class="detail-value">${destinationCountryEn}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Nationality:</span>
-            <span class="detail-value">${order.nationality}</span>
+            <span class="detail-value">${nationalityEn}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Visa Product:</span>
-            <span class="detail-value">${order.visaProduct?.name}</span>
+            <span class="detail-value">${visaProductNameEn}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Visa Type:</span>
