@@ -22,7 +22,10 @@ import {
 export type VisaType = 'e-visa' | 'sticker' | 'both' | 'not-required' | 'not-supported';
 
 // Document requirement types
-export type DocumentType = 'passport' | 'photo' | 'form' | 'financial' | 'invitation' | 'insurance' | 'itinerary' | 'accommodation' | 'employment' | 'other';
+export type DocumentType = 'passport' | 'photo' | 'form' | 'financial' | 'invitation' | 'insurance' | 'itinerary' | 'accommodation' | 'employment' | 'residence' | 'other';
+
+// Nationality applicability for document requirements
+export type NationalityApplicability = 'all' | 'swedish-only' | 'non-swedish' | string[];
 
 // Single document requirement
 export interface DocumentRequirement {
@@ -37,6 +40,12 @@ export interface DocumentRequirement {
   templateUrl?: string;   // Link to downloadable template/form
   order: number;          // Display order
   isActive: boolean;
+  // Nationality-based applicability
+  applicableNationalities?: NationalityApplicability;
+  // 'all' = applies to everyone (default)
+  // 'swedish-only' = only Swedish citizens
+  // 'non-swedish' = all except Swedish citizens
+  // string[] = specific nationality codes, e.g., ['NO', 'DK', 'FI']
 }
 
 // Visa categories (purpose of travel)
@@ -674,4 +683,78 @@ export const getDefaultDocumentRequirements = (visaCategory: VisaCategory): Docu
   );
 
   return baseRequirements;
+};
+
+// Filter document requirements based on customer's nationality
+export const filterDocumentsByNationality = (
+  documents: DocumentRequirement[],
+  nationalityCode: string
+): DocumentRequirement[] => {
+  const isSwedish = nationalityCode.toUpperCase() === 'SE';
+  
+  return documents.filter(doc => {
+    const applicability = doc.applicableNationalities || 'all';
+    
+    // If it's an array of specific nationality codes
+    if (Array.isArray(applicability)) {
+      return applicability.includes(nationalityCode.toUpperCase());
+    }
+    
+    // Handle string values
+    switch (applicability) {
+      case 'all':
+        return true;
+      case 'swedish-only':
+        return isSwedish;
+      case 'non-swedish':
+        return !isSwedish;
+      default:
+        return true;
+    }
+  });
+};
+
+// Get predefined residence documents for non-Swedish citizens
+export const getResidenceDocuments = (): DocumentRequirement[] => {
+  return [
+    {
+      id: 'population-register-extract',
+      type: 'residence',
+      name: 'Personbevis / Utdrag ur folkbokföringen',
+      nameEn: 'Extract from Population Register',
+      description: 'Utdrag från Skatteverket som visar folkbokföring i Sverige (max 3 månader gammalt)',
+      descriptionEn: 'Extract from Swedish Tax Agency showing registration in Sweden (max 3 months old)',
+      required: true,
+      uploadable: true,
+      applicableNationalities: 'non-swedish',
+      order: 10,
+      isActive: true
+    },
+    {
+      id: 'residence-permit-card',
+      type: 'residence',
+      name: 'Uppehållstillståndskort (UT-kort)',
+      nameEn: 'Residence Permit Card',
+      description: 'Giltigt uppehållstillståndskort - original krävs för ansökan',
+      descriptionEn: 'Valid residence permit card - original required for application',
+      required: true,
+      uploadable: false,
+      applicableNationalities: 'non-swedish',
+      order: 11,
+      isActive: true
+    },
+    {
+      id: 'residence-permit-decision',
+      type: 'residence',
+      name: 'Beslut om uppehållstillstånd',
+      nameEn: 'Residence Permit Decision',
+      description: 'Kopia av Migrationsverkets beslut om uppehållstillstånd',
+      descriptionEn: 'Copy of Migration Agency decision on residence permit',
+      required: false,
+      uploadable: true,
+      applicableNationalities: 'non-swedish',
+      order: 12,
+      isActive: true
+    }
+  ];
 };

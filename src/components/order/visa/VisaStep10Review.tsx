@@ -14,7 +14,7 @@ import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { createVisaOrder, getVisaOrder, updateVisaOrder } from '@/firebase/visaOrderService';
 import { generateVisaConfirmationEmail, generateVisaBusinessNotificationEmail } from '../templates/visaConfirmationEmail';
-import { getDocumentRequirementsForProduct } from '@/firebase/visaRequirementsService';
+import { getDocumentRequirementsForProduct, filterDocumentsByNationality } from '@/firebase/visaRequirementsService';
 import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -202,14 +202,17 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       // Fetch the created order to get full data for email
       const createdOrder = await getVisaOrder(createdOrderId);
       
-      // Fetch document requirements for this visa product
+      // Fetch document requirements for this visa product (filtered by nationality)
       let documentRequirements: Awaited<ReturnType<typeof getDocumentRequirementsForProduct>> = [];
       if (createdOrder?.destinationCountryCode && createdOrder?.visaProduct?.id) {
         try {
-          documentRequirements = await getDocumentRequirementsForProduct(
+          const allDocs = await getDocumentRequirementsForProduct(
             createdOrder.destinationCountryCode,
             createdOrder.visaProduct.id
           );
+          // Filter documents based on customer's nationality
+          const nationalityCode = createdOrder.nationalityCode || answers.nationalityCode || 'SE';
+          documentRequirements = filterDocumentsByNationality(allDocs, nationalityCode);
         } catch {
           // Silent fail - document requirements are optional
         }

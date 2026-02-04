@@ -168,6 +168,15 @@ function AdminIndexPage() {
       icon: 'clipboard-list',
       category: 'operations'
     },
+    {
+      title: 'User Management',
+      description: 'Manage admin users and their access levels',
+      href: '/admin/users',
+      color: 'bg-violet-600 hover:bg-violet-700',
+      badge: 'Access',
+      icon: 'users',
+      category: 'operations'
+    },
     // Billing
     {
       title: 'Invoices',

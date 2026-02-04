@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import { getVisaOrderByToken, updateVisaOrder, VisaOrder } from '@/firebase/visaOrderService';
-import { getDocumentRequirementsForProduct, DocumentRequirement } from '@/firebase/visaRequirementsService';
+import { getDocumentRequirementsForProduct, filterDocumentsByNationality, DocumentRequirement } from '@/firebase/visaRequirementsService';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Timestamp } from 'firebase/firestore';
 import { toast, Toaster } from 'react-hot-toast';
@@ -76,11 +76,14 @@ export default function VisaDocumentUploadPage() {
           // Fetch document requirements for this visa product
           if (orderData.destinationCountryCode && orderData.visaProduct?.id) {
             try {
-              const docs = await getDocumentRequirementsForProduct(
+              const allDocs = await getDocumentRequirementsForProduct(
                 orderData.destinationCountryCode,
                 orderData.visaProduct.id
               );
-              setDocumentRequirements(docs);
+              // Filter documents based on customer's nationality
+              const nationalityCode = orderData.nationalityCode || 'SE';
+              const filteredDocs = filterDocumentsByNationality(allDocs, nationalityCode);
+              setDocumentRequirements(filteredDocs);
             } catch {
               // Silent fail
             }

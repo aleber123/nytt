@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { getVisaOrderConfirmationByToken } from '@/firebase/visaOrderService';
-import { getDocumentRequirementsForProduct, DocumentRequirement } from '@/firebase/visaRequirementsService';
+import { getDocumentRequirementsForProduct, filterDocumentsByNationality, DocumentRequirement } from '@/firebase/visaRequirementsService';
 
 // Order confirmation data from orderConfirmations collection
 interface OrderConfirmation {
@@ -311,11 +311,14 @@ export default function VisaConfirmationPage() {
           // Fetch document requirements for this visa product
           if (orderData.destinationCountryCode && orderData.visaProduct?.id) {
             try {
-              const docs = await getDocumentRequirementsForProduct(
+              const allDocs = await getDocumentRequirementsForProduct(
                 orderData.destinationCountryCode,
                 orderData.visaProduct.id
               );
-              setDocumentRequirements(docs);
+              // Filter documents based on customer's nationality
+              const nationalityCode = orderData.nationalityCode || 'SE';
+              const filteredDocs = filterDocumentsByNationality(allDocs, nationalityCode);
+              setDocumentRequirements(filteredDocs);
             } catch {
               // Silent fail - document requirements are optional
             }

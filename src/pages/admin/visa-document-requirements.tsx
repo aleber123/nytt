@@ -9,11 +9,13 @@ import {
   getAllVisaRequirements,
   updateProductDocumentRequirements,
   getDefaultDocumentRequirements,
+  getResidenceDocuments,
   VisaRequirement,
   VisaProduct,
   DocumentRequirement,
   DocumentType,
-  VisaCategory
+  VisaCategory,
+  NationalityApplicability
 } from '@/firebase/visaRequirementsService';
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, { label: string; icon: string }> = {
@@ -26,7 +28,14 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentType, { label: string; icon: string }
   'itinerary': { label: 'Travel Itinerary', icon: '✈️' },
   'accommodation': { label: 'Accommodation', icon: '🏨' },
   'employment': { label: 'Employment Letter', icon: '💼' },
+  'residence': { label: 'Residence / Permit', icon: '🏠' },
   'other': { label: 'Other', icon: '📄' }
+};
+
+const NATIONALITY_APPLICABILITY_LABELS: Record<string, string> = {
+  'all': 'All nationalities',
+  'swedish-only': 'Swedish citizens only',
+  'non-swedish': 'Non-Swedish citizens (residents in Sweden)'
 };
 
 function VisaDocumentRequirementsPage() {
@@ -251,6 +260,26 @@ function VisaDocumentRequirementsPage() {
                         Load Defaults
                       </button>
                       <button
+                        onClick={() => {
+                          const residenceDocs = getResidenceDocuments();
+                          // Check if any residence docs already exist
+                          const existingIds = documentRequirements.map(d => d.id);
+                          const newDocs = residenceDocs.filter(d => !existingIds.includes(d.id));
+                          if (newDocs.length === 0) {
+                            toast.error('Residence documents already added');
+                            return;
+                          }
+                          // Update order numbers
+                          const maxOrder = Math.max(...documentRequirements.map(d => d.order), 0);
+                          newDocs.forEach((d, i) => d.order = maxOrder + i + 1);
+                          setDocumentRequirements(prev => [...prev, ...newDocs]);
+                          toast.success(`Added ${newDocs.length} residence document(s) for non-Swedish citizens`);
+                        }}
+                        className="px-3 py-2 text-sm border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50"
+                      >
+                        🏠 Add Residence Docs
+                      </button>
+                      <button
                         onClick={() => setShowAddModal(true)}
                         className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
                       >
@@ -278,7 +307,7 @@ function VisaDocumentRequirementsPage() {
                               <div className="flex items-start gap-3">
                                 <span className="text-2xl">{DOCUMENT_TYPE_LABELS[doc.type]?.icon || '📄'}</span>
                                 <div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <h3 className="font-medium text-gray-900">{doc.nameEn || doc.name}</h3>
                                     {doc.required && (
                                       <span className="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded">Required</span>
@@ -288,6 +317,14 @@ function VisaDocumentRequirementsPage() {
                                     )}
                                     {!doc.isActive && (
                                       <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">Inactive</span>
+                                    )}
+                                    {doc.applicableNationalities && doc.applicableNationalities !== 'all' && (
+                                      <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                                        {Array.isArray(doc.applicableNationalities) 
+                                          ? `Only: ${doc.applicableNationalities.join(', ')}`
+                                          : NATIONALITY_APPLICABILITY_LABELS[doc.applicableNationalities] || doc.applicableNationalities
+                                        }
+                                      </span>
                                     )}
                                   </div>
                                   <p className="text-sm text-gray-500 mt-1">{doc.descriptionEn || doc.description}</p>
@@ -464,6 +501,16 @@ function DocumentRequirementModal({
   const [uploadable, setUploadable] = useState(document?.uploadable ?? false);
   const [templateUrl, setTemplateUrl] = useState(document?.templateUrl || '');
   const [isActive, setIsActive] = useState(document?.isActive ?? true);
+  const [applicableNationalities, setApplicableNationalities] = useState<string>(
+    Array.isArray(document?.applicableNationalities) 
+      ? 'specific' 
+      : (document?.applicableNationalities || 'all')
+  );
+  const [specificNationalities, setSpecificNationalities] = useState<string>(
+    Array.isArray(document?.applicableNationalities) 
+      ? document.applicableNationalities.join(', ') 
+      : ''
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -476,6 +523,14 @@ function DocumentRequirementModal({
       return;
     }
 
+    // Determine applicableNationalities value
+    let nationalityValue: NationalityApplicability = 'all';
+    if (applicableNationalities === 'specific' && specificNationalities.trim()) {
+      nationalityValue = specificNationalities.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+    } else if (applicableNationalities !== 'specific') {
+      nationalityValue = applicableNationalities as 'all' | 'swedish-only' | 'non-swedish';
+    }
+
     const docData: DocumentRequirement = {
       id: docId,
       type,
@@ -486,7 +541,8 @@ function DocumentRequirementModal({
       required,
       uploadable,
       order: document?.order || nextOrder,
-      isActive
+      isActive,
+      applicableNationalities: nationalityValue
     };
 
     if (templateUrl) {
@@ -609,6 +665,76 @@ function DocumentRequirementModal({
               className="w-full border border-gray-300 rounded-md px-3 py-2"
             />
             <p className="text-xs text-gray-500 mt-1">Link to downloadable form or template</p>
+          </div>
+
+          {/* Nationality Applicability */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Applies to which nationalities?
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="applicableNationalities"
+                  value="all"
+                  checked={applicableNationalities === 'all'}
+                  onChange={(e) => setApplicableNationalities(e.target.value)}
+                  className="text-blue-600"
+                />
+                <span className="text-sm text-gray-700">All nationalities (default)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="applicableNationalities"
+                  value="swedish-only"
+                  checked={applicableNationalities === 'swedish-only'}
+                  onChange={(e) => setApplicableNationalities(e.target.value)}
+                  className="text-blue-600"
+                />
+                <span className="text-sm text-gray-700">Swedish citizens only</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="applicableNationalities"
+                  value="non-swedish"
+                  checked={applicableNationalities === 'non-swedish'}
+                  onChange={(e) => setApplicableNationalities(e.target.value)}
+                  className="text-blue-600"
+                />
+                <span className="text-sm text-gray-700">🏠 Non-Swedish citizens (residents in Sweden)</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="applicableNationalities"
+                  value="specific"
+                  checked={applicableNationalities === 'specific'}
+                  onChange={(e) => setApplicableNationalities(e.target.value)}
+                  className="text-blue-600"
+                />
+                <span className="text-sm text-gray-700">Specific nationalities only</span>
+              </label>
+              {applicableNationalities === 'specific' && (
+                <div className="ml-6 mt-2">
+                  <input
+                    type="text"
+                    value={specificNationalities}
+                    onChange={(e) => setSpecificNationalities(e.target.value)}
+                    placeholder="e.g., NO, DK, FI (comma-separated country codes)"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter ISO country codes separated by commas</p>
+                </div>
+              )}
+            </div>
+            {applicableNationalities === 'non-swedish' && (
+              <p className="text-xs text-blue-700 mt-2 bg-blue-100 p-2 rounded">
+                💡 This document will only be shown to non-Swedish citizens applying from Sweden (e.g., residence permit, population register extract)
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-6">
