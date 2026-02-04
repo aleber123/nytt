@@ -206,6 +206,21 @@ service cloud.firestore {
       // Never allow delete
       allow delete: if false;
     }
+
+    // ADMIN USERS – role-based access control for admin panel
+    match /adminUsers/{userId} {
+      // Allow authenticated users to read their own admin user document
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || 
+         request.auth.token.email == resource.data.email ||
+         isAdmin());
+      
+      // Allow listing all admin users for admins
+      allow list: if isAdmin();
+      
+      // Only admins can create/update/delete admin users
+      allow write: if isAdmin();
+    }
   }
 }
 

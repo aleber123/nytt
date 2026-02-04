@@ -56,7 +56,8 @@ function AdminUsersPage() {
     setCurrentUserRole(user?.role || null);
   };
 
-  const canManageUsers = currentUserRole === 'super_admin';
+  // Allow managing users if super_admin OR if no users exist yet (first setup)
+  const canManageUsers = currentUserRole === 'super_admin' || users.length === 0;
 
   const handleAddUser = async (email: string, displayName: string, role: UserRole, notes: string) => {
     try {

@@ -6020,8 +6020,8 @@ function AdminOrderDetailPage() {
                                 const pb = order.pricingBreakdown as any;
                                 // Always show serviceFee and embassyFee (even if 0), only filter optional fees
                                 const visaLineItems = [
-                                  { key: 'serviceFee', label: 'Service Fee (25% VAT)', amount: pb.serviceFee || 0, alwaysShow: true },
-                                  { key: 'embassyFee', label: 'Embassy/Government Fee (0% VAT)', amount: pb.embassyFee || 0, alwaysShow: true },
+                                  { key: 'serviceFee', label: 'DOX Visumpartner Service Fee', amount: pb.serviceFee || 0, alwaysShow: true },
+                                  { key: 'embassyFee', label: 'Embassy Official Fee', amount: pb.embassyFee || 0, alwaysShow: true },
                                   ...(pb.shippingFee ? [{ key: 'shippingFee', label: 'Shipping Fee', amount: pb.shippingFee, alwaysShow: false }] : []),
                                   ...(pb.expeditedFee ? [{ key: 'expeditedFee', label: 'Expedited Fee', amount: pb.expeditedFee, alwaysShow: false }] : []),
                                   ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice, alwaysShow: false }] : []),

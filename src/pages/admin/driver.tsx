@@ -531,11 +531,10 @@ function DriverDashboardPage() {
       setLoading(true);
 
       const orders = (await getAllOrders()).filter(
-        (order) => order.status === 'pending' || order.status === 'processing'
+        (order) => order.status === 'pending' || order.status === 'processing' || order.status === 'received'
       );
 
       const driverTasks: DriverTask[] = [];
-      const ordersToUpdate: Array<{orderId: string, processingSteps: ProcessingStep[]}> = [];
 
       orders.forEach((order: Order) => {
         // Initialize processing steps if they don't exist
@@ -547,12 +546,7 @@ function DriverDashboardPage() {
           needsUpdate = true;
         }
 
-        if (needsUpdate) {
-          ordersToUpdate.push({
-            orderId: order.id || '',
-            processingSteps: processingSteps
-          });
-        }
+        // Note: We no longer auto-save processingSteps from driver page
 
         if (processingSteps && Array.isArray(processingSteps)) {
           // Check if we need to add pickup steps for existing orders
@@ -735,17 +729,22 @@ function DriverDashboardPage() {
             if (taskType && (step.submittedAt || step.expectedCompletionDate) &&
                 authority !== 'Office' && authority !== 'Shipping Provider') {
               try {
-                const taskDate = step.submittedAt ?
-                  new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] :
-                  new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0];
+                // Handle different date formats (Firestore Timestamp, Date object, or ISO string)
+                const getDateString = (dateValue: any): string => {
+                  if (!dateValue) return '';
+                  if (dateValue.toDate) return dateValue.toDate().toISOString().split('T')[0];
+                  if (dateValue instanceof Date) return dateValue.toISOString().split('T')[0];
+                  if (typeof dateValue === 'string') return dateValue.split('T')[0];
+                  return '';
+                };
 
-                // Only show tasks for the selected date
-                const selectedDateObj = new Date(selectedDate + 'T00:00:00');
-                const taskDateObj = new Date(taskDate);
-                const daysDiff = Math.floor((taskDateObj.getTime() - selectedDateObj.getTime()) / (1000 * 60 * 60 * 24));
+                const taskDate = step.submittedAt 
+                  ? getDateString(step.submittedAt)
+                  : getDateString(step.expectedCompletionDate);
 
-                if (daysDiff === 0) { // Only show tasks for the exact selected date
-                  driverTasks.push({
+                // Only show tasks for the selected date (simple string comparison)
+                if (taskDate === selectedDate) {
+                  const newTask = {
                     orderId: order.id || '',
                     orderNumber: order.orderNumber || order.id || '',
                     customerName: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Unknown customer',
@@ -758,25 +757,19 @@ function DriverDashboardPage() {
                     address,
                     notes: step.notes,
                     stepId: step.id,
-                    orderType: 'legalization'
-                  });
+                    orderType: 'legalization' as const
+                  };
+                  
+                  driverTasks.push(newTask as DriverTask);
                 }
               } catch (dateError) {
+                // Skip tasks with invalid dates
               }
             }
           });
         }
       });
 
-      // Save newly created processingSteps back to Firebase
-      if (ordersToUpdate.length > 0) {
-        for (const update of ordersToUpdate) {
-          try {
-            await updateOrder(update.orderId, { processingSteps: update.processingSteps });
-          } catch (error) {
-          }
-        }
-      }
 
       // ========== VISA ORDERS ==========
       // Fetch visa orders and create driver tasks for embassy visits
@@ -899,7 +892,7 @@ function DriverDashboardPage() {
 
   useEffect(() => {
     fetchDriverTasks();
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     loadMonthlySummaryForSelectedDate();
