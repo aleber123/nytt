@@ -186,10 +186,10 @@ export default async function handler(
     // The request body must follow the ediInstruction schema
     // 
     // IMPORTANT for Letter Services (RR, RK, 34, etc.):
-    // - FE = Frimärke (Stamp) - prepaid with stamps
-    // - FR = Frankeringsmaskin (Franking machine) - business account invoiced
+    // - FE = Faktura (Invoice) - billed to customer number, no submission documents
+    // - FR = Frankeringsmaskin (Franking machine)
     // PostNord API explicitly requires FE or FR for letter services
-    const paymentServiceCode = 'FR'; // Franking machine - business account invoiced
+    const paymentServiceCode = 'FE'; // Invoice - billed to customer number
     
     // Build additional service codes array
     const additionalServiceCodes: string[] = [paymentServiceCode];
