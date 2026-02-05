@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
 import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation, downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter, getNotaryApostilleDefaults, NotaryApostilleCoverLetterData, downloadEmbassyCoverLetter, printEmbassyCoverLetter, getEmbassyDefaults, EmbassyCoverLetterData, downloadUDCoverLetter, printUDCoverLetter, getUDDefaults, UDCoverLetterData } from '@/services/coverLetterService';
-import { collection, addDoc, doc as fsDoc, getDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, doc as fsDoc, getDoc, getDocs, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { downloadDhlReturnLabel } from '@/services/shippingLabelService';
@@ -120,6 +120,401 @@ const adminUpdateOrder = async (orderId: string, updates: Record<string, any>): 
   }
 };
 
+// Edit Order Information Component
+interface EditOrderInfoSectionProps {
+  order: ExtendedOrder;
+  onUpdate: (updates: any) => Promise<void>;
+  onRegenerateSteps: (updatedOrder: any) => Promise<void>;
+}
+
+function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderInfoSectionProps) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [lastSavedChanges, setLastSavedChanges] = useState<{ field: string; oldValue: string; newValue: string }[] | null>(null);
+  const [editedCountry, setEditedCountry] = useState(order.country || '');
+  // Support multiple document types
+  const getInitialDocTypes = () => {
+    if (Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0) {
+      return (order as any).documentTypes;
+    }
+    return order.documentType ? [order.documentType] : [];
+  };
+  const [editedDocumentTypes, setEditedDocumentTypes] = useState<string[]>(getInitialDocTypes());
+  const [editedDocumentSource, setEditedDocumentSource] = useState(order.documentSource || 'original');
+  const [editedCustomerRef, setEditedCustomerRef] = useState((order as any).invoiceReference || '');
+  const [editedCompanyName, setEditedCompanyName] = useState(order.customerInfo?.companyName || '');
+
+  // Reset form when order changes
+  useEffect(() => {
+    setEditedCountry(order.country || '');
+    const docTypes = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
+      ? (order as any).documentTypes
+      : order.documentType ? [order.documentType] : [];
+    setEditedDocumentTypes(docTypes);
+    setEditedDocumentSource(order.documentSource || 'original');
+    setEditedCustomerRef((order as any).invoiceReference || '');
+    setEditedCompanyName(order.customerInfo?.companyName || '');
+  }, [order]);
+
+  const handleAddDocumentType = (docTypeId: string) => {
+    if (docTypeId && !editedDocumentTypes.includes(docTypeId)) {
+      setEditedDocumentTypes([...editedDocumentTypes, docTypeId]);
+    }
+  };
+
+  const handleRemoveDocumentType = (docTypeId: string) => {
+    setEditedDocumentTypes(editedDocumentTypes.filter(d => d !== docTypeId));
+  };
+
+  // Build changes array for email notification
+  const buildChanges = () => {
+    const changes: { field: string; oldValue: string; newValue: string }[] = [];
+    
+    if (editedCountry !== order.country) {
+      const oldCountryName = ALL_COUNTRIES.find(c => c.code === order.country)?.nameEn || order.country || '';
+      const newCountryName = ALL_COUNTRIES.find(c => c.code === editedCountry)?.nameEn || editedCountry || '';
+      changes.push({ field: 'country', oldValue: oldCountryName, newValue: newCountryName });
+    }
+    
+    const currentDocTypes = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
+      ? (order as any).documentTypes
+      : order.documentType ? [order.documentType] : [];
+    
+    if (JSON.stringify(editedDocumentTypes) !== JSON.stringify(currentDocTypes)) {
+      const oldDocs = currentDocTypes.map(getDocTypeName).join(', ') || '—';
+      const newDocs = editedDocumentTypes.map(getDocTypeName).join(', ') || '—';
+      changes.push({ field: 'documentTypes', oldValue: oldDocs, newValue: newDocs });
+    }
+    
+    if (editedDocumentTypes.length !== order.quantity) {
+      changes.push({ field: 'quantity', oldValue: String(order.quantity || 1), newValue: String(editedDocumentTypes.length || 1) });
+    }
+    
+    if (editedDocumentSource !== (order.documentSource || 'original')) {
+      changes.push({ field: 'documentSource', oldValue: order.documentSource || 'original', newValue: editedDocumentSource });
+    }
+    
+    if (editedCompanyName !== (order.customerInfo?.companyName || '')) {
+      changes.push({ field: 'companyName', oldValue: order.customerInfo?.companyName || '—', newValue: editedCompanyName || '—' });
+    }
+    
+    if (editedCustomerRef !== ((order as any).invoiceReference || '')) {
+      changes.push({ field: 'invoiceReference', oldValue: (order as any).invoiceReference || '—', newValue: editedCustomerRef || '—' });
+    }
+    
+    return changes;
+  };
+
+  const handleSendUpdateEmail = async () => {
+    if (!lastSavedChanges || lastSavedChanges.length === 0) {
+      toast.error('No changes to notify about');
+      return;
+    }
+    
+    setSendingEmail(true);
+    try {
+      const response = await fetch('/api/order-update-notification/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order.orderNumber || order.id,
+          changes: lastSavedChanges
+        })
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || 'Email sent to customer');
+        setLastSavedChanges(null);
+      } else {
+        toast.error(data.error || 'Failed to send email');
+      }
+    } catch (err: any) {
+      toast.error(`Failed to send email: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const changes = buildChanges();
+      const updates: any = {
+        country: editedCountry,
+        documentType: editedDocumentTypes[0] || '',
+        documentTypes: editedDocumentTypes,
+        quantity: editedDocumentTypes.length || 1,
+        documentSource: editedDocumentSource,
+        invoiceReference: editedCustomerRef,
+        customerInfo: {
+          ...order.customerInfo,
+          companyName: editedCompanyName
+        }
+      };
+      await onUpdate(updates);
+      setLastSavedChanges(changes.length > 0 ? changes : null);
+      toast.success('Order information updated');
+      setEditing(false);
+    } catch (err: any) {
+      toast.error(`Failed to update: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveAndRegenerate = async () => {
+    setSaving(true);
+    try {
+      const updates: any = {
+        country: editedCountry,
+        documentType: editedDocumentTypes[0] || '',
+        documentTypes: editedDocumentTypes,
+        quantity: editedDocumentTypes.length || 1,
+        documentSource: editedDocumentSource,
+        invoiceReference: editedCustomerRef,
+        customerInfo: {
+          ...order.customerInfo,
+          companyName: editedCompanyName
+        }
+      };
+      await onUpdate(updates);
+      
+      if (!confirm('Regenerate processing steps based on new order info? Any progress will be lost.')) {
+        setEditing(false);
+        setSaving(false);
+        return;
+      }
+      
+      const updatedOrder = { ...order, ...updates };
+      await onRegenerateSteps(updatedOrder);
+      toast.success('Order updated and processing steps regenerated');
+      setEditing(false);
+    } catch (err: any) {
+      toast.error(`Failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Get document type name helper
+  const getDocTypeName = (docTypeId: string) => {
+    const found = PREDEFINED_DOCUMENT_TYPES.find(d => d.id === docTypeId);
+    return found ? found.nameEn : docTypeId;
+  };
+
+  if (!editing) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium mb-4">Edit Order Information</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Edit basic order details. Changes will update the order and regenerate the Order PDF.
+        </p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-500">Country:</span>
+              <span className="ml-2 font-medium">
+                {ALL_COUNTRIES.find(c => c.code === order.country)?.nameEn || order.country}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500">Document(s):</span>
+              <span className="ml-2 font-medium">
+                {editedDocumentTypes.length > 0 
+                  ? editedDocumentTypes.map(getDocTypeName).join(', ')
+                  : 'Not specified'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500">Quantity:</span>
+              <span className="ml-2 font-medium">{order.quantity}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Source:</span>
+              <span className="ml-2 font-medium capitalize">{order.documentSource || 'original'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Customer ref:</span>
+              <span className="ml-2 font-medium">{(order as any).invoiceReference || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Company:</span>
+              <span className="ml-2 font-medium">{order.customerInfo?.companyName || '—'}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={() => setEditing(true)}
+              className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            >
+              ✏️ Edit Order Information
+            </button>
+            {lastSavedChanges && lastSavedChanges.length > 0 && (
+              <button
+                onClick={handleSendUpdateEmail}
+                disabled={sendingEmail}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {sendingEmail ? 'Sending...' : '📧 Notify Customer of Changes'}
+              </button>
+            )}
+          </div>
+          {lastSavedChanges && lastSavedChanges.length > 0 && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-sm text-amber-800">
+                <strong>Unsent notification:</strong> Order was updated. Click "Notify Customer" to send an email about the changes.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <h3 className="text-lg font-medium mb-4">Edit Order Information</h3>
+      <p className="text-sm text-gray-500 mb-4">
+        Edit basic order details. Changes will update the order and regenerate the Order PDF.
+      </p>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+            <select
+              value={editedCountry}
+              onChange={(e) => setEditedCountry(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="">Select country...</option>
+              {ALL_COUNTRIES.map(country => (
+                <option key={country.code} value={country.code}>
+                  {country.flag} {country.nameEn}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Document Source</label>
+            <select
+              value={editedDocumentSource}
+              onChange={(e) => setEditedDocumentSource(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="original">Original documents</option>
+              <option value="upload">Uploaded documents</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Reference</label>
+            <input
+              type="text"
+              value={editedCustomerRef}
+              onChange={(e) => setEditedCustomerRef(e.target.value)}
+              placeholder="e.g. PO number"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+            <input
+              type="text"
+              value={editedCompanyName}
+              onChange={(e) => setEditedCompanyName(e.target.value)}
+              placeholder="Company name"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Document Types Section */}
+        <div className="border-t pt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Documents ({editedDocumentTypes.length})
+          </label>
+          
+          {/* Current document types */}
+          {editedDocumentTypes.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {editedDocumentTypes.map((docTypeId, index) => (
+                <div key={`${docTypeId}-${index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                  <span className="text-sm">
+                    {index + 1}. {getDocTypeName(docTypeId)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDocumentType(docTypeId)}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    ✕ Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Add new document type */}
+          <div className="flex gap-2">
+            <select
+              id="addDocTypeSelect"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+              defaultValue=""
+            >
+              <option value="">Add document type...</option>
+              {PREDEFINED_DOCUMENT_TYPES.map(docType => (
+                <option key={docType.id} value={docType.id}>
+                  {docType.nameEn}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                const select = document.getElementById('addDocTypeSelect') as HTMLSelectElement;
+                if (select.value) {
+                  handleAddDocumentType(select.value);
+                  select.value = '';
+                }
+              }}
+              className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+            >
+              + Add
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Each document type counts as one document. Quantity will be set to the number of document types.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2 border-t">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm"
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button
+            onClick={() => setEditing(false)}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveAndRegenerate}
+            disabled={saving}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+          >
+            🔄 Save & Regenerate Steps
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminOrderDetailPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
@@ -130,7 +525,7 @@ function AdminOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedStatus, setEditedStatus] = useState<Order['status']>('pending');
-  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'services' | 'price' | 'files' | 'notes' | 'invoice' | 'coverletters'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'services' | 'price' | 'files' | 'notes' | 'invoice' | 'coverletters' | 'communication'>('overview');
   const [newNote, setNewNote] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
@@ -170,6 +565,14 @@ function AdminOrderDetailPage() {
   const [documentRequestTemplate, setDocumentRequestTemplate] = useState('custom');
   const [documentRequestMessage, setDocumentRequestMessage] = useState('');
   const [sendingDocumentRequest, setSendingDocumentRequest] = useState(false);
+  // New template modal state
+  const [showNewTemplateModal, setShowNewTemplateModal] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateNameSv, setNewTemplateNameSv] = useState('');
+  const [newTemplateMessage, setNewTemplateMessage] = useState('');
+  const [newTemplateMessageSv, setNewTemplateMessageSv] = useState('');
+  const [savingNewTemplate, setSavingNewTemplate] = useState(false);
+  const [customTemplates, setCustomTemplates] = useState<any[]>([]);
   const [unreadSupplementaryCount, setUnreadSupplementaryCount] = useState(0);
   // Admin file upload state
   const [adminUploadFiles, setAdminUploadFiles] = useState<File[]>([]);
@@ -785,6 +1188,23 @@ function AdminOrderDetailPage() {
     };
     loadProfile();
   }, [currentUser]);
+
+  // Load custom email templates from Firestore
+  useEffect(() => {
+    const loadCustomTemplates = async () => {
+      try {
+        const db = getFirebaseDb();
+        if (!db) return;
+        const templatesRef = collection(db, 'emailTemplates');
+        const snapshot = await getDocs(templatesRef);
+        const templates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        setCustomTemplates(templates);
+      } catch (err) {
+        // Silently fail - use default templates only
+      }
+    };
+    loadCustomTemplates();
+  }, []);
 
   // Initialize processing steps based on order type
   const initializeProcessingSteps = (orderData: ExtendedOrder): ProcessingStep[] => {
@@ -4450,10 +4870,19 @@ function AdminOrderDetailPage() {
 
   // Get message in customer's language
   const getTemplateMessage = (templateId: string) => {
+    // First check predefined templates
     const template = documentRequestTemplates.find(t => t.id === templateId);
-    if (!template) return '';
-    const isEnglish = (order as any)?.locale === 'en';
-    return isEnglish ? template.messageEn : template.messageSv;
+    if (template) {
+      const isEnglish = (order as any)?.locale === 'en';
+      return isEnglish ? template.messageEn : template.messageSv;
+    }
+    // Then check custom templates
+    const customTemplate = customTemplates.find(t => t.id === templateId);
+    if (customTemplate) {
+      const isEnglish = (order as any)?.locale === 'en';
+      return isEnglish ? (customTemplate.messageEn || customTemplate.message) : (customTemplate.messageSv || customTemplate.message);
+    }
+    return '';
   };
 
   // Send document request to customer
@@ -5176,6 +5605,7 @@ function AdminOrderDetailPage() {
                     { id: 'price', label: 'Price', icon: '💰' },
                     { id: 'files', label: 'Files', icon: '📎' },
                     { id: 'invoice', label: 'Invoice', icon: '🧾' },
+                    { id: 'communication', label: 'Communication', icon: '📧' },
                     { id: 'notes', label: 'Notes', icon: '📝' }
                   ].map((tab) => (
                     <button
@@ -5845,43 +6275,21 @@ function AdminOrderDetailPage() {
                 {/* Services Tab */}
                 {activeTab === 'services' && (
                   <div className="space-y-6">
-                    {/* Document Quantity Section */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-4">Document Quantity</h3>
-                      <div className="flex items-center gap-4">
-                        <label className="text-sm text-gray-600">Number of documents:</label>
-                        <input
-                          type="number"
-                          min="1"
-                          defaultValue={order.quantity}
-                          className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-md font-medium text-gray-900 text-center"
-                          onBlur={async (e) => {
-                            const newQuantity = parseInt(e.target.value, 10);
-                            if (newQuantity && newQuantity !== order.quantity && newQuantity > 0) {
-                              const orderId = router.query.id as string;
-                              try {
-                                await adminUpdateOrder(orderId, { quantity: newQuantity });
-                                setOrder(prev => prev ? { ...prev, quantity: newQuantity } : null);
-                                toast.success(`Quantity updated to ${newQuantity}`);
-                              } catch (err: any) {
-                                toast.error(`Failed to update: ${err.message || 'Unknown error'}`);
-                                e.target.value = String(order.quantity);
-                              }
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              (e.target as HTMLInputElement).blur();
-                            }
-                          }}
-                        />
-                        <span className="text-sm text-gray-500">document(s)</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-2">
-                        Change this if the customer sent a different number of documents than originally ordered.
-                        Price adjustments can be made in the Price tab.
-                      </p>
-                    </div>
+                    {/* Edit Order Information Section */}
+                    <EditOrderInfoSection
+                      order={order}
+                      onUpdate={async (updates) => {
+                        const orderId = router.query.id as string;
+                        await adminUpdateOrder(orderId, updates);
+                        setOrder(prev => prev ? { ...prev, ...updates } : null);
+                      }}
+                      onRegenerateSteps={async (updatedOrder) => {
+                        const newSteps = initializeProcessingSteps(updatedOrder as ExtendedOrder);
+                        const orderIdToUpdate = order.orderNumber || order.id || '';
+                        await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
+                        setProcessingSteps(newSteps);
+                      }}
+                    />
 
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                       <h3 className="text-lg font-medium mb-4">Order Services</h3>
@@ -6237,14 +6645,15 @@ function AdminOrderDetailPage() {
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-medium">Processing steps</h3>
-                        {order?.orderType === 'visa' && (
-                          <button
-                            onClick={async () => {
-                              if (!order) return;
-                              if (!confirm('This will reset all processing steps to default. Any progress will be lost. Continue?')) return;
-                              try {
+                        <button
+                          onClick={async () => {
+                            if (!order) return;
+                            if (!confirm('This will reset all processing steps to default. Any progress will be lost. Continue?')) return;
+                            try {
+                              let newSteps;
+                              if (order?.orderType === 'visa') {
                                 const { getDefaultVisaProcessingSteps } = await import('@/firebase/visaOrderService');
-                                const newSteps = getDefaultVisaProcessingSteps({
+                                newSteps = getDefaultVisaProcessingSteps({
                                   visaProduct: order.visaProduct,
                                   destinationCountry: order.destinationCountry,
                                   returnService: (order as any).returnService,
@@ -6253,20 +6662,23 @@ function AdminOrderDetailPage() {
                                   confirmReturnAddressLater: (order as any).confirmReturnAddressLater,
                                   returnAddressConfirmed: (order as any).returnAddressConfirmed,
                                 });
-                                const orderIdToUpdate = order.orderNumber || order.id || '';
-                                if (!orderIdToUpdate) throw new Error('No order ID');
-                                await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
-                                setProcessingSteps(newSteps);
-                                toast.success('Processing steps regenerated');
-                              } catch (err) {
-                                toast.error('Failed to regenerate steps');
+                              } else {
+                                // Legalization order - use initializeProcessingSteps
+                                newSteps = initializeProcessingSteps(order as ExtendedOrder);
                               }
-                            }}
-                            className="text-sm px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-                          >
-                            🔄 Regenerate steps
-                          </button>
-                        )}
+                              const orderIdToUpdate = order.orderNumber || order.id || '';
+                              if (!orderIdToUpdate) throw new Error('No order ID');
+                              await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
+                              setProcessingSteps(newSteps);
+                              toast.success('Processing steps regenerated');
+                            } catch (err) {
+                              toast.error('Failed to regenerate steps');
+                            }
+                          }}
+                          className="text-sm px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+                        >
+                          🔄 Regenerate steps
+                        </button>
                       </div>
                       <div className="space-y-4">
                         {processingSteps.map((step, index) => (
@@ -7559,28 +7971,6 @@ function AdminOrderDetailPage() {
                       )}
                     </div>
 
-                    {/* Request Additional Documents */}
-                    <div className="border-t border-gray-200 pt-6">
-                      <h3 className="text-lg font-medium mb-4">Request Additional Documents</h3>
-                      <p className="text-gray-600 mb-4">
-                        Send an email to the customer with a secure upload link to request additional documents.
-                      </p>
-                      <button
-                        onClick={() => setShowDocumentRequestModal(true)}
-                        className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        Send Document Request
-                      </button>
-                      {(order as any).documentRequestSent && (
-                        <p className="text-sm text-green-600 mt-2">
-                          ✓ Request sent {(order as any).documentRequestSentAt && new Date((order as any).documentRequestSentAt).toLocaleDateString('en-GB')}
-                        </p>
-                      )}
-                    </div>
-
                     {/* Pickup Address */}
                     {order.pickupService && order.pickupAddress && (
                       <div>
@@ -8562,6 +8952,65 @@ function AdminOrderDetailPage() {
                   </div>
                 )}
 
+                {/* Communication Tab */}
+                {activeTab === 'communication' && (
+                  <div className="space-y-6">
+                    {/* Send Custom Email */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-medium">Send Custom Email</h3>
+                        <button
+                          onClick={() => setShowNewTemplateModal(true)}
+                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+                        >
+                          + New Template
+                        </button>
+                      </div>
+                      <p className="text-gray-600 mb-4">
+                        Send an email to the customer using a template. The customer can upload files via a secure link.
+                      </p>
+                      <button
+                        onClick={() => setShowDocumentRequestModal(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Compose Email
+                      </button>
+                      {(order as any).documentRequestSent && (
+                        <p className="text-sm text-green-600 mt-2">
+                          ✓ Last email sent {(order as any).documentRequestSentAt && new Date((order as any).documentRequestSentAt).toLocaleDateString('en-GB')}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Order Update Notification */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <h3 className="text-lg font-medium mb-2">Order Update Notification</h3>
+                      <p className="text-gray-600 mb-4">
+                        Notify the customer about changes to their order (country, documents, etc).
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        To send an update notification, edit the order information in the Services tab and click "Notify Customer of Changes".
+                      </p>
+                      {(order as any).orderUpdateNotificationSent && (
+                        <p className="text-sm text-green-600 mt-2">
+                          ✓ Update notification sent {(order as any).orderUpdateNotificationSentAt && new Date((order as any).orderUpdateNotificationSentAt).toLocaleDateString('en-GB')}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Email History */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <h3 className="text-lg font-medium mb-4">Email History</h3>
+                      <p className="text-sm text-gray-500">
+                        Email history will be shown here once implemented.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Notes Tab */}
                 {activeTab === 'notes' && (
                   <div className="space-y-6">
@@ -8932,13 +9381,13 @@ function AdminOrderDetailPage() {
         </div>
       )}
 
-      {/* Document Request Modal */}
+      {/* Document Request Modal - renamed to Send Custom Email */}
       {showDocumentRequestModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Request Additional Documents</h2>
+                <h2 className="text-xl font-bold text-gray-900">Send Custom Email</h2>
                 <button
                   onClick={() => setShowDocumentRequestModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -8974,9 +9423,12 @@ function AdminOrderDetailPage() {
                       setDocumentRequestMessage(message);
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   {documentRequestTemplates.map(template => (
+                    <option key={template.id} value={template.id}>{template.name}</option>
+                  ))}
+                  {customTemplates.map(template => (
                     <option key={template.id} value={template.id}>{template.name}</option>
                   ))}
                 </select>
@@ -8992,7 +9444,7 @@ function AdminOrderDetailPage() {
                   onChange={(e) => setDocumentRequestMessage(e.target.value)}
                   placeholder="Describe which documents are needed and why..."
                   rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   This message will be shown in the email and on the upload page.
@@ -9018,7 +9470,7 @@ function AdminOrderDetailPage() {
                 <button
                   onClick={sendDocumentRequest}
                   disabled={sendingDocumentRequest || !documentRequestMessage.trim()}
-                  className="flex-1 px-4 py-2 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition disabled:opacity-50 flex items-center justify-center"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center"
                 >
                   {sendingDocumentRequest ? (
                     <>
@@ -9030,8 +9482,149 @@ function AdminOrderDetailPage() {
                       <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      Send Request
+                      Send Email
                     </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Template Modal */}
+      {showNewTemplateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Create New Email Template</h2>
+                <button
+                  onClick={() => setShowNewTemplateModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                Create a reusable email template. Templates are saved and can be used for all orders.
+              </p>
+
+              {/* Template Name */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Template Name (English) *</label>
+                  <input
+                    type="text"
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="e.g. Payment Reminder"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Template Name (Swedish)</label>
+                  <input
+                    type="text"
+                    value={newTemplateNameSv}
+                    onChange={(e) => setNewTemplateNameSv(e.target.value)}
+                    placeholder="t.ex. Betalningspåminnelse"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Message */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Message (English) *</label>
+                  <textarea
+                    value={newTemplateMessage}
+                    onChange={(e) => setNewTemplateMessage(e.target.value)}
+                    placeholder="Write the email message in English..."
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Message (Swedish)</label>
+                  <textarea
+                    value={newTemplateMessageSv}
+                    onChange={(e) => setNewTemplateMessageSv(e.target.value)}
+                    placeholder="Skriv e-postmeddelandet på svenska..."
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500 mb-6">
+                If Swedish text is not provided, the English version will be used for Swedish customers.
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowNewTemplateModal(false);
+                    setNewTemplateName('');
+                    setNewTemplateNameSv('');
+                    setNewTemplateMessage('');
+                    setNewTemplateMessageSv('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!newTemplateName.trim() || !newTemplateMessage.trim()) {
+                      toast.error('Template name and message are required');
+                      return;
+                    }
+                    setSavingNewTemplate(true);
+                    try {
+                      const db = getFirebaseDb();
+                      if (!db) throw new Error('Database not available');
+                      
+                      const templateData = {
+                        name: newTemplateName,
+                        nameSv: newTemplateNameSv || newTemplateName,
+                        message: newTemplateMessage,
+                        messageSv: newTemplateMessageSv || newTemplateMessage,
+                        messageEn: newTemplateMessage,
+                        createdAt: new Date().toISOString()
+                      };
+
+                      const docRef = await addDoc(collection(db, 'emailTemplates'), templateData);
+                      
+                      setCustomTemplates(prev => [...prev, { id: docRef.id, ...templateData }]);
+
+                      toast.success('Template saved successfully');
+                      setShowNewTemplateModal(false);
+                      setNewTemplateName('');
+                      setNewTemplateNameSv('');
+                      setNewTemplateMessage('');
+                      setNewTemplateMessageSv('');
+                    } catch (err: any) {
+                      toast.error(`Failed to save template: ${err.message || 'Unknown error'}`);
+                    } finally {
+                      setSavingNewTemplate(false);
+                    }
+                  }}
+                  disabled={savingNewTemplate || !newTemplateName.trim() || !newTemplateMessage.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center"
+                >
+                  {savingNewTemplate ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Template'
                   )}
                 </button>
               </div>
