@@ -351,7 +351,7 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
       details.push(['Format', visaProduct.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa']);
     }
     if (visaProduct?.entryType) {
-      details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : 'Multiple entry']);
+      details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : visaProduct.entryType === 'double' ? 'Double entry' : 'Multiple entry']);
     }
     if ((order as any).departureDate) {
       details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('sv-SE')]);
@@ -617,7 +617,7 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
       details.push(['Format', visaProduct.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa']);
     }
     if (visaProduct?.entryType) {
-      details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : 'Multiple entry']);
+      details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : visaProduct.entryType === 'double' ? 'Double entry' : 'Multiple entry']);
     }
     if ((order as any).departureDate) {
       details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('sv-SE')]);

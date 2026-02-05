@@ -53,7 +53,7 @@ interface ExtendedOrder extends Order {
     name?: string;
     nameEn?: string;
     visaType?: 'e-visa' | 'sticker';
-    entryType?: 'single' | 'multiple';
+    entryType?: 'single' | 'double' | 'multiple';
     category?: string;
     validityDays?: number;
     processingDays?: number;
@@ -5798,7 +5798,7 @@ function AdminOrderDetailPage() {
                                       <div className="flex items-center justify-between">
                                         <span className="text-gray-500">Entry type:</span>
                                         <span className="font-medium text-gray-900">
-                                          {order.visaProduct?.entryType === 'single' ? 'Single' : 'Multiple'}
+                                          {order.visaProduct?.entryType === 'single' ? 'Single' : order.visaProduct?.entryType === 'double' ? 'Double' : 'Multiple'}
                                         </span>
                                       </div>
                                       <div className="flex items-center justify-between">

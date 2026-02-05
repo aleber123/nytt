@@ -27,7 +27,7 @@ interface OrderConfirmation {
     name: string;
     nameEn?: string;
     visaType: 'e-visa' | 'sticker';
-    entryType: 'single' | 'multiple';
+    entryType: 'single' | 'double' | 'multiple';
     validityDays: number;
     processingDays: number;
     price: number;
@@ -440,7 +440,9 @@ export default function VisaConfirmationPage() {
                           <span className="inline-flex px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
                             {order.visaProduct?.entryType === 'single' 
                               ? (locale === 'en' ? 'Single Entry' : 'Enkel inresa')
-                              : (locale === 'en' ? 'Multiple Entry' : 'Flera inresor')}
+                              : order.visaProduct?.entryType === 'double'
+                                ? (locale === 'en' ? 'Double Entry' : 'Dubbel inresa')
+                                : (locale === 'en' ? 'Multiple Entry' : 'Flera inresor')}
                           </span>
                         </div>
                       </div>

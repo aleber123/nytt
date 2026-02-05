@@ -509,7 +509,9 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
               {answers.selectedVisaProduct.entryType === 'single' 
                 ? (currentLocale === 'en' ? 'Single' : 'Enkel')
-                : (currentLocale === 'en' ? 'Multiple' : 'Flera')}
+                : answers.selectedVisaProduct.entryType === 'double'
+                  ? (currentLocale === 'en' ? 'Double' : 'Dubbel')
+                  : (currentLocale === 'en' ? 'Multiple' : 'Flera')}
             </span>
           </div>
           <div className="font-semibold text-gray-900 text-sm">
