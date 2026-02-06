@@ -7,6 +7,8 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/adminAuth';
+import { isValidDocId, sanitizeOrderUpdates } from '@/lib/sanitize';
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,18 +18,25 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const admin = await verifyAdmin(req, res);
+  if (!admin) return;
+
   const { orderId, updates } = req.body;
 
-  if (!orderId) {
-    return res.status(400).json({ error: 'orderId is required' });
+  if (!isValidDocId(orderId)) {
+    return res.status(400).json({ error: 'Invalid or missing orderId' });
   }
 
-  if (!updates || typeof updates !== 'object') {
+  if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
     return res.status(400).json({ error: 'updates object is required' });
   }
 
+  const sanitizedUpdates = sanitizeOrderUpdates(updates);
+  if (Object.keys(sanitizedUpdates).length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' });
+  }
+
   try {
-    // Get Firestore instance lazily at runtime
     const db = getAdminDb();
 
     // First try direct document ID
@@ -47,14 +56,13 @@ export default async function handler(
         actualDocId = foundDoc.id;
         docRef = db.collection('orders').doc(actualDocId);
       } else {
-        console.error('❌ Order not found by ID or orderNumber:', orderId);
-        return res.status(404).json({ error: 'Order not found: ' + orderId });
+        return res.status(404).json({ error: 'Order not found' });
       }
     }
 
-    // Update the order
+    // Update the order with sanitized data
     await docRef.update({
-      ...updates,
+      ...sanitizedUpdates,
       updatedAt: new Date().toISOString()
     });
 
@@ -65,7 +73,6 @@ export default async function handler(
     });
 
   } catch (error: any) {
-    console.error('❌ Error updating order:', error);
     return res.status(500).json({
       error: 'Failed to update order',
       details: error.message

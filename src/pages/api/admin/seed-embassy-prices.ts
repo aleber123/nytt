@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import { FieldValue } from 'firebase-admin/firestore';
+import { verifyAdmin } from '@/lib/adminAuth';
 
 const DEFAULT_SERVICE_FEE = 1200; // Standard service fee in SEK
 const DEFAULT_OFFICIAL_FEE = 0; // Will be set to 0, marked as unconfirmed
@@ -14,10 +15,12 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed. Use POST.' });
   }
 
-  // Simple auth check - require a secret key
-  const { secret } = req.body;
-  if (secret !== 'seed-embassy-2026') {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const admin = await verifyAdmin(req, res);
+  if (!admin) return;
+
+  // Only super_admin can seed data
+  if (admin.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Only super admins can seed data' });
   }
 
   try {

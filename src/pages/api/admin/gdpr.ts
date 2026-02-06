@@ -13,10 +13,12 @@ import {
   exportCustomerData,
   deleteCustomerData
 } from '@/services/gdprService';
+import { verifyAdmin } from '@/lib/adminAuth';
+import { isValidDocId, isValidEmail } from '@/lib/sanitize';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only allow authenticated admin requests
-  // In production, add proper authentication check here
+  const admin = await verifyAdmin(req, res, 'gdpr');
+  if (!admin) return;
   
   const { action } = req.query;
   
@@ -44,7 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(405).json({ error: 'Method not allowed' });
         }
         const { dryRun = false, anonymizeYears = 7, deleteFilesDays = 90 } = req.body;
-        const result = await runGdprCleanup(anonymizeYears, deleteFilesDays, dryRun);
+        const safeAnonymizeYears = Math.max(1, Math.min(50, Number(anonymizeYears) || 7));
+        const safeDeleteFilesDays = Math.max(1, Math.min(3650, Number(deleteFilesDays) || 90));
+        const result = await runGdprCleanup(safeAnonymizeYears, safeDeleteFilesDays, !!dryRun);
         return res.status(200).json(result);
         
       case 'anonymize-order':
@@ -53,8 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(405).json({ error: 'Method not allowed' });
         }
         const { orderId } = req.body;
-        if (!orderId) {
-          return res.status(400).json({ error: 'orderId is required' });
+        if (!isValidDocId(orderId)) {
+          return res.status(400).json({ error: 'Invalid or missing orderId' });
         }
         const anonymizeResult = await anonymizeOrder(orderId);
         return res.status(200).json(anonymizeResult);
@@ -65,8 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(405).json({ error: 'Method not allowed' });
         }
         const { orderId: fileOrderId } = req.body;
-        if (!fileOrderId) {
-          return res.status(400).json({ error: 'orderId is required' });
+        if (!isValidDocId(fileOrderId)) {
+          return res.status(400).json({ error: 'Invalid or missing orderId' });
         }
         const deleteResult = await deleteOrderFiles(fileOrderId);
         return res.status(200).json(deleteResult);
@@ -77,8 +81,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(405).json({ error: 'Method not allowed' });
         }
         const { email } = req.query;
-        if (!email || typeof email !== 'string') {
-          return res.status(400).json({ error: 'email is required' });
+        if (!isValidEmail(email)) {
+          return res.status(400).json({ error: 'Valid email is required' });
         }
         const exportResult = await exportCustomerData(email);
         return res.status(200).json(exportResult);
@@ -89,8 +93,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(405).json({ error: 'Method not allowed' });
         }
         const { email: deleteEmail } = req.body;
-        if (!deleteEmail) {
-          return res.status(400).json({ error: 'email is required' });
+        if (!isValidEmail(deleteEmail)) {
+          return res.status(400).json({ error: 'Valid email is required' });
         }
         const deleteCustomerResult = await deleteCustomerData(deleteEmail);
         return res.status(200).json(deleteCustomerResult);

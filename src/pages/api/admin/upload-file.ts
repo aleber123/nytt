@@ -7,6 +7,8 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb, getAdminStorage } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/adminAuth';
+import { isValidDocId, sanitizeString, validateFileUpload } from '@/lib/sanitize';
 
 export const config = {
   api: {
@@ -42,6 +44,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const admin = await verifyAdmin(req, res, 'adminUpload');
+  if (!admin) return;
+
   try {
     const db = getAdminDb();
     const storage = getAdminStorage();
@@ -52,12 +57,13 @@ export default async function handler(
       uploadedBy: string;
     };
 
-    if (!orderId) {
-      return res.status(400).json({ error: 'Order ID required' });
+    if (!isValidDocId(orderId)) {
+      return res.status(400).json({ error: 'Invalid or missing Order ID' });
     }
 
-    if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'No files to upload' });
+    const fileError = validateFileUpload(files);
+    if (fileError) {
+      return res.status(400).json({ error: fileError });
     }
 
     // Verify order exists

@@ -7,11 +7,15 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/adminAuth';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const admin = await verifyAdmin(req, res);
+  if (!admin) return;
+
   const db = getAdminDb();
   const docRef = db.collection('settings').doc('shipping');
 

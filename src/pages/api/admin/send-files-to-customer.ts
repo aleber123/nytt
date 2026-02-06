@@ -6,6 +6,8 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/adminAuth';
+import { isValidDocId, isValidUrl, sanitizeString } from '@/lib/sanitize';
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,6 +16,9 @@ export default async function handler(
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const admin = await verifyAdmin(req, res, 'adminEmail');
+  if (!admin) return;
 
   try {
     const db = getAdminDb();
@@ -25,12 +30,20 @@ export default async function handler(
       sentBy: string;
     };
 
-    if (!orderId) {
-      return res.status(400).json({ error: 'Order ID required' });
+    if (!isValidDocId(orderId)) {
+      return res.status(400).json({ error: 'Invalid or missing Order ID' });
     }
 
-    if (!fileUrls || fileUrls.length === 0) {
-      return res.status(400).json({ error: 'No files selected' });
+    if (!Array.isArray(fileUrls) || fileUrls.length === 0 || fileUrls.length > 20) {
+      return res.status(400).json({ error: 'Invalid file selection (1-20 files)' });
+    }
+
+    if (!fileUrls.every(isValidUrl)) {
+      return res.status(400).json({ error: 'Invalid file URL detected' });
+    }
+
+    if (customMessage && typeof customMessage === 'string' && customMessage.length > 2000) {
+      return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
     }
 
     // Get order data

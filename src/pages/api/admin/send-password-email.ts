@@ -6,6 +6,8 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/adminAuth';
+import { isValidDocId, sanitizeString } from '@/lib/sanitize';
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,6 +16,9 @@ export default async function handler(
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const admin = await verifyAdmin(req, res, 'adminEmail');
+  if (!admin) return;
 
   try {
     const db = getAdminDb();
@@ -25,12 +30,16 @@ export default async function handler(
       sentBy: string;
     };
 
-    if (!orderId) {
-      return res.status(400).json({ error: 'Order ID required' });
+    if (!isValidDocId(orderId)) {
+      return res.status(400).json({ error: 'Invalid or missing Order ID' });
     }
 
-    if (!password) {
-      return res.status(400).json({ error: 'Password required' });
+    if (!password || typeof password !== 'string' || password.trim().length === 0 || password.length > 500) {
+      return res.status(400).json({ error: 'Invalid password (1-500 characters)' });
+    }
+
+    if (fileName && typeof fileName === 'string' && fileName.length > 500) {
+      return res.status(400).json({ error: 'File name too long' });
     }
 
     // Get order data

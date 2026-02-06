@@ -148,4 +148,39 @@ export const rateLimiters = {
     windowSeconds: 60,
     identifier: 'postnord',
   }),
+
+  // Admin API: 30 requests per minute per IP (general admin operations)
+  admin: (ip: string) => checkRateLimit(ip, {
+    limit: 30,
+    windowSeconds: 60,
+    identifier: 'admin',
+  }),
+
+  // Admin file upload: 10 requests per minute per IP
+  adminUpload: (ip: string) => checkRateLimit(ip, {
+    limit: 10,
+    windowSeconds: 60,
+    identifier: 'admin-upload',
+  }),
+
+  // Admin email sending: 10 requests per minute per IP
+  adminEmail: (ip: string) => checkRateLimit(ip, {
+    limit: 10,
+    windowSeconds: 60,
+    identifier: 'admin-email',
+  }),
+
+  // GDPR operations: 5 requests per minute per IP (destructive)
+  gdpr: (ip: string) => checkRateLimit(ip, {
+    limit: 5,
+    windowSeconds: 60,
+    identifier: 'gdpr',
+  }),
+
+  // Public order status: 20 requests per minute per IP
+  orderStatus: (ip: string) => checkRateLimit(ip, {
+    limit: 20,
+    windowSeconds: 60,
+    identifier: 'order-status',
+  }),
 };

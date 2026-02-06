@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import { verifyAdmin } from '@/lib/adminAuth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -9,6 +10,9 @@ export default async function handler(
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const admin = await verifyAdmin(req, res);
+  if (!admin) return;
 
   try {
     const db = getAdminDb();

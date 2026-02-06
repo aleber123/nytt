@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
+import { adminFetch } from '@/lib/adminFetch';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
@@ -38,7 +39,7 @@ function ShippingSettingsContent() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch('/api/admin/shipping-settings');
+        const response = await adminFetch('/api/admin/shipping-settings');
         const data = await response.json();
         
         if (data.success && data.settings) {
@@ -60,7 +61,7 @@ function ShippingSettingsContent() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/admin/shipping-settings', {
+      const response = await adminFetch('/api/admin/shipping-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

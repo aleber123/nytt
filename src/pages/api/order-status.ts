@@ -8,6 +8,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
+import { getClientIp, rateLimiters } from '@/lib/rateLimit';
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,6 +16,12 @@ export default async function handler(
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const ip = getClientIp(req);
+  const rl = rateLimiters.orderStatus(ip);
+  if (!rl.success) {
+    return res.status(429).json({ error: 'Too many requests', retryAfter: rl.resetIn });
   }
 
   const { orderNumber, email } = req.body;

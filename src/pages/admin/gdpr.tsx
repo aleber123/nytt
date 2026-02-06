@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { adminFetch } from '@/lib/adminFetch';
 
 interface GdprStats {
   ordersToAnonymize: number;
@@ -52,8 +53,8 @@ export default function GdprAdminPage() {
     setError(null);
     try {
       const [statsRes, previewRes] = await Promise.all([
-        fetch('/api/admin/gdpr?action=stats'),
-        fetch('/api/admin/gdpr?action=preview')
+        adminFetch('/api/admin/gdpr?action=stats'),
+        adminFetch('/api/admin/gdpr?action=preview')
       ]);
       
       if (!statsRes.ok || !previewRes.ok) {
@@ -79,7 +80,7 @@ export default function GdprAdminPage() {
     setError(null);
     
     try {
-      const res = await fetch('/api/admin/gdpr?action=cleanup', {
+      const res = await adminFetch('/api/admin/gdpr?action=cleanup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -117,7 +118,7 @@ export default function GdprAdminPage() {
     setCustomerData(null);
     
     try {
-      const res = await fetch(`/api/admin/gdpr?action=export-customer&email=${encodeURIComponent(customerEmail)}`);
+      const res = await adminFetch(`/api/admin/gdpr?action=export-customer&email=${encodeURIComponent(customerEmail)}`);
       const data = await res.json();
       setCustomerData(data);
     } catch (err) {
@@ -140,7 +141,7 @@ export default function GdprAdminPage() {
     setCustomerLoading(true);
     
     try {
-      const res = await fetch('/api/admin/gdpr?action=delete-customer', {
+      const res = await adminFetch('/api/admin/gdpr?action=delete-customer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: customerEmail })

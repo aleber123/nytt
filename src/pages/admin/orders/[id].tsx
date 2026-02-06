@@ -21,6 +21,7 @@ import { collection, addDoc, doc as fsDoc, getDoc, getDocs, serverTimestamp, onS
 import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { downloadDhlReturnLabel } from '@/services/shippingLabelService';
+import { adminFetch } from '@/lib/adminFetch';
 
 // Define Order interface locally to match the updated interface
 interface ExtendedOrder extends Order {
@@ -108,7 +109,7 @@ const getReturnServiceName = (serviceCode: string | undefined): string => {
 
 // Helper function to update order via Admin API (bypasses Firestore security rules)
 const adminUpdateOrder = async (orderId: string, updates: Record<string, any>): Promise<void> => {
-  const response = await fetch('/api/admin/update-order', {
+  const response = await adminFetch('/api/admin/update-order', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ orderId, updates })
@@ -3874,7 +3875,7 @@ function AdminOrderDetailPage() {
       let maxPriceEnabled = true;
       let maxPrice = 300;
       try {
-        const settingsResponse = await fetch('/api/admin/shipping-settings');
+        const settingsResponse = await adminFetch('/api/admin/shipping-settings');
         if (settingsResponse.ok) {
           const responseData = await settingsResponse.json();
           const shippingSettings = responseData.settings || responseData;
@@ -4422,7 +4423,7 @@ function AdminOrderDetailPage() {
       let maxPriceEnabled = true;
       let maxPrice = 300;
       try {
-        const settingsResponse = await fetch('/api/admin/shipping-settings');
+        const settingsResponse = await adminFetch('/api/admin/shipping-settings');
         if (settingsResponse.ok) {
           const responseData = await settingsResponse.json();
           const pickupShippingSettings = responseData.settings || responseData;
@@ -5204,7 +5205,7 @@ function AdminOrderDetailPage() {
         })
       );
 
-      const response = await fetch('/api/admin/upload-file', {
+      const response = await adminFetch('/api/admin/upload-file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -5244,7 +5245,7 @@ function AdminOrderDetailPage() {
     try {
       const orderId = router.query.id as string;
       
-      const response = await fetch('/api/admin/send-files-to-customer', {
+      const response = await adminFetch('/api/admin/send-files-to-customer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -5287,7 +5288,7 @@ function AdminOrderDetailPage() {
       const orderId = router.query.id as string;
       const fileName = (order as any).adminFiles?.find((f: any) => f.url === selectedFilesToSend[0])?.name || 'the attached file';
       
-      const response = await fetch('/api/admin/send-password-email', {
+      const response = await adminFetch('/api/admin/send-password-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

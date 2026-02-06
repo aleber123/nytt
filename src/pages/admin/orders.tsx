@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { getAllOrders } from '@/services/hybridOrderService';
 import { getInvoicesByOrderId, convertOrderToInvoice, storeInvoice } from '@/services/invoiceService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import { adminFetch } from '@/lib/adminFetch';
 
 // Admin email check (temporary solution until custom claims work)
 const ADMIN_EMAILS = ['admin@doxvl.se', 'sofia@sofia.se'];
@@ -165,7 +166,7 @@ function AdminOrdersPage() {
       // Use Admin API to bypass Firestore security rules
       await Promise.all(
         selectedOrderIds.map(async (orderId) => {
-          const response = await fetch('/api/admin/update-order', {
+          const response = await adminFetch('/api/admin/update-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ orderId, updates: { status: bulkStatus } })

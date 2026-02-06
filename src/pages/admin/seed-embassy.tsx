@@ -3,6 +3,7 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { adminFetch } from '@/lib/adminFetch';
 
 export default function SeedEmbassyPage() {
   const [loading, setLoading] = useState(false);
@@ -19,10 +20,9 @@ export default function SeedEmbassyPage() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/admin/seed-embassy-prices', {
+      const response = await adminFetch('/api/admin/seed-embassy-prices', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret: 'seed-embassy-2026' })
+        headers: { 'Content-Type': 'application/json' }
       });
 
       const data = await response.json();
@@ -45,7 +45,7 @@ export default function SeedEmbassyPage() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/admin/check-embassy-countries');
+      const response = await adminFetch('/api/admin/check-embassy-countries');
       const data = await response.json();
 
       if (!response.ok) {
