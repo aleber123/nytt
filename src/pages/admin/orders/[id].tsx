@@ -515,6 +515,259 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
   );
 }
 
+// Edit Visa Order Information Component
+interface EditVisaOrderInfoSectionProps {
+  order: ExtendedOrder;
+  onUpdate: (updates: any) => Promise<void>;
+}
+
+function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionProps) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Visa-specific fields
+  const [editedVisaType, setEditedVisaType] = useState<'e-visa' | 'sticker'>(order.visaProduct?.visaType || 'e-visa');
+  const [editedEntryType, setEditedEntryType] = useState<'single' | 'double' | 'multiple'>(order.visaProduct?.entryType || 'single');
+  const [editedValidityDays, setEditedValidityDays] = useState(order.visaProduct?.validityDays || 30);
+  const [editedProcessingDays, setEditedProcessingDays] = useState(order.visaProduct?.processingDays || 4);
+  const [editedDepartureDate, setEditedDepartureDate] = useState(order.departureDate || '');
+  const [editedReturnDate, setEditedReturnDate] = useState(order.returnDate || '');
+  const [editedPassportNeededBy, setEditedPassportNeededBy] = useState(order.passportNeededBy || '');
+  const [editedCustomerRef, setEditedCustomerRef] = useState((order as any).invoiceReference || '');
+  const [editedCompanyName, setEditedCompanyName] = useState(order.customerInfo?.companyName || '');
+
+  // Reset form when order changes
+  useEffect(() => {
+    setEditedVisaType(order.visaProduct?.visaType || 'e-visa');
+    setEditedEntryType(order.visaProduct?.entryType || 'single');
+    setEditedValidityDays(order.visaProduct?.validityDays || 30);
+    setEditedProcessingDays(order.visaProduct?.processingDays || 4);
+    setEditedDepartureDate(order.departureDate || '');
+    setEditedReturnDate(order.returnDate || '');
+    setEditedPassportNeededBy(order.passportNeededBy || '');
+    setEditedCustomerRef((order as any).invoiceReference || '');
+    setEditedCompanyName(order.customerInfo?.companyName || '');
+  }, [order]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updates: any = {
+        visaProduct: {
+          ...order.visaProduct,
+          visaType: editedVisaType,
+          entryType: editedEntryType,
+          validityDays: editedValidityDays,
+          processingDays: editedProcessingDays,
+        },
+        departureDate: editedDepartureDate,
+        returnDate: editedReturnDate,
+        passportNeededBy: editedPassportNeededBy,
+        invoiceReference: editedCustomerRef,
+        customerInfo: {
+          ...order.customerInfo,
+          companyName: editedCompanyName
+        }
+      };
+      await onUpdate(updates);
+      toast.success('Visa order information updated');
+      setEditing(false);
+    } catch (err: any) {
+      toast.error(`Failed to update: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getEntryTypeLabel = (type: string) => {
+    switch (type) {
+      case 'single': return 'Single';
+      case 'double': return 'Double';
+      case 'multiple': return 'Multiple';
+      default: return type;
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium mb-4">Edit Visa Order Information</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Edit visa order details such as visa type, entry type, and travel dates.
+        </p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-500">Visa Product:</span>
+              <span className="ml-2 font-medium">{order.visaProduct?.name || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Visa Type:</span>
+              <span className="ml-2 font-medium">{order.visaProduct?.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Entry Type:</span>
+              <span className="ml-2 font-medium">{getEntryTypeLabel(order.visaProduct?.entryType || '')}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Validity:</span>
+              <span className="ml-2 font-medium">{order.visaProduct?.validityDays || '—'} days</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Processing Time:</span>
+              <span className="ml-2 font-medium">~{order.visaProduct?.processingDays || '—'} days</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Departure:</span>
+              <span className="ml-2 font-medium">{order.departureDate || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Return:</span>
+              <span className="ml-2 font-medium">{order.returnDate || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Visa Needed By:</span>
+              <span className="ml-2 font-medium">{order.passportNeededBy || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Customer Ref:</span>
+              <span className="ml-2 font-medium">{(order as any).invoiceReference || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Company:</span>
+              <span className="ml-2 font-medium">{order.customerInfo?.companyName || '—'}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setEditing(true)}
+            className="mt-4 px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+          >
+            ✏️ Edit Visa Order Information
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <h3 className="text-lg font-medium mb-4">Edit Visa Order Information</h3>
+      <p className="text-sm text-gray-500 mb-4">
+        Edit visa order details such as visa type, entry type, and travel dates.
+      </p>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Visa Type</label>
+            <select
+              value={editedVisaType}
+              onChange={(e) => setEditedVisaType(e.target.value as 'e-visa' | 'sticker')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="e-visa">E-Visa</option>
+              <option value="sticker">Sticker Visa</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Entry Type</label>
+            <select
+              value={editedEntryType}
+              onChange={(e) => setEditedEntryType(e.target.value as 'single' | 'double' | 'multiple')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="single">Single Entry</option>
+              <option value="double">Double Entry</option>
+              <option value="multiple">Multiple Entry</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Validity (days)</label>
+            <input
+              type="number"
+              min="1"
+              value={editedValidityDays}
+              onChange={(e) => setEditedValidityDays(parseInt(e.target.value, 10) || 30)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Processing Time (days)</label>
+            <input
+              type="number"
+              min="1"
+              value={editedProcessingDays}
+              onChange={(e) => setEditedProcessingDays(parseInt(e.target.value, 10) || 4)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Departure Date</label>
+            <input
+              type="date"
+              value={editedDepartureDate}
+              onChange={(e) => setEditedDepartureDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Return Date</label>
+            <input
+              type="date"
+              value={editedReturnDate}
+              onChange={(e) => setEditedReturnDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Visa Needed By</label>
+            <input
+              type="date"
+              value={editedPassportNeededBy}
+              onChange={(e) => setEditedPassportNeededBy(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Reference</label>
+            <input
+              type="text"
+              value={editedCustomerRef}
+              onChange={(e) => setEditedCustomerRef(e.target.value)}
+              placeholder="e.g. PO number"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+            <input
+              type="text"
+              value={editedCompanyName}
+              onChange={(e) => setEditedCompanyName(e.target.value)}
+              placeholder="Company name"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm"
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button
+            onClick={() => setEditing(false)}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminOrderDetailPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
@@ -580,6 +833,8 @@ function AdminOrderDetailPage() {
   const [selectedFilesToSend, setSelectedFilesToSend] = useState<string[]>([]);
   const [sendingFilesToCustomer, setSendingFilesToCustomer] = useState(false);
   const [fileMessageToCustomer, setFileMessageToCustomer] = useState('');
+  const [filePassword, setFilePassword] = useState('');
+  const [sendingPassword, setSendingPassword] = useState(false);
   const adminFileInputRef = useRef<HTMLInputElement | null>(null);
   // Cover letter editable data
   const [notaryApostilleData, setNotaryApostilleData] = useState<NotaryApostilleCoverLetterData | null>(null);
@@ -5023,6 +5278,41 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Send password in separate email
+  const handleSendPasswordEmail = async () => {
+    if (!filePassword.trim() || !order) return;
+    
+    setSendingPassword(true);
+    try {
+      const orderId = router.query.id as string;
+      const fileName = (order as any).adminFiles?.find((f: any) => f.url === selectedFilesToSend[0])?.name || 'the attached file';
+      
+      const response = await fetch('/api/admin/send-password-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          password: filePassword.trim(),
+          fileName,
+          sentBy: adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin'
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send password');
+      }
+
+      toast.success('Password sent to customer in separate email');
+      setFilePassword('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send password');
+    } finally {
+      setSendingPassword(false);
+    }
+  };
+
   // Mark supplementary files as viewed
   const markSupplementaryAsViewed = async () => {
     if (!currentUser?.uid) return;
@@ -6275,21 +6565,32 @@ function AdminOrderDetailPage() {
                 {/* Services Tab */}
                 {activeTab === 'services' && (
                   <div className="space-y-6">
-                    {/* Edit Order Information Section */}
-                    <EditOrderInfoSection
-                      order={order}
-                      onUpdate={async (updates) => {
-                        const orderId = router.query.id as string;
-                        await adminUpdateOrder(orderId, updates);
-                        setOrder(prev => prev ? { ...prev, ...updates } : null);
-                      }}
-                      onRegenerateSteps={async (updatedOrder) => {
-                        const newSteps = initializeProcessingSteps(updatedOrder as ExtendedOrder);
-                        const orderIdToUpdate = order.orderNumber || order.id || '';
-                        await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
-                        setProcessingSteps(newSteps);
-                      }}
-                    />
+                    {/* Edit Order Information Section - different for visa vs legalization */}
+                    {order.orderType === 'visa' ? (
+                      <EditVisaOrderInfoSection
+                        order={order}
+                        onUpdate={async (updates) => {
+                          const orderId = router.query.id as string;
+                          await adminUpdateOrder(orderId, updates);
+                          setOrder(prev => prev ? { ...prev, ...updates } : null);
+                        }}
+                      />
+                    ) : (
+                      <EditOrderInfoSection
+                        order={order}
+                        onUpdate={async (updates) => {
+                          const orderId = router.query.id as string;
+                          await adminUpdateOrder(orderId, updates);
+                          setOrder(prev => prev ? { ...prev, ...updates } : null);
+                        }}
+                        onRegenerateSteps={async (updatedOrder) => {
+                          const newSteps = initializeProcessingSteps(updatedOrder as ExtendedOrder);
+                          const orderIdToUpdate = order.orderNumber || order.id || '';
+                          await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
+                          setProcessingSteps(newSteps);
+                        }}
+                      />
+                    )}
 
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                       <h3 className="text-lg font-medium mb-4">Order Services</h3>
@@ -7769,6 +8070,22 @@ function AdminOrderDetailPage() {
                         Upload files here that you want to send to the customer (e.g., approved visa, processed documents).
                       </p>
                       
+                      {/* Encryption Reminder */}
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-start">
+                          <span className="text-2xl mr-3">🔐</span>
+                          <div>
+                            <h4 className="font-medium text-amber-800 mb-1">Security Reminder</h4>
+                            <p className="text-sm text-amber-700">
+                              <strong>Always encrypt sensitive files with a password before uploading.</strong> After sending the file, use the password field to send the password in a separate email for security.
+                            </p>
+                            <p className="text-xs text-amber-600 mt-2">
+                              Tip: Use PDF encryption or zip with password protection before uploading.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
                       {/* Upload Section */}
                       <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 mb-4">
                         <input
@@ -7937,9 +8254,38 @@ function AdminOrderDetailPage() {
                                   />
                                 </div>
 
+                                {/* Password Section */}
+                                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                  <label className="block text-sm font-medium text-amber-800 mb-2">
+                                    🔐 File Password (send separately for security)
+                                  </label>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      value={filePassword}
+                                      onChange={(e) => setFilePassword(e.target.value)}
+                                      placeholder="Enter password if file is encrypted..."
+                                      className="flex-1 border border-amber-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                    />
+                                    <button
+                                      onClick={handleSendPasswordEmail}
+                                      disabled={!filePassword.trim() || sendingPassword}
+                                      className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 text-sm font-medium whitespace-nowrap"
+                                    >
+                                      {sendingPassword ? 'Sending...' : 'Send Password'}
+                                    </button>
+                                  </div>
+                                  <p className="text-xs text-amber-600 mt-2">
+                                    The password will be sent in a separate email for security.
+                                  </p>
+                                </div>
+
                                 <div className="flex space-x-3">
                                   <button
-                                    onClick={() => setSelectedFilesToSend([])}
+                                    onClick={() => {
+                                      setSelectedFilesToSend([]);
+                                      setFilePassword('');
+                                    }}
                                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                                   >
                                     Cancel
@@ -7959,7 +8305,7 @@ function AdminOrderDetailPage() {
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                                         </svg>
-                                        Send Email
+                                        Send File
                                       </>
                                     )}
                                   </button>
