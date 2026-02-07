@@ -7,6 +7,20 @@ interface CountryFlagProps {
   title?: string;
 }
 
+// Supported FlagCDN sizes (width x height)
+const FLAGCDN_SIZES: [number, number][] = [
+  [16, 12], [20, 15], [24, 18], [28, 21], [32, 24], [40, 30],
+  [48, 36], [56, 42], [60, 45], [64, 48], [80, 60], [96, 72],
+  [120, 90], [160, 120], [192, 144], [256, 192],
+];
+
+function getClosestFlagSize(desired: number): [number, number] {
+  for (const [w, h] of FLAGCDN_SIZES) {
+    if (w >= desired) return [w, h];
+  }
+  return FLAGCDN_SIZES[FLAGCDN_SIZES.length - 1];
+}
+
 // Uses FlagCDN for reliable SVG/PNG flags. Defaults to 24x18.
 // Falls back to a globe emoji for 'other'/'custom' or invalid codes.
 const CountryFlag: React.FC<CountryFlagProps> = ({ code, size = 24, className = '', title }) => {
@@ -21,9 +35,7 @@ const CountryFlag: React.FC<CountryFlagProps> = ({ code, size = 24, className = 
     );
   }
 
-  // FlagCDN expects width x height with approx 4:3 ratio
-  const width = Math.max(12, Math.floor(size));
-  const height = Math.max(9, Math.floor((width * 3) / 4));
+  const [width, height] = getClosestFlagSize(size);
   const src = `https://flagcdn.com/${width}x${height}/${lower}.png`;
   const alt = title || lower.toUpperCase();
 

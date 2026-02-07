@@ -3,7 +3,7 @@
  * Uses dynamic popularity tracking like legalization countries
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { VisaOrderAnswers } from './types';
@@ -95,6 +95,9 @@ const VisaStep1Destination: React.FC<Props> = ({ answers, onUpdate, onNext, onBa
 
   const isSwedish = i18n.language === 'sv';
 
+  // Stable reference to onNext to avoid stale closures
+  const stableOnNext = useCallback(() => onNext(), [onNext]);
+
   // Load dynamic popular countries on mount
   useEffect(() => {
     const loadPopularCountries = async () => {
@@ -139,6 +142,9 @@ const VisaStep1Destination: React.FC<Props> = ({ answers, onUpdate, onNext, onBa
     trackVisaDestinationSelection(country.code, country.name, country.nameEn).catch(() => {
       // Silently fail - tracking should not block user flow
     });
+
+    // Auto-advance to next step immediately (like legalization flow)
+    onNext();
   };
 
   const isSelected = (code: string) => answers.destinationCountryCode === code;

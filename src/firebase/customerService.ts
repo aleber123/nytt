@@ -252,7 +252,6 @@ export async function getCustomers(options?: {
     
     return { customers, lastDoc };
   } catch (error) {
-    console.error('Error fetching customers:', error);
     return { customers: [], lastDoc: null };
   }
 }
@@ -325,18 +324,34 @@ export async function getCustomersByType(type: 'company' | 'government' | 'priva
 }
 
 // Get customer by email domain (for automatic matching during order)
+// Uses server-side API route to bypass Firestore security rules,
+// since this is called from the public order form by unauthenticated users.
 export async function getCustomerByEmailDomain(email: string): Promise<Customer | null> {
   if (!email || !email.includes('@')) {
     return null;
   }
-  
-  const domain = email.split('@')[1].toLowerCase();
-  const { customers } = await getCustomers({ activeOnly: true });
-  
-  // Find customer with matching email domain
-  const matchedCustomer = customers.find(customer => 
-    customer.emailDomains?.some(d => d.toLowerCase() === domain)
-  );
-  
-  return matchedCustomer || null;
+
+  try {
+    // Use API route (server-side with Admin SDK) to bypass Firestore rules
+    const res = await fetch('/api/customer-pricing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data.matched) return null;
+
+    // Return a partial Customer object with the pricing-relevant fields
+    return {
+      customPricing: data.customPricing,
+      vatExempt: data.vatExempt,
+      companyName: data.companyName,
+      emailDomains: [email.split('@')[1].toLowerCase()],
+    } as Customer;
+  } catch {
+    return null;
+  }
 }

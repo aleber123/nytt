@@ -71,7 +71,6 @@ function EmbassyPricesAdminPage() {
 
       setEmbassyPrices(formattedPrices);
     } catch (error) {
-      console.error('Error loading embassy prices:', error);
       toast.error('Could not load embassy prices');
     } finally {
       setLoading(false);
@@ -114,7 +113,6 @@ function EmbassyPricesAdminPage() {
 
       toast.success(`${existingRule.countryName} embassy fee updated!`);
     } catch (error) {
-      console.error('Error updating embassy fee:', error);
       toast.error('Could not update embassy fee');
     } finally {
       setSaving(false);
@@ -157,7 +155,6 @@ function EmbassyPricesAdminPage() {
 
       toast.success(`${existingRule.countryName} service fee updated!`);
     } catch (error) {
-      console.error('Error updating service fee:', error);
       toast.error('Could not update service fee');
     } finally {
       setSaving(false);
@@ -198,7 +195,6 @@ function EmbassyPricesAdminPage() {
 
       toast.success(`${countryName} embassy added!`);
     } catch (error) {
-      console.error('Error adding embassy:', error);
       toast.error('Could not add embassy');
     } finally {
       setSaving(false);

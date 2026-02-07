@@ -38,7 +38,6 @@ class ErrorBoundary extends Component<Props, State> {
     });
     
     // You can log the error to an error reporting service here
-    console.error('ErrorBoundary caught an error', error, errorInfo);
   }
 
   // Helper function to safely get translation or fallback to default text

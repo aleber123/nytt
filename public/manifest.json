@@ -1,0 +1,55 @@
+{
+  "name": "DOX Visumpartner – Dokumentlegalisering & Visum",
+  "short_name": "DOX Visumpartner",
+  "description": "Sveriges ledande byrå för dokumentlegalisering och visumtjänster. Apostille, UD-legalisering, ambassadlegalisering och visum.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait-primary",
+  "lang": "sv",
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/dox-logo-new.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Beställ legalisering",
+      "short_name": "Beställ",
+      "url": "/bestall",
+      "description": "Beställ dokumentlegalisering online"
+    },
+    {
+      "name": "Kontakta oss",
+      "short_name": "Kontakt",
+      "url": "/kontakt",
+      "description": "Kontakta DOX Visumpartner"
+    },
+    {
+      "name": "Priser",
+      "short_name": "Priser",
+      "url": "/priser",
+      "description": "Se våra priser för legalisering och visum"
+    }
+  ]
+}

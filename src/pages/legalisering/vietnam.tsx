@@ -1,7 +1,7 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 
@@ -20,29 +20,24 @@ export default function VietnamLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>Legalisering för Vietnam - Vietnams ambassad Stockholm | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med legalisering av dokument för Vietnam. Komplett service inkl. notarisering, UD och Vietnams ambassad i Stockholm. Fast pris, snabb hantering." />
-        <meta name="keywords" content="Vietnam, legalisering, ambassad, Stockholm, dokument, Hanoi, Ho Chi Minh, affärsvisum, arbetsintyg, Vietnam visum" />
-                
-        <meta property="og:title" content="Legalisering för Vietnam - Vietnams ambassad Stockholm | DOX Visumpartner" />
-        <meta property="og:description" content="Komplett legaliseringsservice för Vietnam. Vi hanterar hela processen åt dig." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/vietnam" />
-        <meta property="og:type" content="website" />
-        
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Legalisering för Vietnam",
-          "provider": {
-            "@type": "Organization",
-            "name": "DOX Visumpartner AB"
-          },
-          "description": "Legalisering av dokument för användning i Vietnam via Vietnams ambassad i Stockholm",
-          "areaServed": ["SE", "VN"],
-          "serviceType": "Document Legalization"
-        })}} />
-      </Head>
+<LegaliseringCountrySEO
+        countryName="Vietnam"
+        countryNameEn="Vietnam"
+        countryCode="VN"
+        slug="vietnam"
+        title="Legalisering för Vietnam | DOX Visumpartner"
+        titleEn="Document Legalization for Vietnam | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Vietnam. Komplett service inkl. notarisering, UD och ambassadlegalisering. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Vietnam. Complete service including notarization, MFA and embassy legalization."
+        keywords="Vietnam legalisering, legalisering Vietnam, Vietnams ambassad Stockholm, legalisera dokument Vietnam, ambassadlegalisering Vietnam, Hanoi, Ho Chi Minh, dokumentlegalisering"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Vietnam?', answer: 'Legaliseringsprocessen inkluderar notarisering, UD-verifiering och slutlig legalisering. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Vietnam?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider.' },
+          { question: 'Vad kostar legalisering för Vietnam?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}

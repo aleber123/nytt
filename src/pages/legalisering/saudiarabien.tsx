@@ -1,9 +1,9 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 
 export default function SaudiarabienLegaliseringPage() {
   const { t } = useTranslation('common');
@@ -20,29 +20,29 @@ export default function SaudiarabienLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>Legalisering för Saudiarabien - Saudiarabiens ambassad Stockholm | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med legalisering av dokument för Saudiarabien. Komplett service inkl. notarisering, UD och Saudiarabiens ambassad i Stockholm. Fast pris." />
-        <meta name="keywords" content="Saudiarabien, Saudi, legalisering, ambassad, Stockholm, dokument, Riyadh, Jeddah, affärsvisum, arbetsintyg, Iqama" />
-                
-        <meta property="og:title" content="Legalisering för Saudiarabien - Saudiarabiens ambassad Stockholm | DOX Visumpartner" />
-        <meta property="og:description" content="Komplett legaliseringsservice för Saudiarabien. Vi hanterar hela processen åt dig." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/saudiarabien" />
-        <meta property="og:type" content="website" />
-        
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Legalisering för Saudiarabien",
-          "provider": {
-            "@type": "Organization",
-            "name": "DOX Visumpartner AB"
-          },
-          "description": "Legalisering av dokument för användning i Saudiarabien via Saudiarabiens ambassad i Stockholm",
-          "areaServed": ["SE", "SA"],
-          "serviceType": "Document Legalization"
-        })}} />
-      </Head>
+      <LegaliseringCountrySEO
+        countryName="Saudiarabien"
+        countryNameEn="Saudi Arabia"
+        countryCode="SA"
+        slug="saudiarabien"
+        title="Legalisering för Saudiarabien - Saudiarabiens ambassad Stockholm | DOX Visumpartner"
+        titleEn="Document Legalization for Saudi Arabia - Saudi Embassy Stockholm | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Saudiarabien. Komplett service inkl. notarisering, UD och Saudiarabiens ambassad i Stockholm. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Saudi Arabia. Complete service including notarization, MFA and Saudi Embassy in Stockholm. Fixed prices."
+        keywords="Saudiarabien legalisering, legalisering Saudiarabien, Saudi ambassad Stockholm, legalisera dokument Saudi, ambassadlegalisering Saudiarabien, Riyadh, Jeddah, Iqama, dokumentlegalisering, UD legalisering Saudi, arbetsvisum Saudiarabien"
+        keywordsEn="Saudi Arabia legalization, document legalization Saudi Arabia, Saudi Embassy Stockholm, Saudi attestation, Riyadh, Jeddah, Iqama, document attestation, Saudi work visa documents"
+        ogDescription="Komplett legaliseringsservice för Saudiarabien via Saudiarabiens ambassad i Stockholm. Notarisering, UD och ambassadlegalisering."
+        schemaDescription="Professionell dokumentlegaliseringstjänst för Saudiarabien via Saudiarabiens ambassad i Stockholm."
+        priceLow="1200"
+        priceHigh="5000"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Saudiarabien?', answer: 'Legaliseringsprocessen för Saudiarabien inkluderar tre steg: 1) Notarisering hos Notarius Publicus, 2) Verifiering hos Utrikesdepartementet (UD), 3) Slutlig legalisering vid Saudiarabiens ambassad i Stockholm. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Saudiarabien?', answer: 'Den kompletta legaliseringsprocessen tar normalt 5-15 arbetsdagar beroende på dokumenttyp. Saudiarabiens ambassad har ibland längre handläggningstider. Vi erbjuder expressservice för brådskande ärenden.' },
+          { question: 'Vad kostar legalisering för Saudiarabien?', answer: 'Priset varierar beroende på dokumenttyp och antal dokument. Kontakta DOX Visumpartner för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+          { question: 'Vilka dokument behövs för Iqama i Saudiarabien?', answer: 'För Iqama (uppehållstillstånd) behövs vanligtvis legaliserade examensbevis, arbetsgivarintyg och personbevis. Kontakta oss för rådgivning om ditt specifika ärende.' },
+          { question: 'Måste jag besöka Saudiarabiens ambassad själv?', answer: 'Nej, DOX Visumpartner hanterar alla ambassadbesök, inlämning och uthämtning av dokument åt dig. Vi levererar de legaliserade dokumenten direkt till dig.' },
+        ]}
+      />
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}

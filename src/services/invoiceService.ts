@@ -118,7 +118,6 @@ export async function generateInvoiceNumber(): Promise<string> {
 
     return `INV-${year}-${paddedNumber}`;
   } catch (error) {
-    console.error('Error generating invoice number:', error);
     // Fallback to timestamp-based number if counter fails
     const timestamp = Date.now().toString().slice(-8);
     return `INV-${new Date().getFullYear()}-${timestamp}`;
@@ -416,7 +415,6 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
     }
 
   } catch (error) {
-    console.error('Error creating line items from order:', error);
     // Ultimate fallback
     for (const service of order.services) {
       const servicePrice = getServicePrice(service);
@@ -823,7 +821,6 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
           day: 'numeric'
         }).format(date);
       } catch (error) {
-        console.error('Error formatting date in PDF:', error, timestamp);
         return 'N/A';
       }
     };
@@ -1178,7 +1175,6 @@ export const generateInvoicePDF = async (invoice: Invoice): Promise<void> => {
     doc.save(fileName);
 
   } catch (error) {
-    console.error('Error generating PDF:', error);
     throw error;
   }
 };
@@ -1296,7 +1292,6 @@ export const convertOrderToInvoice = async (order: Order): Promise<Invoice> => {
 
     return invoice;
   } catch (error) {
-    console.error('Error converting order to invoice:', error);
     throw error;
   }
 };
@@ -1400,7 +1395,6 @@ export const storeInvoice = async (invoice: Invoice): Promise<string> => {
 
     return docRef.id;
   } catch (error) {
-    console.error('Error storing invoice in Firebase:', error);
 
     // Fallback to mock storage
     try {
@@ -1413,7 +1407,6 @@ export const storeInvoice = async (invoice: Invoice): Promise<string> => {
 
       return invoiceWithId.id!;
     } catch (mockError) {
-      console.error('Error storing invoice in mock storage:', mockError);
       throw mockError;
     }
   }
@@ -1434,7 +1427,6 @@ export const getAllInvoices = async (): Promise<Invoice[]> => {
       ...doc.data()
     } as Invoice));
   } catch (error) {
-    console.error('Error getting invoices from Firebase:', error);
 
     // Fallback to mock data
     return getMockInvoices();
@@ -1456,7 +1448,6 @@ export const getInvoiceById = async (invoiceId: string): Promise<Invoice | null>
       return null;
     }
   } catch (error) {
-    console.error('Error getting invoice by ID from Firebase:', error);
 
     // Fallback to mock data
     const mockInvoices = getMockInvoices();
@@ -1480,7 +1471,6 @@ export const getInvoicesByOrderId = async (orderId: string): Promise<Invoice[]> 
       ...doc.data()
     } as Invoice));
   } catch (error) {
-    console.error('Error getting invoices by order ID from Firebase:', error);
 
     // Fallback to mock data
     const mockInvoices = getMockInvoices();
@@ -1498,7 +1488,6 @@ export const updateInvoiceStatus = async (invoiceId: string, status: Invoice['st
       updatedAt: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error updating invoice status in Firebase:', error);
 
     // Fallback to mock update
     const mockInvoices = getMockInvoices();
@@ -1537,7 +1526,6 @@ export const updateInvoice = async (invoiceId: string, updates: Partial<Invoice>
       updatedAt: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error updating invoice in Firebase:', error);
     throw error;
   }
 };
@@ -1574,7 +1562,6 @@ function getMockInvoices(): Invoice[] {
       }));
     }
   } catch (error) {
-    console.error('Error parsing mock invoices:', error);
   }
 
   return [];
@@ -1629,7 +1616,6 @@ export const createCreditInvoice = async (originalInvoiceId: string, creditAmoun
 
     return creditInvoice;
   } catch (error) {
-    console.error('Error creating credit invoice:', error);
     throw error;
   }
 };
@@ -1707,7 +1693,6 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
     return true;
 
   } catch (error) {
-    console.error('Error queuing invoice email:', error);
     return false;
   }
 };
@@ -2330,7 +2315,6 @@ export const convertVisaOrderToInvoice = async (order: any): Promise<Invoice> =>
 
     return invoice;
   } catch (error) {
-    console.error('Error converting visa order to invoice:', error);
     throw error;
   }
 };

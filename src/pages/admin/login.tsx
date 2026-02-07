@@ -26,7 +26,6 @@ export default function AdminLogin() {
       toast.success('Login successful');
       router.push('/admin');
     } catch (err: any) {
-      console.error('Login error:', err);
       setError(err.message || 'Failed to login');
       toast.error('Login failed');
     } finally {

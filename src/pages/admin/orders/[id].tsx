@@ -22,6 +22,8 @@ import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { downloadDhlReturnLabel } from '@/services/shippingLabelService';
 import { adminFetch } from '@/lib/adminFetch';
+import { NotesTab, CommunicationTab, InvoiceTab, FilesTab, OverviewTab, ServicesTab, PriceTab, ProcessingTab, CoverLettersTab } from '@/components/admin/order';
+import { generateVisaSubmittedEmail, generateVisaApprovedEmail, generateVisaRejectedEmail, generateEVisaDeliveryEmail, generateVisaDocsReceivedEmail, generateVisaReturnShippingEmail, generateVisaEmbassySubmittedEmail } from '@/components/order/templates/visaStatusUpdateEmail';
 
 // Define Order interface locally to match the updated interface
 interface ExtendedOrder extends Order {
@@ -836,7 +838,7 @@ function AdminOrderDetailPage() {
   const [fileMessageToCustomer, setFileMessageToCustomer] = useState('');
   const [filePassword, setFilePassword] = useState('');
   const [sendingPassword, setSendingPassword] = useState(false);
-  const adminFileInputRef = useRef<HTMLInputElement | null>(null);
+  const adminFileInputRef = useRef<HTMLInputElement>(null!);
   // Cover letter editable data
   const [notaryApostilleData, setNotaryApostilleData] = useState<NotaryApostilleCoverLetterData | null>(null);
   const [embassyData, setEmbassyData] = useState<EmbassyCoverLetterData | null>(null);
@@ -1288,7 +1290,6 @@ function AdminOrderDetailPage() {
       setNewServiceToAdd('');
       toast.success(`Service "${getServiceName(serviceToAdd)}" has been added to the order`);
     } catch (err) {
-      console.error('Error adding service:', err);
       toast.error('Could not add service to order');
     } finally {
       setAddingService(false);
@@ -1364,7 +1365,6 @@ function AdminOrderDetailPage() {
       setOrder({ ...order, adminPrice, totalPrice: total } as any);
       toast.success('Price updated');
     } catch (e) {
-      console.error('Failed to save pricing:', e);
       toast.error('Could not save price');
     }
   };
@@ -1439,7 +1439,7 @@ function AdminOrderDetailPage() {
           setAdminProfile(snap.data() as any);
         }
       } catch (e) {
-        console.warn('Could not load admin profile', e);
+        // silently ignore
       }
     };
     loadProfile();
@@ -1828,7 +1828,6 @@ function AdminOrderDetailPage() {
         setError('Order not found');
       }
     } catch (err) {
-      console.error('Error fetching order:', err);
       setError('Failed to load order details');
     } finally {
       setLoading(false);
@@ -1840,7 +1839,6 @@ function AdminOrderDetailPage() {
       const invoicesData = await getInvoicesByOrderId(orderId);
       setInvoices(invoicesData);
     } catch (err) {
-      console.error('Error fetching invoices:', err);
       // Don't set error state for invoices, just log it
     }
   };
@@ -1865,7 +1863,6 @@ function AdminOrderDetailPage() {
       );
       setLinkedOrdersDetails(details.filter(Boolean) as ExtendedOrder[]);
     } catch (err) {
-      console.error('Error fetching linked orders:', err);
     }
   };
 
@@ -1899,7 +1896,6 @@ function AdminOrderDetailPage() {
         await fetchOrder(currentOrderId);
       }
     } catch (err) {
-      console.error('Error linking order:', err);
       toast.error('Failed to link order');
     }
   };
@@ -1929,7 +1925,6 @@ function AdminOrderDetailPage() {
       // Refresh order data
       await fetchOrder(currentOrderId);
     } catch (err) {
-      console.error('Error unlinking order:', err);
       toast.error('Failed to unlink order');
     }
   };
@@ -1953,7 +1948,6 @@ function AdminOrderDetailPage() {
       // Switch to invoice tab
       setActiveTab('invoice');
     } catch (err) {
-      console.error('Error creating invoice:', err);
       toast.error('Could not create invoice');
     } finally {
       setCreatingInvoice(false);
@@ -1970,7 +1964,6 @@ function AdminOrderDetailPage() {
         toast.error('Could not send invoice via email');
       }
     } catch (err) {
-      console.error('Error sending invoice:', err);
       toast.error('Could not send invoice via email');
     } finally {
       setSendingInvoice(null);
@@ -1982,7 +1975,6 @@ function AdminOrderDetailPage() {
       await generateInvoicePDF(invoice);
       toast.success('Invoice downloading');
     } catch (err) {
-      console.error('Error downloading invoice:', err);
       toast.error('Could not download invoice');
     }
   };
@@ -1993,7 +1985,6 @@ function AdminOrderDetailPage() {
       downloadCoverLetter(order);
       toast.success('Packing slip downloading');
     } catch (err) {
-      console.error('Error generating cover letter:', err);
       toast.error('Could not create packing slip');
     }
   };
@@ -2004,7 +1995,6 @@ function AdminOrderDetailPage() {
       downloadOrderConfirmation(order);
       toast.success('Order confirmation downloading');
     } catch (err) {
-      console.error('Error generating order confirmation:', err);
       toast.error('Could not create order confirmation');
     }
   };
@@ -2015,7 +2005,6 @@ function AdminOrderDetailPage() {
       printCoverLetter(order);
       toast.success('Printing started');
     } catch (err) {
-      console.error('Error printing cover letter:', err);
       toast.error('Could not print packing slip');
     }
   };
@@ -2030,7 +2019,6 @@ function AdminOrderDetailPage() {
       setOrder({ ...order, status: editedStatus });
       toast.success('Order status updated successfully');
     } catch (err) {
-      console.error('Error updating order status:', err);
       toast.error('Failed to update order status');
     } finally {
       setIsUpdating(false);
@@ -2170,6 +2158,59 @@ function AdminOrderDetailPage() {
           }
         } else {
           shouldSendReturnShipmentEmail = true;
+        }
+      }
+    }
+
+    // ── Visa-specific email notifications ──
+    const isVisaOrder = (order as any).orderType === 'visa';
+    let visaEmailToSend: { subject: string; html: string } | null = null;
+
+    if (isVisaOrder && previousStep && previousStep.status !== 'completed' && status === 'completed' && customerEmail) {
+      const visaEmailParams = {
+        customerName: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer',
+        orderNumber: order.orderNumber || orderId,
+        destinationCountry: (order as any).destinationCountry || '',
+        visaProductName: (order as any).visaProduct?.name || (order as any).visaProduct?.category || 'Visa',
+        locale: (order as any).locale || 'sv',
+        invoiceReference: (order as any).invoiceReference,
+      };
+
+      const visaStepEmailMap: Record<string, () => { subject: string; html: string }> = {
+        'documents_received': () => generateVisaDocsReceivedEmail(visaEmailParams),
+        'portal_submission': () => generateVisaSubmittedEmail(visaEmailParams),
+        'embassy_delivery': () => generateVisaEmbassySubmittedEmail(visaEmailParams),
+        'evisa_delivery': () => generateEVisaDeliveryEmail(visaEmailParams),
+        'return_shipping': () => generateVisaReturnShippingEmail({
+          ...visaEmailParams,
+          trackingNumber: trackingNumberForEmail,
+          trackingUrl: trackingUrlForEmail,
+        }),
+      };
+
+      // visa_result needs special handling (approved vs rejected)
+      if (previousStep.id === 'visa_result') {
+        if (typeof window !== 'undefined') {
+          const isApproved = window.confirm('Was the visa APPROVED? Click OK for Approved, Cancel for Rejected.');
+          if (isApproved) {
+            const confirmSend = window.confirm('Send approval notification email to the customer?');
+            if (confirmSend) visaEmailToSend = generateVisaApprovedEmail(visaEmailParams);
+          } else {
+            const confirmSend = window.confirm('Send rejection notification email to the customer?');
+            if (confirmSend) visaEmailToSend = generateVisaRejectedEmail(visaEmailParams);
+          }
+        }
+      } else if (visaStepEmailMap[previousStep.id]) {
+        const stepLabels: Record<string, string> = {
+          'documents_received': 'Send confirmation email that documents have been received?',
+          'portal_submission': 'Send email notifying the customer that the visa application has been submitted?',
+          'embassy_delivery': 'Send email notifying the customer that the passport has been submitted to the embassy?',
+          'evisa_delivery': 'Send email with the approved e-visa to the customer?',
+          'return_shipping': 'Send email notifying the customer that the passport has been shipped?',
+        };
+        if (typeof window !== 'undefined') {
+          const confirmSend = window.confirm(stepLabels[previousStep.id] || 'Send status update email to customer?');
+          if (confirmSend) visaEmailToSend = visaStepEmailMap[previousStep.id]();
         }
       }
     }
@@ -2574,7 +2615,6 @@ function AdminOrderDetailPage() {
             toast.success('Confirmation email to customer queued');
           }
         } catch (emailErr) {
-          console.error('Error queuing customer document receipt email:', emailErr);
           toast.error('Could not create confirmation email to customer');
         }
       }
@@ -2800,7 +2840,6 @@ function AdminOrderDetailPage() {
             toast.success('Pickup email to customer queued');
           }
         } catch (pickupEmailErr) {
-          console.error('Error queuing pickup expected completion email:', pickupEmailErr);
           toast.error('Could not create pickup email to customer');
         }
       }
@@ -3074,7 +3113,6 @@ function AdminOrderDetailPage() {
             }
           }
         } catch (ownDeliveryEmailErr) {
-          console.error('Error queuing own delivery return email:', ownDeliveryEmailErr);
           toast.error('Could not queue Own delivery email');
         }
       }
@@ -3361,7 +3399,6 @@ function AdminOrderDetailPage() {
             toast.success(hasConfirmedPricesPickup ? 'Office pickup mail sent to customer and fakturor@visumpartner.se' : 'Office pickup mail has been queued');
           }
         } catch (officePickupEmailErr) {
-          console.error('Error queuing office pickup ready email:', officePickupEmailErr);
           toast.error('Could not queue Office pickup email');
         }
       }
@@ -3631,8 +3668,31 @@ function AdminOrderDetailPage() {
             }
           }
         } catch (returnEmailErr) {
-          console.error('Error queuing return shipment email:', returnEmailErr);
           toast.error('Could not create return shipment email to customer');
+        }
+      }
+
+      // ── Send visa-specific status update email ──
+      if (visaEmailToSend) {
+        try {
+          const db = getFirebaseDb();
+          if (db) {
+            const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer';
+            await addDoc(collection(db, 'customerEmails'), {
+              name: customerName,
+              email: customerEmail,
+              phone: order.customerInfo?.phone || '',
+              subject: visaEmailToSend.subject,
+              message: visaEmailToSend.html,
+              orderId: order.orderNumber || orderId,
+              createdAt: serverTimestamp(),
+              status: 'unread',
+              type: 'visa_status_update'
+            });
+            toast.success('Visa status update email sent to customer');
+          }
+        } catch (visaEmailErr) {
+          toast.error('Could not send visa status update email');
         }
       }
 
@@ -3679,12 +3739,10 @@ function AdminOrderDetailPage() {
             }
           }
         } catch (invoiceErr) {
-          console.error('Error creating/sending invoice:', invoiceErr);
           toast.error('Could not create or send invoice');
         }
       }
     } catch (err) {
-      console.error('Error updating processing step:', err);
       toast.error('Could not update processing step');
     }
   };
@@ -3699,7 +3757,6 @@ function AdminOrderDetailPage() {
       setOrder({ ...order, internalNotes });
       toast.success('Internal notes saved');
     } catch (err) {
-      console.error('Error saving internal notes:', err);
       toast.error('Could not save internal notes');
     }
   };
@@ -3768,7 +3825,6 @@ function AdminOrderDetailPage() {
       setOrder({ ...order, returnTrackingNumber: trackingNumber, returnTrackingUrl: trackingUrl });
       toast.success('Tracking information saved');
     } catch (err) {
-      console.error('Error saving tracking info:', err);
       toast.error('Could not save tracking information');
     } finally {
       setSavingTracking(false);
@@ -3883,7 +3939,6 @@ function AdminOrderDetailPage() {
           maxPrice = shippingSettings.dhlMaxPrice || 300;
         }
       } catch (settingsErr) {
-        console.error('Failed to load shipping settings:', settingsErr);
         // Use defaults if settings fetch fails
       }
 
@@ -4070,7 +4125,6 @@ function AdminOrderDetailPage() {
       const envLabel = data.environment === 'sandbox' ? ' (SANDBOX)' : '';
       toast.success(`DHL return shipment booked${envLabel}! Tracking: ${newTrackingNumber}`);
     } catch (err: any) {
-      console.error('Error booking DHL shipment:', err);
       toast.error(`Could not book DHL return shipment: ${err.message}`);
     } finally {
       setBookingDhlShipment(false);
@@ -4362,7 +4416,6 @@ function AdminOrderDetailPage() {
       const envLabel = data.environment === 'sandbox' ? ' (SANDBOX)' : '';
       toast.success(`DHL pickup booked${envLabel}! Confirmation: ${confirmationNumber}`);
     } catch (err: any) {
-      console.error('Error booking DHL pickup:', err);
       toast.error(`Could not book DHL pickup: ${err.message}`);
     } finally {
       setBookingDhlPickup(false);
@@ -4431,7 +4484,6 @@ function AdminOrderDetailPage() {
           maxPrice = pickupShippingSettings.dhlPickupMaxPrice || 300;
         }
       } catch (settingsErr) {
-        console.error('Failed to load pickup shipping settings:', settingsErr);
         // Use defaults if settings fetch fails
       }
 
@@ -4859,7 +4911,6 @@ function AdminOrderDetailPage() {
       setOrder({ ...order, pickupTrackingNumber });
       toast.success('Pickup tracking saved');
     } catch (err) {
-      console.error('Error saving pickup tracking info:', err);
       toast.error('Could not save pickup tracking');
     } finally {
       setSavingTracking(false);
@@ -4879,7 +4930,6 @@ function AdminOrderDetailPage() {
       setOrder({ ...order, receivedDocumentsDescription } as ExtendedOrder);
       toast.success('Document description saved');
     } catch (err) {
-      console.error('Error saving document description:', err);
       toast.error('Could not save document description');
     } finally {
       setSavingReceivedDocs(false);
@@ -4901,7 +4951,6 @@ function AdminOrderDetailPage() {
       setOrder({ ...order, confirmedPrices: validPrices } as ExtendedOrder);
       toast.success('Confirmed prices saved');
     } catch (err) {
-      console.error('Error saving confirmed prices:', err);
       toast.error('Could not save confirmed prices');
     } finally {
       setSavingConfirmedPrices(false);
@@ -4996,7 +5045,6 @@ function AdminOrderDetailPage() {
 
       toast.success('Customer information saved');
     } catch (err) {
-      console.error('Error saving customer info:', err);
       toast.error('Could not save customer information');
     } finally {
       setSavingCustomerInfo(false);
@@ -5053,7 +5101,6 @@ function AdminOrderDetailPage() {
 
       toast.success('Return address saved');
     } catch (err) {
-      console.error('Error saving return address:', err);
       toast.error('Could not save return address');
     } finally {
       setSavingReturnAddress(false);
@@ -5354,7 +5401,6 @@ function AdminOrderDetailPage() {
       setNewNote('');
       toast.success('Note added');
     } catch (err) {
-      console.error('Error adding note:', err);
       toast.error('Could not add note');
     }
   };
@@ -5437,7 +5483,6 @@ function AdminOrderDetailPage() {
       setProcessingSteps(updatedProcessingSteps);
       toast.success(`Service "${getServiceName(serviceToRemove)}" has been removed from the order`);
     } catch (err) {
-      console.error('Error removing service:', err);
       toast.error('Could not remove service from order');
     } finally {
       setRemovingService(null);
@@ -5713,7 +5758,6 @@ function AdminOrderDetailPage() {
         minute: '2-digit'
       }).format(date);
     } catch (error) {
-      console.error('Error formatting date:', error, timestamp);
       return 'N/A';
     }
   };
@@ -5938,3530 +5982,178 @@ function AdminOrderDetailPage() {
               <div className="p-6">
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
-                  <div className="space-y-6">
-                    {/* Linked Orders Display - Show if this order has linked orders (from tracking number match) */}
-                    {linkedOrders.length > 0 && linkedOrdersDetails.length > 0 && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-start">
-                          <span className="text-2xl mr-3">🔗</span>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-green-800">
-                              Combined shipping with {linkedOrders.length} {linkedOrders.length === 1 ? 'order' : 'orders'}
-                            </h4>
-                            <p className="text-sm text-green-700 mt-1">
-                              These orders should be shipped together.
-                            </p>
-                            <div className="mt-3 space-y-2">
-                              {linkedOrdersDetails.map((linkedOrder) => (
-                                <div 
-                                  key={linkedOrder.id} 
-                                  className="flex items-center justify-between p-2 bg-white rounded"
-                                >
-                                  <div className="flex items-center space-x-3">
-                                    <a 
-                                      href={`/admin/orders/${linkedOrder.id}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="font-medium text-primary-600 hover:underline"
-                                    >
-                                      {linkedOrder.orderNumber || linkedOrder.id}
-                                    </a>
-                                    <span className="text-sm text-gray-500">
-                                      {(() => {
-                                        const c = ALL_COUNTRIES.find(country => country.code === linkedOrder.country);
-                                        return c?.name || linkedOrder.country;
-                                      })()}
-                                    </span>
-                                    <span className={`text-xs px-2 py-0.5 rounded ${
-                                      linkedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                      linkedOrder.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                      linkedOrder.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                      'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {linkedOrder.status}
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => handleUnlinkOrder(linkedOrder.id!)}
-                                    className="text-sm px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
-                                  >
-                                    Unlink
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Duplicate Tracking Number Warning - Show if other orders have same tracking number */}
-                    {duplicateTrackingOrders.length > 0 && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <div className="flex items-start">
-                          <span className="text-2xl mr-3">⚠️</span>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-amber-800">
-                              Same tracking number on {duplicateTrackingOrders.length} other {duplicateTrackingOrders.length === 1 ? 'order' : 'orders'}
-                            </h4>
-                            <p className="text-sm text-amber-700 mt-1">
-                              Tracking number <strong>{order?.returnTrackingNumber}</strong> is also used on the following orders. Link them for combined shipping?
-                            </p>
-                            <div className="mt-3 space-y-2">
-                              {duplicateTrackingOrders.map((dupOrder) => (
-                                <div 
-                                  key={dupOrder.id} 
-                                  className="flex items-center justify-between p-2 bg-white rounded"
-                                >
-                                  <div className="flex items-center space-x-3">
-                                    <a 
-                                      href={`/admin/orders/${dupOrder.id}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="font-medium text-primary-600 hover:underline"
-                                    >
-                                      {dupOrder.orderNumber || dupOrder.id}
-                                    </a>
-                                    <span className="text-sm text-gray-500">
-                                      {(() => {
-                                        const c = ALL_COUNTRIES.find(country => country.code === dupOrder.country);
-                                        return c?.name || dupOrder.country;
-                                      })()}
-                                    </span>
-                                    <span className={`text-xs px-2 py-0.5 rounded ${
-                                      dupOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                      dupOrder.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                      'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {dupOrder.status}
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => handleLinkDuplicateOrder(dupOrder.id!)}
-                                    className="text-sm px-3 py-1 rounded bg-primary-100 text-primary-700 hover:bg-primary-200"
-                                  >
-                                    Link for combined shipping
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Order Summary Card */}
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                      <div className="p-4 border-b border-gray-200 bg-gray-50">
-                        <h3 className="text-lg font-medium text-gray-800">Order overview</h3>
-                      </div>
-                      <div className="p-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          {/* Order Details */}
-                          <div className="lg:col-span-2 space-y-4">
-                            {/* Basic Order Info + compact services */}
-                            <div>
-                              <h3 className="text-sm font-semibold mb-1 text-gray-800">
-                                Order information
-                                {order.orderType === 'visa' && (
-                                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded">
-                                    🛂 Visa
-                                  </span>
-                                )}
-                              </h3>
-                              {order.orderType === 'visa' ? (
-                                /* Visa Order Information */
-                                (() => {
-                                  const destCountry = getCountryInfo(order.destinationCountryCode || order.destinationCountry);
-                                  const natCountry = getCountryInfo(order.nationalityCode || order.nationality);
-                                  return (
-                                    <div className="space-y-0.5 text-xs">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">Visa product:</span>
-                                        <span className="font-medium text-gray-900">{order.visaProduct?.nameEn || order.visaProduct?.name}</span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">Visa type:</span>
-                                        <span className="font-medium text-gray-900">
-                                          {order.visaProduct?.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa'}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">Entry type:</span>
-                                        <span className="font-medium text-gray-900">
-                                          {order.visaProduct?.entryType === 'single' ? 'Single' : order.visaProduct?.entryType === 'double' ? 'Double' : 'Multiple'}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">Destination:</span>
-                                        <span className="flex items-center space-x-1 font-medium text-gray-900">
-                                          <CountryFlag code={destCountry.code || ''} size={16} />
-                                          <span>{destCountry.name}</span>
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">Nationality:</span>
-                                        <span className="flex items-center space-x-1 font-medium text-gray-900">
-                                          <CountryFlag code={natCountry.code || ''} size={16} />
-                                          <span>{natCountry.name}</span>
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">Validity:</span>
-                                        <span className="font-medium text-gray-900">{order.visaProduct?.validityDays} days</span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">Processing time:</span>
-                                        <span className="font-medium text-gray-900">~{order.visaProduct?.processingDays} days</span>
-                                      </div>
-                                      {order.departureDate && (
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-gray-500">Departure:</span>
-                                          <span className="font-medium text-gray-900">{new Date(order.departureDate).toLocaleDateString('en-GB')}</span>
-                                        </div>
-                                      )}
-                                      {order.returnDate && (
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-gray-500">Return:</span>
-                                          <span className="font-medium text-gray-900">{new Date(order.returnDate).toLocaleDateString('en-GB')}</span>
-                                        </div>
-                                      )}
-                                      {order.customerInfo?.companyName && (
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-gray-500">Company:</span>
-                                          <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })()
-                              ) : (
-                                /* Legalization Order Information */
-                                (() => {
-                                  const c = getCountryInfo(order.country);
-                                  return (
-                                    <div className="space-y-0.5 text-xs">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">
-                                          Document type:
-                                        </span>
-                                        <span className="font-medium text-gray-900">
-                                          {(() => {
-                                            const getDocTypeName = (typeId: string): string => {
-                                              const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
-                                              if (predefined) return predefined.nameEn || predefined.name;
-                                              if (typeId?.startsWith('custom_')) {
-                                                const name = typeId.replace('custom_', '').replace(/_/g, ' ');
-                                                return name.charAt(0).toUpperCase() + name.slice(1);
-                                              }
-                                              return typeId || 'Other document';
-                                            };
-                                            const types = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
-                                              ? (order as any).documentTypes
-                                              : order.documentType ? [order.documentType] : [];
-                                            return types.map(getDocTypeName).join(', ') || 'Other document';
-                                          })()}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">
-                                          Country:
-                                        </span>
-                                        <span className="flex items-center space-x-1 font-medium text-gray-900">
-                                          <span aria-hidden="true">
-                                            <CountryFlag code={c.code || order.country || ''} size={16} />
-                                          </span>
-                                          <span>{c.name || c.code}</span>
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">
-                                          Quantity:
-                                        </span>
-                                        <span className="font-medium text-gray-900">{order.quantity}</span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">
-                                          Source:
-                                        </span>
-                                        <span className="font-medium text-gray-900">
-                                          {order.documentSource === 'original'
-                                            ? 'Original documents'
-                                            : 'Uploaded files'}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-gray-500">
-                                          Customer ref:
-                                        </span>
-                                        <span className="font-medium text-gray-900">{order.invoiceReference}</span>
-                                      </div>
-                                      {order.customerInfo?.companyName && (
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-gray-500">
-                                            Company:
-                                          </span>
-                                          <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })()
-                              )}
-                            </div>
-
-                            {/* Processing Steps Overview */}
-                            <div>
-                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Processing steps</h3>
-                              <div className="space-y-2">
-                                {processingSteps.map((step, index) => (
-                                  <div key={step.id} className={`flex items-center justify-between px-3 py-2 rounded-md ${getProcessingStepCardClasses(step.status)}`}>
-                                    <div className="flex items-center">
-                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${
-                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                                        'bg-red-100 text-red-800'
-                                      }`}>
-                                        {step.status === 'completed' ? '✓' :
-                                         step.status === 'in_progress' ? (
-                                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                                         ) :
-                                         step.status === 'pending' ? index + 1 : '✗'}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium text-sm">{stripFlagEmoji(step.name)}</span>
-                                        <div className="text-xs text-gray-500">{step.description}</div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className={`text-xs font-medium capitalize px-2 py-1 rounded ${
-                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                                        'bg-red-100 text-red-800'
-                                      }`}>
-                                        {step.status === 'completed' ? 'Completed' :
-                                         step.status === 'in_progress' ? 'In progress' :
-                                         step.status === 'pending' ? 'Pending' : 'Skipped'}
-                                      </span>
-                                      {step.status === 'completed' && step.completedAt && (
-                                        <span className="text-xs text-gray-500">
-                                          {formatDate(step.completedAt)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="mt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveTab('processing')}
-                                  className="text-primary-600 text-sm underline"
-                                >
-                                  Manage processing →
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Pricing Breakdown removed from Overview as requested */}
-
-                            {/* Notes summary in Overview */}
-                            <div>
-                              <h3 className="text-lg font-medium mb-4">Notes</h3>
-                              <div className="space-y-3">
-                                {internalNotesList.length === 0 && (
-                                  <div className="text-sm text-gray-500">No notes yet</div>
-                                )}
-                                {internalNotesList.slice(0, 5).map((n) => (
-                                  <div key={n.id} className="border border-gray-200 rounded p-3 bg-white">
-                                    <div className="whitespace-pre-wrap text-sm text-gray-800">{n.content}</div>
-                                    <div className="mt-2 text-xs text-gray-500">
-                                      Created {formatDate(n.createdAt)} by {n.createdBy || 'Unknown'}
-                                    </div>
-                                  </div>
-                                ))}
-                                {internalNotesList.length > 5 && (
-                                  <div className="text-sm text-gray-600">Showing the latest 5 notes</div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveTab('processing')}
-                                  className="text-primary-600 text-sm underline"
-                                >
-                                  View all notes →
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Customer Info Sidebar */}
-                          <div className="space-y-6">
-                            {/* Customer Information - Read-only display */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-6">
-                              <h3 className="text-lg font-medium mb-4">Customer information</h3>
-                              <div className="space-y-3 text-sm">
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Name</label>
-                                  <div className="font-medium text-gray-900">
-                                    {order.customerInfo?.firstName} {order.customerInfo?.lastName}
-                                  </div>
-                                </div>
-                                {order.customerInfo?.companyName && (
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Company</label>
-                                    <div className="font-medium text-gray-900">{order.customerInfo.companyName}</div>
-                                  </div>
-                                )}
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Email</label>
-                                  <a href={`mailto:${order.customerInfo?.email}`} className="text-blue-600 hover:underline">
-                                    {order.customerInfo?.email}
-                                  </a>
-                                </div>
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
-                                  <a href={`tel:${order.customerInfo?.phone}`} className="text-blue-600 hover:underline">
-                                    {order.customerInfo?.phone || '-'}
-                                  </a>
-                                </div>
-                                {order.customerInfo?.address && (
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Address</label>
-                                    <div className="text-gray-900">
-                                      {order.customerInfo.address}<br />
-                                      {order.customerInfo.postalCode} {order.customerInfo.city}<br />
-                                      {order.customerInfo.country}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Return Address - Separate card */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-6">
-                              <h3 className="text-lg font-medium mb-4">Return address</h3>
-                              <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">First name</label>
-                                    <input
-                                      type="text"
-                                      value={editedReturnAddress.firstName}
-                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, firstName: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Last name</label>
-                                    <input
-                                      type="text"
-                                      value={editedReturnAddress.lastName}
-                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, lastName: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Company name</label>
-                                  <input
-                                    type="text"
-                                    value={editedReturnAddress.companyName}
-                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, companyName: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Street address</label>
-                                  <input
-                                    type="text"
-                                    value={editedReturnAddress.street}
-                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, street: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Postal code</label>
-                                    <input
-                                      type="text"
-                                      value={editedReturnAddress.postalCode}
-                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, postalCode: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-gray-500 mb-1">City</label>
-                                    <input
-                                      type="text"
-                                      value={editedReturnAddress.city}
-                                      onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, city: e.target.value })}
-                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Country</label>
-                                  <input
-                                    type="text"
-                                    value={editedReturnAddress.country}
-                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, country: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Phone</label>
-                                  <input
-                                    type="tel"
-                                    value={editedReturnAddress.phone}
-                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, phone: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Email</label>
-                                  <input
-                                    type="email"
-                                    value={editedReturnAddress.email}
-                                    onChange={(e) => setEditedReturnAddress({ ...editedReturnAddress, email: e.target.value })}
-                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                  />
-                                </div>
-
-                                <div className="mt-4 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={saveReturnAddress}
-                                    disabled={savingReturnAddress}
-                                    className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {savingReturnAddress ? 'Saving...' : 'Save return address'}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Customer history */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-6">
-                              <h3 className="text-lg font-medium mb-3">Previous customer details</h3>
-                              {order.customerHistory && order.customerHistory.length > 0 ? (
-                                <div className="space-y-2 max-h-64 overflow-y-auto text-sm">
-                                  {order.customerHistory
-                                    .slice()
-                                    .reverse()
-                                    .slice(0, 5)
-                                    .map((h: any, idx: number) => (
-                                      <div key={idx} className="border border-gray-200 rounded p-2 bg-gray-50">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="font-medium text-gray-800">
-                                            {h.customerInfo?.firstName || ''} {h.customerInfo?.lastName || ''}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => applyCustomerHistoryEntry(h)}
-                                            className="text-xs text-primary-600 underline"
-                                          >
-                                            Load
-                                          </button>
-                                        </div>
-                                        <div className="text-xs text-gray-600">
-                                          {h.customerInfo?.address && (
-                                            <div>
-                                              {h.customerInfo.address}, {h.customerInfo.postalCode} {h.customerInfo.city}
-                                            </div>
-                                          )}
-                                          <div>{h.customerInfo?.email}</div>
-                                          <div>{h.customerInfo?.phone}</div>
-                                          <div className="mt-1 text-[11px] text-gray-500">
-                                            Updated {formatDate(h.timestamp)} by {h.changedBy || 'Unknown'}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                </div>
-                              ) : (
-                                <p className="text-sm text-gray-500">No history yet</p>
-                              )}
-                            </div>
-
-                            {/* Quick Actions */}
-                            <div className="bg-white border border-gray-200 rounded-lg p-6">
-                              <h3 className="text-lg font-medium mb-4">Quick actions</h3>
-                              <div className="space-y-2">
-                                {invoices.length === 0 && (
-                                  <button
-                                    onClick={handleCreateInvoice}
-                                    disabled={creatingInvoice}
-                                    className="w-full flex items-center justify-center py-2 px-4 border border-primary-300 rounded-md text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 disabled:opacity-50"
-                                  >
-                                    {creatingInvoice ? (
-                                      <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                                        Creating invoice...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        Create invoice
-                                      </>
-                                    )}
-                                  </button>
-                                )}
-                                {invoices.length > 0 && (
-                                  <button
-                                    onClick={() => setActiveTab('invoice')}
-                                    className="w-full flex items-center justify-center py-2 px-4 border border-primary-300 rounded-md text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    View invoices ({invoices.length})
-                                  </button>
-                                )}
-                                <Link
-                                  href={`mailto:${order.customerInfo?.email || ''}?subject=Order ${order?.orderNumber || (router.query.id as string || '')}`}
-                                  className={`w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium ${
-                            order.customerInfo?.email 
-                              ? 'text-gray-700 bg-white hover:bg-gray-50' 
-                              : 'text-gray-400 bg-gray-100 cursor-not-allowed'
-                          }`}
-                                  onClick={(e) => {
-                            if (!order.customerInfo?.email) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                  </svg>
-                                  Send email
-                                </Link>
-                                <button
-                                  onClick={() => window.print()}
-                                  className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                  </svg>
-                                  Print
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <OverviewTab
+                    order={order}
+                    orderId={router.query.id as string}
+                    linkedOrders={linkedOrders}
+                    linkedOrdersDetails={linkedOrdersDetails}
+                    duplicateTrackingOrders={duplicateTrackingOrders}
+                    processingSteps={processingSteps}
+                    internalNotesList={internalNotesList}
+                    invoices={invoices}
+                    editedReturnAddress={editedReturnAddress}
+                    setEditedReturnAddress={setEditedReturnAddress}
+                    savingReturnAddress={savingReturnAddress}
+                    saveReturnAddress={saveReturnAddress}
+                    creatingInvoice={creatingInvoice}
+                    onCreateInvoice={handleCreateInvoice}
+                    formatDate={formatDate}
+                    getCountryInfo={getCountryInfo}
+                    getProcessingStepCardClasses={getProcessingStepCardClasses}
+                    stripFlagEmoji={stripFlagEmoji}
+                    setActiveTab={setActiveTab}
+                    onUnlinkOrder={handleUnlinkOrder}
+                    onLinkDuplicateOrder={handleLinkDuplicateOrder}
+                    applyCustomerHistoryEntry={applyCustomerHistoryEntry}
+                  />
                 )}
 
                 {/* Services Tab */}
                 {activeTab === 'services' && (
-                  <div className="space-y-6">
-                    {/* Edit Order Information Section - different for visa vs legalization */}
-                    {order.orderType === 'visa' ? (
-                      <EditVisaOrderInfoSection
-                        order={order}
-                        onUpdate={async (updates) => {
-                          const orderId = router.query.id as string;
-                          await adminUpdateOrder(orderId, updates);
-                          setOrder(prev => prev ? { ...prev, ...updates } : null);
-                        }}
-                      />
-                    ) : (
-                      <EditOrderInfoSection
-                        order={order}
-                        onUpdate={async (updates) => {
-                          const orderId = router.query.id as string;
-                          await adminUpdateOrder(orderId, updates);
-                          setOrder(prev => prev ? { ...prev, ...updates } : null);
-                        }}
-                        onRegenerateSteps={async (updatedOrder) => {
-                          const newSteps = initializeProcessingSteps(updatedOrder as ExtendedOrder);
-                          const orderIdToUpdate = order.orderNumber || order.id || '';
-                          await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
-                          setProcessingSteps(newSteps);
-                        }}
-                      />
-                    )}
-
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-4">Order Services</h3>
-                      {(() => {
-                        const baseServices: string[] = Array.isArray(order.services) ? order.services : [];
-                        const extraServices: string[] = [];
-                        if (order.pickupService) extraServices.push('pickup_service');
-                        if ((order as any).premiumPickup) extraServices.push('premium_pickup');
-                        if (order.scannedCopies) extraServices.push('scanned_copies');
-                        if (order.expedited) extraServices.push('express');
-                        if (order.returnService) extraServices.push('return');
-                        const allServices = [...baseServices, ...extraServices];
-
-                        const currentSet = new Set(allServices);
-                        const possibleServices: { id: string; label: string }[] = [
-                          // Main legalization services
-                          { id: 'notarization', label: getServiceName('notarization') },
-                          { id: 'translation', label: getServiceName('translation') },
-                          { id: 'chamber', label: getServiceName('chamber') },
-                          { id: 'ud', label: getServiceName('ud') },
-                          { id: 'embassy', label: getServiceName('embassy') },
-                          { id: 'apostille', label: getServiceName('apostille') },
-                          // Pickup options
-                          { id: 'pickup_service', label: 'Document Pickup (Standard)' },
-                          { id: 'premium_pickup', label: 'Document Pickup (Premium/Express)' },
-                          // Additional services
-                          { id: 'scanned_copies', label: 'Scanned Copies' },
-                          { id: 'express', label: 'Express Processing' },
-                          { id: 'return', label: getServiceName('return') }
-                        ];
-
-                        const addableServices = possibleServices.filter(s => !currentSet.has(s.id));
-
-                        return (
-                          <div className="space-y-6">
-                            <div>
-                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Active Services</h4>
-                              {allServices.length === 0 ? (
-                                <p className="text-sm text-gray-500">No services registered on this order.</p>
-                              ) : (
-                                <div className="space-y-2">
-                                  {allServices.map((serviceId) => {
-                                    const status = getServiceStatus(serviceId);
-                                    const statusColor = getServiceStatusColor(status);
-                                    return (
-                                      <div
-                                        key={serviceId}
-                                        className="flex items-center justify-between border border-gray-200 rounded-md px-3 py-2 bg-white"
-                                      >
-                                        <div>
-                                          <div className="flex items-center space-x-2">
-                                            <span className="text-sm font-medium text-gray-900">{getServiceName(serviceId)}</span>
-                                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColor}`}>
-                                              {status}
-                                            </span>
-                                          </div>
-                                          <p className="text-xs text-gray-500 mt-0.5">
-                                            Status based on processing steps.
-                                          </p>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRemoveService(serviceId)}
-                                          disabled={removingService === serviceId}
-                                          className="px-2 py-1 text-xs border border-red-300 text-red-600 rounded hover:bg-red-50 disabled:opacity-50"
-                                        >
-                                          {removingService === serviceId ? 'Removing...' : 'Remove'}
-                                        </button>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-
-                            <div>
-                              <h4 className="text-sm font-semibold text-gray-800 mb-2">Add Service</h4>
-                              {addableServices.length === 0 ? (
-                                <p className="text-sm text-gray-500">All available services have been added.</p>
-                              ) : (
-                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                  <select
-                                    value={newServiceToAdd}
-                                    onChange={(e) => setNewServiceToAdd(e.target.value)}
-                                    className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
-                                  >
-                                    <option value="">Select service to add...</option>
-                                    {addableServices.map((s) => (
-                                      <option key={s.id} value={s.id}>
-                                        {s.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    type="button"
-                                    onClick={() => newServiceToAdd && handleAddService(newServiceToAdd)}
-                                    disabled={!newServiceToAdd || addingService}
-                                    className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {addingService ? 'Adding...' : 'Add Service'}
-                                  </button>
-                                </div>
-                              )}
-                              <p className="mt-2 text-xs text-gray-500">
-                                When you add or remove a service, the price and processing steps are updated automatically.
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
+                  <ServicesTab ctx={{
+                    order, orderId: router.query.id as string,
+                    removingService, onRemoveService: handleRemoveService,
+                    onUpdateOrder: adminUpdateOrder, setOrder,
+                    EditVisaOrderInfoSection, EditOrderInfoSection,
+                    router, initializeProcessingSteps, getServiceName,
+                    getServiceStatus, getServiceStatusColor,
+                    addingService, handleAddService, newServiceToAdd, setNewServiceToAdd,
+                    setProcessingSteps,
+                  }} />
                 )}
 
                 {/* Price Tab */}
                 {activeTab === 'price' && (
-                  <div className="space-y-6">
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-4">Price Adjustments</h3>
-                      {/* Per-service override table */}
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm border border-gray-200 rounded">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left">Include</th>
-                              <th className="px-3 py-2 text-left">Description</th>
-                              <th className="px-3 py-2 text-right">Base Amount</th>
-                              <th className="px-3 py-2 text-right">New Amount</th>
-                              <th className="px-3 py-2 text-right">VAT %</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {/* Handle visa orders with object-based pricingBreakdown */}
-                            {order?.orderType === 'visa' && order?.pricingBreakdown && !Array.isArray(order.pricingBreakdown) ? (
-                              (() => {
-                                const pb = order.pricingBreakdown as any;
-                                // Always show serviceFee and embassyFee (even if 0), only filter optional fees
-                                const visaLineItems = [
-                                  { key: 'serviceFee', label: 'DOX Visumpartner Service Fee', amount: pb.serviceFee || 0, alwaysShow: true },
-                                  { key: 'embassyFee', label: 'Embassy Official Fee', amount: pb.embassyFee || 0, alwaysShow: true },
-                                  ...(pb.shippingFee ? [{ key: 'shippingFee', label: 'Shipping Fee', amount: pb.shippingFee, alwaysShow: false }] : []),
-                                  ...(pb.expeditedFee ? [{ key: 'expeditedFee', label: 'Expedited Fee', amount: pb.expeditedFee, alwaysShow: false }] : []),
-                                  ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice, alwaysShow: false }] : []),
-                                  ...(pb.urgentPrice ? [{ key: 'urgentPrice', label: 'Urgent Processing', amount: pb.urgentPrice, alwaysShow: false }] : []),
-                                ].filter(item => item.alwaysShow || item.amount > 0);
-                                
-                                return visaLineItems.length > 0 ? visaLineItems.map((item, idx) => {
-                                  // Default VAT: 25% for service fees, 0% for embassy fees
-                                  const defaultVat = item.key === 'embassyFee' ? 0 : 25;
-                                  const o = lineOverrides[idx] || { index: idx, label: item.label, baseAmount: item.amount, include: true, vatPercent: defaultVat };
-                                  return (
-                                    <tr key={item.key} className="border-t">
-                                      <td className="px-3 py-2">
-                                        <input
-                                          type="checkbox"
-                                          checked={o.include !== false}
-                                          onChange={(e) => {
-                                            const next = [...lineOverrides];
-                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, include: e.target.checked };
-                                            setLineOverrides(next);
-                                          }}
-                                        />
-                                      </td>
-                                      <td className="px-3 py-2">{item.label}</td>
-                                      <td className="px-3 py-2 text-right">{item.amount.toFixed(2)} kr</td>
-                                      <td className="px-3 py-2 text-right">
-                                        <input
-                                          type="number"
-                                          className="w-28 border rounded px-2 py-1 text-right"
-                                          value={o.overrideAmount ?? ''}
-                                          placeholder=""
-                                          onChange={(e) => {
-                                            const val = e.target.value === '' ? null : Number(e.target.value);
-                                            const next = [...lineOverrides];
-                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, overrideAmount: val };
-                                            setLineOverrides(next);
-                                          }}
-                                        />
-                                      </td>
-                                      <td className="px-3 py-2 text-right">
-                                        <input
-                                          type="number"
-                                          className="w-20 border rounded px-2 py-1 text-right"
-                                          value={o.vatPercent ?? defaultVat}
-                                          placeholder={String(defaultVat)}
-                                          onChange={(e) => {
-                                            const val = e.target.value === '' ? null : Number(e.target.value);
-                                            const next = [...lineOverrides];
-                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, vatPercent: val };
-                                            setLineOverrides(next);
-                                          }}
-                                        />
-                                      </td>
-                                    </tr>
-                                  );
-                                }) : (
-                                  <tr>
-                                    <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
-                                  </tr>
-                                );
-                              })()
-                            ) : Array.isArray(order?.pricingBreakdown) && order!.pricingBreakdown.length > 0 ? (
-                              order!.pricingBreakdown.map((item: any, idx: number) => {
-                                const o = lineOverrides[idx] || { index: idx, label: item.description || getServiceName(item.service) || 'Line', baseAmount: 0, include: true };
-                                const base = o.baseAmount || (() => {
-                                  if (typeof item.fee === 'number') return item.fee;
-                                  if (typeof item.basePrice === 'number') return item.basePrice;
-                                  if (typeof item.unitPrice === 'number') return item.unitPrice * (item.quantity || 1);
-                                  if (typeof item.officialFee === 'number' && typeof item.serviceFee === 'number') return (item.officialFee + item.serviceFee) * (item.quantity || 1);
-                                  return 0;
-                                })();
-                                return (
-                                  <tr key={idx} className="border-t">
-                                    <td className="px-3 py-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={o.include !== false}
-                                        onChange={(e) => {
-                                          const next = [...lineOverrides];
-                                          next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), include: e.target.checked };
-                                          setLineOverrides(next);
-                                        }}
-                                      />
-                                    </td>
-                                    <td className="px-3 py-2">{translatePricingDescription(item.description || o.label || '-')}</td>
-                                    <td className="px-3 py-2 text-right">{Number(base).toFixed(2)} kr</td>
-                                    <td className="px-3 py-2 text-right">
-                                      <input
-                                        type="number"
-                                        className="w-28 border rounded px-2 py-1 text-right"
-                                        value={o.overrideAmount ?? ''}
-                                        placeholder=""
-                                        onChange={(e) => {
-                                          const val = e.target.value === '' ? null : Number(e.target.value);
-                                          const next = [...lineOverrides];
-                                          next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideAmount: val };
-                                          setLineOverrides(next);
-                                        }}
-                                      />
-                                    </td>
-                                    <td className="px-3 py-2 text-right">
-                                      <input
-                                        type="number"
-                                        className="w-20 border rounded px-2 py-1 text-right"
-                                        value={o.vatPercent ?? ''}
-                                        placeholder=""
-                                        onChange={(e) => {
-                                          const val = e.target.value === '' ? null : Number(e.target.value);
-                                          const next = [...lineOverrides];
-                                          next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), vatPercent: val };
-                                          setLineOverrides(next);
-                                        }}
-                                      />
-                                    </td>
-                                  </tr>
-                                );
-                              })
-                            ) : (
-                              <tr>
-                                <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">Base Amount (from pricing breakdown)</p>
-                          <div className="text-xl font-semibold">{getBreakdownTotal()} SEK</div>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">New Total Amount</p>
-                          <div className="text-xl font-semibold">{getComputedTotal()} SEK</div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6">
-                        <h4 className="font-medium mb-2">Discount</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm text-gray-600 mb-1">Discount in SEK</label>
-                            <input type="number" value={discountAmount} onChange={(e) => setDiscountAmount(Number(e.target.value))} className="w-full border rounded px-3 py-2" />
-                          </div>
-                          <div>
-                            <label className="block text-sm text-gray-600 mb-1">Discount in %</label>
-                            <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(Number(e.target.value))} className="w-full border rounded px-3 py-2" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6">
-                        <h4 className="font-medium mb-2">Adjustments</h4>
-                        <div className="space-y-3">
-                          {adjustments.map((adj, idx) => (
-                            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                              <input
-                                type="text"
-                                placeholder="Description"
-                                value={adj.description}
-                                onChange={(e) => {
-                                  const next = [...adjustments];
-                                  next[idx] = { ...next[idx], description: e.target.value };
-                                  setAdjustments(next);
-                                }}
-                                className="col-span-7 border rounded px-3 py-2"
-                              />
-                              <input
-                                type="number"
-                                placeholder="Amount (+/-)"
-                                value={adj.amount}
-                                onChange={(e) => {
-                                  const next = [...adjustments];
-                                  next[idx] = { ...next[idx], amount: Number(e.target.value) };
-                                  setAdjustments(next);
-                                }}
-                                className="col-span-3 border rounded px-3 py-2"
-                              />
-                              <button
-                                onClick={() => setAdjustments(adjustments.filter((_, i) => i !== idx))}
-                                className="col-span-2 text-red-600 border border-red-300 rounded px-2 py-2 text-sm"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          ))}
-                          <button
-                            onClick={() => setAdjustments([...adjustments, { description: '', amount: 0 }])}
-                            className="px-3 py-2 border border-gray-300 rounded text-sm"
-                          >
-                            Add Line
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 flex items-center justify-between">
-                        <div className="text-sm text-gray-600">
-                          Total adjustments: {getAdjustmentsTotal()} SEK • Total discount: {getDiscountTotal(getBreakdownTotal())} SEK
-                        </div>
-                        <button
-                          onClick={savePricingAdjustments}
-                          className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
-                        >
-                          Save Price
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <PriceTab
+                    order={order}
+                    orderId={router.query.id as string}
+                    adminPrice={order.adminPrice}
+                    setAdminPrice={(ap: any) => setOrder({ ...order, adminPrice: ap } as any)}
+                    onSavePriceData={async ({ adminPrice: priceData, total }) => {
+                      const orderId = router.query.id as string;
+                      await adminUpdateOrder(orderId, { adminPrice: priceData, totalPrice: total });
+                      setOrder({ ...order, adminPrice: priceData, totalPrice: total } as any);
+                    }}
+                    lineOverrides={lineOverrides}
+                    setLineOverrides={setLineOverrides}
+                    discountAmount={discountAmount}
+                    setDiscountAmount={setDiscountAmount}
+                    discountPercent={discountPercent}
+                    setDiscountPercent={setDiscountPercent}
+                    adjustments={adjustments}
+                    setAdjustments={setAdjustments}
+                    getBreakdownTotal={getBreakdownTotal}
+                    getServiceName={getServiceName}
+                    adminName={(adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string}
+                  />
                 )}
 
                 {/* Processing Tab */}
                 {activeTab === 'processing' && (
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-medium">Processing steps</h3>
-                        <button
-                          onClick={async () => {
-                            if (!order) return;
-                            if (!confirm('This will reset all processing steps to default. Any progress will be lost. Continue?')) return;
-                            try {
-                              let newSteps;
-                              if (order?.orderType === 'visa') {
-                                const { getDefaultVisaProcessingSteps } = await import('@/firebase/visaOrderService');
-                                newSteps = getDefaultVisaProcessingSteps({
-                                  visaProduct: order.visaProduct,
-                                  destinationCountry: order.destinationCountry,
-                                  returnService: (order as any).returnService,
-                                  hasReturnLabel: (order as any).hasReturnLabel,
-                                  pickupService: (order as any).pickupService,
-                                  confirmReturnAddressLater: (order as any).confirmReturnAddressLater,
-                                  returnAddressConfirmed: (order as any).returnAddressConfirmed,
-                                });
-                              } else {
-                                // Legalization order - use initializeProcessingSteps
-                                newSteps = initializeProcessingSteps(order as ExtendedOrder);
-                              }
-                              const orderIdToUpdate = order.orderNumber || order.id || '';
-                              if (!orderIdToUpdate) throw new Error('No order ID');
-                              await adminUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
-                              setProcessingSteps(newSteps);
-                              toast.success('Processing steps regenerated');
-                            } catch (err) {
-                              toast.error('Failed to regenerate steps');
-                            }
-                          }}
-                          className="text-sm px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-                        >
-                          🔄 Regenerate steps
-                        </button>
-                      </div>
-                      <div className="space-y-4">
-                        {processingSteps.map((step, index) => (
-                          <div key={step.id} className={`border ${getProcessingStepCardClasses(step.status)} rounded-lg p-4`}>
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mr-3 ${
-                                  step.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                  step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                  step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
-                                  {step.status === 'completed' ? '✓' :
-                                   step.status === 'in_progress' ? '⟳' :
-                                   step.status === 'pending' ? index + 1 : '✗'}
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">{stripFlagEmoji(step.name)}</h4>
-                                  <p className="text-sm text-gray-600">{step.description}</p>
-                                </div>
-                              </div>
-                              <select
-                                value={step.status}
-                                onChange={(e) => handleStepUpdateWithConfirmation(step.id, e.target.value as ProcessingStep['status'])}
-                                className="border border-gray-300 rounded px-2 py-1 text-sm"
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="in_progress">In progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="skipped">Skipped</option>
-                              </select>
-                            </div>
-                            
-                            {/* Address confirmation section */}
-                            {needsAddressConfirmation(step.id) && (
-                              <div className={`mt-3 p-3 rounded-lg border ${
-                                isAddressConfirmed(needsAddressConfirmation(step.id)!) 
-                                  ? 'bg-green-50 border-green-200' 
-                                  : 'bg-blue-50 border-blue-200'
-                              }`}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex-1">
-                                    <p className={`text-sm font-medium ${
-                                      isAddressConfirmed(needsAddressConfirmation(step.id)!) 
-                                        ? 'text-green-900' 
-                                        : 'text-blue-900'
-                                    }`}>
-                                      {needsAddressConfirmation(step.id) === 'pickup' ? '📍 Pickup address' : '📍 Return address'}
-                                    </p>
-                                    {isAddressConfirmed(needsAddressConfirmation(step.id)!) ? (
-                                      <div className="mt-1">
-                                        <p className="text-xs text-green-700 flex items-center gap-1">
-                                          <span>✓</span> Confirmed by customer
-                                          {(() => {
-                                            const extOrder = order as any;
-                                            const confirmedAt = needsAddressConfirmation(step.id) === 'pickup'
-                                              ? extOrder.pickupAddressConfirmedAt
-                                              : extOrder.returnAddressConfirmedAt;
-                                            if (confirmedAt) {
-                                              const date = new Date(confirmedAt);
-                                              return <span className="text-green-600 ml-1">({date.toLocaleDateString('sv-SE')} {date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })})</span>;
-                                            }
-                                            return null;
-                                          })()}
-                                        </p>
-                                        {(() => {
-                                          const extOrder = order as any;
-                                          const wasUpdated = needsAddressConfirmation(step.id) === 'pickup'
-                                            ? extOrder.pickupAddressUpdatedByCustomer
-                                            : extOrder.returnAddressUpdatedByCustomer;
-                                          if (wasUpdated) {
-                                            return (
-                                              <p className="text-xs text-orange-600 flex items-center gap-1 mt-1">
-                                                <span>⚠️</span> Customer updated the address
-                                              </p>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                      </div>
-                                    ) : isConfirmationSent(needsAddressConfirmation(step.id)!) ? (
-                                      <div className="mt-1">
-                                        <p className="text-xs text-yellow-700 flex items-center gap-1">
-                                          <span>⏳</span> Awaiting customer confirmation
-                                        </p>
-                                        {(() => {
-                                          const extOrder = order as any;
-                                          const sentAt = needsAddressConfirmation(step.id) === 'pickup'
-                                            ? extOrder.pickupAddressConfirmationSentAt
-                                            : extOrder.returnAddressConfirmationSentAt;
-                                          if (sentAt) {
-                                            const date = new Date(sentAt);
-                                            return (
-                                              <p className="text-xs text-gray-500 mt-0.5">
-                                                Email sent: {date.toLocaleDateString('sv-SE')} {date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
-                                              </p>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-gray-600 mt-1">
-                                        Send confirmation email to customer
-                                      </p>
-                                    )}
-                                  </div>
-                                  {!isAddressConfirmed(needsAddressConfirmation(step.id)!) && (
-                                    <button
-                                      onClick={() => sendAddressConfirmation(needsAddressConfirmation(step.id)!)}
-                                      disabled={sendingAddressConfirmation}
-                                      className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {sendingAddressConfirmation ? 'Sending...' : 
-                                       isConfirmationSent(needsAddressConfirmation(step.id)!) ? 'Send reminder' : 'Send confirmation email'}
-                                    </button>
-                                  )}
-                                </div>
-                                
-                                {/* Show current address */}
-                                {isAddressConfirmed(needsAddressConfirmation(step.id)!) && (
-                                  <div className="mt-3 pt-3 border-t border-green-200">
-                                    <p className="text-xs font-medium text-green-800 mb-1">Confirmed address:</p>
-                                    <div className="text-xs text-green-700 space-y-0.5">
-                                      {(() => {
-                                        const extOrder = order as any;
-                                        if (needsAddressConfirmation(step.id) === 'pickup') {
-                                          const pa = extOrder.pickupAddress || {};
-                                          return (
-                                            <>
-                                              {pa.company && <p className="font-medium">{pa.company}</p>}
-                                              {pa.name && <p>{pa.name}</p>}
-                                              <p>{pa.street || order?.customerInfo?.address}</p>
-                                              <p>{pa.postalCode || order?.customerInfo?.postalCode} {pa.city || order?.customerInfo?.city}</p>
-                                            </>
-                                          );
-                                        } else {
-                                          const ci = order?.customerInfo || {};
-                                          return (
-                                            <>
-                                              {ci.companyName && <p className="font-medium">{ci.companyName}</p>}
-                                              <p>{ci.firstName} {ci.lastName}</p>
-                                              <p>{ci.address}</p>
-                                              <p>{ci.postalCode} {ci.city}</p>
-                                            </>
-                                          );
-                                        }
-                                      })()}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Embassy price confirmation section */}
-                            {needsEmbassyPriceConfirmation(step.id) && (
-                              <div className={`mt-3 p-3 rounded-lg border ${
-                                isEmbassyPriceConfirmed() 
-                                  ? 'bg-green-50 border-green-200' 
-                                  : isEmbassyPriceDeclined()
-                                  ? 'bg-red-50 border-red-200'
-                                  : 'bg-amber-50 border-amber-200'
-                              }`}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex-1">
-                                    <p className={`text-sm font-medium ${
-                                      isEmbassyPriceConfirmed() 
-                                        ? 'text-green-900' 
-                                        : isEmbassyPriceDeclined()
-                                        ? 'text-red-900'
-                                        : 'text-amber-900'
-                                    }`}>
-                                      💰 Embassy official fee
-                                    </p>
-                                    {isEmbassyPriceConfirmed() ? (
-                                      <div className="mt-1">
-                                        <p className="text-xs text-green-700 flex items-center gap-1">
-                                          <span>✓</span> Confirmed by customer
-                                          {(order as any)?.embassyPriceConfirmedAt && (
-                                            <span className="text-green-600 ml-1">
-                                              ({new Date((order as any).embassyPriceConfirmedAt).toLocaleDateString('sv-SE')})
-                                            </span>
-                                          )}
-                                        </p>
-                                        <p className="text-sm font-bold text-green-800 mt-1">
-                                          {(order as any)?.confirmedEmbassyPrice?.toLocaleString()} kr
-                                        </p>
-                                      </div>
-                                    ) : isEmbassyPriceDeclined() ? (
-                                      <div className="mt-1">
-                                        <p className="text-xs text-red-700 flex items-center gap-1">
-                                          <span>✗</span> Declined by customer
-                                          {(order as any)?.embassyPriceDeclinedAt && (
-                                            <span className="text-red-600 ml-1">
-                                              ({new Date((order as any).embassyPriceDeclinedAt).toLocaleDateString('sv-SE')})
-                                            </span>
-                                          )}
-                                        </p>
-                                      </div>
-                                    ) : isEmbassyPriceConfirmationSent() ? (
-                                      <div className="mt-1">
-                                        <p className="text-xs text-yellow-700 flex items-center gap-1">
-                                          <span>⏳</span> Awaiting customer confirmation
-                                        </p>
-                                        {(order as any)?.embassyPriceConfirmationSentAt && (
-                                          <p className="text-xs text-gray-500 mt-0.5">
-                                            Email sent: {new Date((order as any).embassyPriceConfirmationSentAt).toLocaleDateString('sv-SE')} {new Date((order as any).embassyPriceConfirmationSentAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
-                                          </p>
-                                        )}
-                                        {(order as any)?.pendingEmbassyPrice && (
-                                          <p className="text-sm font-medium text-amber-800 mt-1">
-                                            Pending: {(order as any).pendingEmbassyPrice.toLocaleString()} kr
-                                          </p>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-gray-600 mt-1">
-                                        Enter confirmed price and send to customer
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                {/* Price input and send button */}
-                                {!isEmbassyPriceConfirmed() && !isEmbassyPriceDeclined() && (
-                                  <div className="mt-3 pt-3 border-t border-amber-200">
-                                    <div className="flex items-end gap-2">
-                                      <div className="flex-1">
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                                          Confirmed embassy fee (SEK)
-                                        </label>
-                                        <input
-                                          type="number"
-                                          value={embassyPriceInput}
-                                          onChange={(e) => setEmbassyPriceInput(e.target.value)}
-                                          placeholder="e.g. 1500"
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                                        />
-                                      </div>
-                                      <button
-                                        onClick={() => {
-                                          const price = parseFloat(embassyPriceInput);
-                                          if (isNaN(price) || price <= 0) {
-                                            toast.error('Please enter a valid price');
-                                            return;
-                                          }
-                                          sendEmbassyPriceConfirmation(price);
-                                        }}
-                                        disabled={sendingEmbassyPriceConfirmation || !embassyPriceInput}
-                                        className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                                      >
-                                        {sendingEmbassyPriceConfirmation ? 'Sending...' : 
-                                         isEmbassyPriceConfirmationSent() ? '📧 Send reminder' : '📧 Send to customer'}
-                                      </button>
-                                    </div>
-                                    {embassyPriceInput && !isNaN(parseFloat(embassyPriceInput)) && (
-                                      <div className="mt-2 p-2 bg-white rounded border border-amber-100">
-                                        <p className="text-xs text-gray-600">
-                                          New total: <span className="font-bold text-gray-900">
-                                            {(() => {
-                                              const currentTotalExcludingTBC = (order?.pricingBreakdown || []).reduce((sum: number, item: any) => {
-                                                if (item.isTBC) return sum;
-                                                return sum + (item.total || 0);
-                                              }, 0);
-                                              return (currentTotalExcludingTBC + parseFloat(embassyPriceInput)).toLocaleString();
-                                            })()} kr
-                                          </span>
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            
-                            {isAuthorityService(step.id) && (
-                              <div className="mt-4 space-y-4">
-                                {/* Embassy delivery: only date in */}
-                                {step.id.endsWith('_delivery') && (
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Date submitted to authority
-                                    </label>
-                                    <input
-                                      type="date"
-                                      value={step.submittedAt ? new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] : ''}
-                                      onChange={(e) => {
-                                        const dateValue = e.target.value;
-                                        const updatedStep = {
-                                          ...step,
-                                          submittedAt: dateValue ? new Date(dateValue) : undefined
-                                        };
-                                        updateProcessingStep(step.id, step.status, step.notes, updatedStep);
-                                      }}
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                  </div>
-                                )}
-
-                                {/* Embassy pickup: only date out */}
-                                {step.id.endsWith('_pickup') && (
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Expected completion date
-                                    </label>
-                                    <input
-                                      type="date"
-                                      value={step.expectedCompletionDate ? new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0] : ''}
-                                      onChange={(e) => {
-                                        const dateValue = e.target.value;
-                                        const updatedStep = {
-                                          ...step,
-                                          expectedCompletionDate: dateValue ? new Date(dateValue) : undefined
-                                        };
-                                        updateProcessingStep(step.id, step.status, step.notes, updatedStep);
-                                      }}
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                  </div>
-                                )}
-
-                                {/* All other authorities: both date in and date out */}
-                                {!step.id.endsWith('_delivery') && !step.id.endsWith('_pickup') && (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Date submitted to authority
-                                      </label>
-                                      <input
-                                        type="date"
-                                        value={step.submittedAt ? new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0] : ''}
-                                        onChange={(e) => {
-                                          const dateValue = e.target.value;
-                                          const updatedStep = {
-                                            ...step,
-                                            submittedAt: dateValue ? new Date(dateValue) : undefined
-                                          };
-                                          updateProcessingStep(step.id, step.status, step.notes, updatedStep);
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Expected completion date
-                                      </label>
-                                      <input
-                                        type="date"
-                                        value={step.expectedCompletionDate ? new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0] : ''}
-                                        onChange={(e) => {
-                                          const dateValue = e.target.value;
-                                          const updatedStep = {
-                                            ...step,
-                                            expectedCompletionDate: dateValue ? new Date(dateValue) : undefined
-                                          };
-                                          updateProcessingStep(step.id, step.status, step.notes, updatedStep);
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {step.status === 'completed' && step.completedAt && (
-                              <div className="text-xs text-gray-500 mt-2">
-                                Completed {formatDate(step.completedAt)} by {step.completedBy}
-                              </div>
-                            )}
-                            {step.notes && (
-                              <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                                {step.notes}
-                              </div>
-                            )}
-                            {/* Documents received description field */}
-                            {(step.id === 'document_receipt' || step.id === 'email_documents_received') && (
-                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <label className="block text-sm font-medium text-blue-900 mb-2">
-                                  📋 Received documents
-                                </label>
-                                <p className="text-xs text-blue-700 mb-2">
-                                  Describe which documents were received (e.g. "1 x Power of Attorney, 2 x Certificate of Incorporation")
-                                </p>
-                                <div className="flex gap-2">
-                                  <input
-                                    type="text"
-                                    value={receivedDocumentsDescription}
-                                    onChange={(e) => setReceivedDocumentsDescription(e.target.value)}
-                                    placeholder="e.g. 1 x Power of Attorney, 2 x Birth Certificate"
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                  />
-                                  <button
-                                    onClick={saveReceivedDocumentsDescription}
-                                    disabled={savingReceivedDocs}
-                                    className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
-                                  >
-                                    {savingReceivedDocs ? 'Saving...' : 'Save'}
-                                  </button>
-                                </div>
-                                {(order as any)?.receivedDocumentsDescription && (
-                                  <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
-                                    <span>✓</span> Saved: {(order as any).receivedDocumentsDescription}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {step.id === 'pickup_booking' && (
-                              <div className="mt-3 space-y-3">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Tracking-nummer för upphämtning
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={pickupTrackingNumber}
-                                    onChange={(e) => setPickupTrackingNumber(e.target.value)}
-                                    onBlur={savePickupTrackingInfo}
-                                    placeholder="t.ex. 1234567890"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
-                                  {/* Show if label has been sent */}
-                                  {(order as any)?.pickupLabelSent ? (
-                                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-green-800 font-medium text-sm">✓ DHL label already sent to customer</p>
-                                          {(order as any)?.pickupLabelSentAt && (
-                                            <p className="text-green-600 text-xs mt-1">
-                                              Sent: {new Date((order as any).pickupLabelSentAt).toLocaleString('sv-SE')}
-                                            </p>
-                                          )}
-                                          {(order as any)?.pickupTrackingNumber && (
-                                            <p className="text-green-600 text-xs">
-                                              Tracking: {(order as any).pickupTrackingNumber}
-                                            </p>
-                                          )}
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                          {(order as any)?.pickupLabelPdf ? (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const pdf = (order as any).pickupLabelPdf;
-                                                const link = document.createElement('a');
-                                                link.href = `data:application/pdf;base64,${pdf}`;
-                                                link.download = `DHL-Label-${order?.orderNumber || 'label'}.pdf`;
-                                                link.click();
-                                              }}
-                                              className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 flex items-center gap-1"
-                                            >
-                                              📥 Download label
-                                            </button>
-                                          ) : (order as any)?.pickupTrackingNumber ? (
-                                            <span className="text-xs text-gray-500 italic">
-                                              Label not stored (created before update)
-                                            </span>
-                                          ) : null}
-                                          {(order as any)?.pickupTrackingNumber && (
-                                            <a
-                                              href={`https://www.dhl.com/se-sv/home/tracking/tracking-express.html?submit=1&tracking-id=${(order as any).pickupTrackingNumber}`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 flex items-center gap-1"
-                                            >
-                                              🔍 Track shipment
-                                            </a>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <p className="text-amber-700 text-xs mt-2 bg-amber-50 p-2 rounded border border-amber-200">
-                                        ⚠️ A DHL shipment has already been created. Creating another will result in duplicate shipments and charges.
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      {/* Check if customer selected Stockholm Courier for pickup */}
-                                      {(order as any)?.premiumPickup && ['stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes((order as any).premiumPickup) ? (
-                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                                          <p className="text-blue-800 font-medium text-sm">
-                                            ℹ️ Customer selected: {(order as any).premiumPickup === 'stockholm-city' ? 'Stockholm City Courier' :
-                                              (order as any).premiumPickup === 'stockholm-express' ? 'Stockholm Express' :
-                                              'Stockholm Same Day'}
-                                          </p>
-                                          <p className="text-blue-600 text-xs mt-1">
-                                            DHL pickup is not needed. Use Stockholm Courier for pickup instead.
-                                          </p>
-                                        </div>
-                                      ) : (
-                                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                                          <button
-                                            type="button"
-                                            onClick={createAndSendDhlPickupLabel}
-                                            disabled={creatingDhlPickupLabel || !order}
-                                            className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            {creatingDhlPickupLabel ? '📧 Creating & sending...' : '📧 Create & send DHL label to customer'}
-                                          </button>
-                                        </div>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-
-                                <div className="space-y-2 border-t pt-3 mt-3">
-                                  <div className="text-sm text-gray-700">
-                                    <p className="font-medium">Manual upload (alternative)</p>
-                                    <p className="text-xs text-gray-500">
-                                      Filename must contain order number {order?.orderNumber || (router.query.id as string)}.
-                                    </p>
-                                  </div>
-
-                                  {order && (order as any).pickupLabelFile && (
-                                    <div className="flex items-center justify-between text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2">
-                                      <div>
-                                        <p className="font-medium">Uploaded label</p>
-                                        <p className="text-gray-700 truncate max-w-xs">{(order as any).pickupLabelFile.originalName}</p>
-                                      </div>
-                                      {(order as any).pickupLabelFile.downloadURL && (
-                                        <a
-                                          href={(order as any).pickupLabelFile.downloadURL}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-primary-600 text-sm underline ml-4"
-                                        >
-                                          Open
-                                        </a>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  <div className="flex flex-wrap items-center gap-3">
-                                    <input
-                                      ref={pickupLabelInputRef}
-                                      type="file"
-                                      accept=".pdf,image/*"
-                                      onChange={handlePickupLabelFileSelected}
-                                      className="hidden"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => pickupLabelInputRef.current?.click()}
-                                      disabled={isUploadingPickupLabel}
-                                      className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {isUploadingPickupLabel ? 'Uploading...' : 'Upload label'}
-                                    </button>
-                                    <button
-                                      onClick={handleSendPickupLabel}
-                                      disabled={sendingPickupLabel || !(order as any).pickupLabelFile}
-                                      className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {sendingPickupLabel ? 'Sending...' : 'Send label'}
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            {step.id === 'return_shipping' && (
-                              <div className="mt-3 space-y-3">
-                                {/* Show selected return service */}
-                                <div className="p-3 bg-gray-50 border border-gray-200 rounded">
-                                  <p className="text-sm font-medium text-gray-700 mb-1">Customer selected return service:</p>
-                                  <p className="text-base font-semibold">
-                                    {order?.returnService ? (
-                                      <>
-                                        {order.returnService.includes('dhl') || order.returnService === 'retur' || order.returnService === 'own-delivery' ? '📦 ' :
-                                         order.returnService.includes('postnord') ? '📮 ' :
-                                         order.returnService.includes('stockholm') ? '🚴 ' :
-                                         order.returnService === 'office-pickup' ? '🏢 ' : '📦 '}
-                                        {getReturnServiceName(order.returnService)}
-                                      </>
-                                    ) : '❌ No return service selected'}
-                                  </p>
-                                </div>
-
-                                {/* Confirmed prices for email - optional */}
-                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                                    💰 Confirm prices for customer email (optional)
-                                  </label>
-                                  <p className="text-xs text-amber-700 mb-3">
-                                    If you enter prices here, they will be included in the completion email sent to both the customer and fakturor@visumpartner.se
-                                  </p>
-                                  
-                                  {confirmedPrices.map((price, index) => (
-                                    <div key={index} className="flex gap-2 mb-2">
-                                      <input
-                                        type="text"
-                                        value={price.label}
-                                        onChange={(e) => {
-                                          const newPrices = [...confirmedPrices];
-                                          newPrices[index] = { ...newPrices[index], label: e.target.value };
-                                          setConfirmedPrices(newPrices);
-                                        }}
-                                        placeholder="Service name (e.g. Embassy Official Fee)"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                                      />
-                                      <input
-                                        type="text"
-                                        value={price.amount}
-                                        onChange={(e) => {
-                                          const newPrices = [...confirmedPrices];
-                                          newPrices[index] = { ...newPrices[index], amount: e.target.value };
-                                          setConfirmedPrices(newPrices);
-                                        }}
-                                        placeholder="Amount (e.g. 1200 kr)"
-                                        className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                                      />
-                                      <button
-                                        onClick={() => {
-                                          const newPrices = confirmedPrices.filter((_, i) => i !== index);
-                                          setConfirmedPrices(newPrices);
-                                        }}
-                                        className="px-2 py-2 text-red-600 hover:bg-red-50 rounded"
-                                        title="Remove"
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
-                                  ))}
-                                  
-                                  <div className="flex gap-2 mt-2">
-                                    <button
-                                      onClick={() => setConfirmedPrices([...confirmedPrices, { label: '', amount: '' }])}
-                                      className="px-3 py-1.5 text-sm text-amber-700 border border-amber-300 rounded hover:bg-amber-100"
-                                    >
-                                      + Add price row
-                                    </button>
-                                    {confirmedPrices.length > 0 && (
-                                      <button
-                                        onClick={saveConfirmedPrices}
-                                        disabled={savingConfirmedPrices}
-                                        className="px-4 py-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 text-sm font-medium"
-                                      >
-                                        {savingConfirmedPrices ? 'Saving...' : 'Save prices'}
-                                      </button>
-                                    )}
-                                  </div>
-                                  
-                                  {(order as any)?.confirmedPrices?.length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-amber-200">
-                                      <p className="text-xs text-green-700 flex items-center gap-1">
-                                        <span>✓</span> Saved prices will be included in completion email
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Hide tracking number input for office-pickup since no shipping is needed */}
-                                {order?.returnService !== 'office-pickup' && (
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Return tracking number
-                                    </label>
-                                    <div className="flex gap-2">
-                                      <input
-                                        type="text"
-                                        value={trackingNumber}
-                                        onChange={(e) => setTrackingNumber(e.target.value)}
-                                        placeholder="e.g. 1234567890"
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      />
-                                      <button
-                                        onClick={saveTrackingInfo}
-                                        disabled={savingTracking}
-                                        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
-                                      >
-                                        {savingTracking ? 'Saving...' : 'Save'}
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Show if shipment already booked */}
-                                {/* Show if return shipment has been booked */}
-                                {(order as any)?.dhlShipmentBooked ? (
-                                  <div className="p-3 bg-green-50 border border-green-200 rounded">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <p className="text-green-800 font-medium text-sm">✓ DHL return shipment already booked</p>
-                                        {(order as any)?.dhlShipmentBookedAt && (
-                                          <p className="text-green-600 text-xs mt-1">
-                                            Booked: {new Date((order as any).dhlShipmentBookedAt).toLocaleString('sv-SE')}
-                                          </p>
-                                        )}
-                                        {trackingNumber && (
-                                          <p className="text-green-600 text-xs">
-                                            Tracking: {trackingNumber}
-                                          </p>
-                                        )}
-                                      </div>
-                                      <div className="flex flex-col gap-2">
-                                        {(order as any)?.dhlReturnLabelBase64 ? (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const pdf = (order as any).dhlReturnLabelBase64;
-                                              const link = document.createElement('a');
-                                              link.href = `data:application/pdf;base64,${pdf}`;
-                                              link.download = `DHL-Return-Label-${order?.orderNumber || 'label'}.pdf`;
-                                              link.click();
-                                            }}
-                                            className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 flex items-center gap-1"
-                                          >
-                                            📥 Download label
-                                          </button>
-                                        ) : trackingNumber ? (
-                                          <button
-                                            type="button"
-                                            onClick={() => downloadDhlLabel()}
-                                            className="px-3 py-1.5 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-700 flex items-center gap-1"
-                                          >
-                                            📄 Generate label
-                                          </button>
-                                        ) : null}
-                                        {trackingUrl && (
-                                          <a
-                                            href={trackingUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="px-3 py-1.5 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600 flex items-center gap-1"
-                                          >
-                                            🔍 Track shipment
-                                          </a>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <p className="text-amber-700 text-xs mt-2 bg-amber-50 p-2 rounded border border-amber-200">
-                                      ⚠️ A DHL return shipment has already been booked. Booking another will result in duplicate shipments and charges.
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <>
-                                    {/* Check if customer selected non-DHL return service */}
-                                    {order?.returnService === 'postnord-rek' ? (
-                                      // PostNord REK booking
-                                      (order as any).postnordShipmentBooked ? (
-                                        <div className="p-3 bg-green-50 border border-green-200 rounded">
-                                          <div className="flex justify-between items-start">
-                                            <p className="text-green-800 font-medium text-sm">
-                                              ✅ PostNord REK booked
-                                            </p>
-                                            <button
-                                              type="button"
-                                              onClick={rebookPostNordShipment}
-                                              disabled={bookingPostNordShipment}
-                                              className="text-xs text-orange-600 hover:text-orange-800 hover:underline disabled:opacity-50"
-                                              title="Boka om PostNord REK"
-                                            >
-                                              ⟳ Boka om
-                                            </button>
-                                          </div>
-                                          <div className="mt-2 flex flex-wrap gap-2 items-center">
-                                            {(order as any).postnordTrackingNumber && (
-                                              <span className="text-xs bg-white px-2 py-1 rounded border">
-                                                📮 {(order as any).postnordTrackingNumber}
-                                              </span>
-                                            )}
-                                            {(order as any).postnordTrackingUrl && (
-                                              <a
-                                                href={(order as any).postnordTrackingUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-xs text-blue-600 hover:underline"
-                                              >
-                                                🔍 Track shipment
-                                              </a>
-                                            )}
-                                            {(order as any).postnordLabelBase64 ? (
-                                              <>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const link = document.createElement('a');
-                                                    link.href = `data:application/pdf;base64,${(order as any).postnordLabelBase64}`;
-                                                    link.download = `postnord-label-${order.orderNumber}.pdf`;
-                                                    link.click();
-                                                  }}
-                                                  className="text-xs text-green-600 hover:underline"
-                                                >
-                                                  📄 Download label
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const pdfData = (order as any).postnordLabelBase64;
-                                                    const byteCharacters = atob(pdfData);
-                                                    const byteNumbers = new Array(byteCharacters.length);
-                                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                                      byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                                    }
-                                                    const byteArray = new Uint8Array(byteNumbers);
-                                                    const blob = new Blob([byteArray], { type: 'application/pdf' });
-                                                    const url = URL.createObjectURL(blob);
-                                                    const printWindow = window.open(url, '_blank');
-                                                    if (printWindow) {
-                                                      printWindow.onload = () => {
-                                                        printWindow.print();
-                                                      };
-                                                    }
-                                                  }}
-                                                  className="text-xs text-purple-600 hover:underline"
-                                                >
-                                                  🖨️ Print label
-                                                </button>
-                                              </>
-                                            ) : (
-                                              <a
-                                                href="https://portal.postnord.com/portal/shipments"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-xs text-blue-600 hover:text-blue-800 underline"
-                                              >
-                                                🖨️ Print from PostNord Portal
-                                              </a>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={bookPostNordShipment}
-                                            disabled={bookingPostNordShipment || !order}
-                                            className="px-3 py-1.5 bg-yellow-600 text-white rounded-md text-sm hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            {bookingPostNordShipment ? '📮 Booking PostNord REK...' : '📮 Book PostNord REK'}
-                                          </button>
-                                          <span className="text-xs text-gray-500">
-                                            Customer selected: PostNord REK (Registered Mail)
-                                          </span>
-                                        </div>
-                                      )
-                                    ) : order?.returnService && ['postnord-express', 'stockholm-city', 'stockholm-express', 'stockholm-sameday'].includes(order.returnService) ? (
-                                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                                        <p className="text-blue-800 font-medium text-sm">
-                                          ℹ️ Customer selected: {order.returnService === 'postnord-express' ? 'PostNord Express' :
-                                            order.returnService === 'stockholm-city' ? 'Stockholm City Courier' :
-                                            order.returnService === 'stockholm-express' ? 'Stockholm Express' :
-                                            'Stockholm Same Day'}
-                                        </p>
-                                        <p className="text-blue-600 text-xs mt-1">
-                                          Manual booking required for this shipping method.
-                                        </p>
-                                      </div>
-                                    ) : order?.returnService && ['own-delivery', 'office-pickup'].includes(order.returnService) ? (
-                                      <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-                                        <p className="text-slate-800 font-medium text-sm">
-                                          ℹ️ Customer selected: {order.returnService === 'own-delivery' ? 'Own delivery' : 'Office pickup'}
-                                        </p>
-                                        <p className="text-slate-600 text-xs mt-1">
-                                          No return shipment booking is needed for this return option.
-                                        </p>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={bookDhlShipment}
-                                          disabled={bookingDhlShipment || !order}
-                                          className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                          {bookingDhlShipment ? '📦 Booking DHL return...' : '📦 Book DHL return shipment'}
-                                        </button>
-                                        {/* Show premium delivery info if selected */}
-                                        {(order as any)?.premiumDelivery && ['dhl-pre-9', 'dhl-pre-12'].includes((order as any).premiumDelivery) && (
-                                          <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                                            ⚡ {(order as any).premiumDelivery === 'dhl-pre-9' ? 'DHL Pre 9:00' : 'DHL Pre 12:00'}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Internal Notes (append-only) */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-3">Internal notes</h3>
-                      <div className="space-y-3 mb-4">
-                        {internalNotesList.length === 0 && (
-                          <div className="text-sm text-gray-500">No notes yet</div>
-                        )}
-                        {internalNotesList.map((n) => (
-                          <div key={n.id} className="border border-gray-200 rounded p-3 bg-gray-50">
-                            <div className="whitespace-pre-wrap text-sm text-gray-800">{n.content}</div>
-                            <div className="mt-2 text-xs text-gray-500">
-                              Created {formatDate(n.createdAt)} by {n.createdBy || 'Unknown'}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <textarea
-                        value={internalNoteText}
-                        onChange={(e) => setInternalNoteText(e.target.value)}
-                        placeholder="Write a new internal note..."
-                        className="w-full border border-gray-300 rounded-lg p-3"
-                        rows={3}
-                      />
-                      <div className="mt-2">
-                        <button
-                          onClick={addInternalNote}
-                          className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
-                        >
-                          Add note
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <ProcessingTab ctx={{
+                    order, orderId: router.query.id as string,
+                    processingSteps, setProcessingSteps,
+                    internalNotesList, internalNoteText, setInternalNoteText, addInternalNote,
+                    formatDate, getProcessingStepCardClasses, stripFlagEmoji,
+                    adminUpdateOrder, setOrder,
+                    adminName: (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string,
+                    currentUserId: currentUser?.uid || '',
+                    downloadOrderConfirmation, downloadDhlReturnLabel,
+                    showEmbassyPriceWarningModal, setShowEmbassyPriceWarningModal,
+                    pendingStepUpdate, setPendingStepUpdate, toast, router,
+                    initializeProcessingSteps,
+                    trackingNumber, setTrackingNumber, trackingUrl,
+                    pickupTrackingNumber, setPickupTrackingNumber,
+                    savingTracking, saveTrackingInfo, savePickupTrackingInfo,
+                    bookingDhlShipment, bookDhlShipment,
+                    bookingPostNordShipment, bookPostNordShipment, rebookPostNordShipment,
+                    downloadDhlLabel, createAndSendDhlPickupLabel, creatingDhlPickupLabel,
+                    handlePickupLabelFileSelected, handleSendPickupLabel,
+                    isUploadingPickupLabel, sendingPickupLabel, pickupLabelInputRef,
+                    embassyPriceInput, setEmbassyPriceInput,
+                    sendEmbassyPriceConfirmation, sendingEmbassyPriceConfirmation,
+                    isEmbassyPriceConfirmationSent, isEmbassyPriceConfirmed, isEmbassyPriceDeclined,
+                    needsEmbassyPriceConfirmation,
+                    sendAddressConfirmation, sendingAddressConfirmation,
+                    needsAddressConfirmation, isAddressConfirmed, isConfirmationSent,
+                    confirmedPrices, setConfirmedPrices, savingConfirmedPrices, saveConfirmedPrices,
+                    receivedDocumentsDescription, setReceivedDocumentsDescription, savingReceivedDocs, saveReceivedDocumentsDescription,
+                    handleStepUpdateWithConfirmation, updateProcessingStep,
+                    isAuthorityService, getReturnServiceName,
+                  }} />
                 )}
 
                 {/* Files Tab */}
                 {activeTab === 'files' && (
-                  <div className="space-y-6">
-                    {/* Return Shipping Label Section */}
-                    {(order as any).returnService === 'own-delivery' && (
-                      <div className={`border rounded-lg p-4 ${
-                        order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName)
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'bg-amber-50 border-amber-200'
-                      }`}>
-                        <div className="flex items-center mb-3">
-                          <span className="text-2xl mr-2">📦</span>
-                          <h3 className={`text-lg font-medium ${
-                            order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName)
-                              ? 'text-blue-900'
-                              : 'text-amber-900'
-                          }`}>Return Shipping Label</h3>
-                        </div>
-                        <p className={`text-sm mb-3 ${
-                          order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName)
-                            ? 'text-blue-700'
-                            : 'text-amber-700'
-                        }`}>
-                          Customer uploaded their own return shipping label. Print and attach to package.
-                        </p>
-                        {order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName) ? (
-                          <div className="flex space-x-2">
-                            <a
-                              href={order.uploadedFiles.find((f: any) => f.originalName === (order as any).returnLabelFileName)?.downloadURL}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
-                            >
-                              📥 Download Label
-                            </a>
-                            <button
-                              onClick={() => {
-                                const labelFile = order.uploadedFiles?.find((f: any) => f.originalName === (order as any).returnLabelFileName);
-                                if (labelFile?.downloadURL) {
-                                  const printWindow = window.open(labelFile.downloadURL, '_blank');
-                                  if (printWindow) {
-                                    printWindow.onload = () => printWindow.print();
-                                  }
-                                }
-                              }}
-                              className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm font-medium"
-                            >
-                              🖨️ Print Label
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="bg-amber-100 border border-amber-300 rounded p-3">
-                            <p className="text-amber-800 font-medium">⚠️ Return label missing</p>
-                            <p className="text-amber-700 text-sm mt-1">
-                              Customer selected own return but the label was not uploaded correctly. 
-                              {(order as any).returnLabelFileName && (
-                                <span> Expected filename: <code className="bg-amber-200 px-1 rounded">{(order as any).returnLabelFileName}</code></span>
-                              )}
-                            </p>
-                            <p className="text-amber-700 text-sm mt-2">
-                              <strong>Action:</strong> Contact the customer and ask them to send the return label via email.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Uploaded files</h3>
-                      {order.uploadedFiles && order.uploadedFiles.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {order.uploadedFiles.map((file: any, index: number) => {
-                            const isReturnLabel = (order as any).returnLabelFileName && file.originalName === (order as any).returnLabelFileName;
-                            return (
-                            <div key={index} className={`border rounded-lg p-4 ${isReturnLabel ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center">
-                                  {isReturnLabel ? (
-                                    <span className="text-2xl mr-3">📦</span>
-                                  ) : (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                  )}
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-medium text-gray-900">{file.originalName}</p>
-                                      {isReturnLabel && (
-                                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                          Return Label
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-sm text-gray-500">
-                                      {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex space-x-2">
-                                <a
-                                  href={file.downloadURL}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 text-center px-3 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 text-sm"
-                                >
-                                  Download
-                                </a>
-                                <button
-                                  onClick={() => window.open(file.downloadURL, '_blank')}
-                                  className="px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm"
-                                >
-                                  Preview
-                                </button>
-                              </div>
-                            </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <p>No files uploaded yet</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Supplementary Files */}
-                    {(order as any).supplementaryFiles && (order as any).supplementaryFiles.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Supplementary Documents</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {(order as any).supplementaryFiles.map((file: any, index: number) => (
-                            <div key={index} className="border border-green-200 bg-green-50 rounded-lg p-4">
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                  <div>
-                                    <p className="font-medium text-gray-900">{file.name}</p>
-                                    <p className="text-sm text-gray-500">
-                                      {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : ''} 
-                                      {file.uploadedAt && ` • ${new Date(file.uploadedAt).toLocaleDateString('sv-SE')}`}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex space-x-2">
-                                <a
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 text-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                                >
-                                  Download
-                                </a>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Admin Files - Files to send to customer */}
-                    <div className="border-t border-gray-200 pt-6">
-                      <h3 className="text-lg font-medium mb-4">📤 Files for Customer</h3>
-                      <p className="text-gray-600 mb-4">
-                        Upload files here that you want to send to the customer (e.g., approved visa, processed documents).
-                      </p>
-                      
-                      {/* Encryption Reminder */}
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                        <div className="flex items-start">
-                          <span className="text-2xl mr-3">🔐</span>
-                          <div>
-                            <h4 className="font-medium text-amber-800 mb-1">Security Reminder</h4>
-                            <p className="text-sm text-amber-700">
-                              <strong>Always encrypt sensitive files with a password before uploading.</strong> After sending the file, use the password field to send the password in a separate email for security.
-                            </p>
-                            <p className="text-xs text-amber-600 mt-2">
-                              Tip: Use PDF encryption or zip with password protection before uploading.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Upload Section */}
-                      <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 mb-4">
-                        <input
-                          type="file"
-                          ref={adminFileInputRef}
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              setAdminUploadFiles(Array.from(e.target.files));
-                            }
-                          }}
-                        />
-                        <div className="text-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
-                          <button
-                            onClick={() => adminFileInputRef.current?.click()}
-                            className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
-                          >
-                            Select Files
-                          </button>
-                          <p className="text-sm text-gray-500 mt-2">PDF, images, documents (max 25 MB per file)</p>
-                        </div>
-                        
-                        {adminUploadFiles.length > 0 && (
-                          <div className="mt-4 space-y-2">
-                            <p className="font-medium text-gray-700">Selected files:</p>
-                            {adminUploadFiles.map((file, idx) => (
-                              <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border">
-                                <span className="text-sm truncate">{file.name}</span>
-                                <button
-                                  onClick={() => setAdminUploadFiles(adminUploadFiles.filter((_, i) => i !== idx))}
-                                  className="text-red-500 hover:text-red-700 ml-2"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))}
-                            <button
-                              onClick={handleAdminFileUpload}
-                              disabled={uploadingAdminFiles}
-                              className="w-full mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center justify-center"
-                            >
-                              {uploadingAdminFiles ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                  Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                  </svg>
-                                  Upload {adminUploadFiles.length} file{adminUploadFiles.length > 1 ? 's' : ''}
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Uploaded Admin Files */}
-                      {(order as any).adminFiles && (order as any).adminFiles.length > 0 && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium text-gray-700">Uploaded files ready to send:</h4>
-                          <div className="grid grid-cols-1 gap-4">
-                            {(order as any).adminFiles.map((file: any, index: number) => (
-                              <div key={index} className={`border rounded-lg p-4 ${file.sentToCustomer ? 'border-green-200 bg-green-50' : 'border-purple-200 bg-purple-50'}`}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center flex-1 min-w-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-10 w-10 mr-4 flex-shrink-0 ${file.sentToCustomer ? 'text-green-500' : 'text-purple-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-gray-900 truncate">{file.name}</p>
-                                      <p className="text-sm text-gray-500">
-                                        {file.size ? `${(file.size / 1024).toFixed(0)} KB` : ''} 
-                                        {file.uploadedAt && ` • Uploaded ${new Date(file.uploadedAt).toLocaleDateString('en-GB')}`}
-                                      </p>
-                                      {file.sentToCustomer && (
-                                        <p className="text-sm text-green-600 font-medium mt-1">
-                                          ✓ Sent to customer {file.sentAt && new Date(file.sentAt).toLocaleDateString('en-GB')}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center space-x-2 ml-4">
-                                    <a
-                                      href={file.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm"
-                                    >
-                                      Preview
-                                    </a>
-                                    {!file.sentToCustomer ? (
-                                      <button
-                                        onClick={() => {
-                                          setSelectedFilesToSend([file.url]);
-                                          setFileMessageToCustomer('');
-                                        }}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium flex items-center"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
-                                        Send to Customer
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => {
-                                          setSelectedFilesToSend([file.url]);
-                                          setFileMessageToCustomer('');
-                                        }}
-                                        className="px-4 py-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 text-sm flex items-center"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        Resend
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Send Confirmation Modal */}
-                          {selectedFilesToSend.length > 0 && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                              <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <h3 className="text-lg font-bold text-gray-900">Send File to Customer</h3>
-                                  <button
-                                    onClick={() => setSelectedFilesToSend([])}
-                                    className="text-gray-400 hover:text-gray-600"
-                                  >
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                </div>
-                                
-                                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                                  <p className="text-sm text-gray-600">
-                                    Sending to: <strong>{order.customerInfo?.email}</strong>
-                                  </p>
-                                  <p className="text-sm text-gray-500 mt-1">
-                                    File: {(order as any).adminFiles?.find((f: any) => f.url === selectedFilesToSend[0])?.name}
-                                  </p>
-                                </div>
-
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Message to customer (optional)
-                                  </label>
-                                  <textarea
-                                    value={fileMessageToCustomer}
-                                    onChange={(e) => setFileMessageToCustomer(e.target.value)}
-                                    placeholder="e.g., Here is your approved visa document..."
-                                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    rows={3}
-                                  />
-                                </div>
-
-                                {/* Password Section */}
-                                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                  <label className="block text-sm font-medium text-amber-800 mb-2">
-                                    🔐 File Password (send separately for security)
-                                  </label>
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      value={filePassword}
-                                      onChange={(e) => setFilePassword(e.target.value)}
-                                      placeholder="Enter password if file is encrypted..."
-                                      className="flex-1 border border-amber-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                    />
-                                    <button
-                                      onClick={handleSendPasswordEmail}
-                                      disabled={!filePassword.trim() || sendingPassword}
-                                      className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 text-sm font-medium whitespace-nowrap"
-                                    >
-                                      {sendingPassword ? 'Sending...' : 'Send Password'}
-                                    </button>
-                                  </div>
-                                  <p className="text-xs text-amber-600 mt-2">
-                                    The password will be sent in a separate email for security.
-                                  </p>
-                                </div>
-
-                                <div className="flex space-x-3">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedFilesToSend([]);
-                                      setFilePassword('');
-                                    }}
-                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={handleSendFilesToCustomer}
-                                    disabled={sendingFilesToCustomer}
-                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center font-medium"
-                                  >
-                                    {sendingFilesToCustomer ? (
-                                      <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Sending...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                        </svg>
-                                        Send File
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Pickup Address */}
-                    {order.pickupService && order.pickupAddress && (
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Pickup address</h3>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <span className="font-medium text-blue-800">Document pickup ordered</span>
-                          </div>
-                          <p className="text-blue-700">{order.pickupAddress.street}</p>
-                          <p className="text-blue-700">{order.pickupAddress.postalCode} {order.pickupAddress.city}</p>
-                          <p className="text-blue-600 text-sm mt-2">We will contact the customer within 24 hours to schedule the pickup.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <FilesTab
+                    order={order}
+                    adminUploadFiles={adminUploadFiles}
+                    setAdminUploadFiles={setAdminUploadFiles}
+                    uploadingAdminFiles={uploadingAdminFiles}
+                    onAdminFileUpload={handleAdminFileUpload}
+                    selectedFilesToSend={selectedFilesToSend}
+                    setSelectedFilesToSend={setSelectedFilesToSend}
+                    sendingFilesToCustomer={sendingFilesToCustomer}
+                    onSendFilesToCustomer={handleSendFilesToCustomer}
+                    fileMessageToCustomer={fileMessageToCustomer}
+                    setFileMessageToCustomer={setFileMessageToCustomer}
+                    filePassword={filePassword}
+                    setFilePassword={setFilePassword}
+                    sendingPassword={sendingPassword}
+                    onSendPasswordEmail={handleSendPasswordEmail}
+                    adminFileInputRef={adminFileInputRef}
+                  />
                 )}
 
                 {/* Invoice Tab */}
                 {activeTab === 'invoice' && (
-                  <div className="space-y-6">
-                    {/* Create Invoice Section */}
-                    {invoices.length === 0 && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-medium text-blue-800 mb-2">No invoice created yet</h3>
-                            <p className="text-blue-700 mb-4">
-                              Create an invoice for this order to send it to the customer and track payments.
-                            </p>
-                            <button
-                              onClick={handleCreateInvoice}
-                              disabled={creatingInvoice}
-                              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center"
-                            >
-                              {creatingInvoice ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                  Creating invoice...
-                                </>
-                              ) : (
-                                <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                  </svg>
-                                  Create Invoice
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Existing Invoices */}
-                    {invoices.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-medium">Invoices ({invoices.length})</h3>
-                          <button
-                            onClick={handleCreateInvoice}
-                            disabled={creatingInvoice}
-                            className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 flex items-center text-sm"
-                          >
-                            {creatingInvoice ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Creating...
-                              </>
-                            ) : (
-                              <>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                New Invoice
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        <div className="space-y-4">
-                          {invoices.map((invoice) => (
-                            <div key={invoice.id} className="border border-gray-200 rounded-lg p-6 bg-white">
-                              <div className="flex items-start justify-between mb-4">
-                                <div>
-                                  <h4 className="text-xl font-bold text-gray-900">{invoice.invoiceNumber}</h4>
-                                  <p className="text-sm text-gray-600">
-                                    Created {formatDate(invoice.issueDate)} • Due {formatDate(invoice.dueDate)}
-                                  </p>
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2 ${
-                                    invoice.status === 'draft' ? 'bg-gray-100 text-gray-800' :
-                                    invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                                    invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                                    invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {invoice.status === 'draft' ? 'Draft' :
-                                     invoice.status === 'sent' ? 'Sent' :
-                                     invoice.status === 'paid' ? 'Paid' :
-                                     invoice.status === 'overdue' ? 'Overdue' :
-                                     invoice.status}
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-2xl font-bold text-gray-900">{invoice.totalAmount} SEK</div>
-                                  <div className="text-sm text-gray-600">Incl. VAT</div>
-                                </div>
-                              </div>
-
-                              {/* Invoice Actions */}
-                              <div className="flex items-center space-x-3 pt-4 border-t border-gray-200">
-                                <button
-                                  onClick={() => handleDownloadInvoice(invoice)}
-                                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                  Download PDF
-                                </button>
-
-                                <button
-                                  onClick={() => handleSendInvoice(invoice)}
-                                  disabled={sendingInvoice === invoice.id}
-                                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                                >
-                                  {sendingInvoice === invoice.id ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-                                      Sending...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                      </svg>
-                                      Send via Email
-                                    </>
-                                  )}
-                                </button>
-
-                                <Link
-                                  href={`/admin/invoices/${invoice.id}`}
-                                  className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                  View Details
-                                </Link>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <InvoiceTab
+                    invoices={invoices}
+                    creatingInvoice={creatingInvoice}
+                    sendingInvoice={sendingInvoice}
+                    formatDate={formatDate}
+                    onCreateInvoice={handleCreateInvoice}
+                    onDownloadInvoice={handleDownloadInvoice}
+                    onSendInvoice={handleSendInvoice}
+                  />
                 )}
 
                 {/* Cover Letters Tab */}
                 {activeTab === 'coverletters' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium">Cover Letters</h3>
-                      <p className="text-sm text-gray-500">Generate cover letters for each authority/instance</p>
-                    </div>
-
-                    {/* Determine which cover letters are needed based on services */}
-                    {(() => {
-                      const services = Array.isArray(order.services) ? order.services : [];
-                      const hasNotarization = services.some(s => s === 'notarization' || s === 'notarisering');
-                      const hasApostille = services.some(s => s === 'apostille');
-                      const hasChamber = services.some(s => s === 'chamber');
-                      const hasUD = services.some(s => s === 'ud' || s === 'utrikesdepartementet');
-                      const hasEmbassy = services.some(s => s === 'embassy' || s === 'ambassad');
-                      const hasTranslation = services.some(s => s === 'translation' || s === 'oversattning');
-
-                      // Notarization + Apostille share the same cover letter (same visit to Notarius Publicus)
-                      const needsNotaryApostille = hasNotarization || hasApostille;
-
-                      const coverLetters = [];
-
-                      if (needsNotaryApostille) {
-                        coverLetters.push({
-                          id: 'notary-apostille',
-                          name: 'Notarius Publicus / Apostille',
-                          description: hasNotarization && hasApostille 
-                            ? 'Combined cover letter for notarization and apostille (same authority)'
-                            : hasNotarization 
-                              ? 'Cover letter for notarization'
-                              : 'Cover letter for apostille',
-                          icon: '⚖️',
-                          services: [hasNotarization && 'Notarization', hasApostille && 'Apostille'].filter(Boolean)
-                        });
-                      }
-
-                      if (hasChamber) {
-                        coverLetters.push({
-                          id: 'chamber',
-                          name: 'Chamber of Commerce',
-                          description: 'Cover letter for Chamber of Commerce legalization',
-                          icon: '🏛️',
-                          services: ['Chamber of Commerce']
-                        });
-                      }
-
-                      if (hasUD) {
-                        coverLetters.push({
-                          id: 'ud',
-                          name: 'Ministry for Foreign Affairs (UD)',
-                          description: 'Cover letter for Ministry for Foreign Affairs legalization',
-                          icon: '🏢',
-                          services: ['Ministry for Foreign Affairs']
-                        });
-                      }
-
-                      if (hasEmbassy) {
-                        coverLetters.push({
-                          id: 'embassy',
-                          name: 'Embassy Legalization',
-                          description: `Cover letter for ${order.country ? `${order.country} ` : ''}embassy legalization`,
-                          icon: '🏳️',
-                          services: ['Embassy Legalization']
-                        });
-                      }
-
-                      if (hasTranslation) {
-                        coverLetters.push({
-                          id: 'translation',
-                          name: 'Translation',
-                          description: 'Cover letter for translation service',
-                          icon: '📄',
-                          services: ['Translation']
-                        });
-                      }
-
-                      if (coverLetters.length === 0) {
-                        return (
-                          <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-                            <span className="text-4xl mb-4 block">📭</span>
-                            <p className="text-gray-600">No cover letters needed for this order.</p>
-                            <p className="text-sm text-gray-500 mt-2">Selected services don't require separate cover letters.</p>
-                          </div>
-                        );
-                      }
-
-                      // Initialize notary data if not set
-                      if (!notaryApostilleData && coverLetters.some(l => l.id === 'notary-apostille')) {
-                        const defaults = getNotaryApostilleDefaults(order);
-                        setNotaryApostilleData(defaults);
-                      }
-
-                      // Initialize embassy data if not set
-                      if (!embassyData && coverLetters.some(l => l.id === 'embassy')) {
-                        const defaults = getEmbassyDefaults(order);
-                        setEmbassyData(defaults);
-                      }
-
-                      // Initialize UD data if not set
-                      if (!udData && coverLetters.some(l => l.id === 'ud')) {
-                        const defaults = getUDDefaults(order);
-                        setUdData(defaults);
-                      }
-
-                      return (
-                        <div className="space-y-6">
-                          {coverLetters.map((letter) => {
-                            // Notary/Apostille with editable form
-                            if (letter.id === 'notary-apostille' && notaryApostilleData) {
-                              return (
-                                <div 
-                                  key={letter.id}
-                                  className="bg-white border border-gray-200 rounded-lg p-5"
-                                >
-                                  <div className="flex items-center space-x-3 mb-4">
-                                    <span className="text-2xl">{letter.icon}</span>
-                                    <div>
-                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
-                                      <p className="text-sm text-gray-500">{letter.description}</p>
-                                    </div>
-                                  </div>
-
-                                  {/* Editable form */}
-                                  <div className="space-y-4 border-t pt-4">
-                                    {/* Document description */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Document description
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={notaryApostilleData.documentDescription}
-                                          onChange={(e) => setNotaryApostilleData({
-                                            ...notaryApostilleData,
-                                            documentDescription: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                          placeholder="e.g. 1 x Birth Certificate"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Document issuer (company/authority)
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={notaryApostilleData.documentIssuer}
-                                          onChange={(e) => setNotaryApostilleData({
-                                            ...notaryApostilleData,
-                                            documentIssuer: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                          placeholder="e.g. Skatteverket, Bolagsverket"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Requested actions (one per line)
-                                      </label>
-                                      <textarea
-                                        value={notaryApostilleData.actions.join('\n')}
-                                        onChange={(e) => setNotaryApostilleData({
-                                          ...notaryApostilleData,
-                                          actions: e.target.value.split('\n').filter(a => a.trim())
-                                        })}
-                                        rows={4}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        placeholder="Signature verification&#10;Apostille"
-                                      />
-                                    </div>
-
-                                    {/* Two column layout */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Country of use
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={notaryApostilleData.countryOfUse}
-                                          onChange={(e) => setNotaryApostilleData({
-                                            ...notaryApostilleData,
-                                            countryOfUse: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Language
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={notaryApostilleData.language}
-                                          onChange={(e) => setNotaryApostilleData({
-                                            ...notaryApostilleData,
-                                            language: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Order number (fixed)
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={order.orderNumber || order.id || ''}
-                                          disabled
-                                          className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Additional invoice reference
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={notaryApostilleData.invoiceReference}
-                                          onChange={(e) => setNotaryApostilleData({
-                                            ...notaryApostilleData,
-                                            invoiceReference: e.target.value
-                                          })}
-                                          placeholder="Optional extra reference..."
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Payment method
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={notaryApostilleData.paymentMethod}
-                                          onChange={(e) => setNotaryApostilleData({
-                                            ...notaryApostilleData,
-                                            paymentMethod: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Return method
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={notaryApostilleData.returnMethod}
-                                        onChange={(e) => setNotaryApostilleData({
-                                          ...notaryApostilleData,
-                                          returnMethod: e.target.value
-                                        })}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                      />
-                                    </div>
-
-                                    {/* Reset button */}
-                                    <div className="flex justify-end">
-                                      <button
-                                        onClick={() => setNotaryApostilleData(getNotaryApostilleDefaults(order))}
-                                        className="text-sm text-gray-500 hover:text-gray-700 underline"
-                                      >
-                                        Reset to defaults
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Action buttons */}
-                                  <div className="flex items-center justify-end space-x-2 mt-4 pt-4 border-t">
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          await downloadNotaryApostilleCoverLetter(order, notaryApostilleData);
-                                          toast.success('Cover letter downloaded');
-                                        } catch (err) {
-                                          toast.error('Failed to generate cover letter');
-                                        }
-                                      }}
-                                      className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                      Download PDF
-                                    </button>
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          await printNotaryApostilleCoverLetter(order, notaryApostilleData);
-                                          toast.success('Printing cover letter');
-                                        } catch (err) {
-                                          toast.error('Failed to print cover letter');
-                                        }
-                                      }}
-                                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                      </svg>
-                                      Print
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            // Chamber of Commerce - downloadable PDF form
-                            if (letter.id === 'chamber') {
-                              return (
-                                <div 
-                                  key={letter.id}
-                                  className="bg-white border border-gray-200 rounded-lg p-5"
-                                >
-                                  <div className="flex items-center space-x-3 mb-4">
-                                    <span className="text-2xl">{letter.icon}</span>
-                                    <div>
-                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
-                                      <p className="text-sm text-gray-500">{letter.description}</p>
-                                    </div>
-                                  </div>
-
-                                  <div className="border-t pt-4">
-                                    <p className="text-sm text-gray-600 mb-3">
-                                      Download the Chamber of Commerce form and fill it in using Adobe Acrobat. 
-                                      <strong className="text-amber-600 bg-yellow-100 px-1"> Attach 1 copy of the original document.</strong>
-                                    </p>
-                                    
-                                    <div className="flex items-center space-x-2">
-                                      <a
-                                        href="/chamber-form.pdf"
-                                        download="Handelskammaren_Dokumentbeställning.pdf"
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 flex items-center"
-                                      >
-                                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        Download Form (PDF)
-                                      </a>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            // Embassy cover letter with editable form
-                            if (letter.id === 'embassy' && embassyData) {
-                              return (
-                                <div 
-                                  key={letter.id}
-                                  className="bg-gradient-to-br from-amber-50 to-white border border-amber-200 rounded-lg p-5"
-                                >
-                                  <div className="flex items-center space-x-3 mb-4">
-                                    <span className="text-2xl">🏛️</span>
-                                    <div>
-                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
-                                      <p className="text-sm text-amber-700">Elegant formal letter for embassy legalisation</p>
-                                    </div>
-                                  </div>
-
-                                  {/* Editable form */}
-                                  <div className="space-y-4 border-t border-amber-200 pt-4">
-                                    {/* Embassy name and address */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Embassy name
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.embassyName}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            embassyName: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                          placeholder="e.g. Embassy of Kuwait"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Embassy address (optional)
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.embassyAddress || ''}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            embassyAddress: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                          placeholder="Street address, City"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {/* Document details */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Document description
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.documentDescription}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            documentDescription: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                          placeholder="e.g. 1 x Birth Certificate"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Document issuer (optional)
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.documentIssuer || ''}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            documentIssuer: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                          placeholder="e.g. Skatteverket"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {/* Country and purpose */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Country of use
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.countryOfUse}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            countryOfUse: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Purpose (optional)
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.purpose || ''}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            purpose: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                          placeholder="e.g. For business registration"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {/* Payment and return */}
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Order number (fixed)
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={order.orderNumber || order.id || ''}
-                                          disabled
-                                          className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Additional invoice reference
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.invoiceReference}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            invoiceReference: e.target.value
-                                          })}
-                                          placeholder="Optional extra reference..."
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Payment method
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.paymentMethod}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            paymentMethod: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Collection method
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.returnMethod}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            returnMethod: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {/* Reset button */}
-                                    <div className="flex justify-end">
-                                      <button
-                                        onClick={() => setEmbassyData(getEmbassyDefaults(order))}
-                                        className="text-sm text-gray-500 hover:text-gray-700 underline"
-                                      >
-                                        Reset to defaults
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Action buttons */}
-                                  <div className="flex items-center justify-end space-x-2 mt-4 pt-4 border-t border-amber-200">
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          await downloadEmbassyCoverLetter(order, embassyData);
-                                          toast.success('Embassy cover letter downloaded');
-                                        } catch (err) {
-                                          toast.error('Failed to generate cover letter');
-                                        }
-                                      }}
-                                      className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                      Download PDF
-                                    </button>
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          await printEmbassyCoverLetter(order, embassyData);
-                                          toast.success('Printing embassy cover letter');
-                                        } catch (err) {
-                                          toast.error('Failed to print cover letter');
-                                        }
-                                      }}
-                                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                      </svg>
-                                      Print
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            // UD cover letter with editable form
-                            if (letter.id === 'ud' && udData) {
-                              return (
-                                <div 
-                                  key={letter.id}
-                                  className="bg-white border border-gray-200 rounded-lg p-5"
-                                >
-                                  <div className="flex items-center space-x-3 mb-4">
-                                    <span className="text-2xl">{letter.icon}</span>
-                                    <div>
-                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
-                                      <p className="text-sm text-gray-500">{letter.description}</p>
-                                    </div>
-                                  </div>
-
-                                  {/* Editable form */}
-                                  <div className="space-y-4 mb-6">
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Document Description</label>
-                                      <input
-                                        type="text"
-                                        value={udData.documentDescription}
-                                        onChange={(e) => setUdData({ ...udData, documentDescription: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Document Issuer (optional)</label>
-                                      <input
-                                        type="text"
-                                        value={udData.documentIssuer || ''}
-                                        onChange={(e) => setUdData({ ...udData, documentIssuer: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                        placeholder="Company or authority that issued the document"
-                                      />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Country of Use</label>
-                                        <input
-                                          type="text"
-                                          value={udData.countryOfUse}
-                                          onChange={(e) => setUdData({ ...udData, countryOfUse: e.target.value })}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-                                        <input
-                                          type="text"
-                                          value={udData.language}
-                                          onChange={(e) => setUdData({ ...udData, language: e.target.value })}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Order Number (fixed)</label>
-                                        <input
-                                          type="text"
-                                          value={order.orderNumber || order.id || ''}
-                                          disabled
-                                          className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Additional Invoice Reference</label>
-                                        <input
-                                          type="text"
-                                          value={udData.invoiceReference}
-                                          onChange={(e) => setUdData({ ...udData, invoiceReference: e.target.value })}
-                                          placeholder="Optional extra reference..."
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                                        <input
-                                          type="text"
-                                          value={udData.paymentMethod}
-                                          onChange={(e) => setUdData({ ...udData, paymentMethod: e.target.value })}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Return Method</label>
-                                      <input
-                                        type="text"
-                                        value={udData.returnMethod}
-                                        onChange={(e) => setUdData({ ...udData, returnMethod: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                      />
-                                    </div>
-
-                                    {/* Reset button */}
-                                    <div className="flex justify-end">
-                                      <button
-                                        onClick={() => setUdData(getUDDefaults(order))}
-                                        className="text-sm text-gray-500 hover:text-gray-700 underline"
-                                      >
-                                        Reset to defaults
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Action buttons */}
-                                  <div className="flex items-center space-x-3">
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          await downloadUDCoverLetter(order, udData);
-                                          toast.success('UD cover letter downloaded');
-                                        } catch (err) {
-                                          toast.error('Failed to generate cover letter');
-                                        }
-                                      }}
-                                      className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                      Download
-                                    </button>
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          await printUDCoverLetter(order, udData);
-                                          toast.success('Printing UD cover letter');
-                                        } catch (err) {
-                                          toast.error('Failed to print cover letter');
-                                        }
-                                      }}
-                                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                      </svg>
-                                      Print
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            // Other cover letter types (not yet editable)
-                            return (
-                              <div 
-                                key={letter.id}
-                                className="bg-white border border-gray-200 rounded-lg p-4 hover:border-primary-300 transition-colors"
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex items-start space-x-3">
-                                    <span className="text-2xl">{letter.icon}</span>
-                                    <div>
-                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
-                                      <p className="text-sm text-gray-500 mt-1">{letter.description}</p>
-                                      <div className="flex flex-wrap gap-2 mt-2">
-                                        {letter.services.map((service, idx) => (
-                                          <span 
-                                            key={idx}
-                                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800"
-                                          >
-                                            {service}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <button
-                                      onClick={() => toast.success(`${letter.name} cover letter coming soon...`)}
-                                      className="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                      </svg>
-                                      Download
-                                    </button>
-                                    <button
-                                      onClick={() => toast.success(`${letter.name} cover letter coming soon...`)}
-                                      className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                                    >
-                                      <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                      </svg>
-                                      Print
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-
-                          {/* Packing Slip / Return Checklist */}
-                          <div className="mt-8 pt-6 border-t border-gray-200">
-                            <h4 className="text-md font-medium text-gray-900 mb-4">📦 Packing Slip (Return Checklist)</h4>
-                            <p className="text-sm text-gray-500 mb-4">Use this when packing documents for return to customer.</p>
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <span className="text-2xl">📋</span>
-                                  <div>
-                                    <h5 className="font-medium text-gray-900">Return Packing Slip</h5>
-                                    <p className="text-sm text-gray-500">Checklist for packing completed documents</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <button
-                                    onClick={handleDownloadCover}
-                                    className="px-3 py-1.5 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700 flex items-center"
-                                  >
-                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Download
-                                  </button>
-                                  <button
-                                    onClick={handlePrintCover}
-                                    className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                                  >
-                                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
-                                    Print
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
+                  <CoverLettersTab
+                    order={order}
+                    notaryApostilleData={notaryApostilleData}
+                    setNotaryApostilleData={setNotaryApostilleData}
+                    embassyData={embassyData}
+                    setEmbassyData={setEmbassyData}
+                    udData={udData}
+                    setUdData={setUdData}
+                  />
                 )}
 
                 {/* Communication Tab */}
                 {activeTab === 'communication' && (
-                  <div className="space-y-6">
-                    {/* Send Custom Email */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-medium">Send Custom Email</h3>
-                        <button
-                          onClick={() => setShowNewTemplateModal(true)}
-                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                        >
-                          + New Template
-                        </button>
-                      </div>
-                      <p className="text-gray-600 mb-4">
-                        Send an email to the customer using a template. The customer can upload files via a secure link.
-                      </p>
-                      <button
-                        onClick={() => setShowDocumentRequestModal(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        Compose Email
-                      </button>
-                      {(order as any).documentRequestSent && (
-                        <p className="text-sm text-green-600 mt-2">
-                          ✓ Last email sent {(order as any).documentRequestSentAt && new Date((order as any).documentRequestSentAt).toLocaleDateString('en-GB')}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Order Update Notification */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-2">Order Update Notification</h3>
-                      <p className="text-gray-600 mb-4">
-                        Notify the customer about changes to their order (country, documents, etc).
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        To send an update notification, edit the order information in the Services tab and click "Notify Customer of Changes".
-                      </p>
-                      {(order as any).orderUpdateNotificationSent && (
-                        <p className="text-sm text-green-600 mt-2">
-                          ✓ Update notification sent {(order as any).orderUpdateNotificationSentAt && new Date((order as any).orderUpdateNotificationSentAt).toLocaleDateString('en-GB')}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Email History */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-4">Email History</h3>
-                      <p className="text-sm text-gray-500">
-                        Email history will be shown here once implemented.
-                      </p>
-                    </div>
-                  </div>
+                  <CommunicationTab
+                    order={order}
+                    onShowDocumentRequestModal={() => setShowDocumentRequestModal(true)}
+                    onShowNewTemplateModal={() => setShowNewTemplateModal(true)}
+                  />
                 )}
 
                 {/* Notes Tab */}
                 {activeTab === 'notes' && (
-                  <div className="space-y-6">
-                    {/* Add New Note */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Add Note</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Note Type</label>
-                          <select
-                            value={noteType}
-                            onChange={(e) => setNoteType(e.target.value as AdminNote['type'])}
-                            className="border border-gray-300 rounded px-3 py-2"
-                          >
-                            <option value="general">General</option>
-                            <option value="processing">Processing</option>
-                            <option value="customer">Customer Related</option>
-                            <option value="issue">Issue</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
-                          <textarea
-                            value={newNote}
-                            onChange={(e) => setNewNote(e.target.value)}
-                            placeholder="Write your note here..."
-                            className="w-full border border-gray-300 rounded-lg p-3"
-                            rows={3}
-                          />
-                        </div>
-                        <button
-                          onClick={addNote}
-                          disabled={!newNote.trim()}
-                          className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
-                        >
-                          Add Note
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Existing Notes */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Previous notes</h3>
-                      {order.adminNotes && order.adminNotes.length > 0 ? (
-                        <div className="space-y-4">
-                          {order.adminNotes.map((note: AdminNote, index: number) => (
-                            <div key={note.id} className={`border rounded-lg p-4 ${
-                              note.type === 'issue' ? 'border-red-200 bg-red-50' :
-                              note.type === 'customer' ? 'border-blue-200 bg-blue-50' :
-                              note.type === 'processing' ? 'border-yellow-200 bg-yellow-50' :
-                              'border-gray-200 bg-gray-50'
-                            }`}>
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mr-2 ${
-                                    note.type === 'issue' ? 'bg-red-100 text-red-800' :
-                                    note.type === 'customer' ? 'bg-blue-100 text-blue-800' :
-                                    note.type === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {note.type === 'general' ? 'General' :
-                                     note.type === 'processing' ? 'Processing' :
-                                     note.type === 'customer' ? 'Customer' : 'Issue'}
-                                  </span>
-                                  <span className="text-sm text-gray-600">
-                                    {formatDate(note.createdAt)} by {note.createdBy}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <p>No notes yet</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Customer Information from Order */}
-                    {(order.invoiceReference || order.additionalNotes) && (
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Customer information</h3>
-                        <div className="space-y-4">
-                          {order.invoiceReference && (
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <h4 className="font-medium text-green-800 mb-2">Invoice reference</h4>
-                              <p className="text-green-700">{order.invoiceReference}</p>
-                            </div>
-                          )}
-                          {order.additionalNotes && (
-                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                              <h4 className="font-medium text-purple-800 mb-2">Additional information</h4>
-                              <p className="text-purple-700 whitespace-pre-wrap">{order.additionalNotes}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <NotesTab
+                    order={order}
+                    formatDate={formatDate}
+                    adminName={(adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string}
+                    onAddNote={async (note) => {
+                      const updatedOrder = { ...order, adminNotes: [...(order.adminNotes || []), note] };
+                      const orderId = router.query.id as string;
+                      await adminUpdateOrder(orderId, { adminNotes: updatedOrder.adminNotes });
+                      setOrder(updatedOrder);
+                      toast.success('Note added');
+                    }}
+                  />
                 )}
               </div>
             </div>

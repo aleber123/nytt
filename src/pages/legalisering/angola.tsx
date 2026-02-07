@@ -1,9 +1,9 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 
 export default function AngolaLegaliseringPage() {
   const { t } = useTranslation('common');
@@ -16,10 +16,23 @@ export default function AngolaLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={t(`${cp}.metaDescription`)} />
-              </Head>
+      <LegaliseringCountrySEO
+        countryName="Angola"
+        countryCode="AO"
+        slug="angola"
+        title="Legalisering för Angola - Angolas ambassad Stockholm | DOX Visumpartner"
+        titleEn="Document Legalization for Angola - Embassy of Angola Stockholm | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Angola. Komplett service inkl. notarisering, UD och Angolas ambassad i Stockholm. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Angola. Complete service including notarization, MFA and Embassy of Angola in Stockholm."
+        keywords="Angola legalisering, legalisering Angola, Angolas ambassad Stockholm, legalisera dokument Angola, ambassadlegalisering Angola, Luanda, dokumentlegalisering, UD legalisering Angola"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Angola?', answer: 'Legaliseringsprocessen för Angola inkluderar notarisering, UD-verifiering och slutlig legalisering vid Angolas ambassad i Stockholm. DOX Visumpartner hanterar hela processen.' },
+          { question: 'Hur lång tid tar legalisering för Angola?', answer: 'Normalt 5-10 arbetsdagar beroende på dokumenttyp och handläggningstider vid Angolas ambassad.' },
+          { question: 'Vad kostar legalisering för Angola?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>

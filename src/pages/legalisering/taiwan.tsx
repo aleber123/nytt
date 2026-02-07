@@ -1,7 +1,7 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 
@@ -22,29 +22,24 @@ export default function TaiwanLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>Legalisering för Taiwan - Taipei Mission Stockholm | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med legalisering av dokument för Taiwan. Komplett service via Taipei Mission i Stockholm. Apostille och dokumentverifiering." />
-        <meta name="keywords" content="Taiwan, legalisering, Taipei Mission, Stockholm, dokument, apostille, Taipei" />
-                
-        <meta property="og:title" content="Legalisering för Taiwan - Taipei Mission Stockholm | DOX Visumpartner" />
-        <meta property="og:description" content="Komplett legaliseringsservice för Taiwan. Vi hanterar hela processen åt dig." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/taiwan" />
-        <meta property="og:type" content="website" />
-        
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Legalisering för Taiwan",
-          "provider": {
-            "@type": "Organization",
-            "name": "DOX Visumpartner AB"
-          },
-          "description": "Legalisering av dokument för användning i Taiwan via Taipei Mission i Stockholm",
-          "areaServed": ["SE", "TW"],
-          "serviceType": "Document Legalization"
-        })}} />
-      </Head>
+<LegaliseringCountrySEO
+        countryName="Taiwan"
+        countryNameEn="Taiwan"
+        countryCode="TW"
+        slug="taiwan"
+        title="Legalisering för Taiwan | DOX Visumpartner"
+        titleEn="Document Legalization for Taiwan | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Taiwan. Komplett service inkl. notarisering, UD och ambassadlegalisering. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Taiwan. Complete service including notarization, MFA and embassy legalization."
+        keywords="Taiwan legalisering, legalisering Taiwan, Taiwans representation Stockholm, legalisera dokument Taiwan, Taipei, dokumentlegalisering, apostille Taiwan"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Taiwan?', answer: 'Legaliseringsprocessen inkluderar notarisering, UD-verifiering och slutlig legalisering. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Taiwan?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider.' },
+          { question: 'Vad kostar legalisering för Taiwan?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
 
       
 

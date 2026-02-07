@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { getFirebaseAuth } from '@/firebase/config';
-import { getAdminUserByEmail, updateLastLogin, AdminUser, UserRole, ROLE_PERMISSIONS } from '@/firebase/userService';
+import { getAdminUserByEmail, updateLastLogin, linkPendingAdminUser, AdminUser, UserRole, ROLE_PERMISSIONS } from '@/firebase/userService';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
@@ -41,9 +41,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return import('firebase/auth').then(({ signOut: firebaseSignOut }) => firebaseSignOut(auth));
   }
 
-  const fetchAdminUser = async (email: string) => {
+  const fetchAdminUser = async (firebaseUser: FirebaseUser) => {
     try {
-      const user = await getAdminUserByEmail(email);
+      if (!firebaseUser.email) {
+        setAdminUser(null);
+        return;
+      }
+
+      // Try to link pending admin user to real UID (handles first-time login)
+      const linked = await linkPendingAdminUser(firebaseUser.uid, firebaseUser.email);
+      if (linked) {
+        setAdminUser(linked);
+        return;
+      }
+
+      // Fallback: look up by email (for users added directly in Firebase)
+      const user = await getAdminUserByEmail(firebaseUser.email);
       setAdminUser(user);
       if (user) {
         await updateLastLogin(user.id);
@@ -54,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshAdminUser = async () => {
-    if (currentUser?.email) {
-      await fetchAdminUser(currentUser.email);
+    if (currentUser) {
+      await fetchAdminUser(currentUser);
     }
   };
 
@@ -81,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         unsub = onAuthStateChanged(auth, async (user) => {
           setCurrentUser(user);
           if (user?.email) {
-            await fetchAdminUser(user.email);
+            await fetchAdminUser(user);
           } else {
             setAdminUser(null);
           }

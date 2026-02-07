@@ -1,38 +1,38 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 
 export default function IndienLegaliseringPage() {
   const { t } = useTranslation('common');
 
   return (
     <>
-      <Head>
-        <title>Apostille för Indien - Dokument för användning i Indien | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med apostille för dokument till Indien. Sedan 2023 är Indien medlem i Haagkonventionen. Snabb och enkel apostille-service." />
-        <meta name="keywords" content="Indien, apostille, Haagkonventionen, Stockholm, dokument, Delhi, Mumbai, Bangalore, legalisering, Indien dokument" />
-                
-        <meta property="og:title" content="Apostille för Indien - Dokument för användning i Indien | DOX Visumpartner" />
-        <meta property="og:description" content="Apostille-service för Indien. Indien är medlem i Haagkonventionen sedan 2023." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/indien" />
-        <meta property="og:type" content="website" />
-        
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Apostille för Indien",
-          "provider": {
-            "@type": "Organization",
-            "name": "DOX Visumpartner AB"
-          },
-          "description": "Apostille av dokument för användning i Indien. Indien är medlem i Haagkonventionen sedan 2023.",
-          "areaServed": ["SE", "IN"],
-          "serviceType": "Apostille Service"
-        })}} />
-      </Head>
+      <LegaliseringCountrySEO
+        countryName="Indien"
+        countryNameEn="India"
+        countryCode="IN"
+        slug="indien"
+        title="Apostille för Indien - Dokument för användning i Indien | DOX Visumpartner"
+        titleEn="Apostille for India - Documents for use in India | DOX Visumpartner"
+        description="Vi hjälper dig med apostille för dokument till Indien. Sedan 2023 är Indien medlem i Haagkonventionen. Snabb och enkel apostille-service. Ingen ambassadlegalisering behövs."
+        descriptionEn="We help you with apostille for documents to India. Since 2023, India is a member of the Hague Convention. Fast and easy apostille service."
+        keywords="Indien apostille, apostille Indien, Haagkonventionen Indien, legalisera dokument Indien, Delhi, Mumbai, Bangalore, Indien dokument, apostille service Sverige, Indien Haagkonventionen 2023"
+        keywordsEn="India apostille, apostille India, Hague Convention India, document legalization India, Delhi, Mumbai, Bangalore, apostille service Sweden"
+        ogDescription="Apostille-service för Indien. Indien är medlem i Haagkonventionen sedan 2023 – ingen ambassadlegalisering behövs."
+        schemaDescription="Apostille av dokument för användning i Indien. Indien är medlem i Haagkonventionen sedan juli 2023."
+        serviceType="Apostille Service"
+        priceLow="1200"
+        priceHigh="2500"
+        faqItems={[
+          { question: 'Behöver jag ambassadlegalisering för Indien?', answer: 'Nej, sedan juli 2023 är Indien medlem i Haagkonventionen. Det innebär att apostille räcker – ingen ambassadlegalisering behövs längre för dokument till Indien.' },
+          { question: 'Vad kostar apostille för Indien?', answer: 'Apostille för Indien kostar från 1 200 kr per dokument. Kontakta oss för exakt pris baserat på ditt ärende.' },
+          { question: 'Hur lång tid tar apostille för Indien?', answer: 'Apostille handläggs normalt inom 3-5 arbetsdagar. Vi erbjuder även expressservice för brådskande ärenden.' },
+          { question: 'Vilka dokument kan apostilleras för Indien?', answer: 'De vanligaste dokumenten är examensbevis, födelsebevis, vigselbevis, personbevis, fullmakter och bolagshandlingar.' },
+        ]}
+      />
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}

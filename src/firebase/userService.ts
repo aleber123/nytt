@@ -112,7 +112,6 @@ export async function getAdminUser(uid: string): Promise<AdminUser | null> {
     
     return { id: docSnap.id, ...docSnap.data() } as AdminUser;
   } catch (error) {
-    console.error('Error fetching admin user:', error);
     return null;
   }
 }
@@ -133,7 +132,6 @@ export async function getAdminUserByEmail(email: string): Promise<AdminUser | nu
     const doc = snapshot.docs[0];
     return { id: doc.id, ...doc.data() } as AdminUser;
   } catch (error) {
-    console.error('Error fetching admin user by email:', error);
     return null;
   }
 }
@@ -152,7 +150,6 @@ export async function getAllAdminUsers(): Promise<AdminUser[]> {
       ...doc.data()
     })) as AdminUser[];
   } catch (error) {
-    console.error('Error fetching admin users:', error);
     return [];
   }
 }
@@ -188,7 +185,6 @@ export async function createOrUpdateAdminUser(
       });
     }
   } catch (error) {
-    console.error('Error creating/updating admin user:', error);
     throw error;
   }
 }
@@ -204,7 +200,6 @@ export async function updateAdminUserRole(uid: string, role: UserRole): Promise<
       updatedAt: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error updating admin user role:', error);
     throw error;
   }
 }
@@ -220,7 +215,6 @@ export async function deactivateAdminUser(uid: string): Promise<void> {
       updatedAt: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error deactivating admin user:', error);
     throw error;
   }
 }
@@ -236,7 +230,6 @@ export async function reactivateAdminUser(uid: string): Promise<void> {
       updatedAt: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error reactivating admin user:', error);
     throw error;
   }
 }
@@ -249,7 +242,6 @@ export async function deleteAdminUser(uid: string): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, uid);
     await deleteDoc(docRef);
   } catch (error) {
-    console.error('Error deleting admin user:', error);
     throw error;
   }
 }
@@ -269,6 +261,60 @@ export async function updateLastLogin(uid: string): Promise<void> {
     }
   } catch (error) {
     // Silent fail - not critical
+  }
+}
+
+/**
+ * Link a pending admin user to a real Firebase Auth UID.
+ * When a user is added via the admin panel, the document is created with
+ * a temporary ID like "pending_email_example_com". When that user logs in
+ * for the first time with Firebase Auth, we need to:
+ * 1. Copy the pending document data to a new document keyed by the real UID
+ * 2. Delete the old pending document
+ * This ensures getAdminUser(uid) works for API auth and other UID-based lookups.
+ */
+export async function linkPendingAdminUser(realUid: string, email: string): Promise<AdminUser | null> {
+  try {
+    if (!db) return null;
+
+    // First check if a document with the real UID already exists
+    const realDocRef = doc(db, COLLECTION_NAME, realUid);
+    const realDocSnap = await getDoc(realDocRef);
+    if (realDocSnap.exists()) {
+      // Already linked, just return it
+      return { id: realDocSnap.id, ...realDocSnap.data() } as AdminUser;
+    }
+
+    // Look for a pending document by email
+    const usersRef = collection(db, COLLECTION_NAME);
+    const q = query(usersRef, where('email', '==', email.toLowerCase()));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const pendingDoc = snapshot.docs[0];
+    const pendingData = pendingDoc.data();
+
+    // If the document ID already matches the real UID, nothing to do
+    if (pendingDoc.id === realUid) {
+      return { id: pendingDoc.id, ...pendingData } as AdminUser;
+    }
+
+    // Copy data to new document with real UID
+    await setDoc(realDocRef, {
+      ...pendingData,
+      updatedAt: Timestamp.now(),
+      lastLoginAt: Timestamp.now(),
+    });
+
+    // Delete the old pending document
+    await deleteDoc(doc(db, COLLECTION_NAME, pendingDoc.id));
+
+    return { id: realUid, ...pendingData, lastLoginAt: Timestamp.now() } as AdminUser;
+  } catch (error) {
+    return null;
   }
 }
 

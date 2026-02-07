@@ -122,7 +122,6 @@ function StandardServicesPricesPage() {
 
       setServices(mergedServices);
     } catch (error) {
-      console.error('❌ Error loading standard services:', error);
       // Use default values if Firebase fails
       setServices(defaultServices);
       toast.error('Could not load prices from Firebase - using default prices');
@@ -137,7 +136,6 @@ function StandardServicesPricesPage() {
 
       const service = services.find(s => s.code === serviceCode);
       if (!service) {
-        console.error(`❌ Admin: Service ${serviceCode} not found in local state`);
         return;
       }
 
@@ -187,7 +185,6 @@ function StandardServicesPricesPage() {
 
       toast.success(`${service.name} prices updated!`);
     } catch (error) {
-      console.error('❌ Admin: Error updating service fee:', error);
       toast.error(`Could not update ${serviceCode}: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setSaving(false);
@@ -233,7 +230,6 @@ function StandardServicesPricesPage() {
 
       toast.success(unconfirmed ? 'Price marked as unconfirmed' : 'Price marked as confirmed');
     } catch (error) {
-      console.error('Error toggling price unconfirmed:', error);
       toast.error('Could not update price status');
     } finally {
       setSaving(false);

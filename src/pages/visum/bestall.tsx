@@ -2,7 +2,7 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Seo from '@/components/Seo';
 import { VisaOrderAnswers, initialVisaOrderAnswers, VISA_TOTAL_STEPS } from '@/components/order/visa/types';
@@ -18,8 +18,7 @@ import Step9CustomerInfo from '@/components/order/steps/Step9CustomerInfo';
 import VisaStep1Destination from '@/components/order/visa/VisaStep1Destination';
 import VisaStep2Nationality from '@/components/order/visa/VisaStep2Nationality';
 import VisaStep3SelectProduct from '@/components/order/visa/VisaStep3SelectProduct';
-import VisaStep5TravelDates from '@/components/order/visa/VisaStep5TravelDates';
-import VisaStep6Deadline from '@/components/order/visa/VisaStep6Deadline';
+import VisaStep4TravelDatesAndDeadline from '@/components/order/visa/VisaStep4TravelDatesAndDeadline';
 import VisaStep10Review from '@/components/order/visa/VisaStep10Review';
 
 export default function VisaOrderPage() {
@@ -43,9 +42,9 @@ export default function VisaOrderPage() {
   const needsShipping = effectiveVisaType === 'sticker' || effectiveVisaType === 'both';
   const isEVisaOnly = effectiveVisaType === 'e-visa';
   
-  // Total steps: 10 for sticker visa, 7 for e-visa (skip steps 6-8)
-  // New flow: 1-Dest, 2-Nat, 3-Product, 4-Dates, 5-Deadline, 6-Pickup, 7-Return, 8-ReturnAddr, 9-CustomerInfo, 10-Review
-  const totalSteps = isEVisaOnly ? 7 : 10;
+  // Total steps: 9 for sticker visa, 6 for e-visa (skip steps 5-7)
+  // Flow: 1-Dest, 2-Nat, 3-Product, 4-Dates+Deadline, 5-Pickup, 6-Return, 7-ReturnAddr, 8-CustomerInfo, 9-Review
+  const totalSteps = isEVisaOnly ? 6 : 9;
 
   // Update highest step when moving forward
   useEffect(() => {
@@ -189,26 +188,27 @@ export default function VisaOrderPage() {
     setAnswers((prev) => ({ ...prev, ...updates }));
   };
 
-  const goToNext = () => {
-    let nextStep = currentStep + 1;
-    
-    // If e-visa only, skip shipping steps (6-8) and go to customer info (step 9)
-    if (isEVisaOnly && currentStep === 5) {
-      nextStep = 9; // Go to customer info step
-    }
-    
-    if (nextStep <= 10) {
-      setCurrentStep(nextStep);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
+  const goToNext = useCallback(() => {
+    setCurrentStep((prev) => {
+      let nextStep = prev + 1;
+      // If e-visa only, skip shipping steps (5-7) and go to customer info (step 8)
+      if (isEVisaOnly && prev === 4) {
+        nextStep = 8;
+      }
+      if (nextStep <= 9) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return nextStep;
+      }
+      return prev;
+    });
+  }, [isEVisaOnly]);
 
   const goToPrevious = () => {
     let prevStep = currentStep - 1;
     
-    // If e-visa only and on customer info step (9), go back to step 5 (deadline)
-    if (isEVisaOnly && currentStep === 9) {
-      prevStep = 5;
+    // If e-visa only and on customer info step (8), go back to step 4 (dates+deadline)
+    if (isEVisaOnly && currentStep === 8) {
+      prevStep = 4;
     }
     
     if (prevStep >= 1) {
@@ -230,7 +230,7 @@ export default function VisaOrderPage() {
       onBack: goToPrevious,
     };
 
-    // New flow: 1-Dest, 2-Nat, 3-Product, 4-Dates, 5-Deadline, 6-Pickup, 7-Return, 8-ReturnAddr, 9-CustomerInfo, 10-Review
+    // Flow: 1-Dest, 2-Nat, 3-Product, 4-Dates+Deadline, 5-Pickup, 6-Return, 7-ReturnAddr, 8-CustomerInfo, 9-Review
     switch (currentStep) {
       case 1:
         return <VisaStep1Destination {...commonProps} />;
@@ -239,10 +239,8 @@ export default function VisaOrderPage() {
       case 3:
         return <VisaStep3SelectProduct {...commonProps} locale={currentLocale} />;
       case 4:
-        return <VisaStep5TravelDates {...commonProps} />;
+        return <VisaStep4TravelDatesAndDeadline {...commonProps} />;
       case 5:
-        return <VisaStep6Deadline {...commonProps} />;
-      case 6:
         return (
           <Step6PickupService
             answers={answers as OrderAnswers}
@@ -254,7 +252,7 @@ export default function VisaOrderPage() {
             loadingPickupServices={loadingPickupServices}
           />
         );
-      case 7:
+      case 6:
         return (
           <Step9ReturnService
             answers={answers as OrderAnswers}
@@ -265,7 +263,7 @@ export default function VisaOrderPage() {
             loadingReturnServices={loadingReturnServices}
           />
         );
-      case 8:
+      case 7:
         return (
           <Step9bReturnAddress
             answers={answers as OrderAnswers}
@@ -276,7 +274,7 @@ export default function VisaOrderPage() {
             currentLocale={currentLocale}
           />
         );
-      case 9:
+      case 8:
         return (
           <Step9CustomerInfo
             answers={answers as OrderAnswers}
@@ -287,7 +285,7 @@ export default function VisaOrderPage() {
             isEVisa={isEVisaOnly}
           />
         );
-      case 10:
+      case 9:
         return (
           <VisaStep10Review 
             answers={answers}
@@ -315,13 +313,13 @@ export default function VisaOrderPage() {
           <div className="max-w-2xl mx-auto mb-8">
             {/* Desktop: Detailed step indicator */}
             <div className="hidden md:flex items-center justify-center space-x-2">
-              {(isEVisaOnly ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).map((displayStep, index) => {
+              {(isEVisaOnly ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6, 7, 8, 9]).map((displayStep, index) => {
                 // Map display step to actual step number for e-visa
-                // E-visa: display 1-5 = actual 1-5, display 6 = actual 9 (customer info), display 7 = actual 10 (review)
+                // E-visa: display 1-4 = actual 1-4, display 5 = actual 8 (customer info), display 6 = actual 9 (review)
                 let actualStep = displayStep;
                 if (isEVisaOnly) {
-                  if (displayStep === 6) actualStep = 9;
-                  else if (displayStep === 7) actualStep = 10;
+                  if (displayStep === 5) actualStep = 8;
+                  else if (displayStep === 6) actualStep = 9;
                 }
                 const isCompleted = currentStep > actualStep;
                 const isCurrent = actualStep === currentStep;
@@ -348,7 +346,7 @@ export default function VisaOrderPage() {
                     >
                       {isCompleted ? '✓' : displayStep}
                     </button>
-                    {index < (isEVisaOnly ? 6 : 9) && (
+                    {index < (isEVisaOnly ? 5 : 8) && (
                       <div className={`w-12 h-1 mx-2 transition-colors duration-200 ${
                         isCompleted ? 'bg-custom-button' : 'bg-gray-300'
                       }`} />
@@ -364,21 +362,21 @@ export default function VisaOrderPage() {
                 <span className="text-sm font-medium text-gray-700">
                   {t('visaOrder.progressStep', 'Steg {{current}} av {{total}}', { 
                     current: isEVisaOnly 
-                      ? (currentStep === 9 ? 6 : currentStep === 10 ? 7 : currentStep) 
+                      ? (currentStep === 8 ? 5 : currentStep === 9 ? 6 : currentStep) 
                       : currentStep, 
                     total: totalSteps 
                   })}
                 </span>
                 <span className="text-sm text-gray-500">
                   {Math.round(((isEVisaOnly 
-                    ? (currentStep === 9 ? 6 : currentStep === 10 ? 7 : currentStep) 
+                    ? (currentStep === 8 ? 5 : currentStep === 9 ? 6 : currentStep) 
                     : currentStep) / totalSteps) * 100)}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-custom-button h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((isEVisaOnly ? (currentStep === 9 ? 6 : currentStep === 10 ? 7 : currentStep) : currentStep) / totalSteps) * 100}%` }}
+                  style={{ width: `${((isEVisaOnly ? (currentStep === 8 ? 5 : currentStep === 9 ? 6 : currentStep) : currentStep) / totalSteps) * 100}%` }}
                 ></div>
               </div>
             </div>

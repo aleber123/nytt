@@ -188,7 +188,14 @@ export default function KuwaitLegaliseringPage() {
         <meta property="og:description" content={content.ogDesc} />
         <meta property="og:url" content="https://www.doxvl.se/legalisering/kuwait" />
         <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="DOX Visumpartner" />
+        <meta property="og:image" content="https://www.doxvl.se/dox-logo-new.png" />
         
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={content.metaTitle} />
+        <meta name="twitter:description" content={content.ogDesc} />
+        
+        <link rel="canonical" href="https://www.doxvl.se/legalisering/kuwait" />
         <link rel="alternate" hrefLang="sv" href="https://www.doxvl.se/legalisering/kuwait" />
         <link rel="alternate" hrefLang="en" href="https://www.doxvl.se/en/legalisering/kuwait" />
         <link rel="alternate" hrefLang="fi" href="https://www.doxvl.se/legalisering/kuwait-finland" />

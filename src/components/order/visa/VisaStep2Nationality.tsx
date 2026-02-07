@@ -2,7 +2,7 @@
  * Visa Step 2: Nationality Selection
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { VisaOrderAnswers } from './types';
@@ -183,6 +183,9 @@ const VisaStep2Nationality: React.FC<Props> = ({ answers, onUpdate, onNext, onBa
 
   const isSwedish = i18n.language === 'sv';
 
+  // Stable reference to onNext to avoid stale closures
+  const stableOnNext = useCallback(() => onNext(), [onNext]);
+
   const filteredNationalities = useMemo(() => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -198,6 +201,9 @@ const VisaStep2Nationality: React.FC<Props> = ({ answers, onUpdate, onNext, onBa
       nationality: isSwedish ? nationality.name : nationality.nameEn,
       nationalityCode: nationality.code,
     });
+
+    // Auto-advance to next step immediately (like legalization flow)
+    onNext();
   };
 
   const isSelected = (code: string) => answers.nationalityCode === code;

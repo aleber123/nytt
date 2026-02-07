@@ -1,7 +1,7 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 
@@ -16,10 +16,24 @@ export default function SyrienLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={t(`${cp}.metaDescription`)} />
-              </Head>
+      <LegaliseringCountrySEO
+        countryName="Syrien"
+        countryNameEn="Syria"
+        countryCode="SY"
+        slug="syrien"
+        title="Legalisering för Syrien | DOX Visumpartner"
+        titleEn="Document Legalization for Syria | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Syrien. Komplett service inkl. notarisering, UD och ambassadlegalisering. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Syria. Complete service including notarization, MFA and embassy legalization."
+        keywords="Syrien legalisering, legalisering Syrien, Syriens ambassad Stockholm, legalisera dokument Syrien, ambassadlegalisering Syrien, Damaskus, dokumentlegalisering"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Syrien?', answer: 'Legaliseringsprocessen inkluderar notarisering, UD-verifiering och slutlig legalisering. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Syrien?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider.' },
+          { question: 'Vad kostar legalisering för Syrien?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>

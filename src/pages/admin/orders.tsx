@@ -144,7 +144,6 @@ function AdminOrdersPage() {
       const ordersData = await getAllOrders();
       setOrders(ordersData);
     } catch (err) {
-      console.error('Error fetching orders:', err);
       setError('Failed to load orders. Please try again.');
     } finally {
       setLoading(false);
@@ -191,7 +190,6 @@ function AdminOrdersPage() {
       setSelectedOrderIds([]);
       setBulkStatus('');
     } catch (err) {
-      console.error('Error bulk updating order status:', err);
       toast.error('Could not update status for all selected orders');
     } finally {
       setIsBulkUpdating(false);
@@ -226,7 +224,6 @@ function AdminOrdersPage() {
       }, 1500);
 
     } catch (error) {
-      console.error('Error creating invoice for order:', error);
       toast.error('Could not create invoice for order');
     } finally {
       setCreatingInvoiceForOrder(null);

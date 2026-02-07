@@ -75,9 +75,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Breadcrumbs />
       </div>
       
-      <div id="main-content" className="flex-grow main-content">
+      <main id="main-content" className="flex-grow main-content">
         {children}
-      </div>
+      </main>
       
       <Footer />
     </div>

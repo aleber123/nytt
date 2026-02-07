@@ -198,7 +198,6 @@ function DriverDashboardPage() {
 
       const dateObj = new Date(selectedDate + 'T00:00:00');
       if (Number.isNaN(dateObj.getTime())) {
-        console.error('❌ Invalid date for monthly summary', { selectedDate });
         setMonthlySummary(null);
         return;
       }
@@ -209,7 +208,6 @@ function DriverDashboardPage() {
       const summary = await getDriverMonthlySummary('default-driver', year, month);
       setMonthlySummary(summary);
     } catch (error) {
-      console.error('❌ Failed to load monthly driver summary', error);
       setMonthlySummary(null);
     } finally {
       setIsLoadingSummary(false);

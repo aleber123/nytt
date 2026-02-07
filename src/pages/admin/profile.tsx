@@ -65,7 +65,6 @@ export default function AdminProfilePage() {
 
       toast.success('Profile updated');
     } catch (e) {
-      console.error('Profile save error:', e);
       const msg = (e as any)?.message || String(e);
       toast.error(`Could not save profile: ${msg}`);
     } finally {

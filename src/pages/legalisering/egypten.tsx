@@ -1,9 +1,9 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 
 export default function EgyptenLegaliseringPage() {
   const { t } = useTranslation('common');
@@ -22,10 +22,24 @@ export default function EgyptenLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={t(`${cp}.metaDescription`)} />
-              </Head>
+      <LegaliseringCountrySEO
+        countryName="Egypten"
+        countryNameEn="Egypt"
+        countryCode="EG"
+        slug="egypten"
+        title="Legalisering för Egypten - Egyptens ambassad Stockholm | DOX Visumpartner"
+        titleEn="Document Legalization for Egypt - Embassy of Egypt Stockholm | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Egypten. Komplett service inkl. notarisering, UD och Egyptens ambassad i Stockholm. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Egypt. Complete service including notarization, MFA and Embassy of Egypt in Stockholm."
+        keywords="Egypten legalisering, legalisering Egypten, Egyptens ambassad Stockholm, legalisera dokument Egypten, ambassadlegalisering Egypten, Kairo, dokumentlegalisering, UD legalisering Egypten"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Egypten?', answer: 'Legaliseringsprocessen för Egypten inkluderar notarisering, UD-verifiering och slutlig legalisering vid Egyptens ambassad i Stockholm. DOX Visumpartner hanterar hela processen.' },
+          { question: 'Hur lång tid tar legalisering för Egypten?', answer: 'Normalt 5-10 arbetsdagar beroende på dokumenttyp och handläggningstider vid Egyptens ambassad.' },
+          { question: 'Vad kostar legalisering för Egypten?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>

@@ -1132,7 +1132,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   }, 2000);
 
                 } catch (error) {
-                  console.error('❌ Error submitting order:', error);
 
                   // Reset state only on error - on success, keep loading until redirect completes
                   submissionInProgressRef.current = false;

@@ -46,7 +46,6 @@ function ShippingSettingsContent() {
           setSettings({ ...DEFAULT_SETTINGS, ...data.settings as ShippingSettings });
         }
       } catch (error) {
-        console.error('Error fetching shipping settings:', error);
         toast.error('Could not fetch settings');
       } finally {
         setLoading(false);
@@ -78,7 +77,6 @@ function ShippingSettingsContent() {
       
       toast.success('Settings saved!');
     } catch (error) {
-      console.error('Error saving shipping settings:', error);
       toast.error('Could not save settings');
     } finally {
       setSaving(false);

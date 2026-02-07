@@ -1,7 +1,7 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 
@@ -16,10 +16,24 @@ export default function NigeriaLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={t(`${cp}.metaDescription`)} />
-              </Head>
+      <LegaliseringCountrySEO
+        countryName="Nigeria"
+        countryNameEn="Nigeria"
+        countryCode="NG"
+        slug="nigeria"
+        title="Legalisering för Nigeria | DOX Visumpartner"
+        titleEn="Document Legalization for Nigeria | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Nigeria. Komplett service inkl. notarisering, UD och ambassadlegalisering. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Nigeria. Complete service including notarization, MFA and embassy legalization."
+        keywords="Nigeria legalisering, legalisering Nigeria, Nigerias ambassad Stockholm, legalisera dokument Nigeria, ambassadlegalisering Nigeria, Lagos, Abuja, dokumentlegalisering"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Nigeria?', answer: 'Legaliseringsprocessen inkluderar notarisering, UD-verifiering och slutlig legalisering. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Nigeria?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider.' },
+          { question: 'Vad kostar legalisering för Nigeria?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>

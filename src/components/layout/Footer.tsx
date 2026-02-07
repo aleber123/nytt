@@ -21,23 +21,45 @@ const Footer: React.FC = () => {
       { name: safeT('footer.services.translation', 'Auktoriserad översättning'), href: '/tjanster/oversattning' },
     ],
     countries: [
+      { name: 'Angola', code: 'AO', href: '/legalisering/angola' },
       { name: 'Egypten', code: 'EG', href: '/legalisering/egypten' },
-      { name: 'Qatar', code: 'QA', href: '/legalisering/qatar' },
-      { name: 'Kuwait', code: 'KW', href: '/legalisering/kuwait' },
-      { name: 'Thailand', code: 'TH', href: '/legalisering/thailand' },
-      { name: 'Nigeria', code: 'NG', href: '/legalisering/nigeria' },
+      { name: 'Etiopien', code: 'ET', href: '/legalisering/etiopien' },
+      { name: 'Indien', code: 'IN', href: '/legalisering/indien' },
       { name: 'Irak', code: 'IQ', href: '/legalisering/irak' },
+      { name: 'Kuwait', code: 'KW', href: '/legalisering/kuwait' },
       { name: 'Libanon', code: 'LB', href: '/legalisering/libanon' },
+      { name: 'Libyen', code: 'LY', href: '/legalisering/libyen' },
+      { name: 'Moçambique', code: 'MZ', href: '/legalisering/mocambique' },
+      { name: 'Nigeria', code: 'NG', href: '/legalisering/nigeria' },
+      { name: 'Palestina', code: 'PS', href: '/legalisering/palestina' },
+      { name: 'Qatar', code: 'QA', href: '/legalisering/qatar' },
+      { name: 'Saudiarabien', code: 'SA', href: '/legalisering/saudiarabien' },
       { name: 'Spanien', code: 'ES', href: '/legalisering/spanien' },
+      { name: 'Sri Lanka', code: 'LK', href: '/legalisering/sri-lanka' },
+      { name: 'Syrien', code: 'SY', href: '/legalisering/syrien' },
+      { name: 'Taiwan', code: 'TW', href: '/legalisering/taiwan' },
+      { name: 'Thailand', code: 'TH', href: '/legalisering/thailand' },
+      { name: 'UAE', code: 'AE', href: '/legalisering/uae' },
+      { name: 'Vietnam', code: 'VN', href: '/legalisering/vietnam' },
     ],
     visas: [
-      { name: 'Visum Angola', code: 'AO', href: '/visum/angola' },
-      { name: 'Visum Angola (Norsk)', code: 'AO', href: '/visum/angola-no' },
+      { name: 'Angola', code: 'AO', href: '/visum/angola' },
+      { name: 'Brasilien', code: 'BR', href: '/visum/brasilien' },
+      { name: 'Indien', code: 'IN', href: '/visum/indien' },
+      { name: 'Kenya', code: 'KE', href: '/visum/kenya' },
+      { name: 'Saudiarabien', code: 'SA', href: '/visum/saudiarabien' },
+      { name: 'Sri Lanka', code: 'LK', href: '/visum/sri-lanka' },
+      { name: 'Storbritannien', code: 'GB', href: '/visum/storbritannien' },
+      { name: 'Tanzania', code: 'TZ', href: '/visum/tanzania' },
+      { name: 'Thailand', code: 'TH', href: '/visum/thailand' },
+      { name: 'USA', code: 'US', href: '/visum/usa' },
     ],
     nordic: [
-      { name: '🇳🇴 Norge', href: '/norge' },
-      { name: '🇩🇰 Danmark', href: '/danmark' },
-      { name: '🇫🇮 Finland', href: '/finland' },
+      { name: 'Norge', code: 'NO', href: '/norge' },
+      { name: 'Danmark', code: 'DK', href: '/danmark' },
+      { name: 'Finland', code: 'FI', href: '/finland' },
+      { name: 'Kuwait (DK)', code: 'KW', href: '/legalisering/kuwait-danmark' },
+      { name: 'Kuwait (FI)', code: 'KW', href: '/legalisering/kuwait-finland' },
     ],
     support: [
       { name: safeT('footer.support.faq', 'Vanliga frågor'), href: '/faq' },
@@ -76,7 +98,7 @@ const Footer: React.FC = () => {
                 style={{ height: 'auto', width: 'auto', maxHeight: '4.3rem' }}
               />
             </Link>
-            <p className="text-base text-gray-300 whitespace-pre-line">
+            <p className="text-base text-gray-200 whitespace-pre-line">
               Sveriges bästa visum & legaliseringsföretag
               {"\n"}
               &copy; DOX Visumpartner AB.
@@ -121,7 +143,7 @@ const Footer: React.FC = () => {
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.services.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-base text-gray-400 hover:text-white">
+                      <Link href={item.href} className="text-base text-gray-300 hover:text-white">
                         {item.name}
                       </Link>
                     </li>
@@ -135,7 +157,7 @@ const Footer: React.FC = () => {
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.support.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-base text-gray-400 hover:text-white">
+                      <Link href={item.href} className="text-base text-gray-300 hover:text-white">
                         {item.name}
                       </Link>
                     </li>
@@ -151,7 +173,7 @@ const Footer: React.FC = () => {
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.company.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-base text-gray-400 hover:text-white">
+                      <Link href={item.href} className="text-base text-gray-300 hover:text-white">
                         {item.name}
                       </Link>
                     </li>
@@ -165,7 +187,7 @@ const Footer: React.FC = () => {
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.legal.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href} className="text-base text-gray-400 hover:text-white">
+                      <Link href={item.href} className="text-base text-gray-300 hover:text-white">
                         {item.name}
                       </Link>
                     </li>
@@ -174,53 +196,65 @@ const Footer: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="mt-8 xl:mt-0">
-            <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-              {safeT('footer.countries.title', 'Länder')}
-            </h3>
-            <ul role="list" className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {footerNavigation.countries.map((item) => (
-                <li key={item.name}>
-                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white flex items-center gap-1.5">
-                    <CountryFlag code={item.code} size={16} />
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="mt-8 xl:mt-0">
-            <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-              Visum
-            </h3>
-            <ul role="list" className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {footerNavigation.visas.map((item) => (
-                <li key={item.name}>
-                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white flex items-center gap-1.5">
-                    <CountryFlag code={item.code} size={16} />
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="mt-8 xl:mt-0">
-            <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-              Norden
-            </h3>
-            <ul role="list" className="mt-4 grid grid-cols-3 gap-2">
-              {footerNavigation.nordic.map((item) => (
-                <li key={item.name}>
-                  <Link href={item.href} className="text-sm text-gray-400 hover:text-white">
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        </div>
+
+        {/* Countries section – full width */}
+        <div className="mt-12 pt-10 border-t border-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {/* Legalisering */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase mb-4">
+                Legalisering per land
+              </h3>
+              <ul role="list" className="grid grid-cols-2 gap-x-6 gap-y-2">
+                {footerNavigation.countries.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="text-sm text-gray-300 hover:text-white flex items-center gap-1.5 py-0.5 transition-colors">
+                      <CountryFlag code={item.code} size={16} />
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Visum */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase mb-4">
+                Visum per land
+              </h3>
+              <ul role="list" className="grid grid-cols-2 gap-x-6 gap-y-2">
+                {footerNavigation.visas.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="text-sm text-gray-300 hover:text-white flex items-center gap-1.5 py-0.5 transition-colors">
+                      <CountryFlag code={item.code} size={16} />
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Norden */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase mb-4">
+                Norden
+              </h3>
+              <ul role="list" className="grid grid-cols-1 gap-y-2">
+                {footerNavigation.nordic.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="text-sm text-gray-300 hover:text-white flex items-center gap-1.5 py-0.5 transition-colors">
+                      <CountryFlag code={item.code} size={16} />
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
         <div className="mt-12 border-t border-gray-700 pt-8">
-          <p className="text-base text-gray-400 xl:text-center">
+          <p className="text-base text-gray-300 xl:text-center">
             &copy; {currentYear} DOX Visumpartner AB. Alla rättigheter förbehållna.
           </p>
         </div>

@@ -139,7 +139,7 @@ export interface VisaRequirement {
 export const getAllVisaRequirements = async (): Promise<VisaRequirement[]> => {
   try {
     if (!db) {
-      console.warn('Firebase not initialized');
+      // Firebase not initialized
       return [];
     }
 
@@ -152,7 +152,6 @@ export const getAllVisaRequirements = async (): Promise<VisaRequirement[]> => {
       ...doc.data()
     } as VisaRequirement));
   } catch (error) {
-    console.error('Error fetching visa requirements:', error);
     return [];
   }
 };
@@ -177,7 +176,6 @@ export const getActiveVisaRequirements = async (): Promise<VisaRequirement[]> =>
       ...doc.data()
     } as VisaRequirement));
   } catch (error) {
-    console.error('Error fetching active visa requirements:', error);
     return [];
   }
 };
@@ -201,7 +199,6 @@ export const getVisaRequirement = async (countryCode: string): Promise<VisaRequi
 
     return null;
   } catch (error) {
-    console.error('Error fetching visa requirement:', error);
     return null;
   }
 };
@@ -242,7 +239,6 @@ export const getVisaTypeForNationality = async (
       requirement
     };
   } catch (error) {
-    console.error('Error getting visa type for nationality:', error);
     return { visaType: 'not-supported', isSupported: false, requirement: null };
   }
 };
@@ -363,7 +359,6 @@ export const setVisaRequirement = async (
     await setDoc(docRef, cleanData);
     return requirement.countryCode;
   } catch (error) {
-    console.error('Error setting visa requirement:', error);
     throw error;
   }
 };
@@ -415,7 +410,6 @@ export const updateVisaRequirement = async (
 
     await updateDoc(docRef, cleanUpdates);
   } catch (error) {
-    console.error('Error updating visa requirement:', error);
     throw error;
   }
 };
@@ -430,7 +424,6 @@ export const deleteVisaRequirement = async (countryCode: string): Promise<void> 
     const docRef = doc(db, 'visaRequirements', countryCode);
     await deleteDoc(docRef);
   } catch (error) {
-    console.error('Error deleting visa requirement:', error);
     throw error;
   }
 };
@@ -467,7 +460,6 @@ export const setNationalityRule = async (
       updatedBy
     });
   } catch (error) {
-    console.error('Error setting nationality rule:', error);
     throw error;
   }
 };
@@ -494,7 +486,6 @@ export const removeNationalityRule = async (
       updatedBy
     });
   } catch (error) {
-    console.error('Error removing nationality rule:', error);
     throw error;
   }
 };
@@ -515,7 +506,6 @@ export const getDocumentRequirementsForProduct = async (
       .filter(doc => doc.isActive)
       .sort((a, b) => a.order - b.order);
   } catch (error) {
-    console.error('Error getting document requirements:', error);
     return [];
   }
 };
@@ -551,7 +541,6 @@ export const updateProductDocumentRequirements = async (
       updatedBy
     });
   } catch (error) {
-    console.error('Error updating document requirements:', error);
     throw error;
   }
 };

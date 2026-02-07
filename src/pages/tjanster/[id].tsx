@@ -387,7 +387,6 @@ const ServiceDetailPage: React.FC = () => {
 
         setPricingRules(rules);
       } catch (error) {
-        console.error('❌ Error fetching pricing data:', error);
         // Use empty array if Firebase fails - component will handle gracefully
         setPricingRules([]);
       } finally {

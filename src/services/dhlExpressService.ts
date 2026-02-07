@@ -279,7 +279,6 @@ export async function bookPickup(request: DHLPickupRequest): Promise<DHLPickupRe
       warnings: data.warnings
     };
   } catch (error) {
-    console.error('DHL Pickup booking failed:', error);
     throw error;
   }
 }
@@ -340,7 +339,6 @@ export async function createShipment(request: DHLShipmentRequest): Promise<DHLSh
       warnings: data.warnings
     };
   } catch (error) {
-    console.error('DHL Shipment creation failed:', error);
     throw error;
   }
 }
@@ -377,7 +375,6 @@ export async function getRates(request: DHLRateRequest): Promise<DHLRateResponse
 
     return await response.json();
   } catch (error) {
-    console.error('DHL Rate request failed:', error);
     throw error;
   }
 }
@@ -406,7 +403,6 @@ export async function cancelPickup(dispatchConfirmationNumber: string, reason: s
 
     return true;
   } catch (error) {
-    console.error('DHL Pickup cancellation failed:', error);
     throw error;
   }
 }
@@ -433,7 +429,6 @@ export async function trackShipment(trackingNumber: string): Promise<any> {
 
     return await response.json();
   } catch (error) {
-    console.error('DHL Tracking request failed:', error);
     throw error;
   }
 }

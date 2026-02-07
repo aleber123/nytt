@@ -104,7 +104,6 @@ export const setPricingRule = async (rule: Omit<PricingRule, 'id' | 'lastUpdated
     await setDoc(ruleRef, ruleData);
     return ruleId;
   } catch (error) {
-    console.error('Error setting pricing rule:', error);
     throw error;
   }
 };
@@ -127,7 +126,6 @@ export const getPricingRule = async (countryCode: string, serviceType: string): 
     }
     return null;
   } catch (error) {
-    console.error('Error getting pricing rule:', error);
     throw error;
   }
 };
@@ -164,7 +162,6 @@ export const getCountryPricingRules = async (countryCode: string): Promise<Prici
     const rules = await Promise.race([firebasePromise, timeoutPromise]);
     return rules;
   } catch (error) {
-    console.error('Error getting country pricing rules:', error);
     // Return mock data filtered by country if Firebase fails
     // Using mock pricing data for country
     const mockRules = getMockPricingRules();
@@ -206,7 +203,6 @@ export const getAllActivePricingRules = async (): Promise<PricingRule[]> => {
     const rules = await Promise.race([firebasePromise, timeoutPromise]);
     return rules;
   } catch (error) {
-    console.error('Error getting all active pricing rules:', error);
     // Return mock data if Firebase fails
     // Using mock pricing data due to Firebase connection issues
     return getMockPricingRules();
@@ -242,7 +238,6 @@ export const updatePricingRule = async (
       throw new Error(`Document ${ruleId} does not exist. Cannot update.`);
     }
   } catch (error) {
-    console.error('Error updating pricing rule:', error);
     throw error;
   }
 };
@@ -285,7 +280,6 @@ export const updateOrCreatePricingRule = async (
       throw new Error(`Document ${ruleId} does not exist and no createData provided.`);
     }
   } catch (error) {
-    console.error('❌ Firebase: Error updating or creating pricing rule:', error);
     throw error;
   }
 };
@@ -327,7 +321,6 @@ export const bulkUpdatePricing = async (update: BulkPricingUpdate): Promise<void
       await updatePricingRule(rule.id, updates);
     }
   } catch (error) {
-    console.error('Error bulk updating pricing:', error);
     throw error;
   }
 };
@@ -780,7 +773,6 @@ export const getPricingStats = async (): Promise<PricingStats> => {
       averagePrice: Math.round(averagePrice)
     };
   } catch (error) {
-    console.error('Error getting pricing stats:', error);
     // Return mock stats if Firebase fails
     // Using mock pricing stats
     const mockRules = getMockPricingRules();
@@ -857,7 +849,6 @@ export const initializeDefaultPricing = async (): Promise<void> => {
     }
 
   } catch (error) {
-    console.error('Error initializing default pricing:', error);
     throw error;
   }
 };
@@ -2087,7 +2078,6 @@ export const trackCountrySelection = async (countryCode: string): Promise<void> 
       await setDoc(popularityRef, popularityData);
     }
   } catch (error) {
-    console.error('Error tracking country selection:', error);
     // Don't throw error - tracking should not break the user flow
   }
 };
@@ -2150,7 +2140,6 @@ export const getPopularCountries = async (maxResults: number = 18): Promise<Coun
     }).slice(0, maxResults);
 
   } catch (error) {
-    console.error('Error getting popular countries:', error);
     // Fall back to static popular countries with reduced popularity
     return getStaticPopularCountries().map(country => ({
       countryCode: country.code,
@@ -2475,7 +2464,6 @@ export const getAllPickupPricing = async (): Promise<PickupPricing[]> => {
     
     return snapshot.docs.map(doc => doc.data() as PickupPricing);
   } catch (error) {
-    console.error('Error getting pickup pricing:', error);
     return [];
   }
 };
@@ -2494,7 +2482,6 @@ export const getActivePickupPricing = async (): Promise<PickupPricing[]> => {
     
     return snapshot.docs.map(doc => doc.data() as PickupPricing);
   } catch (error) {
-    console.error('Error getting active pickup pricing:', error);
     return [];
   }
 };
@@ -2503,7 +2490,7 @@ export const getActivePickupPricing = async (): Promise<PickupPricing[]> => {
 export const getPickupPricingByMethod = async (method: 'dhl' | 'stockholm_courier'): Promise<PickupPricing | null> => {
   try {
     if (!db) {
-      console.log('Firebase not initialized, returning null');
+      // Firebase not initialized
       return null;
     }
 
@@ -2515,7 +2502,6 @@ export const getPickupPricingByMethod = async (method: 'dhl' | 'stockholm_courie
     }
     return null;
   } catch (error) {
-    console.error('Error getting pickup pricing by method:', error);
     return null;
   }
 };
@@ -2537,7 +2523,6 @@ export const setPickupPricing = async (pricing: Omit<PickupPricing, 'lastUpdated
 
     await setDoc(pickupRef, pricingData);
   } catch (error) {
-    console.error('Error setting pickup pricing:', error);
     throw error;
   }
 };
@@ -2560,7 +2545,6 @@ export const updatePickupPricing = async (
       lastUpdated: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error updating pickup pricing:', error);
     throw error;
   }
 };
@@ -2635,7 +2619,6 @@ export const initializePickupPricing = async (updatedBy: string): Promise<void> 
     }
 
   } catch (error) {
-    console.error('Error initializing pickup pricing:', error);
     throw error;
   }
 };

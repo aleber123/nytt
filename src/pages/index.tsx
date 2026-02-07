@@ -347,7 +347,10 @@ export default function Home() {
       <Seo 
         title={t('home.title', 'Legalisering av Dokument | Apostille & Ambassad') + ' | DOX Visumpartner'} 
         description={t('home.description', 'Professionell legalisering för utlandet. Apostille, notarisering, UD och ambassad. Snabb service i Stockholm.')} 
-        keywords="legalisering, apostille, ambassadlegalisering, notarius publicus, utrikesdepartementet, dokumentlegalisering, UD legalisering"
+        keywords="legalisering, apostille, ambassadlegalisering, notarius publicus, utrikesdepartementet, dokumentlegalisering, UD legalisering, visum, visumtjänster, dokumentlegalisering Sverige, legalisera dokument"
+        isHomePage={true}
+        serviceType="Document Legalization"
+        priceRange="$$"
       />
 
       <main>

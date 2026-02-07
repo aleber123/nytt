@@ -108,7 +108,6 @@ export function ConfirmationPage() {
           setError(t('confirmation.noOrderDescription'));
         }
       } catch (err) {
-        console.error('Error fetching order:', err);
         setOrder(null);
         setError(t('confirmation.error'));
       } finally {

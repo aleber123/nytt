@@ -57,7 +57,6 @@ function AdminInvoicesPage() {
       const invoicesData = await getAllInvoices();
       setInvoices(invoicesData);
     } catch (err) {
-      console.error('Error fetching invoices:', err);
       setError('Failed to load invoices. Please try again.');
     } finally {
       setLoading(false);
@@ -76,7 +75,6 @@ function AdminInvoicesPage() {
 
       toast.success(`Invoice ${invoiceId} status updated to ${newStatus}`);
     } catch (err) {
-      console.error('Error updating invoice status:', err);
       toast.error('Failed to update invoice status');
     } finally {
       setUpdatingInvoiceId(null);
@@ -117,7 +115,6 @@ function AdminInvoicesPage() {
         minute: '2-digit'
       }).format(date);
     } catch (error) {
-      console.error('Error formatting date:', error, timestamp);
       return 'N/A';
     }
   };
@@ -186,7 +183,6 @@ function AdminInvoicesPage() {
       generateInvoicePDF(invoice);
       toast.success('Invoice downloaded as PDF');
     } catch (error) {
-      console.error('Error generating PDF:', error);
       toast.error('Could not generate PDF');
     }
   };
@@ -245,7 +241,6 @@ function AdminInvoicesPage() {
 
       toast.success('Invoice updated');
     } catch (error) {
-      console.error('Error updating invoice:', error);
       toast.error('Could not update invoice');
     }
   };
@@ -283,7 +278,6 @@ function AdminInvoicesPage() {
         toast.success(`Credit note ${creditInvoice.invoiceNumber} created`);
       }
     } catch (error) {
-      console.error('Error creating credit invoice:', error);
       toast.error('Could not create credit note');
     }
   };
@@ -310,7 +304,6 @@ function AdminInvoicesPage() {
         toast.error('Could not send invoice via email');
       }
     } catch (error) {
-      console.error('Error sending invoice:', error);
       toast.error('An error occurred while sending the invoice');
     } finally {
       setSendingInvoiceId(null);
@@ -513,7 +506,6 @@ function AdminInvoicesPage() {
       toast.success(`Invoice ${completeInvoice.invoiceNumber} created`);
 
     } catch (error) {
-      console.error('Error creating new invoice:', error);
       toast.error('Could not create invoice');
     } finally {
       setIsCreatingInvoice(false);

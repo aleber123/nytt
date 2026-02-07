@@ -62,6 +62,7 @@ export default function VisaStep3SelectProduct({
 
   const handleSelectProduct = (product: VisaProduct) => {
     setSelectedProductId(product.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     
     const selectedProduct: SelectedVisaProduct = {
       id: product.id,
@@ -94,6 +95,9 @@ export default function VisaStep3SelectProduct({
       tripType: product.category === 'business' ? 'business' : 'tourist',
       entryType: product.entryType as 'single' | 'double' | 'multiple',
     });
+
+    // Auto-advance to next step immediately (like legalization flow)
+    onNext();
   };
 
   const handleContinue = () => {

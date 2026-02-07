@@ -19,6 +19,7 @@ interface SeoProps {
   priceRange?: string;
   servicePrice?: string;
   serviceCurrency?: string;
+  isHomePage?: boolean;
 }
 
 const Seo: React.FC<SeoProps> = ({ 
@@ -31,7 +32,8 @@ const Seo: React.FC<SeoProps> = ({
   serviceType,
   priceRange,
   servicePrice,
-  serviceCurrency = 'SEK'
+  serviceCurrency = 'SEK',
+  isHomePage = false
 }) => {
   const router = useRouter();
   const baseUrl = siteConfig.url;
@@ -88,24 +90,87 @@ const Seo: React.FC<SeoProps> = ({
       "https://www.facebook.com/doxvisumpartner",
       "https://www.linkedin.com/company/dox-visumpartner",
       "https://www.trustpilot.com/review/doxvl.dk"
-    ]
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "127",
+      "bestRating": "5",
+      "worstRating": "1"
+    }
   };
 
   // Create Organization schema
   const organizationData = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "name": "DOX Visumpartner AB",
+    "alternateName": ["DOXVL", "DOX Visumpartner"],
+    "url": baseUrl,
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${baseUrl}/dox-logo-new.png`,
+      "width": 512,
+      "height": 512
+    },
+    "image": `${baseUrl}/dox-logo-new.png`,
+    "description": "Sveriges ledande byrå för dokumentlegalisering och visumtjänster. Apostille, UD-legalisering, ambassadlegalisering och visum.",
+    "foundingDate": "2009",
+    "numberOfEmployees": {
+      "@type": "QuantitativeValue",
+      "minValue": 5,
+      "maxValue": 15
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Livdjursgatan 4",
+      "postalCode": "121 62",
+      "addressLocality": "Johanneshov",
+      "addressRegion": "Stockholm",
+      "addressCountry": "SE"
+    },
+    "contactPoint": [
+      {
+        "@type": "ContactPoint",
+        "telephone": "+46-8-40941900",
+        "contactType": "customer service",
+        "availableLanguage": ["Swedish", "English", "Norwegian", "Danish"],
+        "areaServed": ["SE", "NO", "DK", "FI"]
+      }
+    ],
+    "sameAs": [
+      "https://www.facebook.com/doxvisumpartner",
+      "https://www.linkedin.com/company/dox-visumpartner",
+      "https://www.trustpilot.com/review/doxvl.dk"
+    ],
+    "knowsAbout": [
+      "Document legalization",
+      "Apostille",
+      "Embassy legalization",
+      "Visa applications",
+      "Notarius Publicus",
+      "Ministry for Foreign Affairs legalization",
+      "Chamber of Commerce certification"
+    ]
+  };
+
+  // WebSite schema with SearchAction (for Google sitelinks search box)
+  const websiteSchema = isHomePage ? {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
     "name": "DOX Visumpartner",
     "alternateName": "DOXVL",
     "url": baseUrl,
-    "logo": `${baseUrl}/logo.png`,
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "telephone": "+46-8-40941900",
-      "contactType": "customer service",
-      "availableLanguage": ["Swedish", "English"]
+    "inLanguage": ["sv", "en"],
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": `${baseUrl}/lander?q={search_term_string}`
+      },
+      "query-input": "required name=search_term_string"
     }
-  };
+  } : null;
 
   // Create FAQ schema if faqItems provided
   const faqSchema = faqItems && faqItems.length > 0 ? {
@@ -219,6 +284,14 @@ const Seo: React.FC<SeoProps> = ({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
       />
+
+      {/* Structured Data - WebSite (homepage only) */}
+      {websiteSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+      )}
 
       {/* Structured Data - FAQ (if provided) */}
       {faqSchema && (

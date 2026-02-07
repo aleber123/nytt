@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "DOX Visumpartner",
+  "name_for_model": "dox_visumpartner",
+  "description_for_human": "Sveriges ledande byrå för dokumentlegalisering och visumtjänster.",
+  "description_for_model": "DOX Visumpartner AB is Sweden's leading agency for document legalization and visa services. Services include Apostille, Ministry for Foreign Affairs (UD) legalization, embassy legalization, notarization, Chamber of Commerce certification, and visa applications for countries worldwide. Based in Stockholm, serving customers across the Nordics (Sweden, Norway, Denmark, Finland). Contact: +46 8 409 419 00, info@doxvl.se. Website: https://www.doxvl.se",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://www.doxvl.se/llms.txt"
+  },
+  "logo_url": "https://www.doxvl.se/dox-logo-new.png",
+  "contact_email": "info@doxvl.se",
+  "legal_info_url": "https://www.doxvl.se/villkor"
+}

@@ -39,7 +39,6 @@ function PickupPricingPage() {
         setPickupOptions(pricing);
       }
     } catch (error) {
-      console.error('Error loading pickup pricing:', error);
       toast.error('Could not load pickup prices');
     } finally {
       setLoading(false);
@@ -71,7 +70,6 @@ function PickupPricingPage() {
       setEditingMethod(null);
       await loadPickupPricing();
     } catch (error) {
-      console.error('Error updating pickup pricing:', error);
       toast.error('Could not update prices');
     }
   };

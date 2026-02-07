@@ -631,7 +631,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       setAvailableServices(sortedServicesList);
 
     } catch (error) {
-      console.error('❌ Error loading services:', error);
       // Final fallback - ensure core services are always available
       const isHagueCountry = isHagueConventionCountry(countryCode);
       let fallbackServices = [];
@@ -983,7 +982,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         setPickupServices(defaultPickupServices);
       }
     } catch (error) {
-      console.error('Error loading pickup services:', error);
       setPickupServices([]);
     } finally {
       setLoadingPickupServices(false);
@@ -1208,7 +1206,6 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         toast.error('Något gick fel');
       }
     } catch (error) {
-      console.error('Order submission error:', error);
       toast.error('Kunde inte skicka beställning');
     } finally {
       setIsSubmitting(false);

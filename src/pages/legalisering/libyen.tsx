@@ -1,7 +1,7 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 
@@ -16,10 +16,24 @@ export default function LibyenLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={t(`${cp}.metaDescription`)} />
-              </Head>
+      <LegaliseringCountrySEO
+        countryName="Libyen"
+        countryNameEn="Libya"
+        countryCode="LY"
+        slug="libyen"
+        title="Legalisering för Libyen | DOX Visumpartner"
+        titleEn="Document Legalization for Libya | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Libyen. Komplett service inkl. notarisering, UD och ambassadlegalisering. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Libya. Complete service including notarization, MFA and embassy legalization."
+        keywords="Libyen legalisering, legalisering Libyen, Libyens ambassad Stockholm, legalisera dokument Libyen, ambassadlegalisering Libyen, Tripoli, dokumentlegalisering"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Libyen?', answer: 'Legaliseringsprocessen inkluderar notarisering, UD-verifiering och slutlig legalisering. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Libyen?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider.' },
+          { question: 'Vad kostar legalisering för Libyen?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>

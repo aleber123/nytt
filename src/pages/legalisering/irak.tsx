@@ -1,9 +1,9 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 
 export default function IrakLegaliseringPage() {
   const { t } = useTranslation('common');
@@ -16,10 +16,23 @@ export default function IrakLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={t(`${cp}.metaDescription`)} />
-              </Head>
+      <LegaliseringCountrySEO
+        countryName="Irak"
+        countryNameEn="Iraq"
+        countryCode="IQ"
+        slug="irak"
+        title="Legalisering för Irak - Iraks ambassad Stockholm | DOX Visumpartner"
+        titleEn="Document Legalization for Iraq - Embassy of Iraq Stockholm | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Irak. Komplett service inkl. notarisering, UD och Iraks ambassad i Stockholm. Fast pris, snabb hantering."
+        keywords="Irak legalisering, legalisering Irak, Iraks ambassad Stockholm, legalisera dokument Irak, ambassadlegalisering Irak, Bagdad, dokumentlegalisering, UD legalisering Irak"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Irak?', answer: 'Legaliseringsprocessen för Irak inkluderar notarisering, UD-verifiering och slutlig legalisering vid Iraks ambassad i Stockholm. DOX Visumpartner hanterar hela processen.' },
+          { question: 'Hur lång tid tar legalisering för Irak?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider vid Iraks ambassad.' },
+          { question: 'Vad kostar legalisering för Irak?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>

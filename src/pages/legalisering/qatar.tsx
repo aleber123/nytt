@@ -1,9 +1,9 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 
 
 
@@ -22,29 +22,28 @@ export default function QatarLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>Legalisering för Qatar - Qatars ambassad Stockholm | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med legalisering av dokument för Qatar. Komplett service inkl. notarisering, UD och Qatars ambassad i Stockholm. Fast pris, snabb hantering." />
-        <meta name="keywords" content="Qatar, legalisering, ambassad, Stockholm, dokument, Doha, affärsvisum, arbetsintyg" />
-                
-        <meta property="og:title" content="Legalisering för Qatar - Qatars ambassad Stockholm | DOX Visumpartner" />
-        <meta property="og:description" content="Komplett legaliseringsservice för Qatar. Vi hanterar hela processen åt dig." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/qatar" />
-        <meta property="og:type" content="website" />
-        
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Legalisering för Qatar",
-          "provider": {
-            "@type": "Organization",
-            "name": "DOX Visumpartner AB"
-          },
-          "description": "Legalisering av dokument för användning i Qatar via Qatars ambassad i Stockholm",
-          "areaServed": ["SE", "QA"],
-          "serviceType": "Document Legalization"
-        })}} />
-      </Head>
+      <LegaliseringCountrySEO
+        countryName="Qatar"
+        countryCode="QA"
+        slug="qatar"
+        title="Legalisering för Qatar - Qatars ambassad Stockholm | DOX Visumpartner"
+        titleEn="Document Legalization for Qatar - Embassy of Qatar Stockholm | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Qatar. Komplett service inkl. notarisering, UD och Qatars ambassad i Stockholm. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Qatar. Complete service including notarization, MFA and Embassy of Qatar in Stockholm. Fixed prices, fast handling."
+        keywords="Qatar legalisering, legalisering Qatar, Qatars ambassad Stockholm, legalisera dokument Qatar, ambassadlegalisering Qatar, Doha, dokumentlegalisering, UD legalisering Qatar, arbetsvisum Qatar, Qatar attestering"
+        keywordsEn="Qatar legalization, document legalization Qatar, Embassy of Qatar Stockholm, Qatar attestation, Qatar embassy legalization, Doha, document attestation, Qatar work visa documents"
+        ogDescription="Komplett legaliseringsservice för Qatar via Qatars ambassad i Stockholm. Vi hanterar hela processen – notarisering, UD och ambassad."
+        schemaDescription="Professionell dokumentlegaliseringstjänst för Qatar via Qatars ambassad i Stockholm. Komplett service inkl. notarisering, UD-verifiering och ambassadlegalisering."
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Qatar?', answer: 'Legaliseringsprocessen för Qatar inkluderar tre steg: 1) Notarisering hos Notarius Publicus, 2) Verifiering hos Utrikesdepartementet (UD), 3) Slutlig legalisering vid Qatars ambassad i Stockholm. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Qatar?', answer: 'Den kompletta legaliseringsprocessen tar normalt 5-10 arbetsdagar beroende på dokumenttyp och aktuella handläggningstider vid Qatars ambassad. Vi erbjuder expressservice för brådskande ärenden.' },
+          { question: 'Vad kostar legalisering för Qatar?', answer: 'Priset beror på dokumenttyp och antal dokument. Kontakta DOX Visumpartner för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+          { question: 'Vilka dokument kan legaliseras för Qatar?', answer: 'De vanligaste dokumenten är examensbevis, arbetsgivarintyg, födelsebevis, vigselbevis, bolagshandlingar, fullmakter och medicinska intyg. Kontakta oss om du är osäker på ditt specifika dokument.' },
+          { question: 'Måste jag besöka Qatars ambassad själv?', answer: 'Nej, du behöver inte besöka ambassaden själv. DOX Visumpartner hanterar alla ambassadbesök, inlämning och uthämtning av dokument åt dig.' },
+        ]}
+      />
 
       
 

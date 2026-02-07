@@ -124,11 +124,9 @@ const VisaStep6Deadline: React.FC<Props> = ({ answers, onUpdate, onNext, onBack 
             value={answers.passportNeededBy}
             min={today}
             onChange={(e) => onUpdate({ passportNeededBy: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-button focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-button focus:border-transparent text-base appearance-none bg-white [&::-webkit-date-and-time-value]:text-left"
+            style={{ minHeight: '48px' }}
           />
-          <p className="text-xs text-gray-500 mt-1">
-            {isSv ? 'Format: ÅÅÅÅ-MM-DD' : 'Format: YYYY-MM-DD'}
-          </p>
         </div>
 
         {/* Time remaining display */}

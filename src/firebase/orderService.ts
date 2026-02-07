@@ -119,7 +119,6 @@ async function getNextOrderNumber(): Promise<number> {
     
     return nextNumber;
   } catch (error) {
-    console.error('Error getting next order number:', error);
     // Fallback to a timestamp-based number if counter fails
     return Math.floor(Date.now() / 1000);
   }
@@ -156,7 +155,6 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'u
 
     return formattedOrderId;
   } catch (error) {
-    console.error('Error creating order:', error);
     throw error;
   }
 };
@@ -176,7 +174,6 @@ export const getAllOrders = async (): Promise<Order[]> => {
       ...doc.data()
     } as Order));
   } catch (error) {
-    console.error('Error getting orders:', error);
     throw error;
   }
 };
@@ -197,7 +194,6 @@ export const getOrdersByEmail = async (email: string): Promise<Order[]> => {
       ...doc.data()
     } as Order));
   } catch (error) {
-    console.error('Error getting orders by email:', error);
     throw error;
   }
 };
@@ -217,7 +213,6 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
       return null;
     }
   } catch (error) {
-    console.error('Error getting order by ID:', error);
     throw error;
   }
 };
@@ -232,7 +227,6 @@ export const updateOrder = async (orderId: string, orderData: Partial<Order>): P
       updatedAt: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error updating order:', error);
     throw error;
   }
 };
@@ -247,7 +241,6 @@ export const updateOrderStatus = async (orderId: string, status: Order['status']
       updatedAt: Timestamp.now()
     });
   } catch (error) {
-    console.error('Error updating order status:', error);
     throw error;
   }
 };
@@ -258,7 +251,6 @@ export const deleteOrder = async (orderId: string): Promise<void> => {
     const docRef = doc(db, ORDERS_COLLECTION, orderId);
     await deleteDoc(docRef);
   } catch (error) {
-    console.error('Error deleting order:', error);
     throw error;
   }
 };
@@ -279,7 +271,6 @@ export const getOrdersByStatus = async (status: Order['status']): Promise<Order[
       ...doc.data()
     } as Order));
   } catch (error) {
-    console.error('Error getting orders by status:', error);
     throw error;
   }
 };

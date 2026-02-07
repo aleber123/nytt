@@ -126,6 +126,8 @@ const HeroCarousel: React.FC = () => {
           <div 
             key={currentSlideData.id}
             className="animate-fadeIn"
+            aria-live="polite"
+            aria-atomic="true"
           >
             <h1
               className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-6"
@@ -211,7 +213,11 @@ const HeroCarousel: React.FC = () => {
       {showServiceModal && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label={safeT('serviceModal.title', 'Vad vill du beställa?')}
           onClick={() => setShowServiceModal(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowServiceModal(false); }}
         >
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           
@@ -223,6 +229,7 @@ const HeroCarousel: React.FC = () => {
               onClick={() => setShowServiceModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label={safeT('accessibility.closeMenu', 'Stäng')}
+              autoFocus
             >
               <XMarkIcon className="h-6 w-6" />
             </button>

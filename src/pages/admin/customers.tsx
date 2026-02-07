@@ -231,7 +231,6 @@ export default function CustomersPage() {
       await loadCustomers();
       closeModal();
     } catch (err: any) {
-      console.error('Customer save error:', err);
       setError(err?.message || 'Could not save customer. Please try again.');
     } finally {
       setSaving(false);

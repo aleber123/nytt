@@ -41,7 +41,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack
         const result = await calculateOrderPrice(pricingData);
         setPricing(result);
       } catch (err) {
-        console.error('Error calculating price:', err);
         setError('Failed to calculate pricing. Please try again.');
         // Fallback to basic calculation
         setPricing({

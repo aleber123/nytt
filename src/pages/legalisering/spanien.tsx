@@ -1,6 +1,6 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import Head from 'next/head';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 
@@ -20,11 +20,24 @@ export default function SpanienLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>Spanien - NIE-nummer & Apostille | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med NIE-nummer för Spanien och apostille av dokument. Komplett service via Spaniens ambassad i Stockholm. Köpa bostad, starta företag." />
-        <meta name="keywords" content="Spanien, NIE-nummer, apostille, ambassad, Stockholm, köpa bostad, företag, legalisering" />
-              </Head>
+<LegaliseringCountrySEO
+        countryName="Spanien"
+        countryNameEn="Spain"
+        countryCode="ES"
+        slug="spanien"
+        title="Legalisering för Spanien | DOX Visumpartner"
+        titleEn="Document Legalization for Spain | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Spanien. Komplett service inkl. notarisering, UD och ambassadlegalisering. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Spain. Complete service including notarization, MFA and embassy legalization."
+        keywords="Spanien legalisering, legalisering Spanien, NIE nummer, Spaniens ambassad Stockholm, legalisera dokument Spanien, apostille Spanien, NIE ansökan, dokumentlegalisering Spanien"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Spanien?', answer: 'Legaliseringsprocessen inkluderar notarisering, UD-verifiering och slutlig legalisering. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Spanien?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider.' },
+          { question: 'Vad kostar legalisering för Spanien?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
       
       <main className="min-h-screen bg-gray-50">
         <section className="text-white py-16 md:py-24" style={{ background: `linear-gradient(to bottom right, ${country.color}, ${country.colorDark})` }}>

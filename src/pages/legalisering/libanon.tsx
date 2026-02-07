@@ -1,6 +1,6 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import Head from 'next/head';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 
@@ -34,14 +34,24 @@ export default function LibanonLegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>Legalisering för {country.name} - Ambassad Stockholm | DOX Visumpartner</title>
-        <meta name="description" content={`Vi hjälper dig med legalisering av dokument för ${country.name}. Komplett service inkl. notarisering, UD och ${country.name}s ambassad i Stockholm.`} />
-        <meta name="keywords" content={`${country.name}, legalisering, ambassad, Stockholm, dokument, Beirut`} />
-                <meta property="og:title" content={`Legalisering för ${country.name} | DOX Visumpartner`} />
-        <meta property="og:description" content={`Komplett legaliseringsservice för ${country.name}. Vi hanterar hela processen.`} />
-        <meta property="og:url" content={`https://www.doxvl.se/legalisering/${country.name.toLowerCase()}`} />
-      </Head>
+<LegaliseringCountrySEO
+        countryName="Libanon"
+        countryNameEn="Lebanon"
+        countryCode="LB"
+        slug="libanon"
+        title="Legalisering för Libanon | DOX Visumpartner"
+        titleEn="Document Legalization for Lebanon | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för Libanon. Komplett service inkl. notarisering, UD och ambassadlegalisering. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for Lebanon. Complete service including notarization, MFA and embassy legalization."
+        keywords="Libanon legalisering, legalisering Libanon, Libanons ambassad Stockholm, legalisera dokument Libanon, ambassadlegalisering Libanon, Beirut, dokumentlegalisering"
+        priceLow="1200"
+        priceHigh="4500"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Libanon?', answer: 'Legaliseringsprocessen inkluderar notarisering, UD-verifiering och slutlig legalisering. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för Libanon?', answer: 'Normalt 5-15 arbetsdagar beroende på dokumenttyp och handläggningstider.' },
+          { question: 'Vad kostar legalisering för Libanon?', answer: 'Kontakta oss för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+        ]}
+      />
 
       
 

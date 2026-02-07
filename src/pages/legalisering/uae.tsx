@@ -1,9 +1,9 @@
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import Head from 'next/head';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
+import LegaliseringCountrySEO from '@/components/SEO/LegaliseringCountrySEO';
 
 export default function UAELegaliseringPage() {
   const { t } = useTranslation('common');
@@ -20,29 +20,29 @@ export default function UAELegaliseringPage() {
 
   return (
     <>
-      <Head>
-        <title>Legalisering för UAE - Förenade Arabemiratens ambassad Stockholm | DOX Visumpartner</title>
-        <meta name="description" content="Vi hjälper dig med legalisering av dokument för UAE (Förenade Arabemiraten). Komplett service inkl. notarisering, UD och UAE:s ambassad i Stockholm. Fast pris." />
-        <meta name="keywords" content="UAE, Förenade Arabemiraten, Dubai, Abu Dhabi, legalisering, ambassad, Stockholm, dokument, affärsvisum, arbetsintyg" />
-                
-        <meta property="og:title" content="Legalisering för UAE - Förenade Arabemiratens ambassad Stockholm | DOX Visumpartner" />
-        <meta property="og:description" content="Komplett legaliseringsservice för UAE. Vi hanterar hela processen åt dig." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/uae" />
-        <meta property="og:type" content="website" />
-        
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          "name": "Legalisering för UAE",
-          "provider": {
-            "@type": "Organization",
-            "name": "DOX Visumpartner AB"
-          },
-          "description": "Legalisering av dokument för användning i UAE via Förenade Arabemiratens ambassad i Stockholm",
-          "areaServed": ["SE", "AE"],
-          "serviceType": "Document Legalization"
-        })}} />
-      </Head>
+      <LegaliseringCountrySEO
+        countryName="UAE"
+        countryNameEn="UAE"
+        countryCode="AE"
+        slug="uae"
+        title="Legalisering för UAE - Förenade Arabemiratens ambassad Stockholm | DOX Visumpartner"
+        titleEn="Document Legalization for UAE - Embassy of UAE Stockholm | DOX Visumpartner"
+        description="Vi hjälper dig med legalisering av dokument för UAE (Förenade Arabemiraten). Komplett service inkl. notarisering, UD och UAE:s ambassad i Stockholm. Fast pris, snabb hantering."
+        descriptionEn="We help you with document legalization for UAE (United Arab Emirates). Complete service including notarization, MFA and UAE Embassy in Stockholm. Fixed prices."
+        keywords="UAE legalisering, legalisering UAE, Förenade Arabemiraten legalisering, Dubai legalisering, Abu Dhabi legalisering, UAE ambassad Stockholm, legalisera dokument UAE, ambassadlegalisering UAE, dokumentlegalisering Dubai, UD legalisering UAE, arbetsvisum Dubai"
+        keywordsEn="UAE legalization, document legalization UAE, United Arab Emirates legalization, Dubai legalization, Abu Dhabi legalization, UAE Embassy Stockholm, document attestation UAE, UAE work visa documents"
+        ogDescription="Komplett legaliseringsservice för UAE via Förenade Arabemiratens ambassad i Stockholm. Notarisering, UD och ambassadlegalisering."
+        schemaDescription="Professionell dokumentlegaliseringstjänst för UAE (Förenade Arabemiraten) via UAE:s ambassad i Stockholm."
+        priceLow="1200"
+        priceHigh="5000"
+        faqItems={[
+          { question: 'Hur legaliserar jag dokument för Dubai/UAE?', answer: 'Legaliseringsprocessen för UAE inkluderar tre steg: 1) Notarisering hos Notarius Publicus, 2) Verifiering hos Utrikesdepartementet (UD), 3) Slutlig legalisering vid UAE:s ambassad i Stockholm. DOX Visumpartner hanterar hela processen åt dig.' },
+          { question: 'Hur lång tid tar legalisering för UAE?', answer: 'Den kompletta legaliseringsprocessen tar normalt 5-10 arbetsdagar beroende på dokumenttyp och aktuella handläggningstider vid UAE:s ambassad.' },
+          { question: 'Vad kostar legalisering för UAE?', answer: 'Priset beror på dokumenttyp och antal dokument. Kontakta DOX Visumpartner för en kostnadsfri offert. Vi erbjuder fasta priser utan dolda avgifter.' },
+          { question: 'Vilka dokument kan legaliseras för UAE?', answer: 'De vanligaste dokumenten är examensbevis, arbetsgivarintyg, födelsebevis, vigselbevis, bolagshandlingar, fullmakter och medicinska intyg för Dubai, Abu Dhabi och övriga emirat.' },
+          { question: 'Måste jag besöka UAE:s ambassad själv?', answer: 'Nej, DOX Visumpartner hanterar alla ambassadbesök, inlämning och uthämtning av dokument åt dig.' },
+        ]}
+      />
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}

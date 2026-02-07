@@ -37,7 +37,6 @@ export const saveDriverDailyReport = async (params: SaveDriverReportParams): Pro
 
 
   if (!db) {
-    console.error('❌ Firestore db is not initialized in saveDriverDailyReport');
     throw new Error('Firestore is not initialized');
   }
 
@@ -67,7 +66,6 @@ export const saveDriverDailyReport = async (params: SaveDriverReportParams): Pro
   try {
     await setDoc(ref, payload, { merge: true });
   } catch (error) {
-    console.error('❌ Error saving driver daily report', { docId, payload, error });
     throw error;
   }
 };
@@ -94,16 +92,7 @@ export const getDriverMonthlySummary = async (
   const startDate = `${year}-${monthStr}-01`;
   const endDate = `${year}-${monthStr}-31`;
 
-  console.log('📅 getDriverMonthlySummary called', {
-    driverId: cleanDriverId,
-    year,
-    month,
-    startDate,
-    endDate,
-  });
-
   if (!db) {
-    console.error('❌ Firestore db is not initialized in getDriverMonthlySummary');
     throw new Error('Firestore is not initialized');
   }
 
@@ -117,8 +106,6 @@ export const getDriverMonthlySummary = async (
   );
 
   const snapshot = await getDocs(q);
-
-  console.log('📊 Driver monthly snapshot size', snapshot.size);
 
   const reports: DriverReport[] = [];
   let totalHours = 0;
@@ -150,8 +137,6 @@ export const getDriverMonthlySummary = async (
     totalOther,
     reports,
   };
-
-  console.log('✅ Driver monthly summary computed', summary);
 
   return summary;
 };

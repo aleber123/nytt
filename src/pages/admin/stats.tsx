@@ -127,7 +127,6 @@ function AdminStatsPage() {
         recentOrders
       });
     } catch (err) {
-      console.error('Error fetching stats:', err);
       setError('Failed to load statistics. Please try again.');
     } finally {
       setLoading(false);

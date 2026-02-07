@@ -177,7 +177,6 @@ function SimpleEmbassyPricesPage() {
 
       setCountries(allCountriesFromFirebase);
     } catch (error) {
-      console.error('Error loading embassy prices:', error);
       // Use default countries if Firebase fails
       setCountries(defaultCountries);
       toast.error('Could not load prices from Firebase - using default prices');
@@ -323,7 +322,6 @@ function SimpleEmbassyPricesPage() {
       toast.success(`Updated ${selectedCountryCodes.size} countries`);
       clearSelection();
     } catch (error) {
-      console.error('Error bulk updating:', error);
       toast.error('Could not update selected countries');
     } finally {
       setBulkUpdating(false);
@@ -486,7 +484,6 @@ function SimpleEmbassyPricesPage() {
 
       toast.success(`Service fee updated to ${newServiceFee} SEK for all ${countries.length} countries!`, { id: 'bulk-update' });
     } catch (error) {
-      console.error('Error bulk updating service fee:', error);
       toast.error('Could not update service fees', { id: 'bulk-update' });
     } finally {
       setBulkUpdating(false);
@@ -540,7 +537,6 @@ function SimpleEmbassyPricesPage() {
       const actionDone = confirm ? 'confirmed' : 'marked as unconfirmed';
       toast.success(`All ${countries.length} countries ${actionDone}!`, { id: 'bulk-confirm' });
     } catch (error) {
-      console.error('Error bulk confirming prices:', error);
       toast.error('Could not update price status', { id: 'bulk-confirm' });
     } finally {
       setBulkUpdating(false);

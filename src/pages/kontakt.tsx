@@ -60,7 +60,6 @@ const ContactPage: React.FC = () => {
       
       setIsSubmitted(true);
     } catch (error) {
-      console.error('Error saving contact message:', error);
       setSubmitError('Ett fel uppstod när meddelandet skulle skickas. Försök igen senare.');
     } finally {
       setIsSubmitting(false);

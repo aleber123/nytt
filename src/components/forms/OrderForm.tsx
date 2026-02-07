@@ -40,7 +40,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ initialData, onSubmit, onBack }) 
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.warn('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set');
+      // API key not configured
       return;
     }
 

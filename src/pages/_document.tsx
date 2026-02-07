@@ -11,67 +11,28 @@ class MyDocument extends Document {
     return (
       <Html lang={locale}>
         <Head>
-          {/* Google Tag (gtag.js) - GA4 + Google Ads */}
-          <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-0LMELBW76W"
-          />
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-0LMELBW76W');
-                gtag('config', 'AW-1001886627');
-                gtag('config', 'AW-940620817');
-                
-                // Page view conversion for Google Ads
-                gtag('event', 'conversion', {
-                  'send_to': 'AW-1001886627/K9N_CL7tv-EbEKOn3t0D'
-                });
-              `,
-            }}
-          />
-          {/* Google Ads Conversion - Request Quote */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                function gtag_report_conversion(url) {
-                  var callback = function () {
-                    if (typeof(url) != 'undefined') {
-                      window.location = url;
-                    }
-                  };
-                  gtag('event', 'conversion', {
-                    'send_to': 'AW-1001886627/mL9jCNbbuu8bEKOn3t0D',
-                    'event_callback': callback
-                  });
-                  return false;
-                }
-              `,
-            }}
-          />
-          
-          {/* Microsoft Clarity */}
-          {process.env.NEXT_PUBLIC_CLARITY_ID && (
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  (function(c,l,a,r,i,t,y){
-                    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-                  })(window, document, "clarity", "script", "${process.env.NEXT_PUBLIC_CLARITY_ID}");
-                `,
-              }}
-            />
-          )}
-          
           {/* Favicon - DOX Box logo */}
           <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
           <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
           <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+          
+          {/* PWA Manifest */}
+          <link rel="manifest" href="/manifest.json" />
+          <meta name="theme-color" content="#1e3a5f" />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+          <meta name="apple-mobile-web-app-title" content="DOX Visumpartner" />
+          
+          {/* DNS Prefetch for performance */}
+          <link rel="dns-prefetch" href="//www.googletagmanager.com" />
+          <link rel="dns-prefetch" href="//www.google-analytics.com" />
+          <link rel="dns-prefetch" href="//firebasestorage.googleapis.com" />
+          <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
+          
+          {/* Verification tags (add your IDs when available) */}
+          {/* <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" /> */}
+          {/* <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" /> */}
         </Head>
         <body>
           <Main />

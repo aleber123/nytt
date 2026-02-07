@@ -142,7 +142,6 @@ function ShippingServicesPage() {
 
       setServices(mergedServices);
     } catch (error) {
-      console.error('Error loading shipping services:', error);
       // Use default values if Firebase fails
       setServices(defaultServices);
       toast.error('Could not load shipping prices from Firebase - using default prices');
@@ -196,7 +195,6 @@ function ShippingServicesPage() {
 
       toast.success(`${service.name} price updated!`);
     } catch (error) {
-      console.error('Error updating shipping price:', error);
       toast.error('Could not update shipping price');
     } finally {
       setSaving(false);
