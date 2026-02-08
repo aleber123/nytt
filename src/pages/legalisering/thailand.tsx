@@ -17,10 +17,10 @@ export default function ThailandLegaliseringPage() {
         
         <meta property="og:title" content="Legalisering för Thailand - UD-stämpel & Översättning | DOX Visumpartner" />
         <meta property="og:description" content="Komplett legaliseringsservice för Thailand. UD-legalisering, auktoriserad översättning till engelska och thailändska." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/thailand" />
+        <meta property="og:url" content="https://doxvl.se/legalisering/thailand" />
         <meta property="og:type" content="website" />
         
-        <link rel="canonical" href="https://www.doxvl.se/legalisering/thailand" />
+        <link rel="canonical" href="https://doxvl.se/legalisering/thailand" />
         
         {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -30,7 +30,7 @@ export default function ThailandLegaliseringPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
+            "url": "https://doxvl.se",
             "address": {
               "@type": "PostalAddress",
               "streetAddress": "Livdjursgatan 4",
@@ -50,9 +50,9 @@ export default function ThailandLegaliseringPage() {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
-            { "@type": "ListItem", "position": 2, "name": "Legalisering", "item": "https://www.doxvl.se/legalisering" },
-            { "@type": "ListItem", "position": 3, "name": "Thailand", "item": "https://www.doxvl.se/legalisering/thailand" }
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Legalisering", "item": "https://doxvl.se/legalisering" },
+            { "@type": "ListItem", "position": 3, "name": "Thailand", "item": "https://doxvl.se/legalisering/thailand" }
           ]
         })}} />
 

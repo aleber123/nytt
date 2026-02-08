@@ -29,11 +29,11 @@ export default function FinlandPage() {
         <title>Legalisointi Suomelle | Suurlähetystöt Tukholmassa | DOX Visumpartner</title>
         <meta name="description" content="Asutko Suomessa ja tarvitset asiakirjojen legalisointia tai viisumia maihin, joilla ei ole suurlähetystöä Helsingissä? Autamme Tukholman suurlähetystöjen kautta. Kuwait, Qatar, Libya ym." />
         <meta name="keywords" content="legalisointi Suomi, viisumi Suomi, suurlähetystö Tukholma, Kuwait viisumi Suomi, Qatar legalisointi Suomi, suomalaiset asiakirjat legalisointi" />
-        <link rel="canonical" href="https://www.doxvl.se/finland" />
+        <link rel="canonical" href="https://doxvl.se/finland" />
         
         <meta property="og:title" content="Legalisointi Suomelle | Suurlähetystöt Tukholmassa" />
         <meta property="og:description" content="Autamme suomalaisia asiakkaita legalisoinnissa ja viisumihakemuksissa Tukholman suurlähetystöjen kautta." />
-        <meta property="og:url" content="https://www.doxvl.se/finland" />
+        <meta property="og:url" content="https://doxvl.se/finland" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -43,7 +43,7 @@ export default function FinlandPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://doxvl.se"
           },
           "description": "Legalisointi- ja viisumipalvelut suomalaisille asiakkaille Tukholman suurlähetystöjen kautta",
           "areaServed": { "@type": "Country", "name": "Finland" },

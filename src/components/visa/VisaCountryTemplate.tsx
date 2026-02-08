@@ -106,7 +106,7 @@ export default function VisaCountryTemplate({ config }: VisaCountryTemplateProps
   const documentRequirements = selectedProduct?.documentRequirements?.filter((d: DocumentRequirement) => d.isActive) || [];
 
   const countryDisplayName = locale === 'en' ? config.countryNameEn : config.countryName;
-  const canonicalUrl = `https://www.doxvl.se/visum/${config.slug}`;
+  const canonicalUrl = `https://doxvl.se/visum/${config.slug}`;
 
   return (
     <>
@@ -130,8 +130,8 @@ export default function VisaCountryTemplate({ config }: VisaCountryTemplateProps
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/images/dox-logo.png",
             "address": {
               "@type": "PostalAddress",
               "streetAddress": "Livdjursgatan 4",
@@ -158,8 +158,8 @@ export default function VisaCountryTemplate({ config }: VisaCountryTemplateProps
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
-            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://www.doxvl.se/visum" },
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://doxvl.se/visum" },
             { "@type": "ListItem", "position": 3, "name": config.countryName, "item": canonicalUrl }
           ]
         })}} />

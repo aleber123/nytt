@@ -48,11 +48,11 @@ export default function LegaliseraExamensbevisPage() {
         <title>Legalisera Examensbevis för Utlandsstudier | Apostille & Ambassad | DOX</title>
         <meta name="description" content="Behöver du legalisera ditt examensbevis för utlandsstudier eller arbete utomlands? Vi hjälper dig med Apostille, UD-stämpel och ambassadlegalisering. Från 695 kr." />
         <meta name="keywords" content="legalisera examensbevis, apostille examensbevis, legalisering universitetsexamen, examensbevis utomlands, legalisera diplom, apostille diplom, examensbevis Saudiarabien, examensbevis UAE, legalisera betyg" />
-        <link rel="canonical" href="https://www.doxvl.se/legalisera-examensbevis" />
+        <link rel="canonical" href="https://doxvl.se/legalisera-examensbevis" />
 
         <meta property="og:title" content="Legalisera Examensbevis för Utlandsstudier | DOX Visumpartner" />
         <meta property="og:description" content="Professionell legalisering av examensbevis för utlandsstudier och arbete. Apostille, UD och ambassadlegalisering." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisera-examensbevis" />
+        <meta property="og:url" content="https://doxvl.se/legalisera-examensbevis" />
         <meta property="og:type" content="website" />
 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -62,7 +62,7 @@ export default function LegaliseraExamensbevisPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://doxvl.se"
           },
           "description": "Professionell legalisering av examensbevis och diplom för internationellt bruk. Apostille, UD-stämpel och ambassadlegalisering.",
           "areaServed": { "@type": "Country", "name": "Sweden" },

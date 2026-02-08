@@ -194,7 +194,7 @@ const Seo: React.FC<SeoProps> = ({
     "provider": {
       "@type": "Organization",
       "name": "DOX Visumpartner",
-      "url": "https://www.doxvl.se"
+      "url": "https://doxvl.se"
     },
     "areaServed": {
       "@type": "Country",

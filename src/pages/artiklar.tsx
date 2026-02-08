@@ -187,7 +187,7 @@ const ArticlesPage: React.FC = () => {
         <meta property="og:title" content="Artiklar om Dokumentlegalisering | Legaliseringstjänst" />
         <meta property="og:description" content="Expertartiklar om apostille, legalisering och internationella dokumentprocesser." />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://www.doxvl.se/artiklar" />
+        <link rel="canonical" href="https://doxvl.se/artiklar" />
       </Head>
 
       <div className="bg-custom-page-header py-12">

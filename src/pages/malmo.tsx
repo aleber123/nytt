@@ -19,11 +19,11 @@ export default function MalmoPage() {
         <title>Legalisering Malmö | Dokumentlegalisering & Apostille | DOX</title>
         <meta name="description" content="Behöver du legalisera dokument i Malmö? Vi erbjuder snabb dokumentlegalisering, apostille och ambassadstämpel. Service i hela Skåne. Från 695 kr." />
         <meta name="keywords" content="legalisering Malmö, dokumentlegalisering Malmö, apostille Malmö, notarius publicus Malmö, ambassadlegalisering Malmö, legalisering Skåne" />
-        <link rel="canonical" href="https://www.doxvl.se/malmo" />
+        <link rel="canonical" href="https://doxvl.se/malmo" />
         
         <meta property="og:title" content="Legalisering Malmö | DOX Visumpartner" />
         <meta property="og:description" content="Professionell dokumentlegalisering i Malmö och Skåne. Apostille, ambassadlegalisering och översättning." />
-        <meta property="og:url" content="https://www.doxvl.se/malmo" />
+        <meta property="og:url" content="https://doxvl.se/malmo" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -31,8 +31,8 @@ export default function MalmoPage() {
           "@type": "LocalBusiness",
           "name": "DOX Visumpartner - Malmö",
           "description": "Dokumentlegalisering och apostille-tjänster i Malmö och Skåne",
-          "url": "https://www.doxvl.se/malmo",
-          "logo": "https://www.doxvl.se/dox-logo.webp",
+          "url": "https://doxvl.se/malmo",
+          "logo": "https://doxvl.se/dox-logo.webp",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Malmö",

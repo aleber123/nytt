@@ -14,11 +14,11 @@ export default function ApostillePage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="apostille, haagkonventionen, legalisering, dokument, Sverige, internationell" />
-        <link rel="canonical" href="https://www.doxvl.se/tjanster/apostille" />
+        <link rel="canonical" href="https://doxvl.se/tjanster/apostille" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
-        <meta property="og:url" content="https://www.doxvl.se/tjanster/apostille" />
+        <meta property="og:url" content="https://doxvl.se/tjanster/apostille" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -28,8 +28,8 @@ export default function ApostillePage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/dox-logo.webp"
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/dox-logo.webp"
           },
           "description": "Apostille-legalisering för dokument som ska användas i Haagkonventionsländer. Snabb handläggning, från 695 kr.",
           "areaServed": {

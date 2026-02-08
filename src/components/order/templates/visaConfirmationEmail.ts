@@ -295,7 +295,7 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
     
     const uploadButton = hasUploadable && token ? `
       <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #fcd34d; text-align: center;">
-        <a href="https://www.doxvl.se/visum/dokument?token=${token}" 
+        <a href="https://doxvl.se/visum/dokument?token=${token}" 
            style="display: inline-block; background: #d97706; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
           📤 ${uploadButtonText}
         </a>
@@ -399,7 +399,7 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
   <div class="email-container">
     <div class="header">
       <div class="header-logo-container">
-        <img src="https://www.doxvl.se/dox-logo-new.png" alt="DOX Visumpartner" class="header-logo">
+        <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner" class="header-logo">
       </div>
       <h1>🛂 Visa Order Confirmation</h1>
       <p>Thank you for your visa order with DOX Visumpartner</p>
@@ -529,7 +529,7 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
   <div class="email-container">
     <div class="header">
       <div class="header-logo-container">
-        <img src="https://www.doxvl.se/dox-logo-new.png" alt="DOX Visumpartner" class="header-logo">
+        <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner" class="header-logo">
       </div>
       <h1>🛂 Bekräftelse på visumbeställning</h1>
       <p>Tack för din visumbeställning hos DOX Visumpartner</p>
@@ -742,7 +742,7 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
   <div class="email-container">
     <div class="header">
       <div class="header-logo-container">
-        <img src="https://www.doxvl.se/dox-logo-new.png" alt="DOX Visumpartner" class="header-logo">
+        <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner" class="header-logo">
       </div>
       <h1>New Visa Order</h1>
       <p>A new visa order has been received</p>
@@ -864,7 +864,7 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
       ` : ''}
 
       <div style="text-align:center; margin-top:24px;">
-        <a href="https://www.doxvl.se/admin/visa-orders/${order.id || order.orderNumber}" 
+        <a href="https://doxvl.se/admin/visa-orders/${order.id || order.orderNumber}" 
            style="display:inline-block; background:#0EB0A6; color:#fff; padding:14px 28px; border-radius:8px; text-decoration:none; font-weight:600;">
           Open in Admin
         </a>

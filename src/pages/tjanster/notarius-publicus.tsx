@@ -16,11 +16,11 @@ export default function NotariusPublicusPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="notarius publicus, notarisering, bestyrka underskrift, legalisering, dokument, Sverige" />
-        <link rel="canonical" href="https://www.doxvl.se/tjanster/notarius-publicus" />
+        <link rel="canonical" href="https://doxvl.se/tjanster/notarius-publicus" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
-        <meta property="og:url" content="https://www.doxvl.se/tjanster/notarius-publicus" />
+        <meta property="og:url" content="https://doxvl.se/tjanster/notarius-publicus" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -30,8 +30,8 @@ export default function NotariusPublicusPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/dox-logo.webp"
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/dox-logo.webp"
           },
           "description": "Notarisering av dokument och bestyrkande av underskrifter via Notarius Publicus. Snabb handläggning från 595 kr.",
           "areaServed": {

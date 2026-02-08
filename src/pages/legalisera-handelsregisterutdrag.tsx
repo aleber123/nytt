@@ -61,11 +61,11 @@ export default function LegaliseraHandelsregisterutdragPage() {
         <title>Legalisera Handelsregisterutdrag för Företag | Apostille & Ambassad | DOX</title>
         <meta name="description" content="Behöver du legalisera handelsregisterutdrag eller andra företagsdokument för internationella affärer? Vi hjälper dig med Apostille och ambassadlegalisering. Från 695 kr." />
         <meta name="keywords" content="legalisera handelsregisterutdrag, apostille registreringsbevis, legalisering företagsdokument, legalisera bolagshandlingar, apostille fullmakt, legalisera bolagsordning, företagsdokument utomlands, Bolagsverket legalisering" />
-        <link rel="canonical" href="https://www.doxvl.se/legalisera-handelsregisterutdrag" />
+        <link rel="canonical" href="https://doxvl.se/legalisera-handelsregisterutdrag" />
 
         <meta property="og:title" content="Legalisera Handelsregisterutdrag för Företag | DOX Visumpartner" />
         <meta property="og:description" content="Professionell legalisering av handelsregisterutdrag och företagsdokument för internationella affärer." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisera-handelsregisterutdrag" />
+        <meta property="og:url" content="https://doxvl.se/legalisera-handelsregisterutdrag" />
         <meta property="og:type" content="website" />
 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -75,7 +75,7 @@ export default function LegaliseraHandelsregisterutdragPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://doxvl.se"
           },
           "description": "Professionell legalisering av handelsregisterutdrag och företagsdokument för internationellt bruk.",
           "areaServed": { "@type": "Country", "name": "Sweden" },

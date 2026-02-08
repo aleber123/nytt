@@ -1,5 +1,5 @@
 module.exports = {
-  siteUrl: process.env.SITE_URL || 'https://www.doxvl.se',
+  siteUrl: process.env.SITE_URL || 'https://doxvl.se',
   generateRobotsTxt: false, // We manage robots.txt manually
   changefreq: 'weekly',
   priority: 0.7,

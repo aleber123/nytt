@@ -253,24 +253,24 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
 
         <meta property="og:title" content={c.seo.ogTitle} />
         <meta property="og:description" content={c.seo.ogDescription} />
-        <meta property="og:url" content={`https://www.doxvl.se/visum/${c.slug}`} />
+        <meta property="og:url" content={`https://doxvl.se/visum/${c.slug}`} />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="DOX Visumpartner" />
-        <meta property="og:image" content="https://www.doxvl.se/dox-logo-new.png" />
+        <meta property="og:image" content="https://doxvl.se/dox-logo-new.png" />
         {isNo && <meta property="og:locale" content="nb_NO" />}
 
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={c.seo.ogTitle} />
         <meta name="twitter:description" content={c.seo.ogDescription} />
 
-        <link rel="canonical" href={`https://www.doxvl.se/visum/${c.slug}`} />
-        <link rel="alternate" hrefLang="sv" href={`https://www.doxvl.se/visum/${c.slug}`} />
-        <link rel="alternate" hrefLang="en" href={`https://www.doxvl.se/en/visum/${c.slug}`} />
-        <link rel="alternate" hrefLang="x-default" href={`https://www.doxvl.se/visum/${c.slug}`} />
+        <link rel="canonical" href={`https://doxvl.se/visum/${c.slug}`} />
+        <link rel="alternate" hrefLang="sv" href={`https://doxvl.se/visum/${c.slug}`} />
+        <link rel="alternate" hrefLang="en" href={`https://doxvl.se/en/visum/${c.slug}`} />
+        <link rel="alternate" hrefLang="x-default" href={`https://doxvl.se/visum/${c.slug}`} />
         {isNo && (
           <>
-            <link rel="alternate" hrefLang="sv" href="https://www.doxvl.se/visum/angola" />
-            <link rel="alternate" hrefLang="nb" href="https://www.doxvl.se/visum/angola-no" />
+            <link rel="alternate" hrefLang="sv" href="https://doxvl.se/visum/angola" />
+            <link rel="alternate" hrefLang="nb" href="https://doxvl.se/visum/angola-no" />
           </>
         )}
 
@@ -282,8 +282,8 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/dox-logo-new.png",
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/dox-logo-new.png",
             "address": {
               "@type": "PostalAddress",
               "streetAddress": "Livdjursgatan 4",
@@ -314,9 +314,9 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
-            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://www.doxvl.se/visum" },
-            { "@type": "ListItem", "position": 3, "name": c.countryName, "item": `https://www.doxvl.se/visum/${c.slug}` }
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://doxvl.se/visum" },
+            { "@type": "ListItem", "position": 3, "name": c.countryName, "item": `https://doxvl.se/visum/${c.slug}` }
           ]
         })}} />
 

@@ -13,11 +13,11 @@ export default function HandelskammarenLandingPage() {
         <title>Handelskammaren Legalisering | Certifiering av Exportdokument | DOX Visumpartner</title>
         <meta name="description" content="Professionell hjälp med legalisering hos Handelskammaren. Vi hanterar ursprungsintyg, Certificate of Origin, fakturor och exportdokument för internationell handel." />
         <meta name="keywords" content="handelskammaren, handelskammaren legalisering, ursprungsintyg, certificate of origin, exportdokument, legalisering dokument, internationell handel, chamber of commerce" />
-        <link rel="canonical" href="https://www.doxvl.se/handelskammaren" />
+        <link rel="canonical" href="https://doxvl.se/handelskammaren" />
         
         <meta property="og:title" content="Handelskammaren Legalisering | DOX Visumpartner" />
         <meta property="og:description" content="Professionell hjälp med certifiering av handelsdokument hos Handelskammaren. Ursprungsintyg, fakturor och exportdokument." />
-        <meta property="og:url" content="https://www.doxvl.se/handelskammaren" />
+        <meta property="og:url" content="https://doxvl.se/handelskammaren" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -28,7 +28,7 @@ export default function HandelskammarenLandingPage() {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
             "telephone": "+46-8-40941900",
-            "url": "https://www.doxvl.se",
+            "url": "https://doxvl.se",
             "address": {
               "@type": "PostalAddress",
               "streetAddress": "Box 38",

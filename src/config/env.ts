@@ -35,7 +35,7 @@ export const firebaseConfig = {
  * Site configuration
  */
 export const siteConfig = {
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.doxvl.se',
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl.se',
   name: 'DOX Visumpartner AB',
   description: 'Sveriges bästa visum & legaliseringsföretag'
 };

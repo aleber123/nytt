@@ -70,10 +70,10 @@ export default function IndienVisumPage() {
         
         <meta property="og:title" content="Visum till Indien - Ansök om indiskt e-visum | DOX Visumpartner" />
         <meta property="og:description" content="Vi hjälper dig med e-visum och visumansökan till Indien. Turistvisum, affärsvisum och medicinskt visum med snabb handläggning." />
-        <meta property="og:url" content="https://www.doxvl.se/visum/indien" />
+        <meta property="og:url" content="https://doxvl.se/visum/indien" />
         <meta property="og:type" content="website" />
         
-        <link rel="canonical" href="https://www.doxvl.se/visum/indien" />
+        <link rel="canonical" href="https://doxvl.se/visum/indien" />
         
         {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -83,8 +83,8 @@ export default function IndienVisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/images/dox-logo.png",
             "address": {
               "@type": "PostalAddress",
               "streetAddress": "Livdjursgatan 4",
@@ -118,19 +118,19 @@ export default function IndienVisumPage() {
               "@type": "ListItem",
               "position": 1,
               "name": "Hem",
-              "item": "https://www.doxvl.se"
+              "item": "https://doxvl.se"
             },
             {
               "@type": "ListItem",
               "position": 2,
               "name": "Visum",
-              "item": "https://www.doxvl.se/visum"
+              "item": "https://doxvl.se/visum"
             },
             {
               "@type": "ListItem",
               "position": 3,
               "name": "Indien",
-              "item": "https://www.doxvl.se/visum/indien"
+              "item": "https://doxvl.se/visum/indien"
             }
           ]
         })}} />

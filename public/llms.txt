@@ -33,7 +33,7 @@ Vi hanterar legalisering för dokument till följande länder:
 - Spanien (NIE-nummer)
 
 ## Kontakt
-- **Webbplats**: https://www.doxvl.se
+- **Webbplats**: https://doxvl.se
 - **Telefon**: +46 8 409 419 00
 - **E-post**: info@doxvl.se
 - **Adress**: Livdjursgatan 4, 121 62 Johanneshov, Stockholm
@@ -50,7 +50,7 @@ Vi hanterar legalisering för dokument till följande länder:
 Alla priser är inklusive moms. Fasta priser utan dolda avgifter.
 
 ## Beställning
-Beställ online via https://www.doxvl.se/bestall eller kontakta oss för offert.
+Beställ online via https://doxvl.se/bestall eller kontakta oss för offert.
 
 ## Leveranstider
 - Express: 1–2 arbetsdagar (tillgängligt för vissa tjänster)

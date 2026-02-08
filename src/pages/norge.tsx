@@ -29,11 +29,11 @@ export default function NorgePage() {
         <title>Legalisering för Norge | Ambassader i Stockholm | DOX Visumpartner</title>
         <meta name="description" content="Bor du i Norge och behöver legalisera dokument eller ansöka om visum för länder utan ambassad i Oslo? Vi hjälper dig via ambassader i Stockholm. Kuwait, Qatar, Libyen m.fl." />
         <meta name="keywords" content="legalisering Norge, visum Norge, ambassad Stockholm, Kuwait visum Norge, Qatar legalisering Norge, norska dokument legalisering" />
-        <link rel="canonical" href="https://www.doxvl.se/norge" />
+        <link rel="canonical" href="https://doxvl.se/norge" />
         
         <meta property="og:title" content="Legalisering för Norge | Ambassader i Stockholm" />
         <meta property="og:description" content="Vi hjälper norska kunder med legalisering och visum via ambassader i Stockholm." />
-        <meta property="og:url" content="https://www.doxvl.se/norge" />
+        <meta property="og:url" content="https://doxvl.se/norge" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -43,7 +43,7 @@ export default function NorgePage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://doxvl.se"
           },
           "description": "Legalisering och visumtjänster för norska kunder via ambassader i Stockholm",
           "areaServed": { "@type": "Country", "name": "Norway" },

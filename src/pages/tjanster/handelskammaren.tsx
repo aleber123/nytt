@@ -16,11 +16,11 @@ export default function HandelskammarenPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="handelskammaren, ursprungsintyg, certificate of origin, exportdokument, legalisering, internationell handel" />
-        <link rel="canonical" href="https://www.doxvl.se/tjanster/handelskammaren" />
+        <link rel="canonical" href="https://doxvl.se/tjanster/handelskammaren" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
-        <meta property="og:url" content="https://www.doxvl.se/tjanster/handelskammaren" />
+        <meta property="og:url" content="https://doxvl.se/tjanster/handelskammaren" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

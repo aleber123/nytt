@@ -17,7 +17,7 @@ export default function VisumPage() {
       
       <Head>
         <meta name="keywords" content="visum, visumtjänster, visumansökan, e-visum, turistvisum, affärsvisum, visum Sverige, DOX Visumpartner" />
-        <link rel="canonical" href="https://www.doxvl.se/visum" />
+        <link rel="canonical" href="https://doxvl.se/visum" />
         
         {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -27,8 +27,8 @@ export default function VisumPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/images/dox-logo.png",
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/images/dox-logo.png",
             "address": {
               "@type": "PostalAddress",
               "streetAddress": "Livdjursgatan 4",
@@ -54,8 +54,8 @@ export default function VisumPage() {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://www.doxvl.se" },
-            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://www.doxvl.se/visum" }
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Visum", "item": "https://doxvl.se/visum" }
           ]
         })}} />
 
@@ -65,12 +65,12 @@ export default function VisumPage() {
           "@type": "ItemList",
           "name": "Populära visumdestinationer",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Visum till Indien", "url": "https://www.doxvl.se/visum/indien" },
-            { "@type": "ListItem", "position": 2, "name": "Visum till Thailand", "url": "https://www.doxvl.se/visum/thailand" },
-            { "@type": "ListItem", "position": 3, "name": "Visum till Kenya", "url": "https://www.doxvl.se/visum/kenya" },
-            { "@type": "ListItem", "position": 4, "name": "Visum till Tanzania", "url": "https://www.doxvl.se/visum/tanzania" },
-            { "@type": "ListItem", "position": 5, "name": "Visum till Sri Lanka", "url": "https://www.doxvl.se/visum/sri-lanka" },
-            { "@type": "ListItem", "position": 6, "name": "Visum till Angola", "url": "https://www.doxvl.se/visum/angola" }
+            { "@type": "ListItem", "position": 1, "name": "Visum till Indien", "url": "https://doxvl.se/visum/indien" },
+            { "@type": "ListItem", "position": 2, "name": "Visum till Thailand", "url": "https://doxvl.se/visum/thailand" },
+            { "@type": "ListItem", "position": 3, "name": "Visum till Kenya", "url": "https://doxvl.se/visum/kenya" },
+            { "@type": "ListItem", "position": 4, "name": "Visum till Tanzania", "url": "https://doxvl.se/visum/tanzania" },
+            { "@type": "ListItem", "position": 5, "name": "Visum till Sri Lanka", "url": "https://doxvl.se/visum/sri-lanka" },
+            { "@type": "ListItem", "position": 6, "name": "Visum till Angola", "url": "https://doxvl.se/visum/angola" }
           ]
         })}} />
       </Head>

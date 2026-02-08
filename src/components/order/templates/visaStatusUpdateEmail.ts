@@ -115,7 +115,7 @@ function trackingHtml(params: VisaStatusEmailParams, isEnglish: boolean): string
     <div style="background:#f0fdf4; border:2px solid #22c55e; border-radius:8px; padding:20px; margin:22px 0; text-align:center;">
       <h3 style="color:#166534; margin:0 0 10px; font-size:17px;">📍 ${isEnglish ? 'Track Your Order' : 'Följ din order'}</h3>
       <p style="color:#15803d; margin:0 0 14px; font-size:14px;">${isEnglish ? 'Follow the progress of your visa application in real-time:' : 'Följ ditt visumärende i realtid:'}</p>
-      <a href="https://www.doxvl.se/orderstatus?order=${params.orderNumber}" style="display:inline-block; background:#22c55e; color:#fff; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:700; font-size:15px;">${isEnglish ? 'Track Order Status' : 'Se orderstatus'}</a>
+      <a href="https://doxvl.se/orderstatus?order=${params.orderNumber}" style="display:inline-block; background:#22c55e; color:#fff; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:700; font-size:15px;">${isEnglish ? 'Track Order Status' : 'Se orderstatus'}</a>
     </div>
   `;
 }
@@ -133,7 +133,7 @@ function wrapEmail(lang: string, title: string, headerTitle: string, headerSubti
 <body>
   <div class="email-container">
     <div class="header">
-      <img src="https://www.doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" style="max-height:50px;width:auto;margin-bottom:16px;">
+      <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" style="max-height:50px;width:auto;margin-bottom:16px;">
       <h1>${headerTitle}</h1>
       <p>${headerSubtitle}</p>
     </div>

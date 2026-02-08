@@ -16,11 +16,11 @@ export default function UtrikesdepartementetPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="utrikesdepartementet, UD, legalisering, dokument, Sverige, apostille, stämpel" />
-        <link rel="canonical" href="https://www.doxvl.se/tjanster/utrikesdepartementet" />
+        <link rel="canonical" href="https://doxvl.se/tjanster/utrikesdepartementet" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
-        <meta property="og:url" content="https://www.doxvl.se/tjanster/utrikesdepartementet" />
+        <meta property="og:url" content="https://doxvl.se/tjanster/utrikesdepartementet" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -30,8 +30,8 @@ export default function UtrikesdepartementetPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/dox-logo.webp"
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/dox-logo.webp"
           },
           "description": "Legalisering av dokument hos Utrikesdepartementet (UD) för användning utomlands. Vi hanterar hela processen.",
           "areaServed": {

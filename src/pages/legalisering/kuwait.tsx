@@ -186,21 +186,21 @@ export default function KuwaitLegaliseringPage() {
                 
         <meta property="og:title" content={content.metaTitle} />
         <meta property="og:description" content={content.ogDesc} />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/kuwait" />
+        <meta property="og:url" content="https://doxvl.se/legalisering/kuwait" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="DOX Visumpartner" />
-        <meta property="og:image" content="https://www.doxvl.se/dox-logo-new.png" />
+        <meta property="og:image" content="https://doxvl.se/dox-logo-new.png" />
         
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={content.metaTitle} />
         <meta name="twitter:description" content={content.ogDesc} />
         
-        <link rel="canonical" href="https://www.doxvl.se/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="sv" href="https://www.doxvl.se/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="en" href="https://www.doxvl.se/en/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="fi" href="https://www.doxvl.se/legalisering/kuwait-finland" />
-        <link rel="alternate" hrefLang="da" href="https://www.doxvl.se/legalisering/kuwait-danmark" />
-        <link rel="alternate" hrefLang="x-default" href="https://www.doxvl.se/legalisering/kuwait" />
+        <link rel="canonical" href="https://doxvl.se/legalisering/kuwait" />
+        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/legalisering/kuwait" />
+        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/legalisering/kuwait" />
+        <link rel="alternate" hrefLang="fi" href="https://doxvl.se/legalisering/kuwait-finland" />
+        <link rel="alternate" hrefLang="da" href="https://doxvl.se/legalisering/kuwait-danmark" />
+        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/legalisering/kuwait" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",

@@ -50,7 +50,7 @@ export default function LegaliseringCountrySEO({
   const router = useRouter();
   const locale = router.locale || 'sv';
   const isEn = locale === 'en';
-  const baseUrl = 'https://www.doxvl.se';
+  const baseUrl = 'https://doxvl.se';
 
   const pageTitle = isEn && titleEn ? titleEn : title;
   const pageDescription = isEn && descriptionEn ? descriptionEn : description;

@@ -33,11 +33,11 @@ export default function OversattaDokumentPage() {
         <title>Översätta Dokument | Auktoriserad Översättning Sverige | DOX</title>
         <meta name="description" content="Behöver du översätta dokument? Vi erbjuder auktoriserad översättning av Kammarkollegiet-godkända översättare. Snabb leverans, alla språk. Från 495 kr." />
         <meta name="keywords" content="översätta dokument, auktoriserad översättning, certified translation, officiell översättning, Kammarkollegiet, dokumentöversättning, översättare" />
-        <link rel="canonical" href="https://www.doxvl.se/oversatta-dokument" />
+        <link rel="canonical" href="https://doxvl.se/oversatta-dokument" />
         
         <meta property="og:title" content="Översätta Dokument | Auktoriserad Översättning | DOX" />
         <meta property="og:description" content="Auktoriserad översättning av dokument för internationellt bruk. Certifierade översättare godkända av Kammarkollegiet." />
-        <meta property="og:url" content="https://www.doxvl.se/oversatta-dokument" />
+        <meta property="og:url" content="https://doxvl.se/oversatta-dokument" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -47,8 +47,8 @@ export default function OversattaDokumentPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/dox-logo.webp"
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/dox-logo.webp"
           },
           "description": "Auktoriserad översättning av dokument för internationellt bruk. Certifierade översättare godkända av Kammarkollegiet.",
           "areaServed": { "@type": "Country", "name": "Sweden" },

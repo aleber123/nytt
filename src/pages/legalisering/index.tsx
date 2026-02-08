@@ -54,11 +54,11 @@ export default function LegaliseringIndexPage() {
         <meta name="keywords" content={isEn 
           ? 'legalization, documents, embassy, notarization, ministry foreign affairs, apostille, Sweden'
           : 'legalisering, dokument, ambassad, notarisering, utrikesdepartementet, apostille'} />
-        <link rel="canonical" href="https://www.doxvl.se/legalisering" />
+        <link rel="canonical" href="https://doxvl.se/legalisering" />
         
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering" />
+        <meta property="og:url" content="https://doxvl.se/legalisering" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -69,7 +69,7 @@ export default function LegaliseringIndexPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner",
-            "url": "https://www.doxvl.se"
+            "url": "https://doxvl.se"
           },
           "areaServed": "SE",
           "serviceType": isEn ? "Document Legalization" : "Dokumentlegalisering"

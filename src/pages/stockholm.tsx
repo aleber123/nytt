@@ -19,11 +19,11 @@ export default function StockholmPage() {
         <title>Legalisering Stockholm | Dokumentlegalisering & Apostille | DOX</title>
         <meta name="description" content="Behöver du legalisera dokument i Stockholm? Vi erbjuder snabb dokumentlegalisering, apostille och ambassadstämpel. Hämtning i hela Stockholmsområdet. Från 695 kr." />
         <meta name="keywords" content="legalisering Stockholm, dokumentlegalisering Stockholm, apostille Stockholm, notarius publicus Stockholm, ambassadlegalisering Stockholm" />
-        <link rel="canonical" href="https://www.doxvl.se/stockholm" />
+        <link rel="canonical" href="https://doxvl.se/stockholm" />
         
         <meta property="og:title" content="Legalisering Stockholm | DOX Visumpartner" />
         <meta property="og:description" content="Professionell dokumentlegalisering i Stockholm. Apostille, ambassadlegalisering och översättning." />
-        <meta property="og:url" content="https://www.doxvl.se/stockholm" />
+        <meta property="og:url" content="https://doxvl.se/stockholm" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -31,8 +31,8 @@ export default function StockholmPage() {
           "@type": "LocalBusiness",
           "name": "DOX Visumpartner - Stockholm",
           "description": "Dokumentlegalisering och apostille-tjänster i Stockholm",
-          "url": "https://www.doxvl.se/stockholm",
-          "logo": "https://www.doxvl.se/dox-logo.webp",
+          "url": "https://doxvl.se/stockholm",
+          "logo": "https://doxvl.se/dox-logo.webp",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Stockholm",

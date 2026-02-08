@@ -14,11 +14,11 @@ export default function AmbassadlegaliseringPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="ambassadlegalisering, legalisering, dokument, ambassad, konsulat, internationell" />
-        <link rel="canonical" href="https://www.doxvl.se/tjanster/ambassadlegalisering" />
+        <link rel="canonical" href="https://doxvl.se/tjanster/ambassadlegalisering" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
-        <meta property="og:url" content="https://www.doxvl.se/tjanster/ambassadlegalisering" />
+        <meta property="og:url" content="https://doxvl.se/tjanster/ambassadlegalisering" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -28,8 +28,8 @@ export default function AmbassadlegaliseringPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/dox-logo.webp"
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/dox-logo.webp"
           },
           "description": "Ambassadlegalisering för länder utanför Haagkonventionen. Vi hanterar hela processen med ambassader och konsulat.",
           "areaServed": {

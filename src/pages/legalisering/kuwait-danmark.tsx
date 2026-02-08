@@ -117,19 +117,19 @@ export default function KuwaitDanmarkPage() {
         
         <meta property="og:title" content="Embassy of Kuwait Legalisering Danmark | DOX Visumpartner" />
         <meta property="og:description" content="Professionel Embassy of Kuwait legaliseringsservice i Stockholm for danske kunder. Vi håndterer hele processen for dig." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisering/kuwait-danmark" />
+        <meta property="og:url" content="https://doxvl.se/legalisering/kuwait-danmark" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="da_DK" />
         <meta property="og:site_name" content="DOX Visumpartner" />
-        <meta property="og:image" content="https://www.doxvl.se/dox-logo-new.png" />
+        <meta property="og:image" content="https://doxvl.se/dox-logo-new.png" />
         <meta name="twitter:card" content="summary" />
         
-        <link rel="canonical" href="https://www.doxvl.se/legalisering/kuwait-danmark" />
+        <link rel="canonical" href="https://doxvl.se/legalisering/kuwait-danmark" />
         
-        <link rel="alternate" hrefLang="sv" href="https://www.doxvl.se/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="en" href="https://www.doxvl.se/en/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="fi" href="https://www.doxvl.se/legalisering/kuwait-finland" />
-        <link rel="alternate" hrefLang="da" href="https://www.doxvl.se/legalisering/kuwait-danmark" />
+        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/legalisering/kuwait" />
+        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/legalisering/kuwait" />
+        <link rel="alternate" hrefLang="fi" href="https://doxvl.se/legalisering/kuwait-finland" />
+        <link rel="alternate" hrefLang="da" href="https://doxvl.se/legalisering/kuwait-danmark" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",

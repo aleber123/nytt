@@ -37,11 +37,11 @@ export default function LegaliseraDokumentPage() {
         <title>Legalisera Dokument i Sverige | Snabb & Säker Dokumentlegalisering | DOX</title>
         <meta name="description" content="Behöver du legalisera dokument för utlandet? Vi hjälper dig med hela processen - Notarius Publicus, Handelskammare, UD och ambassadlegalisering. Från 695 kr." />
         <meta name="keywords" content="legalisera dokument, dokumentlegalisering, legalisering Sverige, apostille, ambassadlegalisering, notarius publicus, handelskammare, UD legalisering" />
-        <link rel="canonical" href="https://www.doxvl.se/legalisera-dokument" />
+        <link rel="canonical" href="https://doxvl.se/legalisera-dokument" />
         
         <meta property="og:title" content="Legalisera Dokument i Sverige | DOX Visumpartner" />
         <meta property="og:description" content="Professionell dokumentlegalisering för alla länder. Vi hanterar hela processen åt dig." />
-        <meta property="og:url" content="https://www.doxvl.se/legalisera-dokument" />
+        <meta property="og:url" content="https://doxvl.se/legalisera-dokument" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -51,8 +51,8 @@ export default function LegaliseraDokumentPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se",
-            "logo": "https://www.doxvl.se/dox-logo.webp"
+            "url": "https://doxvl.se",
+            "logo": "https://doxvl.se/dox-logo.webp"
           },
           "description": "Professionell legalisering av dokument för internationellt bruk. Apostille, ambassadlegalisering och översättning.",
           "areaServed": { "@type": "Country", "name": "Sweden" },

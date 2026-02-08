@@ -19,11 +19,11 @@ export default function GoteborgPage() {
         <title>Legalisering Göteborg | Dokumentlegalisering & Apostille | DOX</title>
         <meta name="description" content="Behöver du legalisera dokument i Göteborg? Vi erbjuder snabb dokumentlegalisering, apostille och ambassadstämpel. Service i hela Göteborgsområdet. Från 695 kr." />
         <meta name="keywords" content="legalisering Göteborg, dokumentlegalisering Göteborg, apostille Göteborg, notarius publicus Göteborg, ambassadlegalisering Göteborg" />
-        <link rel="canonical" href="https://www.doxvl.se/goteborg" />
+        <link rel="canonical" href="https://doxvl.se/goteborg" />
         
         <meta property="og:title" content="Legalisering Göteborg | DOX Visumpartner" />
         <meta property="og:description" content="Professionell dokumentlegalisering i Göteborg. Apostille, ambassadlegalisering och översättning." />
-        <meta property="og:url" content="https://www.doxvl.se/goteborg" />
+        <meta property="og:url" content="https://doxvl.se/goteborg" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -31,8 +31,8 @@ export default function GoteborgPage() {
           "@type": "LocalBusiness",
           "name": "DOX Visumpartner - Göteborg",
           "description": "Dokumentlegalisering och apostille-tjänster i Göteborg",
-          "url": "https://www.doxvl.se/goteborg",
-          "logo": "https://www.doxvl.se/dox-logo.webp",
+          "url": "https://doxvl.se/goteborg",
+          "logo": "https://doxvl.se/dox-logo.webp",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Göteborg",

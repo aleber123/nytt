@@ -32,7 +32,7 @@ const ProcessSteps: React.FC<ProcessStepsProps> = ({ title, subtitle, steps }) =
       "position": index + 1,
       "name": step.title,
       "text": step.description,
-      "url": "https://www.doxvl.se/bestall"
+      "url": "https://doxvl.se/bestall"
     }))
   };
   // Funktion för att rendera ikoner baserat på ikonnamn

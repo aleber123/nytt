@@ -29,11 +29,11 @@ export default function DanmarkPage() {
         <title>Legalisering for Danmark | Ambassader i Stockholm | DOX Visumpartner</title>
         <meta name="description" content="Bor du i Danmark og skal legalisere dokumenter eller søge visum for lande uden ambassade i København? Vi hjælper dig via ambassader i Stockholm. Kuwait, Qatar, Libyen m.fl." />
         <meta name="keywords" content="legalisering Danmark, visum Danmark, ambassade Stockholm, Kuwait visum Danmark, Qatar legalisering Danmark, danske dokumenter legalisering" />
-        <link rel="canonical" href="https://www.doxvl.se/danmark" />
+        <link rel="canonical" href="https://doxvl.se/danmark" />
         
         <meta property="og:title" content="Legalisering for Danmark | Ambassader i Stockholm" />
         <meta property="og:description" content="Vi hjælper danske kunder med legalisering og visum via ambassader i Stockholm." />
-        <meta property="og:url" content="https://www.doxvl.se/danmark" />
+        <meta property="og:url" content="https://doxvl.se/danmark" />
         <meta property="og:type" content="website" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -43,7 +43,7 @@ export default function DanmarkPage() {
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
-            "url": "https://www.doxvl.se"
+            "url": "https://doxvl.se"
           },
           "description": "Legalisering og visumtjenester for danske kunder via ambassader i Stockholm",
           "areaServed": { "@type": "Country", "name": "Denmark" },

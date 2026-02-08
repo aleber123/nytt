@@ -47,7 +47,7 @@ User-agent: cohere-ai
 Allow: /
 
 # Host
-Host: https://www.doxvl.se
+Host: https://doxvl.se
 
 # Sitemaps
-Sitemap: https://www.doxvl.se/sitemap.xml
+Sitemap: https://doxvl.se/sitemap.xml
