@@ -100,6 +100,10 @@ function DriverDashboardPage() {
   const [monthlyMessage, setMonthlyMessage] = useState<string | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<DriverMonthlySummary | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [reportMonth, setReportMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -196,14 +200,13 @@ function DriverDashboardPage() {
     try {
       setIsLoadingSummary(true);
 
-      const dateObj = new Date(selectedDate + 'T00:00:00');
-      if (Number.isNaN(dateObj.getTime())) {
+      const [yearStr, monthStr] = reportMonth.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
+      if (!year || !month) {
         setMonthlySummary(null);
         return;
       }
-
-      const year = dateObj.getFullYear();
-      const month = dateObj.getMonth() + 1;
 
       const summary = await getDriverMonthlySummary('default-driver', year, month);
       setMonthlySummary(summary);
@@ -244,14 +247,13 @@ function DriverDashboardPage() {
       setIsOpeningMonthlyEmail(true);
       setMonthlyMessage(null);
 
-      const dateObj = new Date(selectedDate + 'T00:00:00');
-      if (Number.isNaN(dateObj.getTime())) {
-        setMonthlyMessage('The date is invalid.');
+      const [yearStr, monthStr] = reportMonth.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
+      if (!year || !month) {
+        setMonthlyMessage('Select a valid month.');
         return;
       }
-
-      const year = dateObj.getFullYear();
-      const month = dateObj.getMonth() + 1;
 
       const summary = await getDriverMonthlySummary('default-driver', year, month);
 
@@ -529,7 +531,7 @@ function DriverDashboardPage() {
       setLoading(true);
 
       const orders = (await getAllOrders()).filter(
-        (order) => order.status === 'pending' || order.status === 'processing' || order.status === 'received'
+        (order) => order.status === 'pending' || order.status === 'processing' || order.status === 'received' || order.status === 'submitted'
       );
 
       const driverTasks: DriverTask[] = [];
@@ -894,7 +896,7 @@ function DriverDashboardPage() {
 
   useEffect(() => {
     loadMonthlySummaryForSelectedDate();
-  }, [selectedDate]);
+  }, [reportMonth]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -1955,6 +1957,18 @@ function DriverDashboardPage() {
                   </>
                 )}
               </button>
+              <div>
+                <label htmlFor="report-month" className="block text-base font-bold text-gray-700 mb-2">
+                  📅 Report month
+                </label>
+                <input
+                  id="report-month"
+                  type="month"
+                  value={reportMonth}
+                  onChange={(e) => setReportMonth(e.target.value)}
+                  className="w-full px-4 py-3 text-lg border-2 border-indigo-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-300 focus:border-indigo-500 mb-3"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleOpenMonthlyReportEmail}

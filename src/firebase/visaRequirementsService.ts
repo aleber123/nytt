@@ -80,6 +80,17 @@ export interface VisaProduct {
   isActive: boolean;
   // Document requirements specific to this visa product
   documentRequirements?: DocumentRequirement[];
+  // Add-on services offered with this product (e.g., chamber of commerce legalization)
+  addOnServices?: {
+    id: string;
+    name: string;
+    nameEn: string;
+    description: string;
+    descriptionEn: string;
+    price: number;
+    icon: string;
+    required?: boolean;
+  }[];
 }
 
 // Nationality-specific rule (overrides default country rule)

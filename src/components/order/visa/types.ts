@@ -6,6 +6,21 @@
 import type { OrderAnswers } from '../types';
 import type { VisaProduct, VisaCategory } from '@/firebase/visaRequirementsService';
 
+// Add-on service that can be offered alongside a visa product
+export interface VisaAddOnService {
+  id: string;
+  name: string;
+  nameEn: string;
+  description: string;
+  descriptionEn: string;
+  price: number; // Price in SEK
+  icon: string; // Emoji icon
+  // Which product categories/IDs this add-on applies to
+  applicableCategories?: VisaCategory[];
+  applicableProductIds?: string[];
+  required?: boolean; // If true, auto-selected and cannot be deselected
+}
+
 // Selected visa product info stored in answers
 export interface SelectedVisaProduct {
   id: string;
@@ -52,6 +67,8 @@ export interface VisaOrderAnswers extends OrderAnswers {
   expressRequired?: boolean;
   // Urgent processing
   urgentRequired?: boolean;
+  // Add-on services (e.g., chamber of commerce legalization)
+  selectedAddOnServices?: { id: string; name: string; nameEn: string; price: number }[];
 }
 
 export const initialVisaOrderAnswers: VisaOrderAnswers = {
@@ -68,6 +85,7 @@ export const initialVisaOrderAnswers: VisaOrderAnswers = {
   selectedVisaProduct: null,
   expressRequired: false,
   urgentRequired: false,
+  selectedAddOnServices: [],
   
   // Base OrderAnswers fields (required for reusing components)
   country: '',

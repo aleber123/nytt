@@ -1,10 +1,11 @@
 /**
  * VisaStep3SelectProduct - Select visa product step
- * Replaces the old TripType and EntryType steps with a single product selection
+ * Shows filter phase (category + entry type) when many products exist,
+ * then shows filtered product list for final selection.
  */
 
-import React, { useEffect, useState } from 'react';
-import { VisaOrderAnswers, SelectedVisaProduct } from './types';
+import React, { useEffect, useState, useMemo } from 'react';
+import { VisaOrderAnswers, SelectedVisaProduct, VisaAddOnService } from './types';
 import { getAvailableVisaProducts, VisaProduct, VisaType, VisaProductsResult } from '@/firebase/visaRequirementsService';
 
 interface VisaStep3SelectProductProps {
@@ -15,15 +16,28 @@ interface VisaStep3SelectProductProps {
   locale: string;
 }
 
-const CATEGORY_LABELS: Record<string, { sv: string; en: string; icon: string }> = {
-  tourist: { sv: 'Turist', en: 'Tourist', icon: '🏖️' },
-  business: { sv: 'Affärs', en: 'Business', icon: '💼' },
-  transit: { sv: 'Transit', en: 'Transit', icon: '✈️' },
-  student: { sv: 'Student', en: 'Student', icon: '🎓' },
-  work: { sv: 'Arbete', en: 'Work', icon: '👷' },
-  medical: { sv: 'Medicinsk', en: 'Medical', icon: '🏥' },
-  conference: { sv: 'Konferens', en: 'Conference', icon: '🎤' },
-  other: { sv: 'Övrigt', en: 'Other', icon: '📋' },
+const CATEGORY_LABELS: Record<string, { sv: string; en: string; icon: string; desc_sv: string; desc_en: string }> = {
+  tourist: { sv: 'Turistvisum', en: 'Tourist Visa', icon: '🏖️', desc_sv: 'För semester och turism', desc_en: 'For holiday and tourism' },
+  business: { sv: 'Affärsvisum', en: 'Business Visa', icon: '💼', desc_sv: 'För affärsresor och möten', desc_en: 'For business trips and meetings' },
+  transit: { sv: 'Transitvisum', en: 'Transit Visa', icon: '✈️', desc_sv: 'För genomresa', desc_en: 'For transit' },
+  student: { sv: 'Studentvisum', en: 'Student Visa', icon: '🎓', desc_sv: 'För studier', desc_en: 'For studies' },
+  work: { sv: 'Arbetsvisum', en: 'Work Visa', icon: '👷', desc_sv: 'För arbete', desc_en: 'For work' },
+  medical: { sv: 'Medicinskt visum', en: 'Medical Visa', icon: '🏥', desc_sv: 'För medicinsk behandling', desc_en: 'For medical treatment' },
+  conference: { sv: 'Konferensvisum', en: 'Conference Visa', icon: '🎤', desc_sv: 'För konferenser', desc_en: 'For conferences' },
+  journalist: { sv: 'Journalistvisum', en: 'Journalist Visa', icon: '📰', desc_sv: 'För journalister och media', desc_en: 'For journalists and media' },
+  crew: { sv: 'Besättningsvisum', en: 'Crew Visa', icon: '⚓', desc_sv: 'För flyg- och fartygsbesättning', desc_en: 'For airline and ship crew' },
+  religious: { sv: 'Religiöst visum', en: 'Religious Visa', icon: '🕊️', desc_sv: 'För religiösa ändamål', desc_en: 'For religious purposes' },
+  diplomatic: { sv: 'Diplomatvisum', en: 'Diplomatic Visa', icon: '🏛️', desc_sv: 'För diplomater och tjänstemän', desc_en: 'For diplomats and officials' },
+  research: { sv: 'Forskningsvisum', en: 'Research Visa', icon: '🔬', desc_sv: 'För forskning och akademiskt arbete', desc_en: 'For research and academic work' },
+  volunteer: { sv: 'Volontärvisum', en: 'Volunteer Visa', icon: '🤝', desc_sv: 'För volontärarbete', desc_en: 'For volunteer work' },
+  family: { sv: 'Familjevisum', en: 'Family Visa', icon: '👨‍👩‍👧‍👦', desc_sv: 'För familjeåterförening eller besök', desc_en: 'For family reunion or visit' },
+  other: { sv: 'Övrigt visum', en: 'Other Visa', icon: '📋', desc_sv: 'Övriga visumtyper', desc_en: 'Other visa types' },
+};
+
+const ENTRY_TYPE_LABELS: Record<string, { sv: string; en: string; icon: string; desc_sv: string; desc_en: string }> = {
+  single: { sv: 'En inresa', en: 'Single Entry', icon: '➡️', desc_sv: 'Gäller för en inresa i landet', desc_en: 'Valid for one entry into the country' },
+  multiple: { sv: 'Flera inresor', en: 'Multiple Entry', icon: '🔄', desc_sv: 'Gäller för flera inresor under visumets giltighetstid', desc_en: 'Valid for multiple entries during the visa validity period' },
+  double: { sv: 'Dubbel inresa', en: 'Double Entry', icon: '↔️', desc_sv: 'Gäller för två inresor', desc_en: 'Valid for two entries' },
 };
 
 export default function VisaStep3SelectProduct({
@@ -41,6 +55,15 @@ export default function VisaStep3SelectProduct({
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     answers.selectedVisaProduct?.id || null
   );
+
+  // Filter state
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showProducts, setShowProducts] = useState(false);
+
+  // Add-on services state
+  const [showAddOns, setShowAddOns] = useState(false);
+  const [pendingProduct, setPendingProduct] = useState<VisaProduct | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -60,10 +83,31 @@ export default function VisaStep3SelectProduct({
     loadProducts();
   }, [answers.destinationCountryCode, answers.nationalityCode]);
 
-  const handleSelectProduct = (product: VisaProduct) => {
-    setSelectedProductId(product.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
+  // Determine available categories and entry types
+  const availableCategories = useMemo(() => {
+    const cats = Array.from(new Set(products.map(p => p.category)));
+    return cats;
+  }, [products]);
+
+  // Check if we need the filter phase (only based on categories)
+  const needsFilter = availableCategories.length > 1;
+
+  // Auto-skip filter if only one category and one entry type
+  useEffect(() => {
+    if (!loading && products.length > 0 && !needsFilter) {
+      setShowProducts(true);
+    }
+  }, [loading, products, needsFilter]);
+
+  // Filtered products based on category selection
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory) {
+      return products.filter(p => p.category === selectedCategory);
+    }
+    return products;
+  }, [products, selectedCategory]);
+
+  const finalizeProductSelection = (product: VisaProduct, addOns: Set<string>) => {
     const selectedProduct: SelectedVisaProduct = {
       id: product.id,
       name: product.name,
@@ -72,9 +116,9 @@ export default function VisaStep3SelectProduct({
       visaType: product.visaType as 'e-visa' | 'sticker',
       entryType: product.entryType as 'single' | 'double' | 'multiple',
       validityDays: product.validityDays,
-      price: useStandardPricing ? product.price : 0, // 0 = TBC
+      price: useStandardPricing ? product.price : 0,
       serviceFee: product.serviceFee,
-      embassyFee: useStandardPricing ? product.embassyFee : 0, // 0 = TBC
+      embassyFee: useStandardPricing ? product.embassyFee : 0,
       processingDays: product.processingDays,
       expressAvailable: product.expressAvailable,
       expressDays: product.expressDays,
@@ -90,19 +134,81 @@ export default function VisaStep3SelectProduct({
       pricingNote,
     };
 
+    // Build selected add-on services array
+    const selectedAddOnServices = (product.addOnServices || [])
+      .filter(a => addOns.has(a.id))
+      .map(a => ({ id: a.id, name: a.name, nameEn: a.nameEn, price: a.price }));
+
     onUpdate({
       selectedVisaProduct: selectedProduct,
       tripType: product.category === 'business' ? 'business' : 'tourist',
       entryType: product.entryType as 'single' | 'double' | 'multiple',
+      selectedAddOnServices,
     });
 
-    // Auto-advance to next step immediately (like legalization flow)
     onNext();
+  };
+
+  const handleSelectProduct = (product: VisaProduct) => {
+    setSelectedProductId(product.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Check if this product has add-on services
+    if (product.addOnServices && product.addOnServices.length > 0) {
+      setPendingProduct(product);
+      setSelectedAddOns(new Set(
+        product.addOnServices.filter(a => a.required).map(a => a.id)
+      ));
+      setShowAddOns(true);
+      return;
+    }
+
+    // No add-ons, finalize immediately
+    finalizeProductSelection(product, new Set());
   };
 
   const handleContinue = () => {
     if (selectedProductId) {
       onNext();
+    }
+  };
+
+  const handleFilterContinue = () => {
+    setShowProducts(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFilterBack = () => {
+    if (showAddOns) {
+      setShowAddOns(false);
+      setPendingProduct(null);
+      setSelectedProductId(null);
+      return;
+    }
+    if (showProducts) {
+      setShowProducts(false);
+      setSelectedProductId(null);
+    } else {
+      onBack();
+    }
+  };
+
+  const handleToggleAddOn = (addOnId: string, required?: boolean) => {
+    if (required) return; // Cannot toggle required add-ons
+    setSelectedAddOns(prev => {
+      const next = new Set(prev);
+      if (next.has(addOnId)) {
+        next.delete(addOnId);
+      } else {
+        next.add(addOnId);
+      }
+      return next;
+    });
+  };
+
+  const handleAddOnContinue = () => {
+    if (pendingProduct) {
+      finalizeProductSelection(pendingProduct, selectedAddOns);
     }
   };
 
@@ -156,8 +262,234 @@ export default function VisaStep3SelectProduct({
     );
   }
 
-  // Group products by category
-  const groupedProducts = products.reduce((acc, product) => {
+  // === FILTER PHASE (category only) ===
+  if (needsFilter && !showProducts) {
+    const canContinue = !!selectedCategory;
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {locale === 'en' ? 'What type of visa do you need?' : 'Vilken typ av visum behöver du?'}
+            </h2>
+            <p className="text-gray-600">
+              {locale === 'en' 
+                ? `Select your preferences for ${answers.destinationCountry}`
+                : `Välj dina preferenser för ${answers.destinationCountry}`}
+            </p>
+          </div>
+
+          {/* Category selection */}
+          {availableCategories.length > 1 && (
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                {locale === 'en' ? 'Purpose of travel' : 'Syfte med resan'}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {availableCategories.map((cat) => {
+                  const label = CATEGORY_LABELS[cat];
+                  const isSelected = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                      }}
+                      className={`flex items-center p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                        isSelected
+                          ? 'border-custom-button bg-blue-50 ring-2 ring-blue-200'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-2xl mr-3">{label?.icon || '📋'}</span>
+                      <div>
+                        <div className="font-semibold text-gray-900">
+                          {locale === 'en' ? label?.en || cat : label?.sv || cat}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {locale === 'en' ? label?.desc_en : label?.desc_sv}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <svg className="w-5 h-5 text-custom-button ml-auto flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="mt-8 flex justify-between">
+            <button
+              onClick={onBack}
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              {locale === 'en' ? '← Back' : '← Tillbaka'}
+            </button>
+            <button
+              onClick={handleFilterContinue}
+              disabled={!canContinue}
+              className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                canContinue
+                  ? 'bg-custom-button text-white hover:bg-custom-button-hover'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {locale === 'en' 
+                ? `Show options (${filteredProducts.length}) →` 
+                : `Visa alternativ (${filteredProducts.length}) →`}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // === ADD-ON SERVICES PHASE ===
+  if (showAddOns && pendingProduct && pendingProduct.addOnServices) {
+    const addOnTotal = pendingProduct.addOnServices
+      .filter(a => selectedAddOns.has(a.id))
+      .reduce((sum, a) => sum + a.price, 0);
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {locale === 'en' ? 'Additional services' : 'Tilläggstjänster'}
+            </h2>
+            <p className="text-gray-600">
+              {locale === 'en'
+                ? 'The following services are available for your selected visa product'
+                : 'Följande tjänster finns tillgängliga för din valda visumprodukt'}
+            </p>
+          </div>
+
+          {/* Selected product summary */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-blue-900">
+                  {locale === 'en' && pendingProduct.nameEn ? pendingProduct.nameEn : pendingProduct.name}
+                </div>
+                <div className="text-sm text-blue-700">
+                  {useStandardPricing ? `${pendingProduct.price.toLocaleString()} kr` : (locale === 'en' ? 'Price TBC' : 'Pris TBC')}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddOns(false);
+                  setPendingProduct(null);
+                  setSelectedProductId(null);
+                }}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                {locale === 'en' ? 'Change' : 'Ändra'}
+              </button>
+            </div>
+          </div>
+
+          {/* Add-on services list */}
+          <div className="space-y-3 mb-8">
+            {pendingProduct.addOnServices.map((addOn) => {
+              const isSelected = selectedAddOns.has(addOn.id);
+              return (
+                <button
+                  key={addOn.id}
+                  onClick={() => handleToggleAddOn(addOn.id, addOn.required)}
+                  className={`w-full flex items-start p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                    isSelected
+                      ? 'border-custom-button bg-blue-50 ring-2 ring-blue-200'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  } ${addOn.required ? 'opacity-80 cursor-default' : ''}`}
+                >
+                  <span className="text-2xl mr-3 mt-0.5">{addOn.icon}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900">
+                        {locale === 'en' ? addOn.nameEn : addOn.name}
+                      </span>
+                      {addOn.required && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          {locale === 'en' ? 'Required' : 'Obligatorisk'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {locale === 'en' ? addOn.descriptionEn : addOn.description}
+                    </p>
+                    <div className="text-sm font-semibold text-gray-900 mt-2">
+                      +{addOn.price.toLocaleString()} kr
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 ml-3 mt-1">
+                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      isSelected
+                        ? 'bg-custom-button border-custom-button'
+                        : 'border-gray-300 bg-white'
+                    }`}>
+                      {isSelected && (
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Total with add-ons */}
+          {addOnTotal > 0 && useStandardPricing && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="flex justify-between text-sm text-gray-600 mb-1">
+                <span>{locale === 'en' ? 'Visa product' : 'Visumprodukt'}:</span>
+                <span>{pendingProduct.price.toLocaleString()} kr</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <span>{locale === 'en' ? 'Add-on services' : 'Tilläggstjänster'}:</span>
+                <span>+{addOnTotal.toLocaleString()} kr</span>
+              </div>
+              <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200">
+                <span>{locale === 'en' ? 'Total' : 'Totalt'}:</span>
+                <span>{(pendingProduct.price + addOnTotal).toLocaleString()} kr</span>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex justify-between">
+            <button
+              onClick={handleFilterBack}
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              {locale === 'en' ? '← Back' : '← Tillbaka'}
+            </button>
+            <button
+              onClick={handleAddOnContinue}
+              className="px-8 py-3 rounded-lg font-semibold bg-custom-button text-white hover:bg-custom-button-hover transition-all duration-200"
+            >
+              {locale === 'en' ? 'Continue →' : 'Fortsätt →'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // === PRODUCT LIST PHASE ===
+  const displayProducts = needsFilter ? filteredProducts : products;
+
+  // Group products by category (for non-filtered view)
+  const groupedProducts = displayProducts.reduce((acc, product) => {
     if (!acc[product.category]) {
       acc[product.category] = [];
     }
@@ -171,13 +503,30 @@ export default function VisaStep3SelectProduct({
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {locale === 'en' ? 'Select your visa type' : 'Välj din visumtyp'}
+            {locale === 'en' ? 'Select your visa' : 'Välj ditt visum'}
           </h2>
           <p className="text-gray-600">
             {locale === 'en' 
-              ? `Available visa options for ${answers.destinationCountry}`
-              : `Tillgängliga visumalternativ för ${answers.destinationCountry}`}
+              ? `Choose the validity period for your visa to ${answers.destinationCountry}`
+              : `Välj giltighetstid för ditt visum till ${answers.destinationCountry}`}
           </p>
+          {/* Show active filters */}
+          {needsFilter && selectedCategory && (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                {CATEGORY_LABELS[selectedCategory]?.icon} {locale === 'en' ? CATEGORY_LABELS[selectedCategory]?.en : CATEGORY_LABELS[selectedCategory]?.sv}
+              </span>
+              <button
+                onClick={() => {
+                  setShowProducts(false);
+                  setSelectedProductId(null);
+                }}
+                className="text-sm text-custom-button hover:underline ml-1"
+              >
+                {locale === 'en' ? 'Change' : 'Ändra'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Products */}
@@ -333,7 +682,7 @@ export default function VisaStep3SelectProduct({
         {/* Navigation */}
         <div className="mt-8 flex justify-between">
           <button
-            onClick={onBack}
+            onClick={handleFilterBack}
             className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             {locale === 'en' ? '← Back' : '← Tillbaka'}

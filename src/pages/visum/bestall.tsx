@@ -522,12 +522,13 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
             <span className="font-bold text-green-600">
               {(answers.selectedVisaProduct.price + 
                 (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + 
-                (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0)
+                (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) +
+                (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0)
               ).toLocaleString()} kr
             </span>
           </div>
-          {/* Show express/urgent fee breakdown */}
-          {(answers.expressRequired || answers.urgentRequired) && (
+          {/* Show express/urgent/add-on fee breakdown */}
+          {(answers.expressRequired || answers.urgentRequired || (answers.selectedAddOnServices && answers.selectedAddOnServices.length > 0)) && (
             <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 space-y-1">
               <div className="flex justify-between">
                 <span>{currentLocale === 'en' ? 'Base price' : 'Grundpris'}:</span>
@@ -545,6 +546,12 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
                   <span>+{answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr</span>
                 </div>
               )}
+              {answers.selectedAddOnServices && answers.selectedAddOnServices.map(addon => (
+                <div key={addon.id} className="flex justify-between text-purple-600">
+                  <span>{currentLocale === 'en' ? addon.nameEn : addon.name}:</span>
+                  <span>+{addon.price.toLocaleString()} kr</span>
+                </div>
+              ))}
             </div>
           )}
         </div>

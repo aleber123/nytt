@@ -16,7 +16,7 @@ async function getIdToken(): Promise<string | null> {
   if (!auth?.currentUser) return null;
   
   try {
-    return await auth.currentUser.getIdToken();
+    return await auth.currentUser.getIdToken(true);
   } catch {
     return null;
   }

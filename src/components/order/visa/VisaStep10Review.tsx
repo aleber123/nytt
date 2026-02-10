@@ -65,12 +65,13 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       const embassyFee = answers.selectedVisaProduct.embassyFee || 0;
       const expressPrice = answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0;
       const urgentPrice = answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0;
+      const addOnServicesTotal = (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0);
       
       // Apply custom service fee if set, otherwise use standard
       const finalServiceFee = customServiceFee !== undefined ? customServiceFee : baseServiceFee;
       
       // Calculate subtotal before discount
-      let subtotal = finalServiceFee + embassyFee + expressPrice + urgentPrice;
+      let subtotal = finalServiceFee + embassyFee + expressPrice + urgentPrice + addOnServicesTotal;
       
       // Apply discount if set
       let discountAmount = 0;
@@ -141,6 +142,11 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         invoiceReference: answers.invoiceReference,
         additionalNotes: answers.additionalNotes,
         
+        // Add-on services
+        ...(answers.selectedAddOnServices && answers.selectedAddOnServices.length > 0 ? {
+          addOnServices: answers.selectedAddOnServices,
+        } : {}),
+        
         // Pricing with customer-specific adjustments
         totalPrice: finalTotalPrice,
         pricingBreakdown: {
@@ -148,6 +154,7 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
           embassyFee: embassyFee,
           expressPrice: expressPrice,
           urgentPrice: urgentPrice,
+          ...(addOnServicesTotal > 0 ? { addOnServicesTotal } : {}),
           ...(discountAmount > 0 ? { discountAmount, discountPercent: customDiscountPercent } : {}),
         },
         
@@ -388,7 +395,8 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         { label: locale === 'en' ? 'Embassy fee' : 'Ambassadavgift', value: answers.selectedVisaProduct?.embassyFee ? `${answers.selectedVisaProduct.embassyFee.toLocaleString()} kr` : undefined },
         ...(answers.expressRequired && answers.selectedVisaProduct?.expressPrice ? [{ label: locale === 'en' ? 'Express fee' : 'Expressavgift', value: `+${answers.selectedVisaProduct.expressPrice.toLocaleString()} kr` }] : []),
         ...(answers.urgentRequired && answers.selectedVisaProduct?.urgentPrice ? [{ label: locale === 'en' ? 'Urgent fee' : 'Brådskande avgift', value: `+${answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr` }] : []),
-        { label: locale === 'en' ? 'Total' : 'Totalt', value: answers.selectedVisaProduct ? `${(answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0)).toLocaleString()} kr` : undefined },
+        ...(answers.selectedAddOnServices && answers.selectedAddOnServices.length > 0 ? answers.selectedAddOnServices.map(a => ({ label: locale === 'en' ? a.nameEn : a.name, value: `+${a.price.toLocaleString()} kr` })) : []),
+        { label: locale === 'en' ? 'Total' : 'Totalt', value: answers.selectedVisaProduct ? `${(answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) + (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0)).toLocaleString()} kr` : undefined },
       ],
     },
     {
