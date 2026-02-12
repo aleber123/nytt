@@ -1320,22 +1320,24 @@ function createLineItemsFromAdminPrice(
 
     if (amount <= 0) continue;
 
-    // Get VAT rate (use override if set, otherwise default based on customer location)
+    // Get VAT rate (use override if set, then originalItem.vatRate, then default logic)
     let vatRate: number;
     if (override.vatPercent !== null && override.vatPercent !== undefined) {
       vatRate = Number(override.vatPercent) / 100;
     } else if (applyZeroVAT) {
       vatRate = VAT_RATES.ZERO;
+    } else if (originalItem?.vatRate !== undefined && originalItem.vatRate !== null) {
+      // Use vatRate from pricingBreakdown (source of truth)
+      const origRate = originalItem.vatRate;
+      if (origRate === 'exempt' || origRate === 0 || origRate === '0') {
+        vatRate = VAT_RATES.ZERO;
+      } else if (typeof origRate === 'number') {
+        vatRate = origRate > 1 ? origRate / 100 : origRate;
+      } else {
+        vatRate = VAT_RATES.STANDARD;
+      }
     } else {
-      // Default VAT logic:
-      // - Only UD and embassy official fees are VAT exempt (government fees)
-      // - All other fees (including apostille, notarization, chamber official fees) have 25% VAT
-      const serviceType = originalItem?.service || '';
-      const isOfficialFee = (override.label || '').toLowerCase().includes('official') || 
-                           (override.label || '').toLowerCase().includes('officiell');
-      const isUDOrEmbassy = serviceType.includes('ud') || serviceType.includes('embassy');
-      const isVatExemptOfficialFee = isOfficialFee && isUDOrEmbassy;
-      vatRate = isVatExemptOfficialFee ? VAT_RATES.ZERO : VAT_RATES.STANDARD;
+      vatRate = VAT_RATES.STANDARD;
     }
 
     const vatAmount = applyZeroVAT ? 0 : Math.round(amount * vatRate * 100) / 100;
@@ -1344,11 +1346,23 @@ function createLineItemsFromAdminPrice(
     // Get description from original item or override label
     const description = originalItem?.description || override.label || `Line ${i + 1}`;
 
+    // Determine correct quantity and unitPrice for the invoice line
+    // If admin set an overrideUnitPrice, use that; otherwise use original breakdown values
+    const itemQuantity = originalItem?.quantity && originalItem.quantity > 1 ? originalItem.quantity : 1;
+    let itemUnitPrice: number;
+    if (override.overrideUnitPrice !== null && override.overrideUnitPrice !== undefined) {
+      itemUnitPrice = Number(override.overrideUnitPrice);
+    } else if (itemQuantity > 1 && originalItem?.unitPrice) {
+      itemUnitPrice = originalItem.unitPrice;
+    } else {
+      itemUnitPrice = amount;
+    }
+
     lineItems.push({
       id: `admin_${i}_${Date.now()}`,
       description,
-      quantity: 1,
-      unitPrice: amount,
+      quantity: itemQuantity,
+      unitPrice: itemUnitPrice,
       totalPrice,
       vatRate,
       vatAmount,

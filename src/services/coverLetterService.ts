@@ -808,6 +808,11 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
         let description = (breakdownItem?.description) || override.label || 'Item';
         description = translateDescription(description);
         
+        // Append quantity × unitPrice detail if available
+        if (breakdownItem?.quantity && breakdownItem.quantity > 1 && breakdownItem.unitPrice) {
+          description += ` (${breakdownItem.quantity} × ${breakdownItem.unitPrice})`;
+        }
+        
         doc.text(description, labelX, y);
         doc.text(price ? formatCurrency(price) : '0 kr', valueX, y, { align: 'right' });
         y += 5;
@@ -849,6 +854,11 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
         // Get description - translate if needed
         let description = item.description || getServiceName(item.service) || 'Item';
         description = translateDescription(description);
+        
+        // Append quantity × unitPrice detail if available
+        if (item.quantity && item.quantity > 1 && item.unitPrice) {
+          description += ` (${item.quantity} × ${item.unitPrice})`;
+        }
         
         doc.text(description, labelX, y);
         // Show "TBC" for items with unconfirmed pricing

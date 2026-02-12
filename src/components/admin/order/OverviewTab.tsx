@@ -37,8 +37,50 @@ export default function OverviewTab({
   getProcessingStepCardClasses, stripFlagEmoji, setActiveTab,
   onUnlinkOrder, onLinkDuplicateOrder, applyCustomerHistoryEntry,
 }: OverviewTabProps) {
+  const quoteStatus = (order as any).quote?.status as string | undefined;
+  const quoteSentAt = (order as any).quote?.sentAt as string | undefined;
+  const quoteRespondedAt = (order as any).quote?.respondedAt as string | undefined;
+  const quoteDeclineReason = (order as any).quote?.declineReason as string | undefined;
+
   return (
                   <div className="space-y-6">
+                    {/* Quote Status Banner */}
+                    {quoteStatus && (
+                      <div className={`border rounded-lg p-4 ${
+                        quoteStatus === 'sent' ? 'bg-blue-50 border-blue-200' :
+                        quoteStatus === 'accepted' ? 'bg-green-50 border-green-200' :
+                        'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {quoteStatus === 'sent' ? '📤' : quoteStatus === 'accepted' ? '✅' : '❌'}
+                          </span>
+                          <div>
+                            <h4 className={`font-semibold ${
+                              quoteStatus === 'sent' ? 'text-blue-800' :
+                              quoteStatus === 'accepted' ? 'text-green-800' :
+                              'text-red-800'
+                            }`}>
+                              {quoteStatus === 'sent' ? 'Quote sent — awaiting customer response' : quoteStatus === 'accepted' ? 'Quote accepted by customer' : 'Quote declined by customer'}
+                            </h4>
+                            <p className="text-sm text-gray-600 mt-0.5">
+                              {quoteSentAt && <>Sent {new Date(quoteSentAt).toLocaleDateString('en-GB')}</>}
+                              {quoteRespondedAt && <> · Responded {new Date(quoteRespondedAt).toLocaleDateString('en-GB')}</>}
+                            </p>
+                            {quoteStatus === 'declined' && quoteDeclineReason && (
+                              <p className="text-sm text-red-700 mt-1">Reason: {quoteDeclineReason}</p>
+                            )}
+                            {quoteStatus === 'sent' && (
+                              <p className="text-sm text-amber-700 mt-1 font-medium">⚠️ Do not change prices while a quote is pending — the customer has been quoted specific amounts.</p>
+                            )}
+                            {quoteStatus === 'accepted' && (
+                              <p className="text-sm text-amber-700 mt-1 font-medium">⚠️ Prices should match the accepted quote. Only change if absolutely necessary.</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Linked Orders Display - Show if this order has linked orders (from tracking number match) */}
                     {linkedOrders.length > 0 && linkedOrdersDetails.length > 0 && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4">

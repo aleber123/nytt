@@ -7,6 +7,8 @@ interface LineOverride {
   label: string;
   baseAmount: number;
   overrideAmount?: number | null;
+  overrideUnitPrice?: number | null;
+  quantity?: number | null;
   vatPercent?: number | null;
   include: boolean;
 }
@@ -108,9 +110,18 @@ export default function PriceTab({
             const item = order!.pricingBreakdown[idx] as any;
             currentLabel = item.description || getServiceName(item.service) || o.label;
           }
+          // If overrideUnitPrice is set and we have quantity, compute overrideAmount
+          let finalOverrideAmount = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null;
+          const savedUnitPrice = o.overrideUnitPrice !== undefined && o.overrideUnitPrice !== null ? Number(o.overrideUnitPrice) : null;
+          const savedQuantity = o.quantity ? Number(o.quantity) : null;
+          if (savedUnitPrice !== null && savedQuantity && savedQuantity > 1) {
+            finalOverrideAmount = savedUnitPrice * savedQuantity;
+          }
           return {
             index: o.index, label: currentLabel, baseAmount: Number(o.baseAmount || 0),
-            overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
+            overrideAmount: finalOverrideAmount,
+            overrideUnitPrice: savedUnitPrice,
+            quantity: savedQuantity,
             vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
             include: o.include !== false
           };
@@ -123,8 +134,29 @@ export default function PriceTab({
     }
   };
 
+  const quoteStatus = (order as any).quote?.status as string | undefined;
+
   return (
                 <div className="space-y-6">
+                    {/* Quote price lock warning */}
+                    {(quoteStatus === 'sent' || quoteStatus === 'accepted') && (
+                      <div className={`border rounded-lg p-4 ${quoteStatus === 'sent' ? 'bg-amber-50 border-amber-300' : 'bg-green-50 border-green-300'}`}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{quoteStatus === 'sent' ? '⚠️' : '✅'}</span>
+                          <div>
+                            <p className={`font-semibold text-sm ${quoteStatus === 'sent' ? 'text-amber-800' : 'text-green-800'}`}>
+                              {quoteStatus === 'sent' ? 'Quote pending — prices should not be changed' : 'Quote accepted — prices should match the accepted quote'}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              {quoteStatus === 'sent' 
+                                ? 'A quote has been sent to the customer. Changing prices now will cause a mismatch with the quoted amounts.'
+                                : 'The customer has accepted the quote. Only change prices if absolutely necessary and communicate the change to the customer.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-medium">Price Adjustments</h3>
@@ -156,7 +188,8 @@ export default function PriceTab({
                               <th className="px-3 py-2 text-left">Include</th>
                               <th className="px-3 py-2 text-left">Description</th>
                               <th className="px-3 py-2 text-right">Base Amount</th>
-                              <th className="px-3 py-2 text-right">New Amount</th>
+                              <th className="px-3 py-2 text-right">New Unit Price</th>
+                              <th className="px-3 py-2 text-right">New Total</th>
                               <th className="px-3 py-2 text-right">VAT %</th>
                             </tr>
                           </thead>
@@ -194,6 +227,7 @@ export default function PriceTab({
                                       </td>
                                       <td className="px-3 py-2">{item.label}</td>
                                       <td className="px-3 py-2 text-right">{item.amount.toFixed(2)} kr</td>
+                                      <td className="px-3 py-2 text-right"><span className="text-gray-300">—</span></td>
                                       <td className="px-3 py-2 text-right">
                                         <input
                                           type="number"
@@ -226,7 +260,7 @@ export default function PriceTab({
                                   );
                                 }) : (
                                   <tr>
-                                    <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
+                                    <td colSpan={6} className="px-3 py-4 text-center text-gray-500">No line items</td>
                                   </tr>
                                 );
                               })()
@@ -254,20 +288,53 @@ export default function PriceTab({
                                       />
                                     </td>
                                     <td className="px-3 py-2">{translatePricingDescription(item.description || o.label || '-')}</td>
-                                    <td className="px-3 py-2 text-right">{Number(base).toFixed(2)} kr</td>
                                     <td className="px-3 py-2 text-right">
-                                      <input
-                                        type="number"
-                                        className="w-28 border rounded px-2 py-1 text-right"
-                                        value={o.overrideAmount ?? ''}
-                                        placeholder=""
-                                        onChange={(e) => {
-                                          const val = e.target.value === '' ? null : Number(e.target.value);
-                                          const next = [...lineOverrides];
-                                          next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideAmount: val };
-                                          setLineOverrides(next);
-                                        }}
-                                      />
+                                      {item.quantity && item.quantity > 1 && item.unitPrice
+                                        ? <span className="text-gray-500">{item.quantity} × {item.unitPrice} = <strong>{Number(base).toLocaleString()}</strong> kr</span>
+                                        : <span>{Number(base).toLocaleString()} kr</span>
+                                      }
+                                    </td>
+                                    <td className="px-3 py-2 text-right">
+                                      {item.quantity && item.quantity > 1 ? (
+                                        <div className="flex items-center justify-end gap-1">
+                                          <input
+                                            type="number"
+                                            className="w-24 border rounded px-2 py-1 text-right"
+                                            value={o.overrideUnitPrice ?? ''}
+                                            placeholder={item.unitPrice ? String(item.unitPrice) : ''}
+                                            onChange={(e) => {
+                                              const val = e.target.value === '' ? null : Number(e.target.value);
+                                              const next = [...lineOverrides];
+                                              const computedTotal = val !== null ? val * item.quantity : null;
+                                              next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideUnitPrice: val, quantity: item.quantity, overrideAmount: computedTotal };
+                                              setLineOverrides(next);
+                                            }}
+                                          />
+                                          <span className="text-gray-400 text-xs">× {item.quantity}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-300">—</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-2 text-right">
+                                      {item.quantity && item.quantity > 1 ? (
+                                        <span className={o.overrideAmount != null ? 'font-semibold text-blue-700' : 'text-gray-400'}>
+                                          {o.overrideAmount != null ? `${Number(o.overrideAmount).toLocaleString()} kr` : '—'}
+                                        </span>
+                                      ) : (
+                                        <input
+                                          type="number"
+                                          className="w-28 border rounded px-2 py-1 text-right"
+                                          value={o.overrideAmount ?? ''}
+                                          placeholder=""
+                                          onChange={(e) => {
+                                            const val = e.target.value === '' ? null : Number(e.target.value);
+                                            const next = [...lineOverrides];
+                                            next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideAmount: val };
+                                            setLineOverrides(next);
+                                          }}
+                                        />
+                                      )}
                                     </td>
                                     <td className="px-3 py-2 text-right">
                                       <input
@@ -288,7 +355,7 @@ export default function PriceTab({
                               })
                             ) : (
                               <tr>
-                                <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
+                                <td colSpan={6} className="px-3 py-4 text-center text-gray-500">No line items</td>
                               </tr>
                             )}
                           </tbody>

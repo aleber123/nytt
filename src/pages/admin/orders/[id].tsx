@@ -991,6 +991,8 @@ function AdminOrderDetailPage() {
               label: freshLabel,
               baseAmount: Number(o.baseAmount || 0),
               overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
+              overrideUnitPrice: o.overrideUnitPrice !== undefined && o.overrideUnitPrice !== null ? Number(o.overrideUnitPrice) : null,
+              quantity: o.quantity ? Number(o.quantity) : null,
               vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
               include: o.include !== false
             };
@@ -6217,13 +6219,37 @@ function AdminOrderDetailPage() {
                 )}
 
                 {/* Communication Tab */}
-                {activeTab === 'communication' && (
-                  <CommunicationTab
-                    order={order}
-                    onShowDocumentRequestModal={() => setShowDocumentRequestModal(true)}
-                    onShowNewTemplateModal={() => setShowNewTemplateModal(true)}
-                  />
-                )}
+                {activeTab === 'communication' && (() => {
+                  // Build quote line items from lineOverrides + pricingBreakdown
+                  const breakdown = Array.isArray(order.pricingBreakdown) ? order.pricingBreakdown as any[] : [];
+                  const quoteItems = lineOverrides
+                    .filter((o: any) => o.include !== false)
+                    .map((o: any, idx: number) => {
+                      const bp = breakdown[o.index ?? idx] || {};
+                      const amount = o.overrideAmount != null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
+                      const qty = o.quantity && o.quantity > 1 ? o.quantity : (bp.quantity && bp.quantity > 1 ? bp.quantity : 1);
+                      const unitPrice = o.overrideUnitPrice != null ? Number(o.overrideUnitPrice) : (qty > 1 && bp.unitPrice ? bp.unitPrice : amount);
+                      const total = qty > 1 ? unitPrice * qty : amount;
+                      return {
+                        description: bp.description || o.label || `Line ${idx + 1}`,
+                        quantity: qty,
+                        unitPrice,
+                        total,
+                        vatRate: bp.vatRate !== undefined ? (typeof bp.vatRate === 'number' ? bp.vatRate : 0) : 0.25
+                      };
+                    })
+                    .filter((item: any) => item.total > 0);
+                  const quoteTotal = quoteItems.reduce((sum: number, i: any) => sum + i.total, 0);
+                  return (
+                    <CommunicationTab
+                      order={order}
+                      onShowDocumentRequestModal={() => setShowDocumentRequestModal(true)}
+                      onShowNewTemplateModal={() => setShowNewTemplateModal(true)}
+                      quoteLineItems={quoteItems}
+                      quoteTotalAmount={quoteTotal}
+                    />
+                  );
+                })()}
 
                 {/* Notes Tab */}
                 {activeTab === 'notes' && (
