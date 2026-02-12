@@ -7,6 +7,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { VisaOrderAnswers, SelectedVisaProduct, VisaAddOnService } from './types';
 import { getAvailableVisaProducts, VisaProduct, VisaType, VisaProductsResult } from '@/firebase/visaRequirementsService';
+import { getApplicableAddons, VisaAddon } from '@/firebase/visaAddonService';
 
 interface VisaStep3SelectProductProps {
   answers: VisaOrderAnswers;
@@ -64,6 +65,8 @@ export default function VisaStep3SelectProduct({
   const [showAddOns, setShowAddOns] = useState(false);
   const [pendingProduct, setPendingProduct] = useState<VisaProduct | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
+  // Global addons from Firestore
+  const [globalAddons, setGlobalAddons] = useState<VisaAddon[]>([]);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -82,6 +85,22 @@ export default function VisaStep3SelectProduct({
     };
     loadProducts();
   }, [answers.destinationCountryCode, answers.nationalityCode]);
+
+  // Load global addons when destination country is known
+  useEffect(() => {
+    const loadGlobalAddons = async () => {
+      if (answers.destinationCountryCode) {
+        try {
+          // Load with 'all' category/product initially; will re-filter per product
+          const addons = await getApplicableAddons(answers.destinationCountryCode, 'all', 'all');
+          setGlobalAddons(addons);
+        } catch {
+          setGlobalAddons([]);
+        }
+      }
+    };
+    loadGlobalAddons();
+  }, [answers.destinationCountryCode]);
 
   // Determine available categories and entry types
   const availableCategories = useMemo(() => {
@@ -106,6 +125,32 @@ export default function VisaStep3SelectProduct({
     }
     return products;
   }, [products, selectedCategory]);
+
+  // Get merged addons for a product: product-specific + applicable global addons
+  const getMergedAddons = (product: VisaProduct): VisaAddOnService[] => {
+    const productAddons: VisaAddOnService[] = product.addOnServices || [];
+    // Filter global addons applicable to this product's category and ID
+    const applicableGlobal = globalAddons.filter(ga => {
+      const catMatch = ga.applicableCategories.includes('all') || ga.applicableCategories.includes(product.category);
+      const prodMatch = ga.applicableProductIds.includes('all') || ga.applicableProductIds.includes(product.id);
+      return catMatch && prodMatch;
+    });
+    // Convert global addons to VisaAddOnService format, avoiding ID conflicts
+    const existingIds = new Set(productAddons.map(a => a.id));
+    const globalAsAddOns: VisaAddOnService[] = applicableGlobal
+      .filter(ga => !existingIds.has(ga.id))
+      .map(ga => ({
+        id: ga.id,
+        name: ga.name,
+        nameEn: ga.nameEn,
+        description: ga.description,
+        descriptionEn: ga.descriptionEn,
+        price: ga.price,
+        icon: ga.icon,
+        required: ga.required,
+      }));
+    return [...productAddons, ...globalAsAddOns];
+  };
 
   const finalizeProductSelection = (product: VisaProduct, addOns: Set<string>) => {
     const selectedProduct: SelectedVisaProduct = {
@@ -134,8 +179,9 @@ export default function VisaStep3SelectProduct({
       pricingNote,
     };
 
-    // Build selected add-on services array
-    const selectedAddOnServices = (product.addOnServices || [])
+    // Build selected add-on services array from merged addons (product + global)
+    const mergedAddons = getMergedAddons(product);
+    const selectedAddOnServices = mergedAddons
       .filter(a => addOns.has(a.id))
       .map(a => ({ id: a.id, name: a.name, nameEn: a.nameEn, price: a.price }));
 
@@ -153,11 +199,14 @@ export default function VisaStep3SelectProduct({
     setSelectedProductId(product.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Check if this product has add-on services
-    if (product.addOnServices && product.addOnServices.length > 0) {
-      setPendingProduct(product);
+    // Check if this product has add-on services (product-specific + global)
+    const mergedAddons = getMergedAddons(product);
+    if (mergedAddons.length > 0) {
+      // Temporarily store merged addons on the product for the add-on phase
+      const productWithMergedAddons = { ...product, addOnServices: mergedAddons };
+      setPendingProduct(productWithMergedAddons);
       setSelectedAddOns(new Set(
-        product.addOnServices.filter(a => a.required).map(a => a.id)
+        mergedAddons.filter(a => a.required).map(a => a.id)
       ));
       setShowAddOns(true);
       return;

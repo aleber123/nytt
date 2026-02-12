@@ -112,6 +112,15 @@ function AdminIndexPage() {
       badge: 'Checklist',
       category: 'visa'
     },
+    {
+      title: 'Add-on Services',
+      description: 'Manage add-on services for visa orders (photo, registration, etc.)',
+      href: '/admin/visa-addons',
+      color: 'bg-emerald-300 hover:bg-emerald-400',
+      icon: 'receipt',
+      badge: 'Addons',
+      category: 'visa'
+    },
     // Customers
     {
       title: 'Customer Registry',
