@@ -61,6 +61,7 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       }
       
       // Calculate pricing with customer-specific adjustments
+      const travelerCount = (answers.travelers || [{ firstName: '', lastName: '' }]).filter(t => t.firstName.trim() && t.lastName.trim()).length || 1;
       const baseServiceFee = answers.selectedVisaProduct.serviceFee || 0;
       const embassyFee = answers.selectedVisaProduct.embassyFee || 0;
       const expressPrice = answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0;
@@ -70,8 +71,9 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       // Apply custom service fee if set, otherwise use standard
       const finalServiceFee = customServiceFee !== undefined ? customServiceFee : baseServiceFee;
       
-      // Calculate subtotal before discount
-      let subtotal = finalServiceFee + embassyFee + expressPrice + urgentPrice + addOnServicesTotal;
+      // Per-person subtotal (all fees apply per traveler)
+      const perPersonSubtotal = finalServiceFee + embassyFee + expressPrice + urgentPrice + addOnServicesTotal;
+      let subtotal = perPersonSubtotal * travelerCount;
       
       // Apply discount if set
       let discountAmount = 0;
@@ -108,8 +110,13 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         returnDate: answers.returnDateVisa,
         passportNeededBy: answers.passportNeededBy,
         
-        // Traveler count
-        travelerCount: 1,
+        // Travelers
+        travelerCount,
+        travelers: (answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).map(t => ({
+          firstName: t.firstName.trim(),
+          lastName: t.lastName.trim(),
+          ...(t.passportNumber ? { passportNumber: t.passportNumber } : {}),
+        })),
         
         // Shipping (only for sticker visa)
         ...(isEVisa ? {} : {
@@ -396,13 +403,19 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         ...(answers.expressRequired && answers.selectedVisaProduct?.expressPrice ? [{ label: locale === 'en' ? 'Express fee' : 'Expressavgift', value: `+${answers.selectedVisaProduct.expressPrice.toLocaleString()} kr` }] : []),
         ...(answers.urgentRequired && answers.selectedVisaProduct?.urgentPrice ? [{ label: locale === 'en' ? 'Urgent fee' : 'Brådskande avgift', value: `+${answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr` }] : []),
         ...(answers.selectedAddOnServices && answers.selectedAddOnServices.length > 0 ? answers.selectedAddOnServices.map(a => ({ label: locale === 'en' ? a.nameEn : a.name, value: `+${a.price.toLocaleString()} kr` })) : []),
-        { label: locale === 'en' ? 'Total' : 'Totalt', value: answers.selectedVisaProduct ? `${(answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) + (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0)).toLocaleString()} kr` : undefined },
+        { label: locale === 'en' ? 'Price per person' : 'Pris per person', value: answers.selectedVisaProduct ? `${(answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) + (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0)).toLocaleString()} kr` : undefined },
+        ...((answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length > 1 ? [{ label: locale === 'en' ? 'Travelers' : 'Resenärer', value: `${(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length} ${locale === 'en' ? 'persons' : 'personer'}` }] : []),
+        { label: locale === 'en' ? 'Total' : 'Totalt', value: answers.selectedVisaProduct ? `${(((answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length || 1) * (answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) + (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0))).toLocaleString()} kr` : undefined },
       ],
     },
     {
-      title: t('visaOrder.step10.dates', 'Datum'),
+      title: locale === 'en' ? 'Travelers & dates' : 'Resenärer & datum',
       step: 4,
       items: [
+        ...(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).map((t, i) => ({
+          label: `${locale === 'en' ? 'Traveler' : 'Resenär'} ${i + 1}`,
+          value: `${t.firstName} ${t.lastName}`
+        })),
         { label: t('visaOrder.summary.departure', 'Avresa'), value: answers.departureDate },
         { label: t('visaOrder.summary.return', 'Hemresa'), value: answers.returnDateVisa },
         { label: isEVisa 

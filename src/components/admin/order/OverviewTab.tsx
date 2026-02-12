@@ -304,6 +304,35 @@ export default function OverviewTab({
                                           <span className="font-medium text-gray-900">{order.customerInfo.companyName}</span>
                                         </div>
                                       )}
+                                      {(order as any).translationDetails?.fromLanguage && (order as any).translationDetails?.toLanguage && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-500">
+                                            Translation:
+                                          </span>
+                                          <span className="font-medium text-gray-900">
+                                            {(() => {
+                                              const LANG_NAMES: Record<string, string> = {
+                                                sv: 'Swedish', en: 'English', ar: 'Arabic', fa: 'Persian/Farsi',
+                                                fr: 'French', es: 'Spanish', de: 'German', tr: 'Turkish',
+                                                th: 'Thai', zh: 'Chinese', ja: 'Japanese', ko: 'Korean',
+                                                pt: 'Portuguese', it: 'Italian', nl: 'Dutch', pl: 'Polish',
+                                                ru: 'Russian', uk: 'Ukrainian', hi: 'Hindi', ur: 'Urdu',
+                                                bn: 'Bengali', vi: 'Vietnamese', fi: 'Finnish', no: 'Norwegian',
+                                                da: 'Danish', el: 'Greek', ro: 'Romanian', hu: 'Hungarian',
+                                                cs: 'Czech', he: 'Hebrew', so: 'Somali', ti: 'Tigrinya',
+                                                am: 'Amharic', ku: 'Kurdish', bs: 'Bosnian', sr: 'Serbian',
+                                                hr: 'Croatian', sq: 'Albanian', ms: 'Malay', id: 'Indonesian',
+                                                sw: 'Swahili', ta: 'Tamil', si: 'Sinhala', my: 'Burmese',
+                                                km: 'Khmer', lo: 'Lao', ne: 'Nepali', ka: 'Georgian',
+                                                hy: 'Armenian', az: 'Azerbaijani', other: 'Other'
+                                              };
+                                              const from = LANG_NAMES[(order as any).translationDetails.fromLanguage] || (order as any).translationDetails.fromLanguage;
+                                              const to = LANG_NAMES[(order as any).translationDetails.toLanguage] || (order as any).translationDetails.toLanguage;
+                                              return `${from} → ${to}`;
+                                            })()}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                 })()

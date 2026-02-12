@@ -453,6 +453,17 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
             <span class="detail-label">Return:</span>
             <span class="detail-value">${order.returnDate || '-'}</span>
           </div>
+          ${order.travelers && order.travelers.length > 0 ? `
+          <div class="detail-row">
+            <span class="detail-label">Travelers (${order.travelers.length}):</span>
+            <span class="detail-value">${order.travelers.map(t => `${t.firstName} ${t.lastName}`).join(', ')}</span>
+          </div>
+          ` : order.travelerCount > 1 ? `
+          <div class="detail-row">
+            <span class="detail-label">Travelers:</span>
+            <span class="detail-value">${order.travelerCount} persons</span>
+          </div>
+          ` : ''}
         </div>
 
         ${order.totalPrice && order.totalPrice > 0 ? `
@@ -463,6 +474,7 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
             <div>Embassy fee: ${(order.pricingBreakdown?.embassyFee || 0).toLocaleString()} kr</div>
             ${order.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Express fee: +${order.pricingBreakdown.expressPrice.toLocaleString()} kr</div>` : ''}
             ${order.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Urgent fee: +${order.pricingBreakdown.urgentPrice.toLocaleString()} kr</div>` : ''}
+            ${order.travelerCount > 1 ? `<div style="color:#4b5563; font-weight:600;">× ${order.travelerCount} travelers</div>` : ''}
           </div>
           ` : ''}
           <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
@@ -583,6 +595,17 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
             <span class="detail-label">Hemresa:</span>
             <span class="detail-value">${order.returnDate || '-'}</span>
           </div>
+          ${order.travelers && order.travelers.length > 0 ? `
+          <div class="detail-row">
+            <span class="detail-label">Resenärer (${order.travelers.length}):</span>
+            <span class="detail-value">${order.travelers.map(t => `${t.firstName} ${t.lastName}`).join(', ')}</span>
+          </div>
+          ` : order.travelerCount > 1 ? `
+          <div class="detail-row">
+            <span class="detail-label">Resenärer:</span>
+            <span class="detail-value">${order.travelerCount} personer</span>
+          </div>
+          ` : ''}
         </div>
 
         ${order.totalPrice && order.totalPrice > 0 ? `
@@ -593,6 +616,7 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
             <div>Ambassadavgift: ${(order.pricingBreakdown?.embassyFee || 0).toLocaleString()} kr</div>
             ${order.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Expressavgift: +${order.pricingBreakdown.expressPrice.toLocaleString()} kr</div>` : ''}
             ${order.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Brådskande avgift: +${order.pricingBreakdown.urgentPrice.toLocaleString()} kr</div>` : ''}
+            ${order.travelerCount > 1 ? `<div style="color:#4b5563; font-weight:600;">× ${order.travelerCount} resenärer</div>` : ''}
           </div>
           ` : ''}
           <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
@@ -799,6 +823,17 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
             <span class="detail-label">Visa needed by:</span>
             <span class="detail-value">${order.passportNeededBy || '-'}</span>
           </div>
+          ${order.travelers && order.travelers.length > 0 ? `
+          <div class="detail-row">
+            <span class="detail-label">Travelers (${order.travelers.length}):</span>
+            <span class="detail-value">${order.travelers.map(t => `${t.firstName} ${t.lastName}`).join(', ')}</span>
+          </div>
+          ` : order.travelerCount > 1 ? `
+          <div class="detail-row">
+            <span class="detail-label">Travelers:</span>
+            <span class="detail-value">${order.travelerCount} persons</span>
+          </div>
+          ` : ''}
         </div>
 
         ${order.totalPrice && order.totalPrice > 0 ? `
@@ -809,6 +844,7 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
             <div>Embassy fee: ${(order.pricingBreakdown?.embassyFee || 0).toLocaleString()} kr</div>
             ${order.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Express fee: +${order.pricingBreakdown.expressPrice.toLocaleString()} kr</div>` : ''}
             ${order.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Urgent fee: +${order.pricingBreakdown.urgentPrice.toLocaleString()} kr</div>` : ''}
+            ${order.travelerCount > 1 ? `<div style="color:#4b5563; font-weight:600;">× ${order.travelerCount} travelers</div>` : ''}
           </div>
           ` : ''}
           <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>

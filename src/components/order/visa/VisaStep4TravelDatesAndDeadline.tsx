@@ -7,8 +7,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { StepContainer } from '../shared/StepContainer';
-import { VisaOrderAnswers } from './types';
-import { CalendarIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { VisaOrderAnswers, VisaTraveler } from './types';
+import { CalendarIcon, ClockIcon, ExclamationTriangleIcon, UserPlusIcon, TrashIcon, UserIcon } from '@heroicons/react/24/outline';
 
 interface Props {
   answers: VisaOrderAnswers;
@@ -107,12 +107,35 @@ const VisaStep4TravelDatesAndDeadline: React.FC<Props> = ({ answers, onUpdate, o
   );
   const isWarning = businessDaysUntilDeadline !== null && businessDaysUntilDeadline < normalProcessingDays + 3 && !needsExpress && !needsUrgent;
 
+  // Travelers
+  const travelers = answers.travelers || [{ firstName: '', lastName: '' }];
+  const travelerCount = travelers.length;
+
+  const handleTravelerChange = (index: number, field: keyof VisaTraveler, value: string) => {
+    const updated = [...travelers];
+    updated[index] = { ...updated[index], [field]: value };
+    onUpdate({ travelers: updated });
+  };
+
+  const addTraveler = () => {
+    onUpdate({ travelers: [...travelers, { firstName: '', lastName: '' }] });
+  };
+
+  const removeTraveler = (index: number) => {
+    if (travelers.length <= 1) return;
+    const updated = travelers.filter((_, i) => i !== index);
+    onUpdate({ travelers: updated });
+  };
+
+  // All travelers must have at least first + last name
+  const travelersValid = travelers.length > 0 && travelers.every(t => t.firstName.trim() && t.lastName.trim());
+
   // Validation
   const datesValid = answers.departureDate && answers.returnDateVisa && answers.returnDateVisa >= answers.departureDate;
   const deadlineValid = answers.passportNeededBy && !tooShort &&
     (!needsExpress || expressAccepted) &&
     (!needsUrgent || urgentAccepted);
-  const isValid = datesValid && deadlineValid;
+  const isValid = datesValid && deadlineValid && travelersValid;
 
   // Deadline label adapts for e-visa vs sticker
   const deadlineLabel = isEVisa
@@ -125,13 +148,105 @@ const VisaStep4TravelDatesAndDeadline: React.FC<Props> = ({ answers, onUpdate, o
 
   return (
     <StepContainer
-      title={isSv ? 'Resedatum & deadline' : 'Travel dates & deadline'}
-      subtitle={isSv ? 'Ange datum för din resa och när du behöver visumet klart' : 'Enter your travel dates and when you need the visa ready'}
+      title={isSv ? 'Resenärer, datum & deadline' : 'Travelers, dates & deadline'}
+      subtitle={isSv ? 'Ange resenärer, resedatum och när du behöver visumet klart' : 'Enter travelers, travel dates and when you need the visa ready'}
       onNext={onNext}
       onBack={onBack}
       nextDisabled={!isValid}
     >
       <div className="space-y-6">
+        {/* Travelers section */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center">
+            <UserIcon className="h-5 w-5 mr-2" />
+            {isSv ? 'Resenärer' : 'Travelers'}
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {isSv
+              ? 'Ange namn på alla resenärer som behöver visum. Varje resenär kräver ett eget visum.'
+              : 'Enter the names of all travelers who need a visa. Each traveler requires their own visa.'}
+          </p>
+
+          <div className="space-y-3">
+            {travelers.map((traveler, index) => (
+              <div key={index} className="flex items-start gap-2">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      {isSv ? 'Förnamn' : 'First name'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={traveler.firstName}
+                      onChange={(e) => handleTravelerChange(index, 'firstName', e.target.value)}
+                      placeholder={isSv ? 'Förnamn' : 'First name'}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-button focus:border-transparent text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      {isSv ? 'Efternamn' : 'Last name'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={traveler.lastName}
+                      onChange={(e) => handleTravelerChange(index, 'lastName', e.target.value)}
+                      placeholder={isSv ? 'Efternamn' : 'Last name'}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-button focus:border-transparent text-sm"
+                    />
+                  </div>
+                </div>
+                {travelers.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeTraveler(index)}
+                    className="mt-6 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title={isSv ? 'Ta bort resenär' : 'Remove traveler'}
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addTraveler}
+            className="mt-3 inline-flex items-center px-4 py-2 text-sm font-medium text-custom-button bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+          >
+            <UserPlusIcon className="h-4 w-4 mr-2" />
+            {isSv ? 'Lägg till resenär' : 'Add traveler'}
+          </button>
+
+          {/* Traveler count + price summary */}
+          {travelerCount > 1 && answers.selectedVisaProduct && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-blue-900">
+                {travelerCount} {isSv ? 'resenärer' : 'travelers'}
+                {answers.selectedVisaProduct.useStandardPricing !== false && (
+                  <span className="text-blue-700">
+                    {' '} × {answers.selectedVisaProduct.price.toLocaleString()} kr = {(travelerCount * answers.selectedVisaProduct.price).toLocaleString()} kr
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                {isSv
+                  ? 'Alla avgifter (serviceavgift + ambassadavgift) gäller per resenär'
+                  : 'All fees (service fee + embassy fee) apply per traveler'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Divider between travelers and dates */}
+        <div className="border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center">
+            <CalendarIcon className="h-5 w-5 mr-2" />
+            {isSv ? 'Resedatum' : 'Travel dates'}
+          </h3>
+        </div>
+
         {/* Travel dates section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Departure date */}

@@ -628,7 +628,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
           <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
             <span className="text-gray-700">{t('orderFlow.step10.quantity')}:</span>
-            <span className="font-medium text-gray-900 break-words">{answers.quantity} st</span>
+            <span className="font-medium text-gray-900 break-words">{answers.quantity} {locale === 'en' ? 'pcs' : 'st'}</span>
           </div>
 
           {/* Selected Services */}
@@ -636,7 +636,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             <span className="text-gray-700 font-medium">{t('orderFlow.step10.services')}:</span>
             <div className="mt-2 space-y-2">
               {loadingPricing ? (
-                <div className="text-sm text-gray-500">Beräknar priser...</div>
+                <div className="text-sm text-gray-500">{locale === 'en' ? 'Calculating prices...' : 'Beräknar priser...'}</div>
               ) : (
                 pricingBreakdown.map((item, index) => {
                   // Determine if this is a per-document or per-order fee
@@ -648,7 +648,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   // Calculate price based on customer type
                   const displayPrice = isCompanyCustomer ? getPriceExclVat(item) : (item.total || 0);
                   const unitPriceDisplay = isCompanyCustomer && item.unitPrice 
-                    ? Math.round(item.unitPrice / 1.25) // Remove VAT from unit price for company
+                    ? (() => {
+                        const vatRate = item.vatRate || 0;
+                        const rate = vatRate > 1 ? vatRate / 100 : vatRate;
+                        return rate > 0 ? Math.round(item.unitPrice / (1 + rate)) : item.unitPrice;
+                      })()
                     : item.unitPrice;
                   
                   // Build the price detail string
@@ -684,7 +688,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           {answers.returnService === 'own-delivery' && answers.ownReturnTrackingNumber && (
             <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
               <span className="text-gray-700">
-                {t('orderFlow.step9.ownReturnTrackingLabel', 'Spårningsnummer')}:
+                {locale === 'en' ? 'Tracking number' : 'Spårningsnummer'}:
               </span>
               <span className="font-medium text-gray-900 break-words">
                 {answers.ownReturnTrackingNumber}
@@ -696,7 +700,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           {answers.returnService === 'own-delivery' && (
             <div className="flex flex-col gap-1 py-2 border-b border-green-200 sm:flex-row sm:justify-between sm:items-center">
               <span className="text-gray-700">
-                {t('orderFlow.step9.ownReturnLabelTitle', 'Fraktsedel')}:
+                {locale === 'en' ? 'Shipping label' : 'Fraktsedel'}:
               </span>
               {answers.ownReturnLabelFile ? (
                 <span className="font-medium text-green-700 break-words flex items-center gap-1">
@@ -707,7 +711,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 </span>
               ) : (
                 <span className="font-medium text-gray-500 italic">
-                  {t('orderFlow.step10.noLabelUploaded', 'Ingen fraktsedel uppladdad')}
+                  {locale === 'en' ? 'No shipping label uploaded' : 'Ingen fraktsedel uppladdad'}
                 </span>
               )}
             </div>
@@ -914,7 +918,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     scannedCopies: answers.scannedCopies,
                     pickupService: answers.pickupService,
                     premiumDelivery: answers.premiumDelivery,
-                    customerPricing: customerPricingData
+                    customerPricing: customerPricingData,
+                    locale
                   });
 
                   // Generate secure token for order confirmation page
@@ -954,6 +959,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
+                    translationDetails: answers.translationDetails,
                     locale: locale,
                     publicAccessToken: publicAccessToken
                   };
@@ -967,14 +973,23 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
                   // Send email notification (save to Firestore for external processing, same as contact form)
                   try {
-                    let returfraktText = 'Ej vald';
+                    const isEn = locale === 'en';
+
+                    // Locale-explicit service name helper for emails
+                    const SERVICE_NAMES_EMAIL: Record<string, Record<string, string>> = {
+                      en: { apostille: 'Apostille', notarization: 'Notarization', embassy: 'Embassy legalization', ud: 'Ministry of Foreign Affairs legalization', translation: 'Certified translation', chamber: 'Chamber of Commerce legalization' },
+                      sv: { apostille: 'Apostille', notarization: 'Notarisering', embassy: 'Ambassadlegalisering', ud: 'Utrikesdepartementets legalisering', translation: 'Auktoriserad översättning', chamber: 'Handelskammarens legalisering' }
+                    };
+                    const getServiceNameForEmail = (id: string, lang: string) => (SERVICE_NAMES_EMAIL[lang] || SERVICE_NAMES_EMAIL['sv'])[id] || id;
+
+                    let returfraktText = isEn ? 'Not selected' : 'Ej vald';
                     if (answers.returnService === 'own-delivery') {
-                      returfraktText = 'Egen returfrakt (redan bokad)';
+                      returfraktText = isEn ? 'Own return shipping (already booked)' : 'Egen returfrakt (redan bokad)';
                       if (answers.ownReturnTrackingNumber) {
-                        returfraktText += `  Spårningsnummer: ${answers.ownReturnTrackingNumber}`;
+                        returfraktText += isEn ? `  Tracking number: ${answers.ownReturnTrackingNumber}` : `  Spårningsnummer: ${answers.ownReturnTrackingNumber}`;
                       }
                     } else if (answers.returnService === 'office-pickup') {
-                      returfraktText = 'Hämtning på vårt kontor';
+                      returfraktText = isEn ? 'Office pickup' : 'Hämtning på vårt kontor';
                     } else if (answers.returnService) {
                       const rs = returnServices.find(s => s.id === answers.returnService);
                       returfraktText = rs?.name || answers.returnService;
@@ -984,14 +999,15 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     if (answers.premiumDelivery) {
                       const premiumService = returnServices.find(s => s.id === answers.premiumDelivery);
                       if (premiumService) {
-                        premiumText = `Premiumleverans: ${premiumService.name}`;
+                        premiumText = `${isEn ? 'Premium delivery' : 'Premiumleverans'}: ${premiumService.name}`;
                       }
                     }
 
-                    const countryName = allCountries.find(c => c.code === answers.country)?.name || answers.country;
+                    const countryObj = allCountries.find(c => c.code === answers.country);
+                    const countryName = isEn ? (countryObj?.nameEn || countryObj?.name || answers.country) : (countryObj?.name || answers.country);
                     
-                    const documentTypeName = getAllDocumentTypesDisplay(false);
-                    const servicesText = answers.services.map(serviceId => getServiceName(serviceId)).join(', ');
+                    const documentTypeName = getAllDocumentTypesDisplay(isEn);
+                    const servicesText = answers.services.map(serviceId => getServiceNameForEmail(serviceId, locale)).join(', ');
                     const siteUrlInternal = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
                     
                     // Build internal HTML email for handlers (same design as original documents flow)
@@ -1028,10 +1044,10 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
       <div class="section">
         <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleDateString('en-GB')}</span></div>
-        <div class="row"><span class="label">Country</span><span class="value">${countryName}</span></div>
-        <div class="row"><span class="label">Document Type</span><span class="value">${documentTypeName}</span></div>
+        <div class="row"><span class="label">Country</span><span class="value">${(allCountries.find(c => c.code === answers.country)?.nameEn || allCountries.find(c => c.code === answers.country)?.name || answers.country)}</span></div>
+        <div class="row"><span class="label">Document Type</span><span class="value">${getAllDocumentTypesDisplay(true)}</span></div>
         <div class="row"><span class="label">Quantity</span><span class="value">${answers.quantity} pcs</span></div>
-        <div class="row"><span class="label">Services</span><span class="value">${servicesText}</span></div>
+        <div class="row"><span class="label">Services</span><span class="value">${answers.services.map(s => getServiceNameForEmail(s, 'en')).join(', ')}</span></div>
         <div class="row"><span class="label">Total Amount</span><span class="value">${pricingResult.totalPrice} SEK</span></div>
         <div class="row"><span class="label">Document Source</span><span class="value">${answers.willSendMainDocsLater ? 'Sent via email' : 'Uploaded files'}</span></div>
         <div class="row"><span class="label">Return Shipping</span><span class="value">${returfraktText}</span></div>
@@ -1352,7 +1368,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     scannedCopies: answers.scannedCopies,
                     pickupService: answers.pickupService,
                     premiumDelivery: answers.premiumDelivery,
-                    customerPricing: customerPricingData2
+                    customerPricing: customerPricingData2,
+                    locale
                   });
 
                   // Generate secure token for order confirmation page
@@ -1392,6 +1409,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     pricingBreakdown: pricingResult.breakdown,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
+                    translationDetails: answers.translationDetails,
                     locale: locale,
                     publicAccessToken: publicAccessToken2
                   };
@@ -1543,10 +1561,10 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
 
         <div class="section">
           <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleDateString('en-GB')}</span></div>
-          <div class="row"><span class="label">Country</span><span class="value">${allCountries.find(c => c.code === answers.country)?.name}</span></div>
-          <div class="row"><span class="label">Document Type</span><span class="value">${getAllDocumentTypesDisplay(false)}</span></div>
+          <div class="row"><span class="label">Country</span><span class="value">${allCountries.find(c => c.code === answers.country)?.nameEn || allCountries.find(c => c.code === answers.country)?.name}</span></div>
+          <div class="row"><span class="label">Document Type</span><span class="value">${getAllDocumentTypesDisplay(true)}</span></div>
           <div class="row"><span class="label">Quantity</span><span class="value">${answers.quantity} pcs</span></div>
-          <div class="row"><span class="label">Services</span><span class="value">${answers.services.map(s => getServiceName(s)).join(', ')}</span></div>
+          <div class="row"><span class="label">Services</span><span class="value">${(() => { const SN: Record<string,string> = { apostille:'Apostille', notarization:'Notarization', embassy:'Embassy legalization', ud:'Ministry of Foreign Affairs legalization', translation:'Certified translation', chamber:'Chamber of Commerce legalization' }; return answers.services.map(s => SN[s] || s).join(', '); })()}</span></div>
           <div class="row"><span class="label">Total Amount</span><span class="value">${pricingResult.totalPrice} SEK</span></div>
           <div class="row"><span class="label">Document Source</span><span class="value">${answers.documentSource === 'original' ? 'Original documents' : 'Uploaded files'}</span></div>
           <div class="row"><span class="label">Pickup</span><span class="value" style="${hasPickup ? 'color:#D97706; font-weight:800;' : ''}">${hasPickup ? '✅ YES - BOOK PICKUP' : '❌ No'}</span></div>
@@ -1713,7 +1731,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           </div>
           <div class="detail-row">
             <span class="detail-label">Selected services:</span>
-            <span class="detail-value">${answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}</span>
+            <span class="detail-value">${(() => { const SN: Record<string,string> = { apostille:'Apostille', notarization:'Notarization', embassy:'Embassy legalization', ud:'Ministry of Foreign Affairs legalization', translation:'Certified translation', chamber:'Chamber of Commerce legalization' }; return answers.services.map(s => SN[s] || s).join(', '); })()}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Total amount:</span>
@@ -1905,7 +1923,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           </div>
           <div class="detail-row">
             <span class="detail-label">Valda tjänster:</span>
-            <span class="detail-value">${answers.services.map(serviceId => getServiceName(serviceId)).join(', ')}</span>
+            <span class="detail-value">${(() => { const SN: Record<string,string> = { apostille:'Apostille', notarization:'Notarisering', embassy:'Ambassadlegalisering', ud:'Utrikesdepartementets legalisering', translation:'Auktoriserad översättning', chamber:'Handelskammarens legalisering' }; return answers.services.map(s => SN[s] || s).join(', '); })()}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Totalbelopp:</span>

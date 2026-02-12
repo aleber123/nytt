@@ -28,15 +28,17 @@ interface PriceTabProps {
   getBreakdownTotal: () => number;
   getServiceName: (serviceId: string) => string;
   adminName: string;
+  onRecalculate?: () => Promise<void>;
 }
 
 export default function PriceTab({
   order, orderId, adminPrice, setAdminPrice, onSavePriceData,
   lineOverrides, setLineOverrides, discountAmount, setDiscountAmount,
   discountPercent, setDiscountPercent, adjustments, setAdjustments,
-  getBreakdownTotal, getServiceName, adminName,
+  getBreakdownTotal, getServiceName, adminName, onRecalculate,
 }: PriceTabProps) {
   const [savingPrice, setSavingPrice] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
 
   const translatePricingDescription = (description: string): string => {
     if (!description) return '-';
@@ -99,12 +101,20 @@ export default function PriceTab({
         computedTotal: total,
         updatedAt: new Date().toISOString(),
         updatedBy: adminName,
-        lineOverrides: lineOverrides.map((o) => ({
-          index: o.index, label: o.label, baseAmount: Number(o.baseAmount || 0),
-          overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
-          vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
-          include: o.include !== false
-        }))
+        lineOverrides: lineOverrides.map((o, idx) => {
+          // Always sync label from current pricingBreakdown to avoid stale labels in PDF
+          let currentLabel = o.label;
+          if (Array.isArray(order?.pricingBreakdown) && order!.pricingBreakdown[idx]) {
+            const item = order!.pricingBreakdown[idx] as any;
+            currentLabel = item.description || getServiceName(item.service) || o.label;
+          }
+          return {
+            index: o.index, label: currentLabel, baseAmount: Number(o.baseAmount || 0),
+            overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
+            vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
+            include: o.include !== false
+          };
+        })
       };
       await onSavePriceData({ adminPrice: priceData, total });
       toast.success('Price updated');
@@ -116,7 +126,28 @@ export default function PriceTab({
   return (
                 <div className="space-y-6">
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium mb-4">Price Adjustments</h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-medium">Price Adjustments</h3>
+                        {onRecalculate && order?.orderType !== 'visa' && (
+                          <button
+                            onClick={async () => {
+                              setRecalculating(true);
+                              try {
+                                await onRecalculate();
+                                toast.success('Prices recalculated with customer pricing');
+                              } catch {
+                                toast.error('Could not recalculate prices');
+                              } finally {
+                                setRecalculating(false);
+                              }
+                            }}
+                            disabled={recalculating}
+                            className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+                          >
+                            {recalculating ? 'Recalculating...' : '↻ Recalculate Prices'}
+                          </button>
+                        )}
+                      </div>
                       {/* Per-service override table */}
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm border border-gray-200 rounded">

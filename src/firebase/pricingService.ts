@@ -19,6 +19,7 @@ import {
   DEFAULT_PICKUP_FEE,
   SERVICE_FALLBACK_PRICES,
   SERVICE_NAMES_SV,
+  SERVICE_NAMES_EN,
   VAT_RATES,
   VAT_EXEMPT_OFFICIAL_FEES
 } from '../config/pricing';
@@ -435,6 +436,7 @@ export const calculateOrderPrice = async (orderData: {
   premiumPickup?: string;
   premiumDelivery?: string;
   customerPricing?: CustomerPricingData; // Customer-specific pricing data
+  locale?: string;
 }): Promise<{
   basePrice: number;
   additionalFees: number;
@@ -505,8 +507,11 @@ export const calculateOrderPrice = async (orderData: {
           unconfirmedServices.push(serviceType);
         }
 
-        // Get service name from centralized config
-        const serviceName = SERVICE_NAMES_SV[serviceType] || serviceType;
+        // Get service name from centralized config (respects locale)
+        const nameMap = orderData.locale === 'en' ? SERVICE_NAMES_EN : SERVICE_NAMES_SV;
+        const serviceName = nameMap[serviceType] || serviceType;
+        const officialFeeLabel = orderData.locale === 'en' ? 'Official fee' : 'Officiell avgift';
+        const serviceFeePrefix = orderData.locale === 'en' ? 'DOX Visumpartner service fee' : 'DOX Visumpartner serviceavgift';
         
         // Check for customer-specific official fee, otherwise use standard
         const customOfficialFee = getCustomOfficialFee(serviceType, orderData.customerPricing?.customPricing);
@@ -527,22 +532,24 @@ export const calculateOrderPrice = async (orderData: {
 
         // Add official fee line (per document)
         // Only UD and embassy official fees are VAT exempt (government fees)
+        // Translation official fee is always TBC (need to contact translator for price)
         const isOfficialFeeVatExempt = VAT_EXEMPT_OFFICIAL_FEES.includes(serviceType);
+        const isTranslationTBC = serviceType === 'translation';
         breakdown.push({
           service: `${serviceType}_official`,
-          description: `${serviceName} - Officiell avgift`,
+          description: `${serviceName} - ${officialFeeLabel}`,
           quantity: orderData.quantity,
           unitPrice: officialFeeToUse,
           total: officialTotal,
           vatRate: isOfficialFeeVatExempt ? VAT_RATES.EXEMPT : (isVatExempt ? VAT_RATES.EXEMPT : VAT_RATES.STANDARD),
-          isTBC: rule.priceUnconfirmed || false
+          isTBC: rule.priceUnconfirmed || isTranslationTBC
         });
 
         // Add service fee line (per order, not per document)
         // VAT rate depends on customer VAT exempt status
         breakdown.push({
           service: `${serviceType}_service`,
-          description: `DOX Visumpartner serviceavgift (${serviceName})`,
+          description: `${serviceFeePrefix} (${serviceName})`,
           quantity: 1,
           unitPrice: finalServiceFee,
           total: finalServiceFee,
@@ -561,7 +568,7 @@ export const calculateOrderPrice = async (orderData: {
       totalAdditionalFees += expressFee;
       breakdown.push({
         service: 'express',
-        description: 'Expresstjänst',
+        description: orderData.locale === 'en' ? 'Express service' : 'Expresstjänst',
         fee: expressFee,
         total: expressFee,
         quantity: 1,
@@ -626,7 +633,7 @@ export const calculateOrderPrice = async (orderData: {
       totalAdditionalFees += scannedCost;
       breakdown.push({
         service: 'scanned_copies',
-        description: 'Skannade kopior',
+        description: orderData.locale === 'en' ? 'Scanned copies' : 'Skannade kopior',
         fee: scannedCost,
         total: scannedCost,
         quantity: orderData.quantity,

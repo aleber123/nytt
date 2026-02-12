@@ -9,7 +9,7 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack }) => {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const [pricing, setPricing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, onSubmit, onBack
           scannedCopies: orderData.scannedCopies,
           pickupService: orderData.pickupService,
           pickupMethod: orderData.pickupMethod,
-          premiumPickup: orderData.premiumPickup
+          premiumPickup: orderData.premiumPickup,
+          locale: i18n.language || 'sv'
         };
 
         const result = await calculateOrderPrice(pricingData);

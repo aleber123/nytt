@@ -33,6 +33,80 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
   const isHagueCountry = HAGUE_CONVENTION_COUNTRIES.includes(answers.country);
 
   const [isNotarizationModalOpen, setIsNotarizationModalOpen] = React.useState(false);
+  const [isTranslationModalOpen, setIsTranslationModalOpen] = React.useState(false);
+  const [fromLanguageSearch, setFromLanguageSearch] = React.useState('');
+  const [toLanguageSearch, setToLanguageSearch] = React.useState('');
+  const [fromDropdownOpen, setFromDropdownOpen] = React.useState(false);
+  const [toDropdownOpen, setToDropdownOpen] = React.useState(false);
+
+  const TRANSLATION_LANGUAGES = [
+    { code: 'sv', name: 'Svenska', nameEn: 'Swedish' },
+    { code: 'en', name: 'Engelska', nameEn: 'English' },
+    { code: 'ar', name: 'Arabiska', nameEn: 'Arabic' },
+    { code: 'fa', name: 'Persiska/Farsi', nameEn: 'Persian/Farsi' },
+    { code: 'fr', name: 'Franska', nameEn: 'French' },
+    { code: 'es', name: 'Spanska', nameEn: 'Spanish' },
+    { code: 'de', name: 'Tyska', nameEn: 'German' },
+    { code: 'tr', name: 'Turkiska', nameEn: 'Turkish' },
+    { code: 'th', name: 'Thailändska', nameEn: 'Thai' },
+    { code: 'zh', name: 'Kinesiska', nameEn: 'Chinese' },
+    { code: 'ja', name: 'Japanska', nameEn: 'Japanese' },
+    { code: 'ko', name: 'Koreanska', nameEn: 'Korean' },
+    { code: 'pt', name: 'Portugisiska', nameEn: 'Portuguese' },
+    { code: 'it', name: 'Italienska', nameEn: 'Italian' },
+    { code: 'nl', name: 'Nederländska', nameEn: 'Dutch' },
+    { code: 'pl', name: 'Polska', nameEn: 'Polish' },
+    { code: 'ru', name: 'Ryska', nameEn: 'Russian' },
+    { code: 'uk', name: 'Ukrainska', nameEn: 'Ukrainian' },
+    { code: 'hi', name: 'Hindi', nameEn: 'Hindi' },
+    { code: 'ur', name: 'Urdu', nameEn: 'Urdu' },
+    { code: 'bn', name: 'Bengali', nameEn: 'Bengali' },
+    { code: 'vi', name: 'Vietnamesiska', nameEn: 'Vietnamese' },
+    { code: 'fi', name: 'Finska', nameEn: 'Finnish' },
+    { code: 'no', name: 'Norska', nameEn: 'Norwegian' },
+    { code: 'da', name: 'Danska', nameEn: 'Danish' },
+    { code: 'el', name: 'Grekiska', nameEn: 'Greek' },
+    { code: 'ro', name: 'Rumänska', nameEn: 'Romanian' },
+    { code: 'hu', name: 'Ungerska', nameEn: 'Hungarian' },
+    { code: 'cs', name: 'Tjeckiska', nameEn: 'Czech' },
+    { code: 'he', name: 'Hebreiska', nameEn: 'Hebrew' },
+    { code: 'so', name: 'Somaliska', nameEn: 'Somali' },
+    { code: 'ti', name: 'Tigrinja', nameEn: 'Tigrinya' },
+    { code: 'am', name: 'Amhariska', nameEn: 'Amharic' },
+    { code: 'ku', name: 'Kurdiska', nameEn: 'Kurdish' },
+    { code: 'bs', name: 'Bosniska', nameEn: 'Bosnian' },
+    { code: 'sr', name: 'Serbiska', nameEn: 'Serbian' },
+    { code: 'hr', name: 'Kroatiska', nameEn: 'Croatian' },
+    { code: 'sq', name: 'Albanska', nameEn: 'Albanian' },
+    { code: 'ms', name: 'Malajiska', nameEn: 'Malay' },
+    { code: 'id', name: 'Indonesiska', nameEn: 'Indonesian' },
+    { code: 'sw', name: 'Swahili', nameEn: 'Swahili' },
+    { code: 'ta', name: 'Tamil', nameEn: 'Tamil' },
+    { code: 'si', name: 'Singalesiska', nameEn: 'Sinhala' },
+    { code: 'my', name: 'Burmesiska', nameEn: 'Burmese' },
+    { code: 'km', name: 'Khmer', nameEn: 'Khmer' },
+    { code: 'lo', name: 'Laotiska', nameEn: 'Lao' },
+    { code: 'ne', name: 'Nepalesiska', nameEn: 'Nepali' },
+    { code: 'ka', name: 'Georgiska', nameEn: 'Georgian' },
+    { code: 'hy', name: 'Armeniska', nameEn: 'Armenian' },
+    { code: 'az', name: 'Azerbajdzjanska', nameEn: 'Azerbaijani' },
+    { code: 'other', name: 'Annat språk', nameEn: 'Other language' }
+  ];
+
+  const isEn = currentLocale === 'en';
+
+  const getLanguageName = (code: string) => {
+    const lang = TRANSLATION_LANGUAGES.find(l => l.code === code);
+    return lang ? (isEn ? lang.nameEn : lang.name) : code;
+  };
+
+  const filterLanguages = (search: string) => {
+    if (!search) return TRANSLATION_LANGUAGES;
+    const s = search.toLowerCase();
+    return TRANSLATION_LANGUAGES.filter(l =>
+      l.name.toLowerCase().includes(s) || l.nameEn.toLowerCase().includes(s)
+    );
+  };
 
   const handleToggleService = (serviceId: string) => {
     const isSelected = answers.services.includes(serviceId);
@@ -43,6 +117,11 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
         ...answers,
         services: updatedServices
       };
+
+      // Reset translation details if translation is deselected
+      if (serviceId === 'translation') {
+        (updatedAnswers as any).translationDetails = { fromLanguage: '', toLanguage: '' };
+      }
 
       // Reset notarization details and related supporting docs if notarization is deselected
       if (serviceId === 'notarization') {
@@ -71,6 +150,10 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
 
       if (serviceId === 'notarization') {
         setIsNotarizationModalOpen(true);
+      }
+
+      if (serviceId === 'translation') {
+        setIsTranslationModalOpen(true);
       }
     }
   };
@@ -474,6 +557,174 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
                 className="px-5 py-2.5 text-sm font-semibold text-white bg-custom-button rounded-full hover:bg-custom-button-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-custom-button transition-colors"
               >
                 {t('orderFlow.step3.notarizationModalClose', 'Klar')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Translation language modal - only when translation service is selected */}
+      {answers.services.includes('translation') && isTranslationModalOpen && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-40"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setIsTranslationModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 focus:outline-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900">
+                  {isEn ? 'Translation languages' : 'Översättningsspråk'}
+                </h4>
+                <p className="mt-1 text-sm text-gray-600">
+                  {isEn ? 'Select which language the document is in and which language it should be translated to.' : 'Välj vilket språk dokumentet är på och vilket språk det ska översättas till.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTranslationModalOpen(false)}
+                className="inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-custom-button"
+                aria-label="Close"
+              >
+                <span className="text-2xl leading-none">&times;</span>
+              </button>
+            </div>
+
+            <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-5">
+              {/* From language */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {isEn ? 'From language' : 'Från språk'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={fromDropdownOpen ? fromLanguageSearch : (answers.translationDetails?.fromLanguage ? getLanguageName(answers.translationDetails.fromLanguage) : '')}
+                    onChange={(e) => {
+                      setFromLanguageSearch(e.target.value);
+                      setFromDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      setFromLanguageSearch('');
+                      setFromDropdownOpen(true);
+                    }}
+                    placeholder={isEn ? 'Search language...' : 'Sök språk...'}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                  />
+                  {fromDropdownOpen && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filterLanguages(fromLanguageSearch).map((lang) => (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => {
+                            setAnswers({
+                              ...answers,
+                              translationDetails: {
+                                ...(answers.translationDetails || { fromLanguage: '', toLanguage: '' }),
+                                fromLanguage: lang.code
+                              }
+                            });
+                            setFromDropdownOpen(false);
+                            setFromLanguageSearch('');
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                            answers.translationDetails?.fromLanguage === lang.code ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-900'
+                          }`}
+                        >
+                          {isEn ? lang.nameEn : lang.name}
+                        </button>
+                      ))}
+                      {filterLanguages(fromLanguageSearch).length === 0 && (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          {isEn ? 'No languages found' : 'Inga språk hittades'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div className="flex justify-center">
+                <span className="text-gray-400 text-xl">↓</span>
+              </div>
+
+              {/* To language */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {isEn ? 'To language' : 'Till språk'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={toDropdownOpen ? toLanguageSearch : (answers.translationDetails?.toLanguage ? getLanguageName(answers.translationDetails.toLanguage) : '')}
+                    onChange={(e) => {
+                      setToLanguageSearch(e.target.value);
+                      setToDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      setToLanguageSearch('');
+                      setToDropdownOpen(true);
+                    }}
+                    placeholder={isEn ? 'Search language...' : 'Sök språk...'}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
+                  />
+                  {toDropdownOpen && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filterLanguages(toLanguageSearch).map((lang) => (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => {
+                            setAnswers({
+                              ...answers,
+                              translationDetails: {
+                                ...(answers.translationDetails || { fromLanguage: '', toLanguage: '' }),
+                                toLanguage: lang.code
+                              }
+                            });
+                            setToDropdownOpen(false);
+                            setToLanguageSearch('');
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                            answers.translationDetails?.toLanguage === lang.code ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-900'
+                          }`}
+                        >
+                          {isEn ? lang.nameEn : lang.name}
+                        </button>
+                      ))}
+                      {filterLanguages(toLanguageSearch).length === 0 && (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          {isEn ? 'No languages found' : 'Inga språk hittades'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex justify-end bg-gray-50 rounded-b-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTranslationModalOpen(false);
+                  setFromDropdownOpen(false);
+                  setToDropdownOpen(false);
+                }}
+                disabled={!answers.translationDetails?.fromLanguage || !answers.translationDetails?.toLanguage}
+                className={`px-5 py-2.5 text-sm font-semibold rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-custom-button transition-colors ${
+                  answers.translationDetails?.fromLanguage && answers.translationDetails?.toLanguage
+                    ? 'text-white bg-custom-button hover:bg-custom-button-hover'
+                    : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                }`}
+              >
+                {isEn ? 'Done' : 'Klar'}
               </button>
             </div>
           </div>

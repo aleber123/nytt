@@ -18,6 +18,10 @@ export interface OrderAnswers {
     other: boolean;
     otherText: string;
   };
+  translationDetails?: {
+    fromLanguage: string; // Language code e.g. 'sv', 'en', 'ar'
+    toLanguage: string;
+  };
   // Optional supporting documents for notarization
   idDocumentFile?: File | null; // ID or passport copy for signature verification
   registrationCertFile?: File | null; // Registration certificate (registreringsbevis) for signing authority

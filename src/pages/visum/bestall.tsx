@@ -520,40 +520,64 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
               {answers.selectedVisaProduct.validityDays} {currentLocale === 'en' ? 'days' : 'dagar'}
             </span>
             <span className="font-bold text-green-600">
-              {(answers.selectedVisaProduct.price + 
-                (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + 
-                (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) +
-                (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0)
-              ).toLocaleString()} kr
+              {(() => {
+                const tc = (answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length || 1;
+                const perPerson = answers.selectedVisaProduct!.price + 
+                  (answers.expressRequired ? (answers.selectedVisaProduct!.expressPrice || 0) : 0) + 
+                  (answers.urgentRequired ? (answers.selectedVisaProduct!.urgentPrice || 0) : 0) +
+                  (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0);
+                return (perPerson * tc).toLocaleString();
+              })()} kr
             </span>
           </div>
-          {/* Show express/urgent/add-on fee breakdown */}
-          {(answers.expressRequired || answers.urgentRequired || (answers.selectedAddOnServices && answers.selectedAddOnServices.length > 0)) && (
-            <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 space-y-1">
-              <div className="flex justify-between">
-                <span>{currentLocale === 'en' ? 'Base price' : 'Grundpris'}:</span>
-                <span>{answers.selectedVisaProduct.price.toLocaleString()} kr</span>
-              </div>
-              {answers.expressRequired && answers.selectedVisaProduct.expressPrice && (
-                <div className="flex justify-between text-orange-600">
-                  <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}:</span>
-                  <span>+{answers.selectedVisaProduct.expressPrice.toLocaleString()} kr</span>
-                </div>
-              )}
-              {answers.urgentRequired && answers.selectedVisaProduct.urgentPrice && (
-                <div className="flex justify-between text-red-600">
-                  <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}:</span>
-                  <span>+{answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr</span>
-                </div>
-              )}
-              {answers.selectedAddOnServices && answers.selectedAddOnServices.map(addon => (
-                <div key={addon.id} className="flex justify-between text-purple-600">
-                  <span>{currentLocale === 'en' ? addon.nameEn : addon.name}:</span>
-                  <span>+{addon.price.toLocaleString()} kr</span>
-                </div>
-              ))}
+          {/* Show fee breakdown */}
+          <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 space-y-1">
+            <div className="flex justify-between">
+              <span>{currentLocale === 'en' ? 'Base price' : 'Grundpris'}:</span>
+              <span>{answers.selectedVisaProduct.price.toLocaleString()} kr</span>
             </div>
-          )}
+            {answers.expressRequired && answers.selectedVisaProduct.expressPrice && (
+              <div className="flex justify-between text-orange-600">
+                <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}:</span>
+                <span>+{answers.selectedVisaProduct.expressPrice.toLocaleString()} kr</span>
+              </div>
+            )}
+            {answers.urgentRequired && answers.selectedVisaProduct.urgentPrice && (
+              <div className="flex justify-between text-red-600">
+                <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}:</span>
+                <span>+{answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr</span>
+              </div>
+            )}
+            {answers.selectedAddOnServices && answers.selectedAddOnServices.map(addon => (
+              <div key={addon.id} className="flex justify-between text-purple-600">
+                <span>{currentLocale === 'en' ? addon.nameEn : addon.name}:</span>
+                <span>+{addon.price.toLocaleString()} kr</span>
+              </div>
+            ))}
+            {(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length > 1 && (
+              <div className="flex justify-between font-medium text-gray-700 pt-1 border-t border-gray-100">
+                <span>{currentLocale === 'en' ? 'Travelers' : 'Resenärer'}:</span>
+                <span>× {(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Travelers */}
+      {(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length > 0 && (
+        <div className="mb-3 pt-3 border-t border-gray-200">
+          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+            {currentLocale === 'en' ? 'Travelers' : 'Resenärer'} ({(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length})
+          </div>
+          {(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).map((t, i) => (
+            <div key={i} className="flex items-center text-sm text-gray-900 mb-1">
+              <svg className="w-3.5 h-3.5 text-gray-400 mr-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              {t.firstName} {t.lastName}
+            </div>
+          ))}
         </div>
       )}
 

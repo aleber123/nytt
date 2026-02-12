@@ -49,6 +49,13 @@ export interface SelectedVisaProduct {
   pricingNote?: string; // e.g., "Embassy fee confirmed after application"
 }
 
+// Traveler info for visa orders
+export interface VisaTraveler {
+  firstName: string;
+  lastName: string;
+  passportNumber?: string;
+}
+
 // Visa-specific fields that extend the base OrderAnswers
 export interface VisaOrderAnswers extends OrderAnswers {
   // Visa-specific fields
@@ -69,6 +76,8 @@ export interface VisaOrderAnswers extends OrderAnswers {
   urgentRequired?: boolean;
   // Add-on services (e.g., chamber of commerce legalization)
   selectedAddOnServices?: { id: string; name: string; nameEn: string; price: number }[];
+  // Travelers (one visa per traveler)
+  travelers: VisaTraveler[];
 }
 
 export const initialVisaOrderAnswers: VisaOrderAnswers = {
@@ -86,6 +95,7 @@ export const initialVisaOrderAnswers: VisaOrderAnswers = {
   expressRequired: false,
   urgentRequired: false,
   selectedAddOnServices: [],
+  travelers: [{ firstName: '', lastName: '' }],
   
   // Base OrderAnswers fields (required for reusing components)
   country: '',

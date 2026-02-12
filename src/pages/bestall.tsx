@@ -58,6 +58,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       other: false,
       otherText: ''
     },
+    translationDetails: {
+      fromLanguage: '',
+      toLanguage: ''
+    },
     idDocumentFile: null,
     registrationCertFile: null,
     signingAuthorityIdFile: null,
@@ -1025,7 +1029,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         pickupMethod: answers.pickupMethod as 'dhl' | 'stockholm_courier' | undefined,
         premiumPickup: answers.premiumPickup,
         premiumDelivery: answers.premiumDelivery,
-        customerPricing: customerPricingData
+        customerPricing: customerPricingData,
+        locale: currentLocale
       });
 
       setPricingBreakdown(pricingResult.breakdown);

@@ -789,7 +789,9 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     // Show each line item - prefer admin overrides if available
     if (hasAdminOverrides) {
       // Use admin-adjusted prices from lineOverrides
-      adminPrice.lineOverrides.forEach((override: any) => {
+      // Cross-reference with pricingBreakdown for accurate labels
+      const breakdownArr = Array.isArray(order.pricingBreakdown) ? order.pricingBreakdown : [];
+      adminPrice.lineOverrides.forEach((override: any, idx: number) => {
         // Skip excluded items
         if (override.include === false) return;
         
@@ -798,14 +800,16 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
           ? Number(override.overrideAmount) 
           : Number(override.baseAmount || 0);
         
-        if (!price) return;
+        // Skip items with 0 price only if they were never set (no baseAmount either)
+        if (!price && !override.baseAmount) return;
         
-        // Get description from label
-        let description = override.label || 'Item';
+        // Get description: prefer pricingBreakdown description (source of truth), then override label
+        const breakdownItem = breakdownArr[idx] as any;
+        let description = (breakdownItem?.description) || override.label || 'Item';
         description = translateDescription(description);
         
         doc.text(description, labelX, y);
-        doc.text(formatCurrency(price), valueX, y, { align: 'right' });
+        doc.text(price ? formatCurrency(price) : '0 kr', valueX, y, { align: 'right' });
         y += 5;
       });
       
@@ -954,6 +958,7 @@ export interface NotaryApostilleCoverLetterData {
   invoiceReference: string; // Our order number (SWE000...)
   paymentMethod: string;
   returnMethod: string;
+  isExpress?: boolean;
 }
 
 /**
@@ -1065,6 +1070,14 @@ export async function generateNotaryApostilleCoverLetter(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.text('Cover Letter', 20, y);
+
+  // Express label
+  if (data.isExpress) {
+    doc.setTextColor(220, 38, 38);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('EXPRESS', 190, y, { align: 'right' });
+  }
   y += 12;
 
   // Document info
@@ -1240,6 +1253,7 @@ export interface EmbassyCoverLetterData {
   paymentMethod: string;
   returnMethod: string;
   additionalNotes?: string;
+  isExpress?: boolean;
 }
 
 /**
@@ -1324,6 +1338,14 @@ export async function generateEmbassyCoverLetter(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.text('Embassy Cover Letter', marginLeft, 42);
+
+  // Express label
+  if (data.isExpress) {
+    doc.setTextColor(220, 38, 38);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('EXPRESS', pageWidth - marginRight, 42, { align: 'right' });
+  }
 
   // ========== DATE AND REFERENCE ==========
   let y = 58;
@@ -1513,6 +1535,7 @@ export interface UDCoverLetterData {
   invoiceReference: string;
   paymentMethod: string;
   returnMethod: string;
+  isExpress?: boolean;
 }
 
 /**
@@ -1594,6 +1617,14 @@ export async function generateUDCoverLetter(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.text('Utrikesdepartementet', marginLeft, 42);
+
+  // Express label
+  if (data.isExpress) {
+    doc.setTextColor(220, 38, 38);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('EXPRESS', pageWidth - marginRight, 42, { align: 'right' });
+  }
 
   // ========== DATE AND REFERENCE ==========
   let y = 58;

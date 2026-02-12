@@ -22,6 +22,7 @@ import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { downloadDhlReturnLabel } from '@/services/shippingLabelService';
 import { adminFetch } from '@/lib/adminFetch';
+import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { NotesTab, CommunicationTab, InvoiceTab, FilesTab, OverviewTab, ServicesTab, PriceTab, ProcessingTab, CoverLettersTab } from '@/components/admin/order';
 import { generateVisaSubmittedEmail, generateVisaApprovedEmail, generateVisaRejectedEmail, generateEVisaDeliveryEmail, generateVisaDocsReceivedEmail, generateVisaReturnShippingEmail, generateVisaEmbassySubmittedEmail } from '@/components/order/templates/visaStatusUpdateEmail';
 
@@ -633,6 +634,14 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
               <span className="ml-2 font-medium">{order.passportNeededBy || '—'}</span>
             </div>
             <div>
+              <span className="text-gray-500">Travelers:</span>
+              <span className="ml-2 font-medium">
+                {(order as any).travelers && (order as any).travelers.length > 0
+                  ? (order as any).travelers.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ')
+                  : `${(order as any).travelerCount || 1} person(s)`}
+              </span>
+            </div>
+            <div>
               <span className="text-gray-500">Customer Ref:</span>
               <span className="ml-2 font-medium">{(order as any).invoiceReference || '—'}</span>
             </div>
@@ -971,15 +980,21 @@ function AdminOrderDetailPage() {
       setDiscountPercent(Number(ap.discountPercent || 0));
       setAdjustments(Array.isArray(ap.adjustments) ? ap.adjustments.map((a: any) => ({ description: String(a.description || ''), amount: Number(a.amount || 0) })) : []);
       if (Array.isArray(ap.lineOverrides)) {
+        // Sync labels from current pricingBreakdown to avoid stale labels
+        const breakdownArr = Array.isArray(order.pricingBreakdown) ? order.pricingBreakdown : [];
         setLineOverrides(
-          ap.lineOverrides.map((o: any) => ({
-            index: Number(o.index),
-            label: String(o.label || ''),
-            baseAmount: Number(o.baseAmount || 0),
-            overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
-            vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
-            include: o.include !== false
-          }))
+          ap.lineOverrides.map((o: any, idx: number) => {
+            const breakdownItem = breakdownArr[idx] as any;
+            const freshLabel = breakdownItem?.description || String(o.label || '');
+            return {
+              index: Number(o.index),
+              label: freshLabel,
+              baseAmount: Number(o.baseAmount || 0),
+              overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
+              vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
+              include: o.include !== false
+            };
+          })
         );
       }
     }
@@ -1217,6 +1232,19 @@ function AdminOrderDetailPage() {
         newTotal += expressFee;
       } else {
         // For main services (apostille, notarization, embassy, etc.), calculate just that service
+        // Include customer-specific pricing if available
+        let customerPricingData = undefined;
+        const customerEmail = order.customerInfo?.email || '';
+        if (customerEmail) {
+          const matchedCustomer = await getCustomerByEmailDomain(customerEmail);
+          if (matchedCustomer) {
+            customerPricingData = {
+              customPricing: matchedCustomer.customPricing,
+              vatExempt: matchedCustomer.vatExempt,
+              companyName: matchedCustomer.companyName
+            };
+          }
+        }
         const singleServiceResult = await calculateOrderPrice({
           country: order.country,
           services: [serviceToAdd],
@@ -1227,7 +1255,8 @@ function AdminOrderDetailPage() {
           returnServices: [],
           scannedCopies: false,
           pickupService: false,
-          premiumPickup: undefined
+          premiumPickup: undefined,
+          customerPricing: customerPricingData
         });
         
         // Add the new service's breakdown items to existing breakdown
@@ -5429,8 +5458,20 @@ function AdminOrderDetailPage() {
         updatedServices = updatedServices.filter(service => service !== serviceToRemove);
       }
 
-      // Recalculate pricing with the updated services
+      // Recalculate pricing with the updated services (include customer-specific pricing)
       const { calculateOrderPrice } = await import('@/firebase/pricingService');
+      let customerPricingData = undefined;
+      const customerEmail = order.customerInfo?.email || '';
+      if (customerEmail) {
+        const matchedCustomer = await getCustomerByEmailDomain(customerEmail);
+        if (matchedCustomer) {
+          customerPricingData = {
+            customPricing: matchedCustomer.customPricing,
+            vatExempt: matchedCustomer.vatExempt,
+            companyName: matchedCustomer.companyName
+          };
+        }
+      }
       const pricingResult = await calculateOrderPrice({
         country: order.country,
         services: updatedServices,
@@ -5440,7 +5481,8 @@ function AdminOrderDetailPage() {
         returnService: updatedReturnService,
         returnServices: [],
         scannedCopies: updatedScannedCopies,
-        pickupService: updatedPickupService
+        pickupService: updatedPickupService,
+        customerPricing: customerPricingData
       });
 
       // Update processing steps - remove steps related to the removed service
@@ -6045,6 +6087,49 @@ function AdminOrderDetailPage() {
                     getBreakdownTotal={getBreakdownTotal}
                     getServiceName={getServiceName}
                     adminName={(adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string}
+                    onRecalculate={async () => {
+                      const { calculateOrderPrice } = await import('@/firebase/pricingService');
+                      let customerPricingData = undefined;
+                      const customerEmail = order.customerInfo?.email || '';
+                      if (customerEmail) {
+                        const matchedCustomer = await getCustomerByEmailDomain(customerEmail);
+                        if (matchedCustomer) {
+                          customerPricingData = {
+                            customPricing: matchedCustomer.customPricing,
+                            vatExempt: matchedCustomer.vatExempt,
+                            companyName: matchedCustomer.companyName
+                          };
+                        }
+                      }
+                      const pricingResult = await calculateOrderPrice({
+                        country: order.country,
+                        services: order.services || [],
+                        quantity: order.quantity,
+                        expedited: order.expedited,
+                        returnService: order.returnService,
+                        returnServices: [],
+                        scannedCopies: order.scannedCopies,
+                        pickupService: order.pickupService,
+                        pickupMethod: order.pickupMethod as 'dhl' | 'stockholm_courier' | undefined,
+                        premiumPickup: order.premiumPickup,
+                        premiumDelivery: order.premiumDelivery,
+                        customerPricing: customerPricingData,
+                      });
+                      // Update order with recalculated pricing
+                      const orderId = router.query.id as string;
+                      await adminUpdateOrder(orderId, {
+                        totalPrice: pricingResult.totalPrice,
+                        pricingBreakdown: pricingResult.breakdown,
+                      });
+                      setOrder({ ...order, totalPrice: pricingResult.totalPrice, pricingBreakdown: pricingResult.breakdown, adminPrice: undefined } as any);
+                      // Reset lineOverrides so they reinitialize from fresh breakdown
+                      const initial = pricingResult.breakdown.map((item: any, idx: number) => {
+                        const base = typeof item.total === 'number' ? item.total : (typeof item.fee === 'number' ? item.fee : 0);
+                        const label = item.description || 'Item';
+                        return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
+                      });
+                      setLineOverrides(initial);
+                    }}
                   />
                 )}
 

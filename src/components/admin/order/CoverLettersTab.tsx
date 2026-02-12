@@ -300,8 +300,20 @@ export default function CoverLettersTab({
                                       />
                                     </div>
 
-                                    {/* Reset button */}
-                                    <div className="flex justify-end">
+                                    {/* Express checkbox + Reset */}
+                                    <div className="flex items-center justify-between">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={notaryApostilleData.isExpress || false}
+                                          onChange={(e) => setNotaryApostilleData({
+                                            ...notaryApostilleData,
+                                            isExpress: e.target.checked
+                                          })}
+                                          className="w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                        />
+                                        <span className="text-sm font-bold text-red-600">EXPRESS</span>
+                                      </label>
                                       <button
                                         onClick={() => setNotaryApostilleData(getNotaryApostilleDefaults(order))}
                                         className="text-sm text-gray-500 hover:text-gray-700 underline"
@@ -566,8 +578,20 @@ export default function CoverLettersTab({
                                       </div>
                                     </div>
 
-                                    {/* Reset button */}
-                                    <div className="flex justify-end">
+                                    {/* Express checkbox + Reset */}
+                                    <div className="flex items-center justify-between">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={embassyData.isExpress || false}
+                                          onChange={(e) => setEmbassyData({
+                                            ...embassyData,
+                                            isExpress: e.target.checked
+                                          })}
+                                          className="w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                        />
+                                        <span className="text-sm font-bold text-red-600">EXPRESS</span>
+                                      </label>
                                       <button
                                         onClick={() => setEmbassyData(getEmbassyDefaults(order))}
                                         className="text-sm text-gray-500 hover:text-gray-700 underline"
@@ -714,8 +738,20 @@ export default function CoverLettersTab({
                                       />
                                     </div>
 
-                                    {/* Reset button */}
-                                    <div className="flex justify-end">
+                                    {/* Express checkbox + Reset */}
+                                    <div className="flex items-center justify-between">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={udData.isExpress || false}
+                                          onChange={(e) => setUdData({
+                                            ...udData,
+                                            isExpress: e.target.checked
+                                          })}
+                                          className="w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                        />
+                                        <span className="text-sm font-bold text-red-600">EXPRESS</span>
+                                      </label>
                                       <button
                                         onClick={() => setUdData(getUDDefaults(order))}
                                         className="text-sm text-gray-500 hover:text-gray-700 underline"

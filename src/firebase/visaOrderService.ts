@@ -53,8 +53,13 @@ export interface VisaOrder {
   returnDate: string;
   passportNeededBy: string;
   
-  // Traveler count
+  // Travelers
   travelerCount: number;
+  travelers?: {
+    firstName: string;
+    lastName: string;
+    passportNumber?: string;
+  }[];
   
   // Shipping (only for sticker visa)
   pickupService?: boolean;

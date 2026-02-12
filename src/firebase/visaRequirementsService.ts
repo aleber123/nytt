@@ -312,8 +312,8 @@ export const getAvailableVisaProducts = async (
     }
     // If 'both', show all products
 
-    // Apply embassy fee override if specified
-    if (nationalityRule?.embassyFeeOverride !== undefined) {
+    // Apply embassy fee override if specified (must be a positive number to take effect)
+    if (typeof nationalityRule?.embassyFeeOverride === 'number' && nationalityRule.embassyFeeOverride > 0) {
       products = products.map(p => ({
         ...p,
         embassyFee: nationalityRule!.embassyFeeOverride!,
