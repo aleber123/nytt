@@ -29,6 +29,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // VISA ADDONS – public read (needed for order flow), only admin may change
+    match /visaAddons/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // CONTENT – static content
     match /content/{doc} {
       allow read: if true;

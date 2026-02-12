@@ -12,6 +12,7 @@ import { toast } from 'react-hot-toast';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 import CountryFlag from '@/components/ui/CountryFlag';
+import SvensklistanButton from '@/components/admin/order/SvensklistanButton';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
@@ -641,6 +642,61 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
                   : `${(order as any).travelerCount || 1} person(s)`}
               </span>
             </div>
+            {/* Selected Add-on Services */}
+            {(order as any).selectedAddOnServices && (order as any).selectedAddOnServices.length > 0 && (
+              <div className="col-span-2">
+                <span className="text-gray-500">Add-on Services:</span>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {(order as any).selectedAddOnServices.map((addon: any) => (
+                    <span key={addon.id} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                      {addon.nameEn || addon.name} — {addon.price} kr
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Svensklistan section: personnummer inputs + auto-fill buttons */}
+            {(order as any).selectedAddOnServices?.some((a: any) => a.id && (a.nameEn?.toLowerCase().includes('svensklistan') || a.name?.toLowerCase().includes('svensklistan'))) && (order as any).travelers?.length > 0 && (
+              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2">
+                <h4 className="text-sm font-semibold text-blue-900 mb-3">🇸🇪 Svensklistan Registration</h4>
+                <div className="space-y-3">
+                  {(order as any).travelers.map((t: any, idx: number) => {
+                    const travelerKey = `traveler_${idx}`;
+                    const currentPnr = (order as any).addonFieldData?.[travelerKey]?.personnummer || t.personnummer || '';
+                    return (
+                      <div key={idx} className="flex items-center gap-3">
+                        <span className="text-sm text-gray-700 min-w-[120px]">{t.firstName} {t.lastName}</span>
+                        <input
+                          type="text"
+                          defaultValue={currentPnr}
+                          placeholder="ÅÅÅÅMMDD-NNNN"
+                          className="px-2 py-1.5 border border-gray-300 rounded text-sm w-44 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          onBlur={async (e) => {
+                            const val = e.target.value.trim();
+                            if (val === currentPnr) return;
+                            try {
+                              const existingData = (order as any).addonFieldData || {};
+                              const updatedData = {
+                                ...existingData,
+                                [travelerKey]: { ...(existingData[travelerKey] || {}), personnummer: val }
+                              };
+                              await onUpdate({ addonFieldData: updatedData });
+                              if (val) toast.success(`Personnummer saved for ${t.firstName}`);
+                            } catch {
+                              toast.error('Failed to save personnummer');
+                            }
+                          }}
+                        />
+                        <SvensklistanButton order={order} travelerIndex={idx} />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-blue-700 mt-3">
+                  Enter personnummer → click button → paste script in browser console on Svensklistan page
+                </p>
+              </div>
+            )}
             <div>
               <span className="text-gray-500">Customer Ref:</span>
               <span className="ml-2 font-medium">{(order as any).invoiceReference || '—'}</span>
