@@ -1829,7 +1829,87 @@ function AdminOrderDetailPage() {
         setTrackingUrl(extendedOrder.returnTrackingUrl || '');
         setPickupTrackingNumber((extendedOrder as any).pickupTrackingNumber || '');
         setReceivedDocumentsDescription((extendedOrder as any).receivedDocumentsDescription || '');
-        setConfirmedPrices((extendedOrder as any).confirmedPrices || []);
+        // Pre-populate confirmedPrices from pricing data if no saved prices exist
+        const savedConfirmedPrices = (extendedOrder as any).confirmedPrices;
+        if (Array.isArray(savedConfirmedPrices) && savedConfirmedPrices.length > 0) {
+          setConfirmedPrices(savedConfirmedPrices);
+        } else {
+          // Build default rows from pricing data: DOX fee first, then embassy/official fees, then others
+          const defaultPrices: Array<{ label: string; amount: string }> = [];
+          const ap = extendedOrder.adminPrice as any;
+          const overrides = ap?.lineOverrides as any[] | undefined;
+
+          if (extendedOrder.orderType === 'visa' && extendedOrder.pricingBreakdown && !Array.isArray(extendedOrder.pricingBreakdown)) {
+            // Visa order: object-based pricingBreakdown
+            const pb = extendedOrder.pricingBreakdown as any;
+            if (overrides && overrides.length > 0) {
+              // Use saved overrides — DOX service fee first, then embassy
+              const doxRow = overrides.find((o: any) => o.label?.toLowerCase().includes('service'));
+              const embassyRow = overrides.find((o: any) => o.label?.toLowerCase().includes('embassy') || o.label?.toLowerCase().includes('government'));
+              const otherRows = overrides.filter((o: any) => o !== doxRow && o !== embassyRow && o.include !== false);
+              const orderedRows = [doxRow, embassyRow, ...otherRows].filter(Boolean);
+              for (const o of orderedRows) {
+                if (o.include === false) continue;
+                const amt = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
+                if (amt > 0) defaultPrices.push({ label: o.label || '', amount: `${amt} kr` });
+              }
+            } else {
+              // No overrides — use raw pricingBreakdown
+              if (pb.serviceFee) defaultPrices.push({ label: 'DOX Visumpartner Service Fee', amount: `${pb.serviceFee} kr` });
+              if (pb.embassyFee) defaultPrices.push({ label: 'Embassy Official Fee', amount: `${pb.embassyFee} kr` });
+              if (pb.shippingFee) defaultPrices.push({ label: 'Shipping Fee', amount: `${pb.shippingFee} kr` });
+              if (pb.expeditedFee) defaultPrices.push({ label: 'Expedited Fee', amount: `${pb.expeditedFee} kr` });
+              if (pb.expressPrice) defaultPrices.push({ label: 'Express Processing', amount: `${pb.expressPrice} kr` });
+              if (pb.urgentPrice) defaultPrices.push({ label: 'Urgent Processing', amount: `${pb.urgentPrice} kr` });
+            }
+          } else if (Array.isArray(extendedOrder.pricingBreakdown) && extendedOrder.pricingBreakdown.length > 0) {
+            // Legalization order: array-based pricingBreakdown
+            if (overrides && overrides.length > 0) {
+              // Use saved overrides — DOX fees first, then embassy/official
+              const doxRows: any[] = [];
+              const embassyRows: any[] = [];
+              const otherRows: any[] = [];
+              for (const o of overrides) {
+                if (o.include === false) continue;
+                const lbl = (o.label || '').toLowerCase();
+                if (lbl.includes('embassy') || lbl.includes('official') || lbl.includes('ambassad')) {
+                  embassyRows.push(o);
+                } else {
+                  doxRows.push(o);
+                }
+              }
+              const orderedRows = [...doxRows, ...embassyRows, ...otherRows];
+              for (const o of orderedRows) {
+                const amt = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
+                if (amt > 0) defaultPrices.push({ label: o.label || '', amount: `${amt} kr` });
+              }
+            } else {
+              // No overrides — use raw pricingBreakdown items
+              const items = extendedOrder.pricingBreakdown as any[];
+              const doxItems: any[] = [];
+              const embassyItems: any[] = [];
+              for (const item of items) {
+                const svc = (item.service || '').toLowerCase();
+                const desc = (item.description || '').toLowerCase();
+                if (svc.includes('embassy') || svc.includes('ambassad') || desc.includes('embassy') || desc.includes('official') || desc.includes('ambassad')) {
+                  embassyItems.push(item);
+                } else {
+                  doxItems.push(item);
+                }
+              }
+              for (const item of [...doxItems, ...embassyItems]) {
+                const label = item.description || getServiceName(item.service) || 'Service';
+                let amt = 0;
+                if (typeof item.total === 'number') amt = item.total;
+                else if (typeof item.fee === 'number') amt = item.fee;
+                else if (typeof item.basePrice === 'number') amt = item.basePrice;
+                else if (typeof item.unitPrice === 'number') amt = item.unitPrice * (item.quantity || 1);
+                if (amt > 0) defaultPrices.push({ label, amount: `${amt} kr` });
+              }
+            }
+          }
+          setConfirmedPrices(defaultPrices.length > 0 ? defaultPrices : []);
+        }
 
         const ci = extendedOrder.customerInfo || {};
         setEditedCustomer({
