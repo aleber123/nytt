@@ -354,7 +354,17 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
       details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : visaProduct.entryType === 'double' ? 'Double entry' : 'Multiple entry']);
     }
     if ((order as any).departureDate) {
-      details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('sv-SE')]);
+      details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('en-GB')]);
+    }
+    // Travelers
+    const travelers = (order as any).travelers;
+    if (Array.isArray(travelers) && travelers.length > 0) {
+      const travelerNames = travelers
+        .map((t: any, i: number) => `${i + 1}. ${t.firstName || ''} ${t.lastName || ''}`.trim())
+        .join(', ');
+      details.push(['Travelers', travelerNames]);
+    } else if ((order as any).travelerCount && (order as any).travelerCount > 1) {
+      details.push(['Travelers', `${(order as any).travelerCount} travelers`]);
     }
   } else {
     // Legalization order specific fields
@@ -468,14 +478,21 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
     y += 6;
   }
 
-  // Notes box
+  // Notes box — larger with lined space for handwriting
+  const notesBoxHeight = 44;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
-  doc.roundedRect(16, y, 178, 28, 2, 2);
+  doc.roundedRect(16, y, 178, notesBoxHeight, 2, 2);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text('Internal notes:', 20, y + 6);
-  y += 36;
+  // Draw faint lines for handwriting
+  doc.setDrawColor(220, 220, 220);
+  for (let lineY = y + 14; lineY < y + notesBoxHeight - 4; lineY += 7) {
+    doc.line(20, lineY, 190, lineY);
+  }
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  y += notesBoxHeight + 8;
 
   // Footer (match footer address)
   const footerY = 286;
@@ -620,7 +637,17 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
       details.push(['Entry', visaProduct.entryType === 'single' ? 'Single entry' : visaProduct.entryType === 'double' ? 'Double entry' : 'Multiple entry']);
     }
     if ((order as any).departureDate) {
-      details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('sv-SE')]);
+      details.push(['Departure', new Date((order as any).departureDate).toLocaleDateString('en-GB')]);
+    }
+    // Travelers
+    const travelersConfirm = (order as any).travelers;
+    if (Array.isArray(travelersConfirm) && travelersConfirm.length > 0) {
+      const travelerNamesConfirm = travelersConfirm
+        .map((t: any, i: number) => `${i + 1}. ${t.firstName || ''} ${t.lastName || ''}`.trim())
+        .join(', ');
+      details.push(['Travelers', travelerNamesConfirm]);
+    } else if ((order as any).travelerCount && (order as any).travelerCount > 1) {
+      details.push(['Travelers', `${(order as any).travelerCount} travelers`]);
     }
   } else {
     // Legalization order specific fields
@@ -651,10 +678,20 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   const isOwnDelivery = returnMethod === 'own-delivery';
   if (returnMethod) {
     const returnLabelMap: Record<string, string> = {
-      'own-delivery': 'Egen returfrakt (redan bokad)',
-      'office-pickup': 'Hämtning på vårt kontor'
+      'own-delivery': 'Own return shipping (pre-arranged)',
+      'office-pickup': 'Office pickup',
+      'postnord-rek': 'PostNord Registered Mail',
+      'dhl-sweden': 'DHL Sweden',
+      'dhl-europe': 'DHL Europe',
+      'dhl-worldwide': 'DHL Worldwide',
+      'dhl-pre-12': 'DHL Express before 12:00',
+      'dhl-pre-9': 'DHL Express before 09:00',
+      'stockholm-city': 'Stockholm City Courier',
+      'stockholm-express': 'Stockholm Express Courier',
+      'stockholm-sameday': 'Stockholm Same Day Courier',
+      'retur': 'Return Shipping'
     };
-    returnMethod = returnLabelMap[returnMethod] || returnMethod;
+    returnMethod = returnLabelMap[returnMethod] || getServiceName(returnMethod);
     details.push(['Return method', returnMethod]);
   }
   if (order.returnTrackingNumber) {
@@ -914,19 +951,37 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   y += 4;
 
   const notesText = (order.internalNotes || '').trim();
-  const notesToRender = notesText || 'No internal notes.';
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(text[0], text[1], text[2]);
 
-  const wrappedNotes = doc.splitTextToSize(notesToRender, 170);
-  const boxHeight = wrappedNotes.length * 5 + 12;
-
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
-  doc.roundedRect(16, y, 178, boxHeight, 2, 2);
-  doc.text(wrappedNotes, 20, y + 8);
+  if (notesText) {
+    const wrappedNotes = doc.splitTextToSize(notesText, 170);
+    const notesBoxH = wrappedNotes.length * 5 + 12;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+    doc.roundedRect(16, y, 178, notesBoxH, 2, 2);
+    doc.text(wrappedNotes, 20, y + 8);
+    y += notesBoxH;
+  } else {
+    // No notes — show label + lined space for handwriting
+    const emptyBoxH = 40;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+    doc.roundedRect(16, y, 178, emptyBoxH, 2, 2);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(9);
+    doc.setTextColor(160, 160, 160);
+    doc.text('No internal notes.', 20, y + 7);
+    // Draw faint lines for handwriting
+    doc.setDrawColor(220, 220, 220);
+    for (let lineY = y + 14; lineY < y + emptyBoxH - 4; lineY += 7) {
+      doc.line(20, lineY, 190, lineY);
+    }
+    doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+    y += emptyBoxH;
+  }
 
   // Footer
   const footerY = 286;
@@ -1198,14 +1253,21 @@ export async function generateNotaryApostilleCoverLetter(
 
   y = Math.max(leftY, rightY) + 8;
 
-  // Internal notes box
+  // Internal notes box — with lined space for handwriting
+  const notesBox3H = 44;
   doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(16, y, 178, 28, 2, 2);
+  doc.roundedRect(16, y, 178, notesBox3H, 2, 2);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text('Internal notes:', 20, y + 6);
+  // Draw faint lines for handwriting
+  doc.setDrawColor(220, 220, 220);
+  for (let lineY3 = y + 14; lineY3 < y + notesBox3H - 4; lineY3 += 7) {
+    doc.line(20, lineY3, 190, lineY3);
+  }
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
 
   // Footer
   const footerY = 286;

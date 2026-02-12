@@ -8,12 +8,16 @@ Disallow: /admin/*
 Disallow: /api/
 Disallow: /bekraftelse
 Disallow: /confirm-address/
+Disallow: /confirm-embassy-price/
+Disallow: /quote/
+Disallow: /upload-documents/
+Disallow: /shipping-label
 Disallow: /test-*
 Disallow: /_next/
 Disallow: /404
 Disallow: /500
 
-# Allow AI crawlers to index our content
+# Allow AI crawlers to index our content for AI search and recommendations
 User-agent: GPTBot
 Allow: /
 Disallow: /admin
@@ -34,6 +38,9 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
+User-agent: Claude-Web
+Allow: /
+
 User-agent: Bytespider
 Allow: /
 
@@ -46,8 +53,36 @@ Allow: /
 User-agent: cohere-ai
 Allow: /
 
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Google-InspectionTool
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
 # Host
 Host: https://doxvl.se
 
 # Sitemaps
 Sitemap: https://doxvl.se/sitemap.xml
+
+# LLM content files
+# https://doxvl.se/llms.txt
+# https://doxvl.se/llms-full.txt

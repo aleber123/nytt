@@ -13,41 +13,70 @@ export default function NotariusPublicusPage() {
   return (
     <>
       <Head>
-        <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
+        <title>{t(`${sp}.title`)} | DOX Visumpartner – Notarius Publicus Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
-        <meta name="keywords" content="notarius publicus, notarisering, bestyrka underskrift, legalisering, dokument, Sverige" />
+        <meta name="keywords" content="notarius publicus, notarisering, bestyrka underskrift, bevittna underskrift, notarius publicus Stockholm, notarisering dokument, bestyrkt kopia, notarisering fullmakt, notarisering pris, notarius publicus pris, legalisering dokument, notarisering inför apostille, notarisering inför ambassadlegalisering, bestyrka handlingar, notarius publicus online, notarisering snabb" />
         <link rel="canonical" href="https://doxvl.se/tjanster/notarius-publicus" />
+        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/notarius-publicus" />
+        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/notarius-publicus" />
+        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/notarius-publicus" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
         <meta property="og:url" content="https://doxvl.se/tjanster/notarius-publicus" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://doxvl.se/dox-logo.webp" />
+        <meta property="og:site_name" content="DOX Visumpartner" />
+        <meta property="og:locale" content="sv_SE" />
+        <meta property="og:locale:alternate" content="en_GB" />
+        
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
+        <meta name="twitter:description" content={t(`${sp}.metaDescription`)} />
+        <meta name="twitter:image" content="https://doxvl.se/dox-logo.webp" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Notarius Publicus - Notarisering",
+          "name": "Notarius Publicus – Notarisering av dokument i Sverige",
+          "alternateName": "Notarization Sweden",
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
             "url": "https://doxvl.se",
-            "logo": "https://doxvl.se/dox-logo.webp"
+            "logo": "https://doxvl.se/dox-logo.webp",
+            "telephone": "+46840941900",
+            "email": "info@doxvl.se",
+            "address": { "@type": "PostalAddress", "streetAddress": "Livdjursgatan 4", "addressLocality": "Stockholm", "postalCode": "121 62", "addressCountry": "SE" }
           },
-          "description": "Notarisering av dokument och bestyrkande av underskrifter via Notarius Publicus. Snabb handläggning från 595 kr.",
-          "areaServed": {
-            "@type": "Country",
-            "name": "Sweden"
-          },
+          "description": "Notarisering av dokument och bestyrkande av underskrifter via Notarius Publicus. Vi hanterar notarisering för alla typer av dokument – fullmakter, intyg, kopior och mer. Från 595 kr inkl. moms.",
+          "areaServed": [
+            { "@type": "Country", "name": "Sweden" },
+            { "@type": "Country", "name": "Norway" },
+            { "@type": "Country", "name": "Denmark" },
+            { "@type": "Country", "name": "Finland" }
+          ],
           "serviceType": "Notarization",
-          "offers": {
-            "@type": "Offer",
-            "price": "595",
-            "priceCurrency": "SEK",
-            "availability": "https://schema.org/InStock",
-            "priceValidUntil": "2027-01-01"
+          "category": "Dokumentlegalisering",
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Notariseringstjänster",
+            "itemListElement": [
+              { "@type": "Offer", "name": "Notarisering – Standard", "price": "595", "priceCurrency": "SEK", "availability": "https://schema.org/InStock", "priceValidUntil": "2027-12-31" }
+            ]
           }
         })}} />
         
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Tjänster", "item": "https://doxvl.se/tjanster" },
+            { "@type": "ListItem", "position": 3, "name": "Notarius Publicus", "item": "https://doxvl.se/tjanster/notarius-publicus" }
+          ]
+        })}} />
+
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
@@ -55,26 +84,32 @@ export default function NotariusPublicusPage() {
             {
               "@type": "Question",
               "name": "Vad är Notarius Publicus?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Notarius Publicus är en av staten förordnad tjänsteman som har behörighet att bestyrka handlingar, bevittna underskrifter och utfärda apostille. I Sverige utses Notarius Publicus av länsstyrelsen."
-              }
+              "acceptedAnswer": { "@type": "Answer", "text": "Notarius Publicus är en av staten förordnad tjänsteman som har behörighet att bestyrka handlingar, bevittna underskrifter och utfärda apostille. I Sverige utses Notarius Publicus av länsstyrelsen. Notarisering är ofta ett nödvändigt första steg innan apostille eller ambassadlegalisering." }
             },
             {
               "@type": "Question",
               "name": "När behöver jag notarisering?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Notarisering behövs ofta för fullmakter, intyg och kopior som ska användas utomlands. Det är vanligt inför apostille eller ambassadlegalisering."
-              }
+              "acceptedAnswer": { "@type": "Answer", "text": "Notarisering behövs ofta för: fullmakter som ska användas utomlands, bestyrkta kopior av pass eller ID-handlingar, intyg och avtal för internationellt bruk, dokument som ska apostille-stämplas, och handlingar inför ambassadlegalisering." }
             },
             {
               "@type": "Question",
               "name": "Vad kostar notarisering?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Notarisering hos DOX Visumpartner kostar från 595 kr. Priset varierar beroende på dokumenttyp och komplexitet."
-              }
+              "acceptedAnswer": { "@type": "Answer", "text": "Notarisering hos DOX Visumpartner kostar från 595 kr inklusive moms. Priset varierar beroende på dokumenttyp och komplexitet. Vi erbjuder fasta priser utan dolda avgifter." }
+            },
+            {
+              "@type": "Question",
+              "name": "Hur lång tid tar notarisering?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Notarisering tar vanligtvis 3-5 arbetsdagar med standardtjänst. Vi erbjuder även expresstjänst med 1-2 dagars handläggning för brådskande ärenden." }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag beställa notarisering online?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Ja, beställ notarisering enkelt online via doxvl.se. Skicka in ditt dokument per post och vi hanterar hela processen med Notarius Publicus åt dig. Vi betjänar kunder i hela Sverige samt Norge, Danmark och Finland." }
+            },
+            {
+              "@type": "Question",
+              "name": "Vad är skillnaden mellan notarisering och apostille?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Notarisering innebär att Notarius Publicus bestyrker ett dokument eller bevittnar en underskrift. Apostille är en internationell stämpel som bekräftar notariseringens äkthet. Ofta behövs notarisering som ett första steg innan apostille kan utfärdas." }
             }
           ]
         })}} />
@@ -193,6 +228,32 @@ export default function NotariusPublicusPage() {
               </Link>
               <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                 {t('servicePages.contactUs')}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Related Services - Internal Linking */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 text-center">
+              Relaterade tjänster
+            </h2>
+            <p className="text-gray-600 text-center mb-8">
+              Notarisering är ofta första steget. Vi erbjuder hela legaliseringskedjan.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Link href="/tjanster/apostille" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">Apostille</h3>
+                <p className="text-gray-600 text-sm">Nästa steg efter notarisering – internationell stämpel för Haagkonventionsländer.</p>
+              </Link>
+              <Link href="/tjanster/utrikesdepartementet" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">UD-legalisering</h3>
+                <p className="text-gray-600 text-sm">Legalisering via Utrikesdepartementet – nästa steg för länder utanför Haagkonventionen.</p>
+              </Link>
+              <Link href="/tjanster/ambassadlegalisering" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">Ambassadlegalisering</h3>
+                <p className="text-gray-600 text-sm">Sista steget – legalisering via utländska ambassader i Stockholm.</p>
               </Link>
             </div>
           </div>

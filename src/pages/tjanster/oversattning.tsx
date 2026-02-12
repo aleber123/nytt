@@ -11,34 +11,63 @@ export default function OversattningPage() {
   return (
     <>
       <Head>
-        <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
+        <title>{t(`${sp}.title`)} | DOX Visumpartner – Auktoriserad Översättning Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
-        <meta name="keywords" content="auktoriserad översättning, certified translation, officiell översättning, Kammarkollegiet, translator, dokument översättning" />
+        <meta name="keywords" content="auktoriserad översättning, certified translation, officiell översättning, Kammarkollegiet, auktoriserad översättare, översätta dokument, översättning födelsebevis, översättning examensbevis, översättning vigselbevis, översättning fullmakt, översättning engelska, översättning arabiska, översättning pris, översättning Stockholm, juridisk översättning, edsvuren översättare, översättning för legalisering, översättning intyg, dokument översättning online" />
         <link rel="canonical" href="https://doxvl.se/tjanster/oversattning" />
+        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/oversattning" />
+        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/oversattning" />
+        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/oversattning" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
         <meta property="og:url" content="https://doxvl.se/tjanster/oversattning" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://doxvl.se/dox-logo.webp" />
+        <meta property="og:site_name" content="DOX Visumpartner" />
+        <meta property="og:locale" content="sv_SE" />
+        <meta property="og:locale:alternate" content="en_GB" />
+        
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
+        <meta name="twitter:description" content={t(`${sp}.metaDescription`)} />
+        <meta name="twitter:image" content="https://doxvl.se/dox-logo.webp" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Auktoriserad översättning",
+          "name": "Auktoriserad översättning – Certifierad dokumentöversättning i Sverige",
+          "alternateName": "Certified Translation Sweden",
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
             "url": "https://doxvl.se",
-            "logo": "https://doxvl.se/dox-logo.webp"
+            "logo": "https://doxvl.se/dox-logo.webp",
+            "telephone": "+46840941900",
+            "email": "info@doxvl.se",
+            "address": { "@type": "PostalAddress", "streetAddress": "Livdjursgatan 4", "addressLocality": "Stockholm", "postalCode": "121 62", "addressCountry": "SE" }
           },
-          "description": "Auktoriserad översättning av dokument för internationellt bruk. Certifierade översättare godkända av Kammarkollegiet.",
-          "areaServed": {
-            "@type": "Country",
-            "name": "Sweden"
-          },
-          "serviceType": "Certified Translation"
+          "description": "Auktoriserad översättning av dokument för internationellt bruk. Våra översättare är godkända av Kammarkollegiet och översättningarna har juridisk giltighet. Vi översätter födelsebevis, examensbevis, vigselbevis, fullmakter och alla typer av officiella dokument.",
+          "areaServed": [
+            { "@type": "Country", "name": "Sweden" },
+            { "@type": "Country", "name": "Norway" },
+            { "@type": "Country", "name": "Denmark" },
+            { "@type": "Country", "name": "Finland" }
+          ],
+          "serviceType": "Certified Translation",
+          "category": "Dokumentöversättning"
         })}} />
         
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Tjänster", "item": "https://doxvl.se/tjanster" },
+            { "@type": "ListItem", "position": 3, "name": "Auktoriserad översättning", "item": "https://doxvl.se/tjanster/oversattning" }
+          ]
+        })}} />
+
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
@@ -46,26 +75,32 @@ export default function OversattningPage() {
             {
               "@type": "Question",
               "name": "Vad är auktoriserad översättning?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "En auktoriserad översättning är utförd av en översättare som är godkänd av Kammarkollegiet. Översättningen har samma juridiska giltighet som originaldokumentet."
-              }
+              "acceptedAnswer": { "@type": "Answer", "text": "En auktoriserad översättning är utförd av en översättare som är godkänd av Kammarkollegiet i Sverige. Översättningen har samma juridiska giltighet som originaldokumentet och accepteras av myndigheter, ambassader och domstolar världen över." }
             },
             {
               "@type": "Question",
               "name": "Vilka språk erbjuder ni översättning till?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Vi erbjuder auktoriserad översättning till och från de flesta språk, inklusive engelska, tyska, franska, spanska, arabiska, kinesiska, ryska och många fler."
-              }
+              "acceptedAnswer": { "@type": "Answer", "text": "Vi erbjuder auktoriserad översättning till och från de flesta språk, inklusive engelska, tyska, franska, spanska, arabiska, kinesiska, ryska, persiska, turkiska, polska, finska, norska, danska och många fler." }
             },
             {
               "@type": "Question",
               "name": "Hur lång tid tar en auktoriserad översättning?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Leveranstiden beror på dokumentets längd och komplexitet. Vanligtvis 3-5 arbetsdagar för standarddokument. Expresstjänst finns tillgänglig."
-              }
+              "acceptedAnswer": { "@type": "Answer", "text": "Leveranstiden beror på dokumentets längd och komplexitet. Vanligtvis 3-5 arbetsdagar för standarddokument som födelsebevis eller examensbevis. Expresstjänst med 1-2 dagars leverans finns tillgänglig." }
+            },
+            {
+              "@type": "Question",
+              "name": "Vilka dokument kan ni översätta?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Vi översätter alla typer av officiella dokument: födelsebevis, vigselbevis, dödsbevis, examensbevis, gymnasiebevis, universitetsbevis, körkort, pass, fullmakter, bolagshandlingar, domstolshandlingar, medicinska intyg och avtal." }
+            },
+            {
+              "@type": "Question",
+              "name": "Behöver jag auktoriserad översättning för legalisering?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Ja, i de flesta fall krävs auktoriserad översättning när dokument ska legaliseras för användning utomlands. Vi kan hantera både översättning och legalisering (apostille eller ambassadlegalisering) som en komplett tjänst." }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag beställa auktoriserad översättning online?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Ja, beställ enkelt online via doxvl.se. Ladda upp eller skicka in ditt dokument, välj målspråk, och vi levererar en auktoriserad översättning. Vi betjänar kunder i hela Norden." }
             }
           ]
         })}} />
@@ -201,6 +236,32 @@ export default function OversattningPage() {
               </Link>
               <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                 {t('servicePages.contactUs')}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Related Services - Internal Linking */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 text-center">
+              Relaterade tjänster
+            </h2>
+            <p className="text-gray-600 text-center mb-8">
+              Behöver du legalisera ditt översatta dokument? Vi erbjuder hela kedjan.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Link href="/tjanster/apostille" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">Apostille</h3>
+                <p className="text-gray-600 text-sm">Apostille-stämpel för översatta dokument som ska användas i Haagkonventionsländer.</p>
+              </Link>
+              <Link href="/tjanster/notarius-publicus" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">Notarius Publicus</h3>
+                <p className="text-gray-600 text-sm">Bestyrkning av översatta dokument via Notarius Publicus.</p>
+              </Link>
+              <Link href="/tjanster/ambassadlegalisering" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">Ambassadlegalisering</h3>
+                <p className="text-gray-600 text-sm">Legalisering av översatta dokument via utländska ambassader.</p>
               </Link>
             </div>
           </div>

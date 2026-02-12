@@ -50,21 +50,31 @@ export default function PriceTab({
       'DOX Visumpartner serviceavgift (Ambassadlegalisering)': 'DOX Visumpartner Service Fee (Embassy Legalization)',
       'DOX Visumpartner serviceavgift (Apostille)': 'DOX Visumpartner Service Fee (Apostille)',
       'DOX Visumpartner serviceavgift (Notarisering)': 'DOX Visumpartner Service Fee (Notarization)',
+      'DOX Visumpartner serviceavgift (Auktoriserad \u00f6vers\u00e4ttning)': 'DOX Visumpartner Service Fee (Certified Translation)',
       'DOX Visumpartner serviceavgift (\u00d6vers\u00e4ttning)': 'DOX Visumpartner Service Fee (Translation)',
+      'DOX Visumpartner serviceavgift (Utrikesdepartementets legalisering)': 'DOX Visumpartner Service Fee (Ministry of Foreign Affairs)',
       'DOX Visumpartner serviceavgift (Utrikesdepartementet)': 'DOX Visumpartner Service Fee (Ministry of Foreign Affairs)',
+      'DOX Visumpartner serviceavgift (Handelskammarens legalisering)': 'DOX Visumpartner Service Fee (Chamber of Commerce)',
       'DOX Visumpartner serviceavgift (Handelskammare)': 'DOX Visumpartner Service Fee (Chamber of Commerce)',
       'Skannade kopior': 'Scanned Copies',
+      'Scannade kopior': 'Scanned Copies',
       'Returfrakt': 'Return Shipping',
+      'Returservice': 'Return Service',
       'Upph\u00e4mtningstj\u00e4nst': 'Pickup Service',
+      'Dokumenth\u00e4mtning': 'Document Pickup',
       'Expresstill\u00e4gg': 'Express Service',
+      'Expresstj\u00e4nst': 'Express Service',
       'Apostille - Officiell avgift': 'Apostille - Official Fee',
       'Apostille - officiell avgift': 'Apostille - Official Fee',
       'Notarisering - Officiell avgift': 'Notarization - Official Fee',
       'Notarisering - officiell avgift': 'Notarization - Official Fee',
+      'Auktoriserad \u00f6vers\u00e4ttning - Officiell avgift': 'Certified Translation - Official Fee',
       '\u00d6vers\u00e4ttning - Officiell avgift': 'Translation - Official Fee',
       '\u00d6vers\u00e4ttning - officiell avgift': 'Translation - Official Fee',
+      'Utrikesdepartementets legalisering - Officiell avgift': 'Ministry of Foreign Affairs - Official Fee',
       'Utrikesdepartementets legalisering': 'Ministry of Foreign Affairs Legalization',
       'Utrikesdepartementet - Officiell avgift': 'Ministry of Foreign Affairs - Official Fee',
+      'Handelskammarens legalisering - Officiell avgift': 'Chamber of Commerce - Official Fee',
       'Handelskammarintyg': 'Chamber of Commerce Certificate',
       'Handelskammare - Officiell avgift': 'Chamber of Commerce - Official Fee',
     };
@@ -72,6 +82,9 @@ export default function PriceTab({
     for (const [swedish, english] of Object.entries(translations)) {
       if (description.includes(swedish)) return description.replace(swedish, english);
     }
+    // Pattern: DOX Visumpartner serviceavgift (X) → DOX Visumpartner Service Fee (X)
+    const svcFeeMatch = description.match(/DOX Visumpartner serviceavgift \((.+)\)/);
+    if (svcFeeMatch) return `DOX Visumpartner Service Fee (${svcFeeMatch[1]})`;
     if (description.includes(' - Serviceavgift')) {
       const serviceName = description.replace(' - Serviceavgift', '');
       return `DOX Visumpartner Service Fee (${serviceName})`;

@@ -15,6 +15,43 @@ import crypto from 'crypto';
 
 const generateToken = () => crypto.randomUUID();
 
+// Translate Swedish pricing descriptions to English
+function translateDescription(desc: string): string {
+  const map: Record<string, string> = {
+    'Apostille - Officiell avgift': 'Apostille - Official Fee',
+    'Notarisering - Officiell avgift': 'Notarization - Official Fee',
+    'Ambassadlegalisering - Officiell avgift': 'Embassy Legalization - Official Fee',
+    'Utrikesdepartementets legalisering - Officiell avgift': 'Ministry of Foreign Affairs - Official Fee',
+    'Handelskammarens legalisering - Officiell avgift': 'Chamber of Commerce - Official Fee',
+    'Auktoriserad översättning - Officiell avgift': 'Certified Translation - Official Fee',
+    'Skannade kopior': 'Scanned Copies',
+    'Scannade kopior': 'Scanned Copies',
+    'Returfrakt': 'Return Shipping',
+    'Returservice': 'Return Service',
+    'Expresstjänst': 'Express Service',
+    'Expresshantering': 'Express Handling',
+    'Dokumenthämtning': 'Document Pickup',
+    'Upphämtningstjänst': 'Pickup Service',
+  };
+  if (map[desc]) return map[desc];
+  // DOX Visumpartner serviceavgift (X) → DOX Visumpartner Service Fee (X)
+  const svcPatterns: [RegExp, string][] = [
+    [/DOX Visumpartner serviceavgift \(Notarisering\)/, 'DOX Visumpartner Service Fee (Notarization)'],
+    [/DOX Visumpartner serviceavgift \(Apostille\)/, 'DOX Visumpartner Service Fee (Apostille)'],
+    [/DOX Visumpartner serviceavgift \(Ambassadlegalisering\)/, 'DOX Visumpartner Service Fee (Embassy Legalization)'],
+    [/DOX Visumpartner serviceavgift \(Utrikesdepartementets legalisering\)/, 'DOX Visumpartner Service Fee (Ministry of Foreign Affairs)'],
+    [/DOX Visumpartner serviceavgift \(Handelskammarens legalisering\)/, 'DOX Visumpartner Service Fee (Chamber of Commerce)'],
+    [/DOX Visumpartner serviceavgift \(Auktoriserad översättning\)/, 'DOX Visumpartner Service Fee (Certified Translation)'],
+    [/DOX Visumpartner serviceavgift \((.+)\)/, 'DOX Visumpartner Service Fee ($1)'],
+  ];
+  for (const [pattern, replacement] of svcPatterns) {
+    if (pattern.test(desc)) return desc.replace(pattern, replacement);
+  }
+  if (desc.includes(' - Officiell avgift')) return desc.replace(' - Officiell avgift', ' - Official Fee');
+  if (desc.includes(' - officiell avgift')) return desc.replace(' - officiell avgift', ' - Official Fee');
+  return desc;
+}
+
 interface QuoteLineItem {
   description: string;
   quantity: number;
@@ -95,6 +132,7 @@ export default async function handler(
     const orderNumber = order?.orderNumber || orderId;
     const orderLocale = order?.locale || 'sv';
     const isEnglish = orderLocale === 'en';
+    const customerType = order?.customerType || 'private'; // 'private' | 'company'
 
     if (!customerEmail) {
       return res.status(400).json({ error: 'Customer has no email address' });
@@ -103,12 +141,18 @@ export default async function handler(
     // Generate unique token
     const token = generateToken();
 
-    // Store quote record
+    // Translate line item descriptions if customer locale is English
+    const translatedLineItems = isEnglish
+      ? lineItems.map(item => ({ ...item, description: translateDescription(item.description) }))
+      : lineItems;
+
+    // Store quote record (with translated descriptions)
     await db.collection('quotes').add({
       orderId: actualOrderId,
       orderNumber,
-      lineItems,
+      lineItems: translatedLineItems,
       totalAmount,
+      customerType,
       message: message || '',
       status: 'sent',
       token,
@@ -135,8 +179,9 @@ export default async function handler(
       message: generateQuoteEmailHtml({
         customerName,
         orderNumber,
-        lineItems,
+        lineItems: translatedLineItems,
         totalAmount,
+        customerType,
         message: message || '',
         quoteUrl,
         locale: orderLocale
@@ -154,7 +199,7 @@ export default async function handler(
         sentAt: new Date().toISOString(),
         token,
         totalAmount,
-        lineItems
+        lineItems: translatedLineItems
       }
     }, { merge: true });
 
@@ -191,13 +236,15 @@ function generateQuoteEmailHtml(data: {
   orderNumber: string;
   lineItems: QuoteLineItem[];
   totalAmount: number;
+  customerType: string;
   message: string;
   quoteUrl: string;
   locale: string;
 }): string {
-  const { customerName, orderNumber, lineItems, totalAmount, message, quoteUrl, locale } = data;
+  const { customerName, orderNumber, lineItems, totalAmount, customerType, message, quoteUrl, locale } = data;
   
   const isSwedish = locale !== 'en';
+  const isCompany = customerType === 'company';
   
   const title = isSwedish ? 'Offert' : 'Price Quote';
   const greeting = isSwedish ? `Hej ${customerName}!` : `Dear ${customerName},`;
@@ -209,8 +256,26 @@ function generateQuoteEmailHtml(data: {
   const qtyHeader = isSwedish ? 'Antal' : 'Qty';
   const unitPriceHeader = isSwedish ? 'À-pris' : 'Unit Price';
   const amountHeader = isSwedish ? 'Belopp' : 'Amount';
-  const totalLabel = isSwedish ? 'Totalbelopp' : 'Total Amount';
-  const vatNote = isSwedish ? 'Alla priser exkl. moms om inte annat anges' : 'All prices excl. VAT unless otherwise stated';
+
+  // Calculate VAT
+  // pricingBreakdown prices are stored EXCLUDING VAT
+  // vatRate per item is 25 (standard) or 0 (exempt)
+  const totalVat = lineItems.reduce((sum, item) => {
+    const rate = (item.vatRate && item.vatRate > 0) ? (item.vatRate > 1 ? item.vatRate / 100 : item.vatRate) : 0;
+    return sum + Math.round(item.total * rate);
+  }, 0);
+  const totalInclVat = totalAmount + totalVat;
+
+  // For company: show ex. moms + moms row + total inkl. moms
+  // For private: show prices inkl. moms per row, total inkl. moms
+  const subtotalLabel = isSwedish ? 'Summa exkl. moms' : 'Subtotal excl. VAT';
+  const vatLabel = isSwedish ? 'Moms' : 'VAT';
+  const totalLabel = isSwedish 
+    ? (isCompany ? 'Totalbelopp inkl. moms' : 'Totalbelopp inkl. moms')
+    : (isCompany ? 'Total incl. VAT' : 'Total incl. VAT');
+  const vatNote = isCompany
+    ? (isSwedish ? 'Priser visas exkl. moms' : 'Prices shown excl. VAT')
+    : (isSwedish ? 'Priser visas inkl. moms' : 'Prices shown incl. VAT');
   
   const acceptBtn = isSwedish ? '✓ Godkänn offert' : '✓ Accept Quote';
   const declineBtn = isSwedish ? '✗ Avböj offert' : '✗ Decline Quote';
@@ -224,14 +289,20 @@ function generateQuoteEmailHtml(data: {
   const autoMsg = isSwedish ? 'Detta är ett automatiskt genererat meddelande.' : 'This is an automatically generated message.';
 
   // Build line items table rows
-  const lineItemRows = lineItems.map(item => `
+  // For company: show prices ex. moms as-is
+  // For private: add VAT to each line item price for display
+  const lineItemRows = lineItems.map(item => {
+    const rate = (item.vatRate && item.vatRate > 0) ? (item.vatRate > 1 ? item.vatRate / 100 : item.vatRate) : 0;
+    const displayUnitPrice = isCompany ? item.unitPrice : Math.round(item.unitPrice * (1 + rate));
+    const displayTotal = isCompany ? item.total : Math.round(item.total * (1 + rate));
+    return `
     <tr>
       <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px;">${item.description}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px; text-align: center;">${item.quantity}</td>
-      <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px; text-align: right;">${item.unitPrice.toLocaleString()} kr</td>
-      <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px; text-align: right; font-weight: 600;">${item.total.toLocaleString()} kr</td>
-    </tr>
-  `).join('');
+      <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px; text-align: right; white-space: nowrap;">${displayUnitPrice.toLocaleString()} kr</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px; text-align: right; font-weight: 600; white-space: nowrap;">${displayTotal.toLocaleString()} kr</td>
+    </tr>`;
+  }).join('');
 
   const messageSection = message ? `
     <div style="background-color: #f9fafb; border-left: 4px solid #0EB0A6; padding: 16px; margin: 20px 0;">
@@ -320,19 +391,29 @@ function generateQuoteEmailHtml(data: {
       <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin: 20px 0;">
         <thead>
           <tr style="background-color: #f9fafb;">
-            <th style="padding: 12px; text-align: left; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb;">${descHeader}</th>
-            <th style="padding: 12px; text-align: center; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb;">${qtyHeader}</th>
-            <th style="padding: 12px; text-align: right; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb;">${unitPriceHeader}</th>
-            <th style="padding: 12px; text-align: right; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb;">${amountHeader}</th>
+            <th style="padding: 12px; text-align: left; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb; width: 45%;">${descHeader}</th>
+            <th style="padding: 12px; text-align: center; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb; width: 10%;">${qtyHeader}</th>
+            <th style="padding: 12px; text-align: right; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb; width: 22%;">${unitPriceHeader}</th>
+            <th style="padding: 12px; text-align: right; font-size: 13px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb; width: 23%;">${amountHeader}</th>
           </tr>
         </thead>
         <tbody>
           ${lineItemRows}
         </tbody>
         <tfoot>
+          ${isCompany ? `
+          <tr style="background-color: #f9fafb;">
+            <td colspan="3" style="padding: 10px 12px; color: #374151; font-weight: 600; font-size: 14px; text-align: right; border-top: 2px solid #e5e7eb;">${subtotalLabel}</td>
+            <td style="padding: 10px 12px; color: #374151; font-weight: 600; font-size: 14px; text-align: right; border-top: 2px solid #e5e7eb; white-space: nowrap;">${totalAmount.toLocaleString()} kr</td>
+          </tr>
+          <tr style="background-color: #f9fafb;">
+            <td colspan="3" style="padding: 10px 12px; color: #6b7280; font-size: 14px; text-align: right;">${vatLabel} (25%)</td>
+            <td style="padding: 10px 12px; color: #6b7280; font-size: 14px; text-align: right; white-space: nowrap;">${totalVat.toLocaleString()} kr</td>
+          </tr>
+          ` : ''}
           <tr style="background-color: #0EB0A6;">
             <td colspan="3" style="padding: 14px 12px; color: #ffffff; font-weight: 700; font-size: 16px;">${totalLabel}</td>
-            <td style="padding: 14px 12px; color: #ffffff; font-weight: 700; font-size: 18px; text-align: right;">${totalAmount.toLocaleString()} kr</td>
+            <td style="padding: 14px 12px; color: #ffffff; font-weight: 700; font-size: 18px; text-align: right; white-space: nowrap;">${totalInclVat.toLocaleString()} kr</td>
           </tr>
         </tfoot>
       </table>

@@ -26,15 +26,41 @@ function translateDesc(desc: string): string {
     'Notarisering - Serviceavgift': 'Notarization - Service Fee',
     'UD-legalisering - Officiell avgift': 'UD Legalization - Official Fee',
     'UD-legalisering - Serviceavgift': 'UD Legalization - Service Fee',
+    'Utrikesdepartementets legalisering - Officiell avgift': 'Ministry of Foreign Affairs - Official Fee',
     'Ambassadlegalisering - Officiell avgift': 'Embassy Legalization - Official Fee',
     'Ambassadlegalisering - Serviceavgift': 'Embassy Legalization - Service Fee',
+    'Handelskammarens legalisering - Officiell avgift': 'Chamber of Commerce - Official Fee',
     'Handelskammarlegalisering - Officiell avgift': 'Chamber of Commerce - Official Fee',
     'Handelskammarlegalisering - Serviceavgift': 'Chamber of Commerce - Service Fee',
+    'Auktoriserad översättning - Officiell avgift': 'Certified Translation - Official Fee',
     'Expresshantering': 'Express Handling',
+    'Expresstjänst': 'Express Service',
     'Returservice': 'Return Service',
+    'Returfrakt': 'Return Shipping',
     'Skannade kopior': 'Scanned Copies',
+    'Scannade kopior': 'Scanned Copies',
+    'Dokumenthämtning': 'Document Pickup',
+    'Upphämtningstjänst': 'Pickup Service',
   };
-  return map[desc] || desc;
+  // Exact match first
+  if (map[desc]) return map[desc];
+  // Pattern-based translations for DOX service fee lines
+  const svcFeePatterns: [RegExp, string][] = [
+    [/DOX Visumpartner serviceavgift \(Notarisering\)/, 'DOX Visumpartner Service Fee (Notarization)'],
+    [/DOX Visumpartner serviceavgift \(Apostille\)/, 'DOX Visumpartner Service Fee (Apostille)'],
+    [/DOX Visumpartner serviceavgift \(Ambassadlegalisering\)/, 'DOX Visumpartner Service Fee (Embassy Legalization)'],
+    [/DOX Visumpartner serviceavgift \(Utrikesdepartementets legalisering\)/, 'DOX Visumpartner Service Fee (Ministry of Foreign Affairs)'],
+    [/DOX Visumpartner serviceavgift \(Handelskammarens legalisering\)/, 'DOX Visumpartner Service Fee (Chamber of Commerce)'],
+    [/DOX Visumpartner serviceavgift \(Auktoriserad översättning\)/, 'DOX Visumpartner Service Fee (Certified Translation)'],
+    [/DOX Visumpartner serviceavgift \((.+)\)/, 'DOX Visumpartner Service Fee ($1)'],
+  ];
+  for (const [pattern, replacement] of svcFeePatterns) {
+    if (pattern.test(desc)) return desc.replace(pattern, replacement);
+  }
+  // Generic Swedish → English patterns
+  if (desc.includes(' - Officiell avgift')) return desc.replace(' - Officiell avgift', ' - Official Fee');
+  if (desc.includes(' - officiell avgift')) return desc.replace(' - officiell avgift', ' - Official Fee');
+  return desc;
 }
 
 export default function CommunicationTab({ order, onShowDocumentRequestModal, onShowNewTemplateModal, quoteLineItems, quoteTotalAmount }: CommunicationTabProps) {
@@ -215,7 +241,7 @@ export default function CommunicationTab({ order, onShowDocumentRequestModal, on
       {/* Quote Modal */}
       {showQuoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Send Quote</h2>
@@ -246,19 +272,25 @@ export default function CommunicationTab({ order, onShowDocumentRequestModal, on
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Quote Line Items</label>
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm table-fixed">
+                    <colgroup>
+                      <col style={{ width: '50%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '20%' }} />
+                      <col style={{ width: '20%' }} />
+                    </colgroup>
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
                         <th className="px-3 py-2 text-left font-medium text-gray-600">Description</th>
-                        <th className="px-3 py-2 text-center font-medium text-gray-600 w-20">Qty</th>
-                        <th className="px-3 py-2 text-right font-medium text-gray-600 w-28">Unit Price</th>
-                        <th className="px-3 py-2 text-right font-medium text-gray-600 w-28">Total</th>
+                        <th className="px-3 py-2 text-center font-medium text-gray-600">Qty</th>
+                        <th className="px-3 py-2 text-right font-medium text-gray-600">Unit Price</th>
+                        <th className="px-3 py-2 text-right font-medium text-gray-600">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {editableLineItems.map((item, idx) => (
                         <tr key={idx} className="border-b border-gray-100">
-                          <td className="px-3 py-2 text-gray-900">{translateDesc(item.description)}</td>
+                          <td className="px-3 py-2 text-gray-900 break-words">{translateDesc(item.description)}</td>
                           <td className="px-3 py-2 text-center text-gray-600">{item.quantity}</td>
                           <td className="px-3 py-2 text-right">
                             <input

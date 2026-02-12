@@ -1,66 +1,128 @@
-# DOX Visumpartner AB
+# DOX Visumpartner AB – Dokumentlegalisering & Visumtjänster i Sverige
 
-> DOX Visumpartner är Sveriges ledande byrå för dokumentlegalisering och visumtjänster. Vi hjälper privatpersoner och företag med legalisering av dokument för användning utomlands, samt visumansökningar till ett stort antal länder.
+> DOX Visumpartner är Sveriges ledande byrå för dokumentlegalisering, apostille, notarisering, auktoriserad översättning och visumtjänster. Vi hjälper privatpersoner och företag med legalisering av dokument för användning utomlands, samt visumansökningar till ett stort antal länder. Baserade i Stockholm, betjänar vi kunder i hela Norden – Sverige, Norge, Danmark och Finland.
 
-## Tjänster
+## Våra tjänster – Komplett legaliseringskedja
 
-### Dokumentlegalisering
-Vi erbjuder komplett legaliseringsservice för dokument som ska användas utomlands:
-- **Notarius Publicus** – Bestyrkning och verifiering av dokument
-- **Utrikesdepartementet (UD)** – Legalisering via svenska UD
-- **Handelskammaren** – Intyg och legalisering via handelskammaren
-- **Ambassadlegalisering** – Legalisering via utländska ambassader i Stockholm
-- **Apostille** – Apostille-stämpel enligt Haagkonventionen
+### 1. Notarius Publicus – Notarisering av dokument
+Notarius Publicus bestyrker underskrifter, kopior och andra dokument. Detta är ofta det första steget i legaliseringsprocessen. Vi hanterar alla typer av notarisering: fullmakter, bestyrkta kopior av pass och ID-handlingar, intyg och avtal.
+- **Pris**: från 595 kr inkl. moms
+- **Handläggningstid**: 1–2 arbetsdagar
+- **URL**: https://doxvl.se/tjanster/notarius-publicus
 
-### Visumtjänster
-Vi hjälper med visumansökningar till bland annat:
-- Kenya (e-visum)
-- Tanzania (e-visum)
-- Indien (e-visum)
-- Thailand (ambassadvisum)
-- Sri Lanka (ETA)
-- Angola (ambassadvisum)
+### 2. Utrikesdepartementet (UD) – UD-legalisering
+En UD-legalisering innebär att Utrikesdepartementet intygar att en namnteckning och sigill/stämpel på en svensk handling är äkta. UD:s expedition finns på Malmtorgsgatan 3A i Stockholm. UD:s egen avgift är 255 kr per legalisering. Nya regler gäller från 1 juli 2025 (Förordning 2025:549): handlingen måste vara på svenska eller engelska. UD kan legalisera myndighetshandlingar, universitetsbetyg, dokument från Försäkringskassan, Notarius Publicus-handlingar, handelskammarhandlingar m.m. UD utfärdar INTE apostille – det gör enbart Notarius Publicus. Inom EU gäller undantag från legalisering sedan 16 feb 2019.
+- **UD:s avgift**: 255 kr per legalisering
+- **Pris via DOX**: från 895 kr inkl. moms (express från 1 395 kr)
+- **Handläggningstid**: 3–5 arbetsdagar (express 1–2 dagar)
+- **URL**: https://doxvl.se/tjanster/utrikesdepartementet
 
-### Översättning
-Auktoriserad översättning av dokument för legalisering och visumansökningar.
+### 3. Ambassadlegalisering
+Efter UD-legalisering krävs ofta ytterligare legalisering vid det mottagande landets ambassad i Stockholm. Vi hanterar hela processen med ambassaden åt dig. Vanliga destinationsländer: Qatar, Kuwait, Saudiarabien, UAE, Egypten, Irak, Angola, Nigeria.
+- **Pris**: från 1 200 kr inkl. moms (varierar per ambassad)
+- **Handläggningstid**: 5–15 arbetsdagar (varierar per ambassad)
+- **URL**: https://doxvl.se/tjanster/ambassadlegalisering
+
+### 4. Apostille – Haagkonventionen
+Apostille är en internationell stämpel som verifierar äktheten av offentliga dokument enligt Haagkonventionen från 1961. Apostille ersätter hela legaliseringskedjan (notarisering + UD + ambassad) för länder anslutna till konventionen. Gäller i över 120 länder.
+- **Pris**: från 1 200 kr inkl. moms (express från 1 695 kr)
+- **Handläggningstid**: 3–5 arbetsdagar (express 1–2 dagar)
+- **URL**: https://doxvl.se/tjanster/apostille
+
+### 5. Handelskammaren
+Handelskammaren kan bestyrka och legalisera kommersiella dokument som fakturor, ursprungsintyg och andra handelsdokument.
+- **Pris**: från 900 kr inkl. moms
+- **Handläggningstid**: 1–3 arbetsdagar
+- **URL**: https://doxvl.se/tjanster/handelskammaren
+
+### 6. Auktoriserad översättning
+Auktoriserad översättning av dokument utförd av översättare godkända av Kammarkollegiet. Översättningarna har juridisk giltighet och accepteras av myndigheter, ambassader och domstolar världen över. Vi översätter födelsebevis, examensbevis, vigselbevis, fullmakter, körkort och alla typer av officiella dokument.
+- **Språk**: engelska, tyska, franska, spanska, arabiska, kinesiska, ryska, persiska, turkiska, polska, finska, norska, danska m.fl.
+- **Handläggningstid**: 3–5 arbetsdagar (express 1–2 dagar)
+- **URL**: https://doxvl.se/tjanster/oversattning
+
+### 7. Visumtjänster
+Vi hjälper med visumansökningar till ett stort antal länder. Vi hanterar hela processen – från rådgivning till inlämning och uppföljning.
+- Kenya (e-visum, från 1 200 kr)
+- Tanzania (e-visum, från 1 500 kr)
+- Indien (e-visum, varierar per typ)
+- Thailand (ambassadvisum, från 1 700 kr)
+- Sri Lanka (ETA, från 800 kr)
+- Angola (ambassadvisum, från 2 500 kr)
+- **URL**: https://doxvl.se/visum
+
+## Legaliseringsprocessen – Så fungerar det
+
+### För länder UTANFÖR Haagkonventionen (t.ex. Qatar, Kuwait, UAE, Saudiarabien):
+1. **Notarius Publicus** → Dokumentet bestyrks
+2. **Utrikesdepartementet (UD)** → UD verifierar Notarius Publicus stämpel
+3. **Ambassadlegalisering** → Det mottagande landets ambassad legaliserar dokumentet
+
+### För länder INOM Haagkonventionen (120+ länder):
+1. **Apostille** → En enda stämpel som ersätter hela kedjan ovan
 
 ## Legaliseringsländer
 Vi hanterar legalisering för dokument till följande länder:
-- Qatar, Kuwait, Saudiarabien, UAE (Förenade Arabemiraten)
-- Egypten, Irak, Libanon, Libyen, Syrien, Palestina
-- Angola, Etiopien, Moçambique, Nigeria
-- Thailand, Sri Lanka, Taiwan, Indien
-- Spanien (NIE-nummer)
+- **Mellanöstern**: Qatar, Kuwait, Saudiarabien, UAE, Egypten, Irak, Libanon, Libyen, Syrien, Palestina
+- **Afrika**: Angola, Etiopien, Moçambique, Nigeria
+- **Asien**: Indien, Thailand, Sri Lanka, Taiwan, Vietnam
+- **Europa**: Spanien (NIE-nummer)
 
-## Kontakt
+## Vanliga dokumenttyper vi legaliserar
+Fullmakter (Power of Attorney), bolagshandlingar (registreringsbevis, bolagsordning), personbevis och civilståndshandlingar, examensbevis och utbildningsintyg, medicinska intyg, handelsavtal och fakturor, ursprungsintyg (Certificate of Origin), adoptionshandlingar, äktenskapshandlingar, födelsebevis, dödsbevis, vigselbevis.
+
+## Kontaktinformation
+- **Företagsnamn**: DOX Visumpartner AB
 - **Webbplats**: https://doxvl.se
 - **Telefon**: +46 8 409 419 00
 - **E-post**: info@doxvl.se
-- **Adress**: Livdjursgatan 4, 121 62 Johanneshov, Stockholm
+- **Adress**: Livdjursgatan 4, 121 62 Johanneshov, Stockholm, Sverige
 - **Öppettider**: Måndag–Torsdag 09:00–16:00, Fredag 09:00–15:00
 
-## Priser
-- Apostille: från 1 200 kr
-- UD-legalisering: från 1 200 kr
+## Priser (alla inkl. moms)
+- Notarius Publicus: från 595 kr
+- UD-legalisering: från 895 kr (express från 1 395 kr)
+- Apostille: från 1 200 kr (express från 1 695 kr)
 - Ambassadlegalisering: från 1 200 kr (varierar per land)
 - Handelskammaren: från 900 kr
-- Notarius Publicus: från 500 kr
 - Visumtjänster: från 800 kr (varierar per land och visumtyp)
+- Auktoriserad översättning: offert baserat på dokumenttyp och språk
 
 Alla priser är inklusive moms. Fasta priser utan dolda avgifter.
 
+## Tjänstesidor – Direktlänkar
+- Apostille: https://doxvl.se/tjanster/apostille
+- Ambassadlegalisering: https://doxvl.se/tjanster/ambassadlegalisering
+- Notarius Publicus: https://doxvl.se/tjanster/notarius-publicus
+- Auktoriserad översättning: https://doxvl.se/tjanster/oversattning
+- Utrikesdepartementet (UD): https://doxvl.se/tjanster/utrikesdepartementet
+- Handelskammaren: https://doxvl.se/tjanster/handelskammaren
+- Visumtjänster: https://doxvl.se/visum
+
 ## Beställning
-Beställ online via https://doxvl.se/bestall eller kontakta oss för offert.
+Beställ online: https://doxvl.se/bestall
+Kontakta oss: https://doxvl.se/kontakt
+Prislista: https://doxvl.se/priser
+FAQ: https://doxvl.se/faq
 
 ## Leveranstider
-- Express: 1–2 arbetsdagar (tillgängligt för vissa tjänster)
+- Express: 1–2 arbetsdagar (tillgängligt för de flesta tjänster)
 - Standard: 3–5 arbetsdagar
 - Ambassadlegalisering: 5–15 arbetsdagar (varierar per ambassad)
 
-## Varför välja DOX?
+## Nordiska kunder
+Vi betjänar kunder i hela Norden:
+- Sverige: https://doxvl.se
+- Norge: https://doxvl.se/norge
+- Danmark: https://doxvl.se/danmark
+- Finland: https://doxvl.se/finland
+
+## Varför välja DOX Visumpartner?
 - Över 15 års erfarenhet av dokumentlegalisering
 - Fasta priser utan dolda avgifter
 - Personlig service och rådgivning
-- Snabb handläggning
-- Vi hanterar hela processen åt dig
+- Snabb handläggning med expresstjänst
+- Vi hanterar hela processen åt dig – från notarisering till ambassadlegalisering
 - Betjänar kunder i hela Norden (Sverige, Norge, Danmark, Finland)
+- Auktoriserade översättare godkända av Kammarkollegiet
+- Kontor i Stockholm, Göteborg och Malmö

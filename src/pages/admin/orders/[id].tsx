@@ -1319,6 +1319,20 @@ function AdminOrderDetailPage() {
       setOrder(updatedOrder);
       setProcessingSteps(mergedSteps);
       setNewServiceToAdd('');
+
+      // Reset lineOverrides to match the new pricingBreakdown
+      // (the useEffect won't re-run if adminPrice.lineOverrides already exists)
+      const newLineOverrides = pricingResult.breakdown.map((item: any, idx: number) => {
+        const base = typeof item.total === 'number' ? item.total : (typeof item.fee === 'number' ? item.fee : 0);
+        const label = item.description || getServiceName(item.service) || 'Item';
+        return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, overrideUnitPrice: null, quantity: item.quantity || null, vatPercent: null, include: true };
+      });
+      setLineOverrides(newLineOverrides);
+
+      // Clear saved adminPrice so it doesn't conflict with the new breakdown
+      await adminUpdateOrder(orderId, { adminPrice: null });
+      setOrder(prev => prev ? { ...prev, adminPrice: undefined } as any : prev);
+
       toast.success(`Service "${getServiceName(serviceToAdd)}" has been added to the order`);
     } catch (err) {
       toast.error('Could not add service to order');

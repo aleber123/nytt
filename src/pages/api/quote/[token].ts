@@ -28,6 +28,7 @@ interface QuoteRecord {
   createdAt: string;
   customerEmail: string;
   customerName: string;
+  customerType?: string;
   locale: string;
   respondedAt?: string;
   declineReason?: string;
@@ -78,6 +79,7 @@ export default async function handler(
         order: orderData ? {
           orderNumber: orderData.orderNumber,
           customerName: `${orderData.customerInfo?.firstName || ''} ${orderData.customerInfo?.lastName || ''}`.trim(),
+          customerType: orderData.customerType || quote.customerType || 'private',
           locale: orderData.locale || 'sv'
         } : null
       });

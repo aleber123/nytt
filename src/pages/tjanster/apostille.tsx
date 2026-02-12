@@ -11,41 +11,106 @@ export default function ApostillePage() {
   return (
     <>
       <Head>
-        <title>{t(`${sp}.title`)} | DOX Visumpartner</title>
+        <title>{t(`${sp}.title`)} | DOX Visumpartner – Apostille Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
-        <meta name="keywords" content="apostille, haagkonventionen, legalisering, dokument, Sverige, internationell" />
+        <meta name="keywords" content="apostille, apostille Sverige, apostille stämpel, haagkonventionen, legalisering dokument, apostille födelsebevis, apostille examensbevis, apostille vigselbevis, apostille fullmakt, apostille bolagshandlingar, apostille pris, apostille Stockholm, apostille snabb handläggning, apostille online, legalisera dokument utomlands, internationell dokumentlegalisering" />
         <link rel="canonical" href="https://doxvl.se/tjanster/apostille" />
+        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/apostille" />
+        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/apostille" />
+        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/apostille" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />
         <meta property="og:url" content="https://doxvl.se/tjanster/apostille" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://doxvl.se/dox-logo.webp" />
+        <meta property="og:site_name" content="DOX Visumpartner" />
+        <meta property="og:locale" content="sv_SE" />
+        <meta property="og:locale:alternate" content="en_GB" />
+        
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
+        <meta name="twitter:description" content={t(`${sp}.metaDescription`)} />
+        <meta name="twitter:image" content="https://doxvl.se/dox-logo.webp" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
-          "name": "Apostille",
+          "name": "Apostille Sverige – Legalisering av dokument",
+          "alternateName": "Apostille-stämpel",
           "provider": {
             "@type": "Organization",
             "name": "DOX Visumpartner AB",
             "url": "https://doxvl.se",
-            "logo": "https://doxvl.se/dox-logo.webp"
+            "logo": "https://doxvl.se/dox-logo.webp",
+            "telephone": "+46840941900",
+            "email": "info@doxvl.se",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Livdjursgatan 4",
+              "addressLocality": "Stockholm",
+              "postalCode": "121 62",
+              "addressCountry": "SE"
+            }
           },
-          "description": "Apostille-legalisering för dokument som ska användas i Haagkonventionsländer. Snabb handläggning, från 695 kr.",
-          "areaServed": {
-            "@type": "Country",
-            "name": "Sweden"
-          },
-          "serviceType": "Document Legalization",
-          "offers": {
-            "@type": "Offer",
-            "price": "695",
-            "priceCurrency": "SEK",
-            "availability": "https://schema.org/InStock",
-            "priceValidUntil": "2027-01-01"
+          "description": "Apostille-legalisering för svenska dokument som ska användas i Haagkonventionsländer. Vi hanterar hela processen – skicka in dina dokument och vi ordnar resten. Snabb handläggning, från 695 kr inkl. moms.",
+          "areaServed": [
+            { "@type": "Country", "name": "Sweden" },
+            { "@type": "Country", "name": "Norway" },
+            { "@type": "Country", "name": "Denmark" },
+            { "@type": "Country", "name": "Finland" }
+          ],
+          "serviceType": "Document Legalization – Apostille",
+          "category": "Dokumentlegalisering",
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Apostille-tjänster",
+            "itemListElement": [
+              {
+                "@type": "Offer",
+                "name": "Apostille – Standard",
+                "price": "695",
+                "priceCurrency": "SEK",
+                "availability": "https://schema.org/InStock",
+                "priceValidUntil": "2027-12-31"
+              },
+              {
+                "@type": "Offer",
+                "name": "Apostille – Express",
+                "price": "1195",
+                "priceCurrency": "SEK",
+                "availability": "https://schema.org/InStock",
+                "priceValidUntil": "2027-12-31"
+              }
+            ]
           }
         })}} />
         
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Hem", "item": "https://doxvl.se" },
+            { "@type": "ListItem", "position": 2, "name": "Tjänster", "item": "https://doxvl.se/tjanster" },
+            { "@type": "ListItem", "position": 3, "name": "Apostille", "item": "https://doxvl.se/tjanster/apostille" }
+          ]
+        })}} />
+
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          "name": "Hur man får apostille på dokument i Sverige",
+          "description": "Steg-för-steg guide för att få apostille-stämpel på svenska dokument via DOX Visumpartner.",
+          "totalTime": "P7D",
+          "estimatedCost": { "@type": "MonetaryAmount", "currency": "SEK", "value": "695" },
+          "step": [
+            { "@type": "HowToStep", "position": 1, "name": "Beställ online", "text": "Fyll i beställningsformuläret på doxvl.se med information om ditt dokument och vilket land det ska användas i." },
+            { "@type": "HowToStep", "position": 2, "name": "Skicka in dokument", "text": "Skicka originaldokumentet till oss per post eller boka upphämtning. Vi tar emot dokument från hela Norden." },
+            { "@type": "HowToStep", "position": 3, "name": "Vi hanterar processen", "text": "Vi lämnar in ditt dokument till behörig myndighet för apostille-stämpel och bevakar ärendet." },
+            { "@type": "HowToStep", "position": 4, "name": "Dokument returneras", "text": "Ditt apostille-stämplade dokument skickas tillbaka till dig med spårbar frakt." }
+          ]
+        })}} />
+
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
@@ -55,7 +120,7 @@ export default function ApostillePage() {
               "name": "Vad är en apostille?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "En apostille är en internationell stämpel enligt Haagkonventionen som bekräftar ett dokuments äkthet så att det kan användas i andra anslutna länder utan ytterligare legalisering."
+                "text": "En apostille är en internationell stämpel enligt Haagkonventionen (1961) som bekräftar ett dokuments äkthet. Med en apostille kan ditt svenska dokument användas i över 120 anslutna länder utan ytterligare legalisering. I Sverige utfärdas apostille av Notarius Publicus."
               }
             },
             {
@@ -63,7 +128,7 @@ export default function ApostillePage() {
               "name": "Hur lång tid tar det att få en apostille?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Standardhandläggning tar vanligtvis 5-7 arbetsdagar. Vi erbjuder även expresstjänst för brådskande ärenden."
+                "text": "Standardhandläggning tar vanligtvis 5-7 arbetsdagar från det att vi mottagit ditt dokument. Vi erbjuder även expresstjänst med 1-2 dagars handläggning för brådskande ärenden."
               }
             },
             {
@@ -71,7 +136,7 @@ export default function ApostillePage() {
               "name": "Vilka dokument kan få apostille?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "De flesta officiella svenska dokument kan få apostille, inklusive examensbevis, födelsebevis, vigselbevis, fullmakter, bolagshandlingar och domstolshandlingar."
+                "text": "De flesta officiella svenska dokument kan få apostille, inklusive: födelsebevis, vigselbevis, examensbevis, gymnasiebevis, universitetsbevis, fullmakter, bolagshandlingar, registerutdrag från Bolagsverket, domstolshandlingar, dödsbevis och adoptionshandlingar."
               }
             },
             {
@@ -79,7 +144,31 @@ export default function ApostillePage() {
               "name": "Vad kostar en apostille?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Apostille hos DOX Visumpartner kostar från 695 kr inklusive moms. Priset kan variera beroende på dokumenttyp och om expresstjänst önskas."
+                "text": "Apostille hos DOX Visumpartner kostar från 695 kr inklusive moms för standardtjänst. Expresstjänst kostar från 1 195 kr. Priset inkluderar hantering och inlämning till myndighet."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Vilka länder accepterar apostille?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Apostille accepteras i alla länder som anslutit sig till Haagkonventionen – över 120 länder inklusive USA, Storbritannien, Frankrike, Tyskland, Spanien, Italien, Australien, Japan och de flesta EU-länder. För länder utanför konventionen krävs istället ambassadlegalisering."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Behöver jag notarisering innan apostille?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "I vissa fall behövs notarisering (Notarius Publicus) innan apostille kan utfärdas, till exempel för kopior av pass eller privata dokument. Vi hjälper dig att avgöra vad som krävs för just ditt dokument."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Kan jag beställa apostille online?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Ja, du kan enkelt beställa apostille online via doxvl.se. Fyll i formuläret, skicka in ditt dokument per post, och vi hanterar hela processen åt dig. Vi betjänar kunder i hela Sverige samt Norge, Danmark och Finland."
               }
             }
           ]
@@ -212,6 +301,32 @@ export default function ApostillePage() {
               </Link>
               <Link href="/kontakt" className="border-2 border-white hover:bg-white hover:text-black text-white font-semibold px-8 py-4 rounded-lg transition-colors">
                 {t('servicePages.contactUs')}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Related Services - Internal Linking */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 text-center">
+              {t('servicePages.relatedServicesTitle') !== 'servicePages.relatedServicesTitle' ? t('servicePages.relatedServicesTitle') : 'Relaterade tjänster'}
+            </h2>
+            <p className="text-gray-600 text-center mb-8">
+              {t('servicePages.relatedServicesText') !== 'servicePages.relatedServicesText' ? t('servicePages.relatedServicesText') : 'Behöver du fler legaliseringstjänster? Vi erbjuder ett komplett utbud.'}
+            </p>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Link href="/tjanster/notarius-publicus" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">Notarius Publicus</h3>
+                <p className="text-gray-600 text-sm">Bestyrkning och verifiering av dokument – ofta ett första steg innan apostille.</p>
+              </Link>
+              <Link href="/tjanster/utrikesdepartementet" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">UD-legalisering</h3>
+                <p className="text-gray-600 text-sm">Legalisering via Utrikesdepartementet för dokument som ska till länder utanför Haagkonventionen.</p>
+              </Link>
+              <Link href="/tjanster/ambassadlegalisering" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-300 transition-all group">
+                <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">Ambassadlegalisering</h3>
+                <p className="text-gray-600 text-sm">Legalisering via utländska ambassader – krävs för länder som inte accepterar apostille.</p>
               </Link>
             </div>
           </div>
