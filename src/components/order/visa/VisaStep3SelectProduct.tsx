@@ -323,9 +323,9 @@ export default function VisaStep3SelectProduct({
 
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-8">
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-5 sm:mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {locale === 'en' ? 'What type of visa do you need?' : 'Vilken typ av visum behöver du?'}
             </h2>
@@ -380,17 +380,17 @@ export default function VisaStep3SelectProduct({
           )}
 
           {/* Navigation */}
-          <div className="mt-8 flex justify-between">
+          <div className="flex flex-col gap-3 pt-6 border-t border-gray-200 sm:flex-row sm:justify-between sm:items-center mt-8">
             <button
               onClick={onBack}
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors sm:w-auto"
             >
               {locale === 'en' ? '← Back' : '← Tillbaka'}
             </button>
             <button
               onClick={handleFilterContinue}
               disabled={!canContinue}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${
+              className={`w-full px-6 py-2 rounded-md font-medium transition-colors sm:w-auto ${
                 canContinue
                   ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -414,9 +414,9 @@ export default function VisaStep3SelectProduct({
 
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-8">
           {/* Header */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-5 sm:mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {locale === 'en' ? 'Additional services' : 'Tilläggstjänster'}
             </h2>
@@ -521,16 +521,16 @@ export default function VisaStep3SelectProduct({
           )}
 
           {/* Navigation */}
-          <div className="flex justify-between">
+          <div className="flex flex-col gap-3 pt-6 border-t border-gray-200 sm:flex-row sm:justify-between sm:items-center">
             <button
               onClick={handleFilterBack}
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors sm:w-auto"
             >
               {locale === 'en' ? '← Back' : '← Tillbaka'}
             </button>
             <button
               onClick={handleAddOnContinue}
-              className="px-8 py-3 rounded-lg font-semibold bg-custom-button text-white hover:bg-custom-button-hover transition-all duration-200"
+              className="w-full px-6 py-2 rounded-md font-medium bg-custom-button text-white hover:bg-custom-button-hover transition-colors sm:w-auto"
             >
               {locale === 'en' ? 'Continue →' : 'Fortsätt →'}
             </button>
@@ -554,9 +554,9 @@ export default function VisaStep3SelectProduct({
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-8">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-5 sm:mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             {locale === 'en' ? 'Select your visa' : 'Välj ditt visum'}
           </h2>
@@ -752,17 +752,17 @@ export default function VisaStep3SelectProduct({
         </div>
 
         {/* Navigation */}
-        <div className="mt-8 flex justify-between">
+        <div className="flex flex-col gap-3 pt-6 border-t border-gray-200 sm:flex-row sm:justify-between sm:items-center mt-8">
           <button
             onClick={handleFilterBack}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors sm:w-auto"
           >
             {locale === 'en' ? '← Back' : '← Tillbaka'}
           </button>
           <button
             onClick={handleContinue}
             disabled={!selectedProductId}
-            className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${
+            className={`w-full px-6 py-2 rounded-md font-medium transition-colors sm:w-auto ${
               selectedProductId
                 ? 'bg-custom-button text-white hover:bg-custom-button-hover'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'

@@ -128,9 +128,14 @@ function cleanMrzName(raw: string): string {
  * Parse TD3 MRZ (passport, 2 lines × 44 chars)
  */
 export function parseMRZ(line1: string, line2: string): PassportData | null {
-  // Normalize: uppercase, replace common OCR errors
-  line1 = line1.toUpperCase().replace(/\s/g, '');
-  line2 = line2.toUpperCase().replace(/\s/g, '');
+  // Normalize: uppercase
+  line1 = line1.toUpperCase();
+  line2 = line2.toUpperCase();
+  
+  // OCR often reads '<' as spaces. Convert spaces to '<' before stripping,
+  // so name separators (single < between given names, << between surname/given) are preserved.
+  line1 = line1.replace(/\s/g, '<');
+  line2 = line2.replace(/\s/g, '<');
   
   // Common OCR substitutions
   const fixOcr = (s: string) => s
