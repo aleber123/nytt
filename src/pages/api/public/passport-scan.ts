@@ -13,7 +13,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { parsePassportFromText, extractMRZFromText, parseMRZ } from '@/services/passportService';
 import type { PassportData } from '@/services/passportService';
-import { getFormSubmissionByToken } from '@/firebase/visaFormService';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 export const config = {
@@ -134,13 +134,19 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing image data' });
     }
 
-    // Verify the form submission token is valid and not expired
-    const submission = await getFormSubmissionByToken(token);
-    if (!submission) {
+    // Verify the form submission token is valid and not expired (using Admin SDK)
+    const db = getAdminDb();
+    const submissionsSnap = await db.collection('visaFormSubmissions')
+      .where('token', '==', token)
+      .limit(1)
+      .get();
+    
+    if (submissionsSnap.empty) {
       return res.status(401).json({ error: 'Invalid or expired form token' });
     }
 
-    if (new Date(submission.expiresAt) < new Date()) {
+    const submission = submissionsSnap.docs[0].data();
+    if (submission.expiresAt && new Date(submission.expiresAt) < new Date()) {
       return res.status(401).json({ error: 'Form token has expired' });
     }
 
