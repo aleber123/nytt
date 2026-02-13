@@ -292,9 +292,15 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       const addonsWithForms = (answers.selectedAddOnServices || []).filter(a => a.formTemplateId);
       if (createdOrder && customerEmail && addonsWithForms.length > 0) {
         try {
-          // Use the first addon's linked template
-          const templateId = addonsWithForms[0].formTemplateId!;
-          const formTemplate = await getFormTemplate(templateId);
+          // Pick the most comprehensive template (most fields) so e.g. India e-Visa
+          // (65 fields) is chosen over Svensklistan when both are present
+          let formTemplate = null;
+          for (const addon of addonsWithForms) {
+            const tmpl = await getFormTemplate(addon.formTemplateId!);
+            if (tmpl && (!formTemplate || (tmpl.fields?.length || 0) > (formTemplate.fields?.length || 0))) {
+              formTemplate = tmpl;
+            }
+          }
           
           if (formTemplate) {
             // Pre-fill form data from order to avoid asking for info we already have

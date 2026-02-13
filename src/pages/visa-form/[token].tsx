@@ -746,7 +746,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                               {isEn ? field.placeholderEn || field.labelEn : field.placeholder || field.label}
                             </span>
                           </label>
-                        ) : ['countryOfBirth', 'nationality', 'passportIssuingCountry', 'fatherNationality', 'motherNationality', 'spouseNationality', 'fatherCountryOfBirth', 'motherCountryOfBirth', 'spouseCountryOfBirth'].includes(field.id) ? (
+                        ) : ['countryOfBirth', 'nationality', 'passportIssuingCountry', 'fatherNationality', 'motherNationality', 'spouseNationality', 'fatherCountryOfBirth', 'motherCountryOfBirth', 'spouseCountryOfBirth', 'otherPassportCountry'].includes(field.id) ? (
                           <CountryDropdown
                             value={formData[field.id] || ''}
                             onChange={(v) => handleFieldChange(field.id, v)}

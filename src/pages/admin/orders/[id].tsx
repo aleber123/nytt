@@ -607,7 +607,7 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-gray-500">Visa Product:</span>
-              <span className="ml-2 font-medium">{order.visaProduct?.name || '—'}</span>
+              <span className="ml-2 font-medium">{(order.visaProduct as any)?.nameEn || order.visaProduct?.name || '—'}</span>
             </div>
             <div>
               <span className="text-gray-500">Visa Type:</span>

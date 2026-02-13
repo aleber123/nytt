@@ -63,6 +63,7 @@ interface Order {
   destinationCountryCode?: string;
   visaProduct?: {
     name?: string;
+    nameEn?: string;
     category?: string;
   };
 }
@@ -786,7 +787,7 @@ function AdminOrdersPage() {
                           <div className="flex flex-wrap gap-1">
                             {order.orderType === 'visa' ? (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-purple-100 text-purple-800">
-                                {order.visaProduct?.name || order.visaProduct?.category || 'Visa'}
+                                {order.visaProduct?.nameEn || order.visaProduct?.name || order.visaProduct?.category || 'Visa'}
                               </span>
                             ) : Array.isArray(order.services) ? (
                               order.services.slice(0, 3).map((service, idx) => (

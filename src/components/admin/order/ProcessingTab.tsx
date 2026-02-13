@@ -2,6 +2,7 @@
 import type { ExtendedOrder, ProcessingStep } from './types';
 import SvensklistanButton from './SvensklistanButton';
 import IndiaEVisaButton from './IndiaEVisaButton';
+import FormDataPrintButton from './FormDataPrintButton';
 
 // ProcessingTab receives all needed state/functions via a context object
 // to avoid 50+ individual props
@@ -128,8 +129,9 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
 
                               return (
                                 <div className="mt-3 space-y-3">
-                                  <div className="p-3 rounded-lg border bg-green-50 border-green-200">
+                                  <div className="p-3 rounded-lg border bg-green-50 border-green-200 flex items-center justify-between">
                                     <p className="text-sm font-medium text-green-900">✅ Customer data received</p>
+                                    <FormDataPrintButton order={order} />
                                   </div>
 
                                   {hasSvensklistan && hasTravelers && (
