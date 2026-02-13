@@ -1,6 +1,7 @@
 // @ts-nocheck
 import type { ExtendedOrder, ProcessingStep } from './types';
 import SvensklistanButton from './SvensklistanButton';
+import IndiaEVisaButton from './IndiaEVisaButton';
 
 // ProcessingTab receives all needed state/functions via a context object
 // to avoid 50+ individual props
@@ -113,20 +114,51 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                               </select>
                             </div>
                             
-                            {/* Svensklistan action buttons — shown when data_collection_form step is completed */}
-                            {step.id === 'data_collection_form' && step.status === 'completed' && (order as any).travelers?.length > 0 && (
-                              <div className="mt-3 p-3 rounded-lg border bg-green-50 border-green-200">
-                                <p className="text-sm font-medium text-green-900 mb-2">🇸🇪 Customer data received — run Svensklistan script:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {(order as any).travelers.map((t: any, idx: number) => (
-                                    <SvensklistanButton key={idx} order={order} travelerIndex={idx} />
-                                  ))}
+                            {/* Action buttons — shown when data_collection_form step is completed */}
+                            {step.id === 'data_collection_form' && step.status === 'completed' && (() => {
+                              const addons = (order as any).addOnServices || [];
+                              const hasSvensklistan = addons.some((a: any) => 
+                                a.name?.toLowerCase().includes('svensklistan') || a.id?.toLowerCase().includes('svensklistan')
+                              );
+                              const hasIndiaEVisa = addons.some((a: any) => 
+                                a.name?.toLowerCase().includes('india') || a.name?.toLowerCase().includes('indien') ||
+                                a.id?.toLowerCase().includes('india') || a.id?.toLowerCase().includes('indien')
+                              );
+                              const hasTravelers = (order as any).travelers?.length > 0;
+
+                              return (
+                                <div className="mt-3 space-y-3">
+                                  <div className="p-3 rounded-lg border bg-green-50 border-green-200">
+                                    <p className="text-sm font-medium text-green-900">✅ Customer data received</p>
+                                  </div>
+
+                                  {hasSvensklistan && hasTravelers && (
+                                    <div className="p-3 rounded-lg border bg-green-50 border-green-200">
+                                      <p className="text-sm font-medium text-green-900 mb-2">🇸🇪 Svensklistan — run auto-fill script:</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {(order as any).travelers.map((t: any, idx: number) => (
+                                          <SvensklistanButton key={idx} order={order} travelerIndex={idx} />
+                                        ))}
+                                      </div>
+                                      <p className="text-xs text-green-700 mt-2">
+                                        Click → script copied → paste in browser console on Svensklistan page
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {hasIndiaEVisa && hasTravelers && (
+                                    <div className="p-3 rounded-lg border bg-orange-50 border-orange-200">
+                                      <p className="text-sm font-medium text-orange-900 mb-2">🇮🇳 India e-Visa — run auto-fill scripts:</p>
+                                      <div className="space-y-2">
+                                        {(order as any).travelers.map((t: any, idx: number) => (
+                                          <IndiaEVisaButton key={idx} order={order} travelerIndex={idx} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                                <p className="text-xs text-green-700 mt-2">
-                                  Click → script copied → paste in browser console on Svensklistan page
-                                </p>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* Address confirmation section */}
                             {needsAddressConfirmation(step.id) && (
