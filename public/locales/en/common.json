@@ -1157,6 +1157,18 @@
       "delivered": {
         "name": "Delivered",
         "description": "The documents have been delivered to you"
+      },
+      "visaProcessing": {
+        "name": "Application Processing",
+        "description": "Your visa application is being processed"
+      },
+      "submittedToEmbassy": {
+        "name": "Submitted to Embassy",
+        "description": "Your application has been submitted to the embassy"
+      },
+      "visaApproved": {
+        "name": "Visa Approved",
+        "description": "Your visa has been approved"
       }
     },
     "statuses": {
@@ -1164,16 +1176,24 @@
       "received": "Received",
       "processing": "Processing",
       "submitted": "Submitted",
+      "submitted-to-embassy": "Submitted to Embassy",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "documents-required": "Documents Required",
       "action-required": "Action Required",
       "ready-for-return": "Ready for Return",
       "completed": "Completed",
       "cancelled": "Cancelled"
     },
     "statusDescriptions": {
-      "pending": "Your order has been created, waiting for documents",
-      "received": "We have received your documents",
-      "processing": "We are actively working on your documents",
+      "pending": "Your order has been created, awaiting information",
+      "received": "We have received your information",
+      "processing": "We are actively working on your application",
       "submitted": "Documents have been submitted to an authority",
+      "submitted-to-embassy": "Your application has been submitted to the embassy",
+      "approved": "Your visa has been approved",
+      "rejected": "Your visa application was rejected",
+      "documents-required": "Additional documents are required for your application",
       "action-required": "Additional information or documents needed",
       "ready-for-return": "Documents are ready and will be shipped soon",
       "completed": "Documents have been delivered to you",

@@ -1128,6 +1128,18 @@
       "delivered": {
         "name": "Levererade",
         "description": "Dokumenten har levererats till dig"
+      },
+      "visaProcessing": {
+        "name": "Ansökan behandlas",
+        "description": "Din visumansökan behandlas"
+      },
+      "submittedToEmbassy": {
+        "name": "Inskickad till ambassad",
+        "description": "Din ansökan har skickats till ambassaden"
+      },
+      "visaApproved": {
+        "name": "Visum beviljat",
+        "description": "Ditt visum har beviljats"
       }
     },
     "statuses": {
@@ -1135,16 +1147,24 @@
       "received": "Mottagen",
       "processing": "Behandlas",
       "submitted": "Inskickad",
+      "submitted-to-embassy": "Inskickad till ambassad",
+      "approved": "Beviljad",
+      "rejected": "Avslagen",
+      "documents-required": "Dokument krävs",
       "action-required": "Åtgärd krävs",
       "ready-for-return": "Klar för retur",
       "completed": "Slutförd",
       "cancelled": "Avbruten"
     },
     "statusDescriptions": {
-      "pending": "Din beställning har skapats, väntar på dokument",
-      "received": "Vi har mottagit dina dokument",
-      "processing": "Vi arbetar aktivt med dina dokument",
+      "pending": "Din beställning har skapats, väntar på uppgifter",
+      "received": "Vi har mottagit dina uppgifter",
+      "processing": "Vi arbetar aktivt med din ansökan",
       "submitted": "Dokumenten har lämnats in till en myndighet",
+      "submitted-to-embassy": "Din ansökan har skickats till ambassaden",
+      "approved": "Ditt visum har beviljats",
+      "rejected": "Din visumansökan har avslagits",
+      "documents-required": "Ytterligare dokument behövs för din ansökan",
       "action-required": "Ytterligare information eller dokument behövs",
       "ready-for-return": "Dokumenten är klara och skickas snart",
       "completed": "Dokumenten har levererats till dig",
