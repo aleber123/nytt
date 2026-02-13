@@ -262,201 +262,293 @@ function esc(s: string): string {
 }
 
 /**
- * Generate Page 1 script: Passport & Personal Details
+ * Generate Registration Page script (the first page at indianvisaonline.gov.in/evisa/tvoa.html)
+ * Fields: nationality, passport type, DOB, email, arrival date, visa service + purpose
  */
 export function generatePage1Script(data: IndiaEVisaData): string {
+  // Map visa purpose to the portal's radio button name
+  // e-Business Visa purposes use evisa_purpose_31 radio group
+  const purposeMap: Record<string, { radioName: string; radioValue: string }> = {
+    'TO SET UP INDUSTRIAL/BUSINESS VENTURE': { radioName: 'evisa_purpose_31', radioValue: '311' },
+    'SALE/PURCHASE/TRADE': { radioName: 'evisa_purpose_31', radioValue: '312' },
+    'ATTEND TECHNICAL/BUSINESS MEETINGS': { radioName: 'evisa_purpose_31', radioValue: '313' },
+    'TO RECRUIT MANPOWER': { radioName: 'evisa_purpose_31', radioValue: '314' },
+    'PARTICIPATION IN EXHIBITIONS/BUSINESS FAIRS': { radioName: 'evisa_purpose_31', radioValue: '315' },
+    'EXPERT/SPECIALIST IN CONNECTION WITH AN ONGOING PROJECT': { radioName: 'evisa_purpose_31', radioValue: '316' },
+  };
+  const purpose = purposeMap[(data.purposeOfVisit || data.visaSubType || 'ATTEND TECHNICAL/BUSINESS MEETINGS').toUpperCase()] 
+    || purposeMap['ATTEND TECHNICAL/BUSINESS MEETINGS'];
+
   return `${SCRIPT_HEADER}
-  // === PAGE 1: Passport & Personal Details ===
+  // === REGISTRATION PAGE ===
   // Traveler: ${esc(data.givenName)} ${esc(data.surname)}
   
   // Nationality
-  r('Nationality', setSelect('#nationality, [name="nationality"], select[ng-model*="nationality"]', '${esc(data.nationality)}'));
+  r('Nationality', setSelect('#nationality_id, [name="appl.nationality"]', '${esc(data.nationality)}'));
   
   // Passport Type
-  r('Passport Type', setSelect('#passportType, [name="passportType"], select[ng-model*="passportType"]', '${esc(data.passportType)}'));
+  r('Passport Type', setSelect('#ppt_type_id, [name="appl.ppt_type_id"]', '${esc(data.passportType)}'));
   
-  // Port of Arrival
-  r('Port of Arrival', setSelect('#portOfArrival, [name="portOfArrival"], select[ng-model*="portOfArrival"]', '${esc(data.portOfArrival)}'));
+  // Port of Arrival (not on registration page — skip, will be on later page)
   
   // Date of Birth
-  r('Date of Birth', setDate('#dateOfBirth, [name="dateOfBirth"], input[ng-model*="dateOfBirth"]', '${esc(data.dateOfBirth)}'));
+  r('Date of Birth', setDate('#dob_id, [name="appl.birthdate"]', '${esc(data.dateOfBirth)}'));
   
   // Email
-  r('Email', setVal('#emailId, [name="emailId"], input[ng-model*="emailId"]', '${esc(data.emailId)}'));
-  r('Re-enter Email', setVal('#reenterEmailId, [name="reenterEmailId"], input[ng-model*="reenterEmailId"]', '${esc(data.reenterEmailId || data.emailId)}'));
+  r('Email', setVal('#email_id, [name="appl.email"]', '${esc(data.emailId)}'));
+  r('Re-enter Email', setVal('#email_re_id, [name="appl.email_re"]', '${esc(data.reenterEmailId || data.emailId)}'));
+  
+  // Visa Service — check the eBusiness checkbox (value 31)
+  r('Visa Service', (function() {
+    // Find the eBusiness checkbox
+    var checkboxes = document.querySelectorAll('input[name="evisa_service"]');
+    for (var i = 0; i < checkboxes.length; i++) {
+      // The eBusiness checkbox is associated with evisa_purpose_31
+      var cb = checkboxes[i];
+      var parent = cb.closest('div') || cb.parentElement;
+      if (parent && parent.querySelector('[name="evisa_purpose_31"]')) {
+        if (!cb.checked) cb.click();
+        return true;
+      }
+    }
+    // Fallback: try the visa_ser_id
+    var el = document.querySelector('#visa_ser_id');
+    if (el && !el.checked) { el.click(); return true; }
+    console.warn('eBusiness checkbox not found');
+    return false;
+  })());
+  
+  // Purpose radio within eBusiness
+  r('Purpose', (function() {
+    var radios = document.querySelectorAll('input[name="${purpose.radioName}"]');
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].value === '${purpose.radioValue}') {
+        radios[i].click();
+        return true;
+      }
+    }
+    // Fallback: click the first radio in the group
+    if (radios.length > 0) { radios[0].click(); return true; }
+    return false;
+  })());
   
   // Expected Date of Arrival
-  r('Expected Arrival', setDate('#expectedDateOfArrival, [name="expectedDateOfArrival"], input[ng-model*="expectedDateOfArrival"]', '${esc(data.expectedDateOfArrival)}'));
-  
-  // Visa Service — eBusiness
-  r('Visa Service', setSelect('#visaService, [name="visaService"], select[ng-model*="visaService"]', 'eBUSINESS VISA'));
-  
-  // Surname
-  r('Surname', setVal('#surname, [name="surname"], input[ng-model*="surname"]', '${esc(data.surname)}'));
-  
-  // Given Name
-  r('Given Name', setVal('#givenName, [name="givenName"], input[ng-model*="givenName"]', '${esc(data.givenName)}'));
-  
-  // Changed Name
-  r('Changed Name', setRadio('haveYouChangedName', '${data.haveYouChangedName === 'Yes' ? 'Y' : 'N'}'));
-  ${data.haveYouChangedName === 'Yes' && data.previousName ? `r('Previous Name', setVal('#previousName, [name="previousName"]', '${esc(data.previousName)}'));` : ''}
-  
-  // Gender
-  r('Gender', setRadio('gender', '${data.gender === 'MALE' ? 'M' : data.gender === 'FEMALE' ? 'F' : 'T'}'));
-  
-  // Town/City of Birth
-  r('Town of Birth', setVal('#townCityOfBirth, [name="townCityOfBirth"], input[ng-model*="townCityOfBirth"]', '${esc(data.townCityOfBirth)}'));
-  
-  // Country of Birth
-  r('Country of Birth', setSelect('#countryOfBirth, [name="countryOfBirth"], select[ng-model*="countryOfBirth"]', '${esc(data.countryOfBirth)}'));
-  
-  // Citizenship/National ID
-  r('National ID', setVal('#citizenshipNationalId, [name="citizenshipNationalId"], input[ng-model*="citizenshipNationalId"]', '${esc(data.citizenshipNationalId)}'));
-  
-  // Religion
-  r('Religion', setSelect('#religion, [name="religion"], select[ng-model*="religion"]', '${esc(data.religion)}'));
-  
-  // Visible Identification Mark
-  r('Identification Mark', setVal('#visibleIdentificationMark, [name="visibleIdentificationMark"], input[ng-model*="visibleIdentificationMark"]', '${esc(data.visibleIdentificationMark || 'NONE')}'));
-  
-  // Educational Qualification
-  r('Education', setSelect('#educationalQualification, [name="educationalQualification"], select[ng-model*="educationalQualification"]', '${esc(data.educationalQualification)}'));
-  
-  // === Passport Details ===
-  r('Passport Number', setVal('#passportNumber, [name="passportNumber"], input[ng-model*="passportNumber"]', '${esc(data.passportNumber)}'));
-  r('Place of Issue', setVal('#placeOfIssue, [name="placeOfIssue"], input[ng-model*="placeOfIssue"]', '${esc(data.placeOfIssue)}'));
-  r('Date of Issue', setDate('#dateOfIssue, [name="dateOfIssue"], input[ng-model*="dateOfIssue"]', '${esc(data.dateOfIssue)}'));
-  r('Date of Expiry', setDate('#dateOfExpiry, [name="dateOfExpiry"], input[ng-model*="dateOfExpiry"]', '${esc(data.dateOfExpiry)}'));
-  
-  // Other passport
-  r('Other Passport', setRadio('anyOtherPassport', '${data.anyOtherPassport === 'Yes' ? 'Y' : 'N'}'));
-  ${data.anyOtherPassport === 'Yes' ? `
-  r('Other Passport Country', setSelect('#otherPassportCountry, [name="otherPassportCountry"]', '${esc(data.otherPassportCountry || '')}'));
-  r('Other Passport Number', setVal('#otherPassportNumber, [name="otherPassportNumber"]', '${esc(data.otherPassportNumber || '')}'));
-  r('Other Passport Place', setVal('#otherPassportPlaceOfIssue, [name="otherPassportPlaceOfIssue"]', '${esc(data.otherPassportPlaceOfIssue || '')}'));
-  r('Other Passport Date', setDate('#otherPassportDateOfIssue, [name="otherPassportDateOfIssue"]', '${esc(data.otherPassportDateOfIssue || '')}'));
-  ` : ''}
+  r('Expected Arrival', setDate('#jouryney_id, [name="appl.journeydate"]', '${esc(data.expectedDateOfArrival)}'));
 ${SCRIPT_FOOTER}`;
 }
 
 /**
- * Generate Page 2 script: Applicant Address & Family Details
+ * Generate Page 2 script: Applicant Details (Personal + Passport)
+ * This is the "BasicDetails" page after registration
  */
 export function generatePage2Script(data: IndiaEVisaData): string {
   return `${SCRIPT_HEADER}
-  // === PAGE 2: Address, Family & Profession ===
+  // === PAGE 2: Applicant Details (Personal + Passport) ===
   // Traveler: ${esc(data.givenName)} ${esc(data.surname)}
   
-  // Address
-  r('House/Street', setVal('#houseNoStreet, [name="houseNoStreet"], input[ng-model*="houseNoStreet"]', '${esc(data.houseNoStreet)}'));
-  r('Village/Town', setVal('#village, [name="village"], input[ng-model*="village"]', '${esc(data.village || data.city)}'));
-  r('City', setVal('#city, [name="city"], input[ng-model*="city"]', '${esc(data.city)}'));
-  r('State', setVal('#state, [name="state"], input[ng-model*="state"]', '${esc(data.state)}'));
-  r('Postal Code', setVal('#postalCode, [name="postalCode"], input[ng-model*="postalCode"]', '${esc(data.postalCode)}'));
-  r('Phone', setVal('#phoneNo, [name="phoneNo"], input[ng-model*="phoneNo"]', '${esc(data.phoneNo)}'));
-  r('Mobile', setVal('#mobileNo, [name="mobileNo"], input[ng-model*="mobileNo"]', '${esc(data.mobileNo)}'));
+  // Surname & Given Name
+  r('Surname', setVal('#surname, [name="appl.surname"]', '${esc(data.surname)}'));
+  r('Given Name', setVal('#givenName, [name="appl.applname"]', '${esc(data.givenName)}'));
   
-  // Father
-  r('Father Name', setVal('#fatherName, [name="fatherName"], input[ng-model*="fatherName"]', '${esc(data.fatherName)}'));
-  r('Father Nationality', setSelect('#fatherNationality, [name="fatherNationality"], select[ng-model*="fatherNationality"]', '${esc(data.fatherNationality)}'));
-  ${data.fatherPlaceOfBirth ? `r('Father Birth Place', setVal('#fatherPlaceOfBirth, [name="fatherPlaceOfBirth"]', '${esc(data.fatherPlaceOfBirth)}'));` : ''}
-  ${data.fatherCountryOfBirth ? `r('Father Birth Country', setSelect('#fatherCountryOfBirth, [name="fatherCountryOfBirth"]', '${esc(data.fatherCountryOfBirth)}'));` : ''}
-  
-  // Mother
-  r('Mother Name', setVal('#motherName, [name="motherName"], input[ng-model*="motherName"]', '${esc(data.motherName)}'));
-  r('Mother Nationality', setSelect('#motherNationality, [name="motherNationality"], select[ng-model*="motherNationality"]', '${esc(data.motherNationality)}'));
-  ${data.motherPlaceOfBirth ? `r('Mother Birth Place', setVal('#motherPlaceOfBirth, [name="motherPlaceOfBirth"]', '${esc(data.motherPlaceOfBirth)}'));` : ''}
-  ${data.motherCountryOfBirth ? `r('Mother Birth Country', setSelect('#motherCountryOfBirth, [name="motherCountryOfBirth"]', '${esc(data.motherCountryOfBirth)}'));` : ''}
-  
-  // Marital Status
-  r('Marital Status', setSelect('#maritalStatus, [name="maritalStatus"], select[ng-model*="maritalStatus"]', '${esc(data.maritalStatus)}'));
-  ${data.maritalStatus === 'MARRIED' && data.spouseName ? `
-  r('Spouse Name', setVal('#spouseName, [name="spouseName"], input[ng-model*="spouseName"]', '${esc(data.spouseName)}'));
-  r('Spouse Nationality', setSelect('#spouseNationality, [name="spouseNationality"]', '${esc(data.spouseNationality || '')}'));
-  ${data.spousePlaceOfBirth ? `r('Spouse Birth Place', setVal('#spousePlaceOfBirth, [name="spousePlaceOfBirth"]', '${esc(data.spousePlaceOfBirth)}'));` : ''}
-  ${data.spouseCountryOfBirth ? `r('Spouse Birth Country', setSelect('#spouseCountryOfBirth, [name="spouseCountryOfBirth"]', '${esc(data.spouseCountryOfBirth)}'));` : ''}
+  // Changed Name
+  ${data.haveYouChangedName === 'Yes' ? `
+  r('Changed Name', setCheckbox('#changedSurnameCheck', true));
+  ${data.previousName ? `r('Previous Surname', setVal('#prev_surname, [name="appl.prev_surname"]', '${esc(data.previousName)}'));` : ''}
   ` : ''}
   
-  // Profession
-  r('Occupation', setSelect('#presentOccupation, [name="presentOccupation"], select[ng-model*="presentOccupation"]', '${esc(data.presentOccupation)}'));
-  ${data.employerName ? `r('Employer', setVal('#employerName, [name="employerName"], input[ng-model*="employerName"]', '${esc(data.employerName)}'));` : ''}
-  ${data.employerAddress ? `r('Employer Address', setVal('#employerAddress, [name="employerAddress"], input[ng-model*="employerAddress"]', '${esc(data.employerAddress)}'));` : ''}
-  ${data.employerPhone ? `r('Employer Phone', setVal('#employerPhone, [name="employerPhone"], input[ng-model*="employerPhone"]', '${esc(data.employerPhone)}'));` : ''}
+  // Gender
+  r('Gender', setSelect('#gender, [name="appl.applsex"]', '${esc(data.gender)}'));
   
-  // Military
-  r('Military Service', setRadio('wereYouInMilitary', '${data.wereYouInMilitary === 'Yes' ? 'Y' : 'N'}'));
+  // Birth Place & Country
+  r('Birth Place', setVal('#birth_place, [name="appl.placbrth"]', '${esc(data.townCityOfBirth)}'));
+  r('Country of Birth', setSelect('#country_birth, [name="appl.country_of_birth"]', '${esc(data.countryOfBirth)}'));
+  
+  // National ID (personnummer)
+  r('National ID', setVal('#nic_number, [name="appl.nic_no"]', '${esc(data.citizenshipNationalId)}'));
+  
+  // Religion
+  r('Religion', setSelect('#religion, [name="appl.religion"]', '${esc(data.religion)}'));
+  
+  // Visible Identification Mark
+  r('Identification Mark', setVal('#identity_marks, [name="appl.visual_mark"]', '${esc(data.visibleIdentificationMark || 'NONE')}'));
+  
+  // Educational Qualification
+  r('Education', setSelect('#education, [name="appl.edu_id"]', '${esc(data.educationalQualification)}'));
+  
+  // Nationality acquired by
+  r('Nationality By', setSelect('#nationality_by, [name="appl.nationality_by"]', 'BIRTH'));
+  
+  // === Passport Details ===
+  r('Passport Number', setVal('#passport_no, [name="appl.passport_number"]', '${esc(data.passportNumber)}'));
+  r('Place of Issue', setVal('#passport_issue_place, [name="appl.passport_issue_place"]', '${esc(data.placeOfIssue)}'));
+  r('Date of Issue', setDate('#passport_issue_date, [name="appl.passport_issue_date"]', '${esc(data.dateOfIssue)}'));
+  r('Date of Expiry', setDate('#passport_expiry_date, [name="appl.passport_expiry_date"]', '${esc(data.dateOfExpiry)}'));
+  
+  // Other passport — radio: other_ppt_1 = Yes, other_ppt_2 = No
+  r('Other Passport', (function() {
+    var el = document.querySelector('${data.anyOtherPassport === 'Yes' ? '#other_ppt_1' : '#other_ppt_2'}');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
+  ${data.anyOtherPassport === 'Yes' ? `
+  r('Other PP Country', setSelect('#other_ppt_country_issue, [name="appl.prev_passport_country_issue"]', '${esc(data.otherPassportCountry || '')}'));
+  r('Other PP Number', setVal('#other_ppt_no, [name="appl.oth_pptno"]', '${esc(data.otherPassportNumber || '')}'));
+  r('Other PP Issue Date', setDate('#other_ppt_issue_date, [name="appl.previous_passport_issue_date"]', '${esc(data.otherPassportDateOfIssue || '')}'));
+  r('Other PP Issue Place', setVal('#other_ppt_issue_place, [name="appl.other_ppt_issue_place"]', '${esc(data.otherPassportPlaceOfIssue || '')}'));
+  r('Other PP Nationality', setSelect('#other_ppt_nat, [name="appl.other_ppt_nationality"]', '${esc(data.otherPassportNationality || '')}'));
+  ` : ''}
 ${SCRIPT_FOOTER}`;
 }
 
 /**
- * Generate Page 3 script: Travel Details (Business Visa)
+ * Generate Page 3 script: Address, Family & Profession
+ * This is the second form page after BasicDetails
  */
 export function generatePage3Script(data: IndiaEVisaData): string {
   return `${SCRIPT_HEADER}
-  // === PAGE 3: Travel / Business Details ===
+  // === PAGE 3: Address, Family & Profession ===
   // Traveler: ${esc(data.givenName)} ${esc(data.surname)}
   
-  // Purpose
-  ${data.purposeOfVisit ? `r('Purpose', setSelect('#purposeOfVisit, [name="purposeOfVisit"], select[ng-model*="purposeOfVisit"]', '${esc(data.purposeOfVisit)}'));` : ''}
-  ${data.detailsOfPurpose ? `r('Details', setVal('#detailsOfPurpose, [name="detailsOfPurpose"], textarea[ng-model*="detailsOfPurpose"], input[ng-model*="detailsOfPurpose"]', '${esc(data.detailsOfPurpose)}'));` : ''}
+  // Present Address
+  r('Address Line 1', setVal('#pres_add1, [name="appl.pres_add1"]', '${esc(data.houseNoStreet)}'));
+  r('Address Line 2', setVal('#pres_add2, [name="appl.pres_add2"]', '${esc(data.village || data.city)}'));
+  r('Country', setSelect('#pres_country, [name="appl.pres_country"]', 'SWEDEN'));
+  r('State/Province', setVal('#pres_add3, [name="appl.state_name"]', '${esc(data.state)}'));
+  r('Postal Code', setVal('#pincode, [name="appl.pincode"]', '${esc(data.postalCode)}'));
+  r('Phone', setVal('#pres_phone, [name="appl.pres_phone"]', '${esc(data.phoneNo)}'));
+  r('Mobile', setVal('#mobile, [name="appl.mobile"]', '${esc(data.mobileNo || data.phoneNo)}'));
   
-  // Places to visit
-  ${data.placesToVisit ? `r('Places to Visit', setVal('#placesToVisit, [name="placesToVisit"], input[ng-model*="placesToVisit"]', '${esc(data.placesToVisit)}'));` : ''}
+  // Same as permanent address
+  r('Same Address', setCheckbox('#sameAddress_id', true));
   
-  // Duration & entries
-  ${data.durationOfVisa ? `r('Duration', setSelect('#durationOfVisa, [name="durationOfVisa"], select[ng-model*="durationOfVisa"]', '${esc(data.durationOfVisa)}'));` : ''}
-  ${data.numberOfEntries ? `r('Entries', setSelect('#numberOfEntries, [name="numberOfEntries"], select[ng-model*="numberOfEntries"]', '${esc(data.numberOfEntries)}'));` : ''}
+  // Father
+  r('Father Name', setVal('#fthrname, [name="appl.fthrname"]', '${esc(data.fatherName)}'));
+  r('Father Nationality', setSelect('#father_nationality, [name="appl.father_nationality"]', '${esc(data.fatherNationality)}'));
+  r('Father Prev Nationality', setSelect('#father_previous_nationality, [name="appl.father_previous_nationality"]', '${esc(data.fatherPreviousNationality || data.fatherNationality)}'));
+  ${data.fatherPlaceOfBirth ? `r('Father Birth Place', setVal('#father_place_of_birth, [name="appl.father_place_of_birth"]', '${esc(data.fatherPlaceOfBirth)}'));` : ''}
+  ${data.fatherCountryOfBirth ? `r('Father Birth Country', setSelect('#father_country_of_birth, [name="appl.father_country_of_birth"]', '${esc(data.fatherCountryOfBirth)}'));` : ''}
   
-  // Reference in India
-  r('Ref Name (India)', setVal('#referenceNameInIndia, [name="referenceNameInIndia"], input[ng-model*="referenceNameInIndia"]', '${esc(data.referenceNameInIndia)}'));
-  r('Ref Address (India)', setVal('#referenceAddressInIndia, [name="referenceAddressInIndia"], input[ng-model*="referenceAddressInIndia"]', '${esc(data.referenceAddressInIndia)}'));
-  r('Ref Phone (India)', setVal('#referencePhoneInIndia, [name="referencePhoneInIndia"], input[ng-model*="referencePhoneInIndia"]', '${esc(data.referencePhoneInIndia)}'));
+  // Mother
+  r('Mother Name', setVal('#mother_name, [name="appl.mother_name"]', '${esc(data.motherName)}'));
+  r('Mother Nationality', setSelect('#mother_nationality, [name="appl.mother_nationality"]', '${esc(data.motherNationality)}'));
+  r('Mother Prev Nationality', setSelect('#mother_previous_nationality, [name="appl.mother_previous_nationality"]', '${esc(data.motherPreviousNationality || data.motherNationality)}'));
+  ${data.motherPlaceOfBirth ? `r('Mother Birth Place', setVal('#mother_place_of_birth, [name="appl.mother_place_of_birth"]', '${esc(data.motherPlaceOfBirth)}'));` : ''}
+  ${data.motherCountryOfBirth ? `r('Mother Birth Country', setSelect('#mother_country_of_birth, [name="appl.mother_country_of_birth"]', '${esc(data.motherCountryOfBirth)}'));` : ''}
   
-  // Reference in home country
-  r('Ref Name (Home)', setVal('#referenceNameInHomeCountry, [name="referenceNameInHomeCountry"], input[ng-model*="referenceNameInHomeCountry"]', '${esc(data.referenceNameInHomeCountry)}'));
-  r('Ref Address (Home)', setVal('#referenceAddressInHomeCountry, [name="referenceAddressInHomeCountry"], input[ng-model*="referenceAddressInHomeCountry"]', '${esc(data.referenceAddressInHomeCountry)}'));
-  r('Ref Phone (Home)', setVal('#referencePhoneInHomeCountry, [name="referencePhoneInHomeCountry"], input[ng-model*="referencePhoneInHomeCountry"]', '${esc(data.referencePhoneInHomeCountry)}'));
+  // Marital Status
+  r('Marital Status', setSelect('#marital_status, [name="appl.marital_status"]', '${esc(data.maritalStatus)}'));
+  ${data.maritalStatus === 'MARRIED' && data.spouseName ? `
+  r('Spouse Name', setVal('#spouse_name, [name="appl.spouse_name"]', '${esc(data.spouseName)}'));
+  r('Spouse Nationality', setSelect('#spouse_nationality, [name="appl.spouse_nationality"]', '${esc(data.spouseNationality || '')}'));
+  r('Spouse Prev Nationality', setSelect('#spouse_previous_nationality, [name="appl.spouse_previous_nationality"]', '${esc(data.spousePreviousNationality || data.spouseNationality || '')}'));
+  ${data.spousePlaceOfBirth ? `r('Spouse Birth Place', setVal('#spouse_place_of_birth, [name="appl.spouse_place_of_birth"]', '${esc(data.spousePlaceOfBirth)}'));` : ''}
+  ${data.spouseCountryOfBirth ? `r('Spouse Birth Country', setSelect('#spouse_country_of_birth, [name="appl.spouse_country_of_birth"]', '${esc(data.spouseCountryOfBirth)}'));` : ''}
+  ` : ''}
   
-  // Inviting company
-  ${data.invitingCompanyName ? `r('Company Name', setVal('#invitingCompanyName, [name="invitingCompanyName"], input[ng-model*="invitingCompanyName"]', '${esc(data.invitingCompanyName)}'));` : ''}
-  ${data.invitingCompanyAddress ? `r('Company Address', setVal('#invitingCompanyAddress, [name="invitingCompanyAddress"], input[ng-model*="invitingCompanyAddress"]', '${esc(data.invitingCompanyAddress)}'));` : ''}
-  ${data.invitingCompanyPhone ? `r('Company Phone', setVal('#invitingCompanyPhone, [name="invitingCompanyPhone"], input[ng-model*="invitingCompanyPhone"]', '${esc(data.invitingCompanyPhone)}'));` : ''}
+  // Grandparent — No
+  r('Grandparent Indian', (function() {
+    var el = document.querySelector('#grandparent_flag2');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
   
-  // Port of exit
-  ${data.expectedPortOfExit ? `r('Port of Exit', setSelect('#expectedPortOfExit, [name="expectedPortOfExit"], select[ng-model*="expectedPortOfExit"]', '${esc(data.expectedPortOfExit)}'));` : ''}
+  // Profession
+  r('Occupation', setSelect('#occupation, [name="appl.occupation"]', '${esc(data.presentOccupation)}'));
+  ${data.employerName ? `r('Employer Name', setVal('#empname, [name="appl.empname"]', '${esc(data.employerName)}'));` : ''}
+  ${data.employerAddress ? `r('Employer Address', setVal('#empaddress, [name="appl.empaddress"]', '${esc(data.employerAddress)}'));` : ''}
+  ${data.employerPhone ? `r('Employer Phone', setVal('#empphone, [name="appl.empphone"]', '${esc(data.employerPhone)}'));` : ''}
+  
+  // Military/Semi-military — radio: prev_org1 = Yes, prev_org2 = No
+  r('Military Service', (function() {
+    var el = document.querySelector('${data.wereYouInMilitary === 'Yes' ? '#prev_org1' : '#prev_org2'}');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
 ${SCRIPT_FOOTER}`;
 }
 
 /**
- * Generate Page 4 script: Previous Visa & Other Info
+ * Generate Page 4 script: Travel Details, Previous Visa, References & Other Info
+ * This is the third form page — combines travel, visa history, and references
  */
 export function generatePage4Script(data: IndiaEVisaData): string {
   return `${SCRIPT_HEADER}
-  // === PAGE 4: Previous Visa & Other Info ===
+  // === PAGE 4: Travel Details, Previous Visa & References ===
   // Traveler: ${esc(data.givenName)} ${esc(data.surname)}
   
-  // Previous India visit
-  r('Visited India Before', setRadio('haveYouVisitedIndiaBefore', '${data.haveYouVisitedIndiaBefore === 'Yes' ? 'Y' : 'N'}'));
+  // Places to visit
+  r('Place to Visit 1', setVal('#placesToBeVisited1_id, [name="appl.placesToBeVisited1"]', '${esc(data.placesToVisit || '')}'));
+  
+  // Hotel booking — No
+  r('Hotel Booked', (function() {
+    var el = document.querySelector('#haveYouBookedRoomInHotel_no_id');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
+  
+  // Business visa service request fields (visa_serreq_id_*)
+  // These are dynamic fields for eBusiness purpose details
+  ${data.detailsOfPurpose ? `r('Purpose Details', setVal('#visa_serreq_id_20', '${esc(data.detailsOfPurpose)}'));` : ''}
+  ${data.invitingCompanyName ? `r('Company Name', setVal('#visa_serreq_id_26', '${esc(data.invitingCompanyName)}'));` : ''}
+  ${data.invitingCompanyAddress ? `r('Company Address', setVal('#visa_serreq_id_27', '${esc(data.invitingCompanyAddress)}'));` : ''}
+  ${data.invitingCompanyPhone ? `r('Company Phone', setVal('#visa_serreq_id_29', '${esc(data.invitingCompanyPhone)}'));` : ''}
+  
+  // Port of Exit
+  ${data.expectedPortOfExit ? `r('Port of Exit', setSelect('#exitpoint, [name="appl.exitpoint"]', '${esc(data.expectedPortOfExit)}'));` : ''}
+  
+  // === Previous India Visit ===
+  r('Visited India Before', (function() {
+    var el = document.querySelector('${data.haveYouVisitedIndiaBefore === 'Yes' ? '#old_visa_flag1' : '#old_visa_flag2'}');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
   ${data.haveYouVisitedIndiaBefore === 'Yes' ? `
-  ${data.previousVisaNo ? `r('Previous Visa No', setVal('#previousVisaNo, [name="previousVisaNo"]', '${esc(data.previousVisaNo)}'));` : ''}
-  ${data.previousVisaType ? `r('Previous Visa Type', setVal('#previousVisaType, [name="previousVisaType"]', '${esc(data.previousVisaType)}'));` : ''}
-  ${data.previousVisaPlaceOfIssue ? `r('Previous Visa Place', setVal('#previousVisaPlaceOfIssue, [name="previousVisaPlaceOfIssue"]', '${esc(data.previousVisaPlaceOfIssue)}'));` : ''}
-  ${data.previousVisaDateOfIssue ? `r('Previous Visa Date', setDate('#previousVisaDateOfIssue, [name="previousVisaDateOfIssue"]', '${esc(data.previousVisaDateOfIssue)}'));` : ''}
+  ${data.previousVisaNo ? `r('Previous Visa No', setVal('#old_visa_no, [name="appl.old_visa_no"]', '${esc(data.previousVisaNo)}'));` : ''}
+  ${data.previousVisaType ? `r('Previous Visa Type', setSelect('#old_visa_type_id, [name="appl.old_visa_type_id"]', '${esc(data.previousVisaType)}'));` : ''}
+  ${data.previousVisaPlaceOfIssue ? `r('Previous Visa Place', setVal('#oldvisaissueplace, [name="appl.oldvisaissueplace"]', '${esc(data.previousVisaPlaceOfIssue)}'));` : ''}
+  ${data.previousVisaDateOfIssue ? `r('Previous Visa Date', setDate('#oldvisaissuedate, [name="appl.oldvisaissuedate"]', '${esc(data.previousVisaDateOfIssue)}'));` : ''}
   ` : ''}
   
-  // Countries visited in last 10 years
-  ${data.countriesVisitedInLast10Years ? `r('Countries Visited', setVal('#countriesVisitedInLast10Years, [name="countriesVisitedInLast10Years"], textarea[ng-model*="countriesVisitedInLast10Years"]', '${esc(data.countriesVisitedInLast10Years)}'));` : ''}
-  
   // Visa refusal
-  r('Visa Refused', setRadio('haveYouBeenRefusedVisa', '${data.haveYouBeenRefusedVisa === 'Yes' ? 'Y' : 'N'}'));
-  ${data.haveYouBeenRefusedVisa === 'Yes' && data.refusedVisaDetails ? `r('Refusal Details', setVal('#refusedVisaDetails, [name="refusedVisaDetails"]', '${esc(data.refusedVisaDetails)}'));` : ''}
+  r('Visa Refused', (function() {
+    var el = document.querySelector('${data.haveYouBeenRefusedVisa === 'Yes' ? '#refuse_flag1' : '#refuse_flag2'}');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
+  ${data.haveYouBeenRefusedVisa === 'Yes' && data.refusedVisaDetails ? `r('Refusal Details', setVal('#refuse_details, [name="appl.refuse_details"]', '${esc(data.refusedVisaDetails)}'));` : ''}
   
-  // Deportation
-  r('Deported', setRadio('haveYouBeenDeported', '${data.haveYouBeenDeported === 'Yes' ? 'Y' : 'N'}'));
-  ${data.haveYouBeenDeported === 'Yes' && data.deportedDetails ? `r('Deportation Details', setVal('#deportedDetails, [name="deportedDetails"]', '${esc(data.deportedDetails)}'));` : ''}
+  // Countries visited in last 10 years (multi-select)
+  ${data.countriesVisitedInLast10Years ? `r('Countries Visited', (function() {
+    var sel = document.querySelector('#country_visited');
+    if (!sel) return false;
+    var countries = '${esc(data.countriesVisitedInLast10Years)}'.split(',').map(function(s) { return s.trim().toUpperCase(); });
+    for (var i = 0; i < sel.options.length; i++) {
+      var optText = sel.options[i].text.trim().toUpperCase();
+      if (countries.some(function(c) { return optText.includes(c) || c.includes(optText); })) {
+        sel.options[i].selected = true;
+      }
+    }
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })());` : ''}
   
-  // SAARC
-  ${data.saarcCountryVisitedInLast3Years ? `r('SAARC Countries', setVal('#saarcCountryVisitedInLast3Years, [name="saarcCountryVisitedInLast3Years"]', '${esc(data.saarcCountryVisitedInLast3Years)}'));` : ''}
+  // SAARC — No
+  r('SAARC Visited', (function() {
+    var el = document.querySelector('#saarc_flag2');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
+  
+  // === References ===
+  // Reference in India
+  r('Ref Name (India)', setVal('#nameofsponsor_ind, [name="appl.nameofsponsor_ind"]', '${esc(data.referenceNameInIndia)}'));
+  r('Ref Address (India)', setVal('#add1ofsponsor_ind, [name="appl.add1ofsponsor_ind"]', '${esc(data.referenceAddressInIndia)}'));
+  r('Ref Phone (India)', setVal('#phoneofsponsor_ind, [name="appl.phoneofsponsor_ind"]', '${esc(data.referencePhoneInIndia)}'));
+  
+  // Reference in home country
+  r('Ref Name (Home)', setVal('#nameofsponsor_msn, [name="appl.nameofsponsor_msn"]', '${esc(data.referenceNameInHomeCountry)}'));
+  r('Ref Address (Home)', setVal('#add1ofsponsor_msn, [name="appl.add1ofsponsor_msn"]', '${esc(data.referenceAddressInHomeCountry)}'));
+  r('Ref Phone (Home)', setVal('#phoneofsponsor_msn, [name="appl.phoneofsponsor_msn"]', '${esc(data.referencePhoneInHomeCountry)}'));
 ${SCRIPT_FOOTER}`;
 }
 
@@ -465,10 +557,10 @@ ${SCRIPT_FOOTER}`;
  */
 export function generateAllPageScripts(data: IndiaEVisaData): { page: number; title: string; script: string }[] {
   return [
-    { page: 1, title: 'Passport & Personal Details', script: generatePage1Script(data) },
-    { page: 2, title: 'Address, Family & Profession', script: generatePage2Script(data) },
-    { page: 3, title: 'Travel / Business Details', script: generatePage3Script(data) },
-    { page: 4, title: 'Previous Visa & Other Info', script: generatePage4Script(data) },
+    { page: 1, title: 'Registration Page', script: generatePage1Script(data) },
+    { page: 2, title: 'Personal & Passport Details', script: generatePage2Script(data) },
+    { page: 3, title: 'Address, Family & Profession', script: generatePage3Script(data) },
+    { page: 4, title: 'Travel, Visa History & References', script: generatePage4Script(data) },
   ];
 }
 
