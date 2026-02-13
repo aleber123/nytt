@@ -57,7 +57,7 @@ function CountryDropdown({ value, onChange, isEn }: { value: string; onChange: (
     <div className="relative" ref={ref}>
       <div onClick={() => setOpen(true)} className="w-full px-3 py-2 border border-gray-300 rounded-lg cursor-pointer flex items-center justify-between focus-within:ring-2 focus-within:ring-[#0EB0A6]">
         {selected ? (
-          <span className="flex items-center gap-2"><span>{selected.flag}</span><span>{isEn ? selected.nameEn : selected.name}</span></span>
+          <span className="flex items-center gap-2"><span className="text-xs text-gray-400">({selected.code})</span><span>{isEn ? selected.nameEn : selected.name}</span></span>
         ) : (
           <span className="text-gray-400">{isEn ? 'Select country...' : 'Välj land...'}</span>
         )}
@@ -70,7 +70,7 @@ function CountryDropdown({ value, onChange, isEn }: { value: string; onChange: (
           </div>
           {filtered.map(c => (
             <button key={c.code} type="button" onClick={() => { onChange(c.nameEn || c.name); setOpen(false); setSearch(''); }} className={`w-full text-left px-3 py-2 hover:bg-teal-50 flex items-center gap-2 text-sm ${value === c.nameEn || value === c.name ? 'bg-teal-50 font-medium' : ''}`}>
-              <span>{c.flag}</span><span>{isEn ? c.nameEn : c.name}</span>
+              <span className="text-xs text-gray-400 w-8">({c.code})</span><span>{isEn ? c.nameEn : c.name}</span>
             </button>
           ))}
           {filtered.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">{isEn ? 'No results' : 'Inga resultat'}</p>}
@@ -110,7 +110,7 @@ function CountryMultiSelect({ value, onChange, isEn }: { value: string; onChange
             const country = ALL_COUNTRIES.find(c => c.nameEn === name || c.name === name);
             return (
               <span key={name} className="inline-flex items-center gap-1 px-2 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-medium cursor-pointer hover:bg-red-100 hover:text-red-700" onClick={() => toggle(name)} title={isEn ? 'Click to remove' : 'Klicka för att ta bort'}>
-                {country?.flag} {name} ×
+                ({country?.code}) {name} ×
               </span>
             );
           })}
@@ -124,7 +124,7 @@ function CountryMultiSelect({ value, onChange, isEn }: { value: string; onChange
               const isSel = selectedNames.includes(c.nameEn || c.name);
               return (
                 <button key={c.code} type="button" onClick={() => { toggle(c.nameEn || c.name); setSearch(''); }} className={`w-full text-left px-3 py-2 hover:bg-teal-50 flex items-center gap-2 text-sm ${isSel ? 'bg-teal-50 font-medium' : ''}`}>
-                  <span>{c.flag}</span><span>{isEn ? c.nameEn : c.name}</span>{isSel && <span className="ml-auto text-teal-600">✓</span>}
+                  <span className="text-xs text-gray-400 w-8">({c.code})</span><span>{isEn ? c.nameEn : c.name}</span>{isSel && <span className="ml-auto text-teal-600">✓</span>}
                 </button>
               );
             })}
@@ -680,6 +680,28 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                 <div className="space-y-4">
                   {groupFields
                     .sort((a, b) => a.sortOrder - b.sortOrder)
+                    .filter(field => {
+                      // Conditional visibility: hide dependent fields until parent is answered
+                      const conditions: Record<string, { parent: string; showWhen: string | string[] }> = {
+                        previousName: { parent: 'haveYouChangedName', showWhen: 'Yes' },
+                        otherPassportCountry: { parent: 'anyOtherPassport', showWhen: 'Yes' },
+                        otherPassportNumber: { parent: 'anyOtherPassport', showWhen: 'Yes' },
+                        spouseName: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+                        spouseNationality: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+                        spousePlaceOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+                        spouseCountryOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+                        previousVisaNo: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+                        previousVisaType: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+                        previousVisaPlaceOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+                        previousVisaDateOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+                        refusedVisaDetails: { parent: 'haveYouBeenRefusedVisa', showWhen: 'Yes' },
+                      };
+                      const cond = conditions[field.id];
+                      if (!cond) return true;
+                      const parentVal = formData[cond.parent] || '';
+                      if (Array.isArray(cond.showWhen)) return cond.showWhen.includes(parentVal);
+                      return parentVal === cond.showWhen;
+                    })
                     .map(field => (
                       <div key={field.id}>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
