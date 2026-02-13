@@ -300,12 +300,12 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
           autoFill['nationality'] = data.nationality;
         }
 
-        // Only fill fields that exist in the template and are currently empty
+        // Fill fields that exist in the template (overwrite existing values with passport data)
         const templateFieldIds = new Set(template?.fields?.map(f => f.id) || []);
         const newFormData = { ...formData };
         let filledCount = 0;
         for (const [fieldId, value] of Object.entries(autoFill)) {
-          if (templateFieldIds.has(fieldId) && !newFormData[fieldId]?.trim() && value) {
+          if (templateFieldIds.has(fieldId) && value) {
             newFormData[fieldId] = value;
             filledCount++;
           }
@@ -505,6 +505,16 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     .filter(f => f.required && formData[f.id] && !isValidPersonnummer(formData[f.id]))
     .map(f => f.id);
 
+  // Validate phone fields: must contain only digits, +, spaces, dashes
+  const isValidPhone = (val: string) => {
+    if (!val) return false;
+    return /^[\d\s\+\-()]+$/.test(val.trim()) && val.replace(/[^\d]/g, '').length >= 6;
+  };
+  const phoneFields = fields.filter(f => f.type === 'phone');
+  const phoneErrors = phoneFields
+    .filter(f => formData[f.id] && !isValidPhone(formData[f.id]))
+    .map(f => f.id);
+
   // Conditional visibility rules (same as in render)
   const conditionRules: Record<string, { parent: string; showWhen: string }> = {
     previousName: { parent: 'haveYouChangedName', showWhen: 'Yes' },
@@ -532,7 +542,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     .map(f => f.id);
 
   const requiredFieldsMissing = missingRequiredFields.length > 0;
-  const hasValidationErrors = requiredFieldsMissing || personnummerErrors.length > 0;
+  const hasValidationErrors = requiredFieldsMissing || personnummerErrors.length > 0 || phoneErrors.length > 0;
 
   return (
     <>
@@ -688,7 +698,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
             if (!groupFields || groupFields.length === 0) return null;
 
             return (
-              <div key={group.id} className="bg-white rounded-xl shadow-sm border p-6 mb-4">
+              <div key={group.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6 mb-4 overflow-hidden">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <span>{group.icon}</span>
                   {isEn ? group.labelEn : group.label}
@@ -783,17 +793,23 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                         ) : (
                           <>
                             <input
-                              type={field.type === 'personnummer' ? 'text' : field.type}
+                              type={field.type === 'personnummer' ? 'text' : field.type === 'phone' ? 'tel' : field.type}
+                              inputMode={field.type === 'phone' ? 'tel' : undefined}
                               value={formData[field.id] || ''}
                               onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                              placeholder={isEn ? field.placeholderEn : field.placeholder}
+                              placeholder={isEn ? field.placeholderEn || (field.type === 'phone' ? 'e.g. +46701234567' : undefined) : field.placeholder || (field.type === 'phone' ? 't.ex. +46701234567' : undefined)}
                               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0EB0A6] focus:border-[#0EB0A6] ${
-                                personnummerErrors.includes(field.id) ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                                personnummerErrors.includes(field.id) || phoneErrors.includes(field.id) ? 'border-red-400 bg-red-50' : 'border-gray-300'
                               }`}
                             />
                             {personnummerErrors.includes(field.id) && (
                               <p className="text-xs text-red-600 mt-1">
                                 {isEn ? 'Must be in format YYYYMMDD-NNNN (e.g. 19900101-1234)' : 'Måste vara i formatet ÅÅÅÅMMDD-NNNN (t.ex. 19900101-1234)'}
+                              </p>
+                            )}
+                            {phoneErrors.includes(field.id) && (
+                              <p className="text-xs text-red-600 mt-1">
+                                {isEn ? 'Please enter a valid phone number (digits only, e.g. +46701234567)' : 'Ange ett giltigt telefonnummer (endast siffror, t.ex. +46701234567)'}
                               </p>
                             )}
                           </>

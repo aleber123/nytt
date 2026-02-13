@@ -205,6 +205,23 @@ const SCRIPT_HEADER = `
     var radios = document.querySelectorAll('input[name="' + name + '"]');
     for (var i = 0; i < radios.length; i++) {
       if (radios[i].value === value || radios[i].value.toUpperCase() === value.toUpperCase()) {
+        radios[i].checked = true;
+        radios[i].click();
+        radios[i].dispatchEvent(new Event('change', { bubbles: true }));
+        radios[i].dispatchEvent(new Event('input', { bubbles: true }));
+        // Trigger Angular digest if present
+        if (typeof angular !== 'undefined') {
+          var scope = angular.element(radios[i]).scope();
+          if (scope) { try { scope.$apply(); } catch(e) {} }
+        }
+        return true;
+      }
+    }
+    // Fallback: try matching by label text near the radio
+    for (var i = 0; i < radios.length; i++) {
+      var lbl = radios[i].closest('label') || document.querySelector('label[for="' + radios[i].id + '"]');
+      if (lbl && lbl.textContent.trim().toUpperCase().includes(value.toUpperCase())) {
+        radios[i].checked = true;
         radios[i].click();
         radios[i].dispatchEvent(new Event('change', { bubbles: true }));
         return true;
@@ -212,6 +229,20 @@ const SCRIPT_HEADER = `
     }
     console.warn('Radio not found:', name, '=', value);
     return false;
+  }
+  
+  function clickRadioById(id) {
+    var el = document.querySelector('#' + id);
+    if (!el) { console.warn('Radio #' + id + ' not found'); return false; }
+    el.checked = true;
+    el.click();
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    if (typeof angular !== 'undefined') {
+      var scope = angular.element(el).scope();
+      if (scope) { try { scope.$apply(); } catch(e) {} }
+    }
+    return true;
   }
   
   function setDate(selector, ddmmyyyy) {
@@ -289,7 +320,8 @@ export function generatePage1Script(data: IndiaEVisaData): string {
   // Passport Type
   r('Passport Type', setSelect('#ppt_type_id, [name="appl.ppt_type_id"]', '${esc(data.passportType)}'));
   
-  // Port of Arrival (not on registration page — skip, will be on later page)
+  // Port of Arrival
+  r('Port of Arrival', setSelect('#port_id, [name="appl.port_id"]', '${esc(data.portOfArrival)}'));
   
   // Date of Birth
   r('Date of Birth', setDate('#dob_id, [name="appl.birthdate"]', '${esc(data.dateOfBirth)}'));
@@ -298,37 +330,49 @@ export function generatePage1Script(data: IndiaEVisaData): string {
   r('Email', setVal('#email_id, [name="appl.email"]', '${esc(data.emailId)}'));
   r('Re-enter Email', setVal('#email_re_id, [name="appl.email_re"]', '${esc(data.reenterEmailId || data.emailId)}'));
   
-  // Visa Service — check the eBusiness checkbox (value 31)
+  // Visa Service — radio buttons for visa type (e-BUSINESS VISA, e-TOURIST VISA, etc.)
   r('Visa Service', (function() {
-    // Find the eBusiness checkbox
-    var checkboxes = document.querySelectorAll('input[name="evisa_service"]');
-    for (var i = 0; i < checkboxes.length; i++) {
-      // The eBusiness checkbox is associated with evisa_purpose_31
-      var cb = checkboxes[i];
-      var parent = cb.closest('div') || cb.parentElement;
-      if (parent && parent.querySelector('[name="evisa_purpose_31"]')) {
-        if (!cb.checked) cb.click();
+    // Try all possible selectors for the e-Business Visa radio
+    var selectors = [
+      'input[name="visa_ser_id"][value="31"]',
+      'input[name="evisa_service"][value="31"]',
+      '#visa_ser_id_31',
+      '#evisa_service_31'
+    ];
+    for (var s = 0; s < selectors.length; s++) {
+      var el = document.querySelector(selectors[s]);
+      if (el) { el.checked = true; el.click(); el.dispatchEvent(new Event('change', {bubbles:true})); return true; }
+    }
+    // Fallback: find radio by label text containing 'Business'
+    var allRadios = document.querySelectorAll('input[type="radio"]');
+    for (var i = 0; i < allRadios.length; i++) {
+      var lbl = allRadios[i].closest('label') || document.querySelector('label[for="' + allRadios[i].id + '"]');
+      var parent = allRadios[i].parentElement;
+      var txt = (lbl ? lbl.textContent : '') + (parent ? parent.textContent : '');
+      if (txt.toUpperCase().includes('BUSINESS') && txt.toUpperCase().includes('VISA')) {
+        allRadios[i].checked = true;
+        allRadios[i].click();
+        allRadios[i].dispatchEvent(new Event('change', {bubbles:true}));
         return true;
       }
     }
-    // Fallback: try the visa_ser_id
-    var el = document.querySelector('#visa_ser_id');
-    if (el && !el.checked) { el.click(); return true; }
-    console.warn('eBusiness checkbox not found');
+    console.warn('e-Business Visa radio not found');
     return false;
   })());
   
-  // Purpose radio within eBusiness
+  // Purpose radio within eBusiness — wait briefly for sub-options to appear
   r('Purpose', (function() {
     var radios = document.querySelectorAll('input[name="${purpose.radioName}"]');
     for (var i = 0; i < radios.length; i++) {
       if (radios[i].value === '${purpose.radioValue}') {
+        radios[i].checked = true;
         radios[i].click();
+        radios[i].dispatchEvent(new Event('change', {bubbles:true}));
         return true;
       }
     }
     // Fallback: click the first radio in the group
-    if (radios.length > 0) { radios[0].click(); return true; }
+    if (radios.length > 0) { radios[0].checked = true; radios[0].click(); return true; }
     return false;
   })());
   
@@ -373,7 +417,53 @@ export function generatePage2Script(data: IndiaEVisaData): string {
   r('Identification Mark', setVal('#identity_marks, [name="appl.visual_mark"]', '${esc(data.visibleIdentificationMark || 'NONE')}'));
   
   // Educational Qualification
-  r('Education', setSelect('#education, [name="appl.edu_id"]', '${esc(data.educationalQualification)}'));
+  r('Education', (function() {
+    // Try multiple selectors for the education dropdown
+    var selectors = ['#education', '#edu_id', '[name="appl.edu_id"]', 'select[name="edu_id"]'];
+    for (var s = 0; s < selectors.length; s++) {
+      var el = document.querySelector(selectors[s]);
+      if (el && el.tagName === 'SELECT') {
+        var val = '${esc(data.educationalQualification)}';
+        for (var i = 0; i < el.options.length; i++) {
+          if (el.options[i].value.toUpperCase() === val.toUpperCase() || el.options[i].text.trim().toUpperCase() === val.toUpperCase() || el.options[i].text.trim().toUpperCase().includes(val.toUpperCase())) {
+            el.selectedIndex = i;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+          }
+        }
+      }
+    }
+    // Also try radio buttons (some portal versions use radios)
+    var radios = document.querySelectorAll('input[type="radio"]');
+    for (var i = 0; i < radios.length; i++) {
+      var lbl = radios[i].closest('label') || document.querySelector('label[for="' + radios[i].id + '"]');
+      if (lbl && lbl.textContent.trim().toUpperCase().includes('${esc(data.educationalQualification)}')) {
+        radios[i].checked = true; radios[i].click(); radios[i].dispatchEvent(new Event('change', {bubbles:true}));
+        return true;
+      }
+    }
+    return setSelect('#education, #edu_id, [name="appl.edu_id"]', '${esc(data.educationalQualification)}');
+  })());
+  
+  // Education sub-field: Qualification acquired from (College/University)
+  r('Edu Detail', (function() {
+    var selectors = ['#edu_detail', '#edu_detail_id', '[name="appl.edu_detail"]', 'select[name="edu_detail"]'];
+    for (var s = 0; s < selectors.length; s++) {
+      var el = document.querySelector(selectors[s]);
+      if (el && el.tagName === 'SELECT') {
+        // Try to select an option containing 'COLLEGE' or 'UNIVERSITY'
+        for (var i = 0; i < el.options.length; i++) {
+          var txt = el.options[i].text.trim().toUpperCase();
+          if (txt.includes('COLLEGE') || txt.includes('UNIVERSITY')) {
+            el.selectedIndex = i;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  })());
   
   // Nationality acquired by
   r('Nationality By', setSelect('#nationality_by, [name="appl.nationality_by"]', 'BIRTH'));
@@ -452,8 +542,62 @@ export function generatePage3Script(data: IndiaEVisaData): string {
     return false;
   })());
   
-  // Profession
-  r('Occupation', setSelect('#occupation, [name="appl.occupation"]', '${esc(data.presentOccupation)}'));
+  // Have you lived for at least two years in the country where you are applying visa?
+  r('Lived 2 Years', (function() {
+    // Try common radio IDs
+    var yesIds = ['#lived_flag1', '#lived_2yr_yes', '#livedTwoYears_yes'];
+    var noIds = ['#lived_flag2', '#lived_2yr_no', '#livedTwoYears_no'];
+    var ids = 'Yes' === 'Yes' ? yesIds : noIds;
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.querySelector(ids[i]);
+      if (el) { el.checked = true; el.click(); el.dispatchEvent(new Event('change', {bubbles:true})); return true; }
+    }
+    // Fallback: find radio by nearby label text
+    var allRadios = document.querySelectorAll('input[type="radio"]');
+    for (var i = 0; i < allRadios.length; i++) {
+      var lbl = allRadios[i].closest('label') || document.querySelector('label[for="' + allRadios[i].id + '"]');
+      var parent = allRadios[i].closest('div');
+      var ctx = (parent ? parent.textContent : '') + (lbl ? lbl.textContent : '');
+      if (ctx.toUpperCase().includes('LIVED') && ctx.toUpperCase().includes('TWO YEARS') || ctx.toUpperCase().includes('AT LEAST TWO')) {
+        // Found the question context, now pick Yes radio
+        var name = allRadios[i].name;
+        var group = document.querySelectorAll('input[name="' + name + '"]');
+        for (var j = 0; j < group.length; j++) {
+          if (group[j].value.toUpperCase() === 'Y' || group[j].value === '1' || group[j].value.toUpperCase() === 'YES') {
+            group[j].checked = true; group[j].click(); group[j].dispatchEvent(new Event('change', {bubbles:true}));
+            return true;
+          }
+        }
+        // If values are not Y/N, click the first one (usually Yes)
+        if (group.length >= 1) { group[0].checked = true; group[0].click(); group[0].dispatchEvent(new Event('change', {bubbles:true})); return true; }
+      }
+    }
+    return false;
+  })());
+  
+  // Profession / Present Occupation
+  r('Occupation', (function() {
+    var val = '${esc(data.presentOccupation)}';
+    var selectors = ['#occupation', '#occupation_id', '[name="appl.occupation"]', 'select[name="occupation"]'];
+    for (var s = 0; s < selectors.length; s++) {
+      var el = document.querySelector(selectors[s]);
+      if (el && el.tagName === 'SELECT') {
+        // Exact match first
+        for (var i = 0; i < el.options.length; i++) {
+          if (el.options[i].text.trim().toUpperCase() === val.toUpperCase()) {
+            el.selectedIndex = i; el.dispatchEvent(new Event('change', {bubbles:true})); return true;
+          }
+        }
+        // Partial match
+        for (var i = 0; i < el.options.length; i++) {
+          if (el.options[i].text.trim().toUpperCase().includes(val.toUpperCase()) || val.toUpperCase().includes(el.options[i].text.trim().toUpperCase())) {
+            el.selectedIndex = i; el.dispatchEvent(new Event('change', {bubbles:true})); return true;
+          }
+        }
+      }
+    }
+    return setSelect('#occupation, [name="appl.occupation"]', val);
+  })());
   ${data.employerName ? `r('Employer Name', setVal('#empname, [name="appl.empname"]', '${esc(data.employerName)}'));` : ''}
   ${data.employerAddress ? `r('Employer Address', setVal('#empaddress, [name="appl.empaddress"]', '${esc(data.employerAddress)}'));` : ''}
   ${data.employerPhone ? `r('Employer Phone', setVal('#empphone, [name="appl.empphone"]', '${esc(data.employerPhone)}'));` : ''}
@@ -461,7 +605,7 @@ export function generatePage3Script(data: IndiaEVisaData): string {
   // Military/Semi-military — radio: prev_org1 = Yes, prev_org2 = No
   r('Military Service', (function() {
     var el = document.querySelector('${data.wereYouInMilitary === 'Yes' ? '#prev_org1' : '#prev_org2'}');
-    if (el) { el.click(); return true; }
+    if (el) { el.checked = true; el.click(); el.dispatchEvent(new Event('change', {bubbles:true})); return true; }
     return false;
   })());
 ${SCRIPT_FOOTER}`;

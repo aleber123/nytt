@@ -59,6 +59,17 @@ h1, h2, h3, h4, h5, h6 {
 /* Tillgängliga formulärelement */
 input, select, textarea {
   @apply border-gray-300 rounded-md shadow-sm;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Constrain native date picker on mobile */
+input[type="date"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  max-width: 100%;
+  min-width: 0;
 }
 
 input:focus, select:focus, textarea:focus {
