@@ -225,9 +225,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
   };
 
   const handleFieldChange = (fieldId: string, value: string) => {
-    // Auto-convert åäö for India e-Visa compatibility (text fields only)
-    const converted = transliterateSwedish(value);
-    setFormData(prev => ({ ...prev, [fieldId]: converted }));
+    setFormData(prev => ({ ...prev, [fieldId]: value }));
     setSaved(false);
     triggerAutoSave();
   };
@@ -279,19 +277,35 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
         const data = result.data as PassportData;
         const autoFill: Record<string, string> = {};
 
-        // Map passport data to common form field IDs
-        if (data.surname) autoFill['lastName'] = data.surname;
-        if (data.givenNames) autoFill['firstName'] = data.givenNames.split(' ')[0];
+        // Map passport data to form field IDs (supports both common and India e-Visa template IDs)
+        if (data.surname) {
+          autoFill['surname'] = data.surname;
+          autoFill['lastName'] = data.surname;
+        }
+        if (data.givenNames) {
+          autoFill['givenName'] = data.givenNames;
+          autoFill['firstName'] = data.givenNames.split(' ')[0];
+        }
         if (data.dateOfBirth) autoFill['dateOfBirth'] = data.dateOfBirth;
         if (data.gender) {
-          const genderMap: Record<string, string> = { 'MALE': 'male', 'FEMALE': 'female', 'OTHER': 'other' };
-          autoFill['gender'] = genderMap[data.gender] || '';
+          autoFill['gender'] = data.gender; // MALE/FEMALE matches India template options
         }
         if (data.passportNumber) autoFill['passportNumber'] = data.passportNumber;
-        if (data.expiryDate) autoFill['passportExpiryDate'] = data.expiryDate;
-        if (data.issuingCountry) autoFill['passportIssuingCountry'] = data.issuingCountry;
-        if (data.nationalityCode) autoFill['nationality'] = data.nationalityCode;
-        if (data.issuingCountryCode) autoFill['passportIssuingCountryCode'] = data.issuingCountryCode;
+        if (data.expiryDate) {
+          autoFill['dateOfExpiry'] = data.expiryDate;
+          autoFill['passportExpiryDate'] = data.expiryDate;
+        }
+        if (data.issuingCountry) {
+          autoFill['passportIssuingCountry'] = data.issuingCountry;
+          autoFill['countryOfBirth'] = data.issuingCountry;
+          autoFill['nationality'] = data.issuingCountry;
+        }
+        if (data.personalNumber) {
+          autoFill['citizenshipNationalId'] = data.personalNumber;
+        }
+        if (data.nationality) {
+          autoFill['nationality'] = data.nationality;
+        }
 
         // Only fill fields that exist in the template and are currently empty
         const templateFieldIds = new Set(template?.fields?.map(f => f.id) || []);

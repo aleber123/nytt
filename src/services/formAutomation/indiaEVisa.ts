@@ -157,13 +157,21 @@ const SCRIPT_HEADER = `
 (function() {
   'use strict';
   
+  // Convert Swedish characters å ä ö to ASCII for India portal
+  function tr(s) {
+    return s.replace(/å/g,'aa').replace(/Å/g,'AA')
+            .replace(/ä/g,'ae').replace(/Ä/g,'AE')
+            .replace(/ö/g,'oe').replace(/Ö/g,'OE');
+  }
+  
   function setVal(selector, value) {
     var el = document.querySelector(selector);
     if (!el) { console.warn('Not found:', selector); return false; }
+    var clean = tr(value);
     var proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     var setter = Object.getOwnPropertyDescriptor(proto, 'value');
-    if (setter && setter.set) { setter.set.call(el, value); }
-    else { el.value = value; }
+    if (setter && setter.set) { setter.set.call(el, clean); }
+    else { el.value = clean; }
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
     el.dispatchEvent(new Event('blur', { bubbles: true }));
