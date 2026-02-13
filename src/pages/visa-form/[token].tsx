@@ -20,18 +20,10 @@ import {
 } from '@/firebase/visaFormService';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
-import { updateVisaProcessingStep } from '@/firebase/visaOrderService';
 import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 import type { PassportData } from '@/services/passportService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 
-/** Convert Swedish characters å ä ö to ASCII equivalents for India e-Visa compatibility */
-function transliterateSwedish(text: string): string {
-  return text
-    .replace(/å/g, 'aa').replace(/Å/g, 'Aa')
-    .replace(/ä/g, 'ae').replace(/Ä/g, 'Ae')
-    .replace(/ö/g, 'oe').replace(/Ö/g, 'Oe');
-}
 
 /** Searchable single-country dropdown */
 function CountryDropdown({ value, onChange, isEn }: { value: string; onChange: (v: string) => void; isEn: boolean }) {
@@ -149,6 +141,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locale, setLocale] = useState<'sv' | 'en'>('sv');
+  const [showValidation, setShowValidation] = useState(false);
 
   // Passport scanner state
   const [passportScanning, setPassportScanning] = useState(false);
@@ -351,17 +344,17 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
       setSaved(true);
       if (isComplete) {
         setSubmission(prev => prev ? { ...prev, status: 'completed', completedAt: new Date().toISOString() } : prev);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        // Auto-update processing step to completed
-        if (submission.orderId) {
-          try {
-            await updateVisaProcessingStep(submission.orderId, 'data_collection_form', {
-              status: 'completed',
-              notes: `Customer submitted form data at ${new Date().toLocaleString('sv-SE')}`,
-            });
-          } catch {
-            // Non-critical — admin can update manually
-          }
+        // Auto-update processing step to completed (via Admin SDK endpoint)
+        try {
+          await fetch('/api/public/form-complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+          });
+        } catch {
+          // Non-critical — admin can update manually
         }
         
         // Send notification email to admin
@@ -512,10 +505,33 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     .filter(f => f.required && formData[f.id] && !isValidPersonnummer(formData[f.id]))
     .map(f => f.id);
 
-  const requiredFieldsMissing = fields
-    .filter(f => f.required)
-    .some(f => !formData[f.id]?.trim());
-  
+  // Conditional visibility rules (same as in render)
+  const conditionRules: Record<string, { parent: string; showWhen: string }> = {
+    previousName: { parent: 'haveYouChangedName', showWhen: 'Yes' },
+    otherPassportCountry: { parent: 'anyOtherPassport', showWhen: 'Yes' },
+    otherPassportNumber: { parent: 'anyOtherPassport', showWhen: 'Yes' },
+    spouseName: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+    spouseNationality: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+    spousePlaceOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+    spouseCountryOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+    previousVisaNo: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+    previousVisaType: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+    previousVisaPlaceOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+    previousVisaDateOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
+    refusedVisaDetails: { parent: 'haveYouBeenRefusedVisa', showWhen: 'Yes' },
+  };
+
+  const isFieldVisible = (fieldId: string) => {
+    const cond = conditionRules[fieldId];
+    if (!cond) return true;
+    return (formData[cond.parent] || '') === cond.showWhen;
+  };
+
+  const missingRequiredFields = fields
+    .filter(f => f.required && isFieldVisible(f.id) && !formData[f.id]?.trim())
+    .map(f => f.id);
+
+  const requiredFieldsMissing = missingRequiredFields.length > 0;
   const hasValidationErrors = requiredFieldsMissing || personnummerErrors.length > 0;
 
   return (
@@ -680,34 +696,18 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                 <div className="space-y-4">
                   {groupFields
                     .sort((a, b) => a.sortOrder - b.sortOrder)
-                    .filter(field => {
-                      // Conditional visibility: hide dependent fields until parent is answered
-                      const conditions: Record<string, { parent: string; showWhen: string | string[] }> = {
-                        previousName: { parent: 'haveYouChangedName', showWhen: 'Yes' },
-                        otherPassportCountry: { parent: 'anyOtherPassport', showWhen: 'Yes' },
-                        otherPassportNumber: { parent: 'anyOtherPassport', showWhen: 'Yes' },
-                        spouseName: { parent: 'maritalStatus', showWhen: 'MARRIED' },
-                        spouseNationality: { parent: 'maritalStatus', showWhen: 'MARRIED' },
-                        spousePlaceOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
-                        spouseCountryOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
-                        previousVisaNo: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
-                        previousVisaType: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
-                        previousVisaPlaceOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
-                        previousVisaDateOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
-                        refusedVisaDetails: { parent: 'haveYouBeenRefusedVisa', showWhen: 'Yes' },
-                      };
-                      const cond = conditions[field.id];
-                      if (!cond) return true;
-                      const parentVal = formData[cond.parent] || '';
-                      if (Array.isArray(cond.showWhen)) return cond.showWhen.includes(parentVal);
-                      return parentVal === cond.showWhen;
-                    })
-                    .map(field => (
-                      <div key={field.id}>
+                    .filter(field => isFieldVisible(field.id))
+                    .map(field => {
+                      const isMissing = showValidation && field.required && !formData[field.id]?.trim();
+                      return (
+                      <div key={field.id} data-field-id={field.id} className={isMissing ? 'ring-1 ring-red-300 rounded-lg p-3 -m-1 bg-red-50/30' : ''}>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           {isEn ? field.labelEn : field.label}
                           {field.required && <span className="text-red-500 ml-1">*</span>}
                         </label>
+                        {isMissing && (
+                          <p className="text-xs text-red-500 mb-1">{isEn ? 'This field is required' : 'Detta fält är obligatoriskt'}</p>
+                        )}
                         {(field.helpText || field.helpTextEn) && (
                           <p className="text-xs text-gray-500 mb-1">
                             {isEn ? field.helpTextEn : field.helpText}
@@ -758,7 +758,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                             onChange={(v) => handleFieldChange(field.id, v)}
                             isEn={isEn}
                           />
-                        ) : field.type === 'text' && ['streetAddress', 'address', 'houseNoStreet'].includes(field.id) ? (
+                        ) : field.type === 'text' && ['streetAddress', 'address', 'houseNoStreet', 'employerAddress', 'referenceAddressInHomeCountry'].includes(field.id) ? (
                           <AddressAutocomplete
                             value={formData[field.id] || ''}
                             onChange={(val) => handleFieldChange(field.id, val)}
@@ -799,7 +799,8 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                           </>
                         )}
                       </div>
-                    ))}
+                    );
+                    })}
                 </div>
               </div>
             );
@@ -826,16 +827,14 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                   </button>
                   <button
                     onClick={() => {
-                      if (personnummerErrors.length > 0) {
-                        alert(isEn
-                          ? 'Please enter a valid personnummer in format YYYYMMDD-NNNN (e.g. 19900101-1234).'
-                          : 'Vänligen ange ett giltigt personnummer i formatet ÅÅÅÅMMDD-NNNN (t.ex. 19900101-1234).');
-                        return;
-                      }
-                      if (requiredFieldsMissing) {
-                        alert(isEn
-                          ? 'Please fill in all required fields (marked with *) before submitting.'
-                          : 'Vänligen fyll i alla obligatoriska fält (markerade med *) innan du skickar.');
+                      if (personnummerErrors.length > 0 || requiredFieldsMissing) {
+                        setShowValidation(true);
+                        // Scroll to first missing field
+                        const firstMissing = missingRequiredFields[0] || personnummerErrors[0];
+                        if (firstMissing) {
+                          const el = document.querySelector(`[data-field-id="${firstMissing}"]`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                         return;
                       }
                       handleSave(true);
@@ -845,6 +844,13 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                   >
                     {saving ? '...' : isEn ? 'Submit' : 'Skicka in'}
                   </button>
+                  {showValidation && requiredFieldsMissing && (
+                    <p className="text-sm text-red-500 mt-2">
+                      {isEn
+                        ? `${missingRequiredFields.length} required field(s) missing. Please scroll up and fill in the highlighted fields.`
+                        : `${missingRequiredFields.length} obligatoriska fält saknas. Vänligen scrolla upp och fyll i de markerade fälten.`}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
