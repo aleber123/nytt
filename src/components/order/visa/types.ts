@@ -19,6 +19,9 @@ export interface VisaAddOnService {
   applicableCategories?: VisaCategory[];
   applicableProductIds?: string[];
   required?: boolean; // If true, auto-selected and cannot be deselected
+  includedInProduct?: boolean; // If true, shown as included info (not selectable)
+  // Link to a form template for data collection (if addon needs extra info from customer)
+  formTemplateId?: string;
 }
 
 // Selected visa product info stored in answers
@@ -75,7 +78,7 @@ export interface VisaOrderAnswers extends OrderAnswers {
   // Urgent processing
   urgentRequired?: boolean;
   // Add-on services (e.g., chamber of commerce legalization)
-  selectedAddOnServices?: { id: string; name: string; nameEn: string; price: number }[];
+  selectedAddOnServices?: { id: string; name: string; nameEn: string; price: number; formTemplateId?: string }[];
   // Travelers (one visa per traveler)
   travelers: VisaTraveler[];
 }

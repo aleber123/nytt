@@ -29,9 +29,12 @@ export interface VisaAddon {
   // Behavior
   required: boolean;   // If true, auto-selected and cannot be deselected
   enabled: boolean;    // Toggle on/off without deleting
+  includedInProduct: boolean; // If true, shown as included info on product card (not a selectable addon)
   sortOrder: number;   // Display order
   // Extra fields the customer must fill in
   requiredFields: AddonRequiredField[];
+  // Link to a form template for data collection (if addon needs extra info from customer)
+  formTemplateId?: string;
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -83,15 +86,19 @@ export const getApplicableAddons = async (
                          addon.applicableCountries.includes(countryCode.toUpperCase());
     if (!countryMatch) return false;
     
-    // Check category applicability
-    const categoryMatch = addon.applicableCategories.includes('all') || 
-                          addon.applicableCategories.includes(category);
-    if (!categoryMatch) return false;
+    // When 'all' is passed as category/product, skip those filters
+    // (caller will do per-product filtering later)
+    if (category !== 'all') {
+      const categoryMatch = addon.applicableCategories.includes('all') || 
+                            addon.applicableCategories.includes(category);
+      if (!categoryMatch) return false;
+    }
     
-    // Check product applicability
-    const productMatch = addon.applicableProductIds.includes('all') || 
-                         addon.applicableProductIds.includes(productId);
-    if (!productMatch) return false;
+    if (productId !== 'all') {
+      const productMatch = addon.applicableProductIds.includes('all') || 
+                           addon.applicableProductIds.includes(productId);
+      if (!productMatch) return false;
+    }
     
     return true;
   });
@@ -137,6 +144,7 @@ export const saveVisaAddon = async (addon: Partial<VisaAddon> & { id?: string },
       applicableProductIds: addon.applicableProductIds || ['all'],
       required: addon.required ?? false,
       enabled: addon.enabled ?? true,
+      includedInProduct: addon.includedInProduct ?? false,
       sortOrder: addon.sortOrder ?? 100,
       requiredFields: addon.requiredFields || [],
       createdAt: now,

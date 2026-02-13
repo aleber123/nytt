@@ -148,6 +148,8 @@ export default function VisaStep3SelectProduct({
         price: ga.price,
         icon: ga.icon,
         required: ga.required,
+        includedInProduct: ga.includedInProduct,
+        formTemplateId: ga.formTemplateId,
       }));
     return [...productAddons, ...globalAsAddOns];
   };
@@ -180,10 +182,11 @@ export default function VisaStep3SelectProduct({
     };
 
     // Build selected add-on services array from merged addons (product + global)
+    // Always include 'includedInProduct' addons automatically (price=0, with formTemplateId)
     const mergedAddons = getMergedAddons(product);
     const selectedAddOnServices = mergedAddons
-      .filter(a => addOns.has(a.id))
-      .map(a => ({ id: a.id, name: a.name, nameEn: a.nameEn, price: a.price }));
+      .filter(a => a.includedInProduct || addOns.has(a.id))
+      .map(a => ({ id: a.id, name: a.name, nameEn: a.nameEn, price: a.includedInProduct ? 0 : a.price, ...(a.formTemplateId ? { formTemplateId: a.formTemplateId } : {}) }));
 
     onUpdate({
       selectedVisaProduct: selectedProduct,
@@ -201,18 +204,21 @@ export default function VisaStep3SelectProduct({
 
     // Check if this product has add-on services (product-specific + global)
     const mergedAddons = getMergedAddons(product);
-    if (mergedAddons.length > 0) {
+    // Separate selectable addons from included-in-product addons
+    const selectableAddons = mergedAddons.filter(a => !a.includedInProduct);
+    if (selectableAddons.length > 0) {
       // Temporarily store merged addons on the product for the add-on phase
-      const productWithMergedAddons = { ...product, addOnServices: mergedAddons };
+      // (only show selectable ones, included ones are handled automatically)
+      const productWithMergedAddons = { ...product, addOnServices: selectableAddons };
       setPendingProduct(productWithMergedAddons);
       setSelectedAddOns(new Set(
-        mergedAddons.filter(a => a.required).map(a => a.id)
+        selectableAddons.filter(a => a.required).map(a => a.id)
       ));
       setShowAddOns(true);
       return;
     }
 
-    // No add-ons, finalize immediately
+    // No selectable add-ons, finalize immediately (included addons still get added)
     finalizeProductSelection(product, new Set());
   };
 
@@ -668,6 +674,23 @@ export default function VisaStep3SelectProduct({
                                 : 'Inget pass behöver skickas'}
                             </p>
                           )}
+
+                          {/* Included services info */}
+                          {(() => {
+                            const included = getMergedAddons(product).filter(a => a.includedInProduct);
+                            if (included.length === 0) return null;
+                            return (
+                              <div className="mt-2 space-y-0.5">
+                                {included.map(a => (
+                                  <p key={a.id} className="text-sm text-blue-700">
+                                    ✓ {locale === 'en' 
+                                      ? `${a.nameEn} included` 
+                                      : `${a.name} ingår`}
+                                  </p>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Price */}

@@ -1145,6 +1145,19 @@ function UnifiedEditModal({
                             </button>
                           </div>
                         </div>
+                        <div className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+                          <span>ID:</span>
+                          <code
+                            className="bg-gray-100 px-1.5 py-0.5 rounded cursor-pointer hover:bg-gray-200 select-all"
+                            title="Click to copy product ID"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(product.id);
+                            }}
+                          >
+                            {product.id}
+                          </code>
+                        </div>
                         <div className="mt-2 flex items-center gap-4 text-xs text-gray-600 flex-wrap">
                           <span>Validity: {product.validityDays} days</span>
                           {product.stayDays && <span>Max stay: {product.stayDays} days</span>}

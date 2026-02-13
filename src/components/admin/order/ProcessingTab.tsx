@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type { ExtendedOrder, ProcessingStep } from './types';
+import SvensklistanButton from './SvensklistanButton';
 
 // ProcessingTab receives all needed state/functions via a context object
 // to avoid 50+ individual props
@@ -60,6 +61,7 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                   pickupService: (order as any).pickupService,
                                   confirmReturnAddressLater: (order as any).confirmReturnAddressLater,
                                   returnAddressConfirmed: (order as any).returnAddressConfirmed,
+                                  addOnServices: (order as any).addOnServices,
                                 });
                               } else {
                                 // Legalization order - use initializeProcessingSteps
@@ -111,6 +113,21 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                               </select>
                             </div>
                             
+                            {/* Svensklistan action buttons — shown when data_collection_form step is completed */}
+                            {step.id === 'data_collection_form' && step.status === 'completed' && (order as any).travelers?.length > 0 && (
+                              <div className="mt-3 p-3 rounded-lg border bg-green-50 border-green-200">
+                                <p className="text-sm font-medium text-green-900 mb-2">🇸🇪 Customer data received — run Svensklistan script:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {(order as any).travelers.map((t: any, idx: number) => (
+                                    <SvensklistanButton key={idx} order={order} travelerIndex={idx} />
+                                  ))}
+                                </div>
+                                <p className="text-xs text-green-700 mt-2">
+                                  Click → script copied → paste in browser console on Svensklistan page
+                                </p>
+                              </div>
+                            )}
+
                             {/* Address confirmation section */}
                             {needsAddressConfirmation(step.id) && (
                               <div className={`mt-3 p-3 rounded-lg border ${

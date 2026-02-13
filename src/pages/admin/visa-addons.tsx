@@ -31,6 +31,7 @@ const EMPTY_ADDON: Partial<VisaAddon> = {
   applicableProductIds: ['all'],
   required: false,
   enabled: true,
+  includedInProduct: false,
   sortOrder: 100,
   requiredFields: [],
 };
@@ -233,6 +234,11 @@ function AdminVisaAddonsPage() {
                               {addon.required && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                                   Required
+                                </span>
+                              )}
+                              {addon.includedInProduct && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                  Included in product
                                 </span>
                               )}
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
@@ -484,6 +490,15 @@ function AdminVisaAddonsPage() {
                       className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Required (auto-selected, cannot deselect)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingAddon.includedInProduct ?? false}
+                      onChange={(e) => updateEditField('includedInProduct', e.target.checked)}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Included in product (shown as info, not as selectable addon)</span>
                   </label>
                 </div>
 

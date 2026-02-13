@@ -280,7 +280,12 @@ export default function PriceTab({
                             ) : Array.isArray(order?.pricingBreakdown) && order!.pricingBreakdown.length > 0 ? (
                               order!.pricingBreakdown.map((item: any, idx: number) => {
                                 const o = lineOverrides[idx] || { index: idx, label: item.description || getServiceName(item.service) || 'Line', baseAmount: 0, include: true };
-                                const base = o.baseAmount || (() => {
+                                const base = (() => {
+                                  // For multi-quantity items, unitPrice × quantity is always authoritative
+                                  if (typeof item.unitPrice === 'number' && item.quantity && item.quantity > 1) return item.unitPrice * item.quantity;
+                                  // For single-quantity items, use saved baseAmount or fallback
+                                  if (o.baseAmount) return o.baseAmount;
+                                  if (typeof item.total === 'number') return item.total;
                                   if (typeof item.fee === 'number') return item.fee;
                                   if (typeof item.basePrice === 'number') return item.basePrice;
                                   if (typeof item.unitPrice === 'number') return item.unitPrice * (item.quantity || 1);
@@ -302,8 +307,8 @@ export default function PriceTab({
                                     </td>
                                     <td className="px-3 py-2">{translatePricingDescription(item.description || o.label || '-')}</td>
                                     <td className="px-3 py-2 text-right">
-                                      {item.quantity && item.quantity > 1 && item.unitPrice
-                                        ? <span className="text-gray-500">{item.quantity} × {item.unitPrice} = <strong>{Number(base).toLocaleString()}</strong> kr</span>
+                                      {item.quantity && item.quantity > 1 && typeof item.unitPrice === 'number'
+                                        ? <span className="text-gray-500">{item.quantity} × {item.unitPrice} = <strong>{Number(item.unitPrice * item.quantity).toLocaleString()}</strong> kr</span>
                                         : <span>{Number(base).toLocaleString()} kr</span>
                                       }
                                     </td>
@@ -314,7 +319,7 @@ export default function PriceTab({
                                             type="number"
                                             className="w-24 border rounded px-2 py-1 text-right"
                                             value={o.overrideUnitPrice ?? ''}
-                                            placeholder={item.unitPrice ? String(item.unitPrice) : ''}
+                                            placeholder={typeof item.unitPrice === 'number' ? String(item.unitPrice) : ''}
                                             onChange={(e) => {
                                               const val = e.target.value === '' ? null : Number(e.target.value);
                                               const next = [...lineOverrides];

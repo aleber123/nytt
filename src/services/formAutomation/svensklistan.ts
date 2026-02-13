@@ -164,29 +164,41 @@ export function generateSvensklistanScript(data: SvensklistanData): string {
     return false;
   }
 
-  // Fill all fields
+  // Fill all fields using exact IDs from the Svensklistan page
   const results = [];
   
-  results.push(['Förnamn', fillByLabel('Förnamn', '${esc(data.firstName)}')]);
-  results.push(['Efternamn', fillByLabel('Efternamn', '${esc(data.lastName)}')]);
-  results.push(['Personnummer', fillByLabel('Personnummer', '${esc(data.personnummer)}')]);
-  results.push(['Vistelseland', fillByLabel('Vistelseland', '${esc(data.country)}')]);
-  ${data.cityInCountry ? `results.push(['Ort', fillByLabel('Ort', '${esc(data.cityInCountry)}')]);` : ''}
-  results.push(['Ankomstdatum', fillByLabel('Ankomstdatum', '${esc(formatDateForForm(data.arrivalDate))}')]);
-  ${data.departureDate ? `results.push(['Frånresedatum', fillByLabel('frånresedatum', '${esc(formatDateForForm(data.departureDate))}')]);` : ''}
-  results.push(['E-postadress', fillByLabel('E-postadress', '${esc(data.email)}')]);
-  ${mobileFormatted ? `results.push(['Mobilnummer', fillByLabel('Mobilnummer', '${esc(mobileFormatted)}')]);` : ''}
-  ${data.employer ? `results.push(['Arbetsgivare', fillByLabel('Arbetsgivare', '${esc(data.employer)}')]);` : ''}
+  // #firstName — text input
+  results.push(['Förnamn', setInputValue('#firstName', '${esc(data.firstName)}')]);
+  // #lastName — text input
+  results.push(['Efternamn', setInputValue('#lastName', '${esc(data.lastName)}')]);
+  // #socialSecurityNumber — text input, placeholder ÅÅÅÅMMDD-NNNN
+  results.push(['Personnummer', setInputValue('#socialSecurityNumber', '${esc(data.personnummer)}')]);
+  // #country — <select> dropdown
+  results.push(['Vistelseland', selectDropdownByText('#country', '${esc(data.country)}')]);
+  // #address — text input (ort i vistelseland)
+  ${data.cityInCountry ? `results.push(['Ort', setInputValue('#address', '${esc(data.cityInCountry)}')]);` : ''}
+  // Date fields use a datepicker that can't be set programmatically.
+  // We skip them and show the dates clearly in the final alert.
+  results.push(['Ankomstdatum ⚠️ MANUELLT', false]);
+  ${data.departureDate ? `results.push(['Frånresedatum ⚠️ MANUELLT', false]);` : ''}
+  // #email — email input
+  results.push(['E-postadress', setInputValue('#email', '${esc(data.email)}')]);
+  // #mobilePhone — text input (prefilled with +46)
+  ${mobileFormatted ? `results.push(['Mobilnummer', setInputValue('#mobilePhone', '${esc(mobileFormatted)}')]);` : ''}
+  // #homePhone — text input
+  ${data.homePhone ? `results.push(['Hemnummer', setInputValue('#homePhone', '${esc(data.homePhone)}')]);` : ''}
+  // #employer — text input
+  ${data.employer ? `results.push(['Arbetsgivare', setInputValue('#employer', '${esc(data.employer)}')]);` : ''}
 
-  // Try to check the consent checkbox
-  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-  for (const cb of checkboxes) {
-    const label = cb.closest('label') || document.querySelector('label[for="' + cb.id + '"]');
-    if (label && label.textContent.includes('införstådd')) {
-      if (!cb.checked) cb.click();
-      results.push(['Godkännande', true]);
-      break;
-    }
+  // Check the consent checkbox — #approved
+  const approvedCb = document.querySelector('#approved');
+  if (approvedCb && !approvedCb.checked) {
+    approvedCb.click();
+    results.push(['Godkännande', true]);
+  } else if (approvedCb && approvedCb.checked) {
+    results.push(['Godkännande', true]);
+  } else {
+    results.push(['Godkännande', false]);
   }
 
   // Report results
@@ -201,7 +213,12 @@ export function generateSvensklistanScript(data: SvensklistanData): string {
   else console.log('✅ All fields filled! Review and click "Skicka in anmälan"');
   console.log('=====================================\\n');
   
-  alert('Svensklistan auto-fill complete!\\n\\nFilled: ' + success + '/' + results.length + (fail > 0 ? '\\n⚠️ ' + fail + ' field(s) need manual input' : '\\n✅ All fields filled!') + '\\n\\nPlease review all fields before submitting.');
+  // Build date info for manual entry
+  var dateInfo = '\\n\\n📅 FYLL I DATUM MANUELLT:';
+  dateInfo += '\\n   Ankomstdatum (Från): ${esc(formatDateForForm(data.arrivalDate))}';
+  ${data.departureDate ? `dateInfo += '\\n   Frånresedatum (Till): ${esc(formatDateForForm(data.departureDate))}';` : `dateInfo += '\\n   Frånresedatum (Till): (lämna tom)';`}
+  
+  alert('Svensklistan auto-fill complete!\\n\\nFilled: ' + success + '/' + results.length + dateInfo + '\\n\\nPlease review all fields before submitting.');
 })();
 `.trim();
 
@@ -209,14 +226,24 @@ export function generateSvensklistanScript(data: SvensklistanData): string {
 }
 
 /**
- * Build SvensklistanData from order data
+ * Build SvensklistanData from order data + form submission data.
+ * 
+ * Priority: formSubmission data > addonFieldData > order data
+ * The formSubmission contains data the customer filled in via the email form link.
+ * Per-traveler fields in formSubmission are keyed as `fieldId_travelerIndex`.
  */
-export function buildSvensklistanDataFromOrder(order: any, travelerIndex: number): SvensklistanData | null {
+export function buildSvensklistanDataFromOrder(
+  order: any,
+  travelerIndex: number,
+  formSubmissionData?: Record<string, string>
+): SvensklistanData | null {
   const travelers = order.travelers || [];
   const traveler = travelers[travelerIndex];
   if (!traveler) return null;
 
-  // Get addon field data (personnummer, city, etc.)
+  const fd = formSubmissionData || {};
+
+  // Get addon field data (legacy fallback)
   const addonData = order.addonFieldData || {};
   const travelerAddonData = addonData[`traveler_${travelerIndex}`] || addonData || {};
 
@@ -224,17 +251,21 @@ export function buildSvensklistanDataFromOrder(order: any, travelerIndex: number
   const countryName = order.destinationCountry || '';
   const countryCode = order.destinationCountryCode || '';
 
+  // Helper: check both indexed (fieldId_0) and non-indexed (fieldId) keys
+  const get = (fieldId: string) => fd[`${fieldId}_${travelerIndex}`] || fd[fieldId] || '';
+
   return {
-    firstName: traveler.firstName || '',
-    lastName: traveler.lastName || '',
-    personnummer: travelerAddonData.personnummer || traveler.personnummer || '',
-    country: countryName,
+    firstName: get('firstName') || traveler.firstName || '',
+    lastName: get('lastName') || traveler.lastName || '',
+    personnummer: get('personnummer') || travelerAddonData.personnummer || traveler.personnummer || '',
+    country: fd.country || countryName,
     countryCode: countryCode,
-    cityInCountry: travelerAddonData.cityInCountry || '',
-    arrivalDate: order.departureDate || '',
-    departureDate: order.returnDateVisa || '',
-    email: order.customerInfo?.email || '',
-    mobilePhone: order.customerInfo?.phone || '',
-    employer: travelerAddonData.employer || '',
+    cityInCountry: fd.cityInCountry || travelerAddonData.cityInCountry || '',
+    arrivalDate: fd.arrivalDate || order.departureDate || '',
+    departureDate: fd.departureDate || order.returnDateVisa || '',
+    email: fd.email || order.customerInfo?.email || '',
+    mobilePhone: fd.mobilePhone || order.customerInfo?.phone || '',
+    homePhone: fd.homePhone || '',
+    employer: fd.employer || travelerAddonData.employer || '',
   };
 }

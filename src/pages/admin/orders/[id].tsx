@@ -13,6 +13,9 @@ import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 import CountryFlag from '@/components/ui/CountryFlag';
 import SvensklistanButton from '@/components/admin/order/SvensklistanButton';
+import PassportScanner from '@/components/admin/order/PassportScanner';
+import IndiaEVisaButton from '@/components/admin/order/IndiaEVisaButton';
+import SendVisaFormButton from '@/components/admin/order/SendVisaFormButton';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
@@ -643,11 +646,11 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
               </span>
             </div>
             {/* Selected Add-on Services */}
-            {(order as any).selectedAddOnServices && (order as any).selectedAddOnServices.length > 0 && (
+            {(order as any).addOnServices && (order as any).addOnServices.length > 0 && (
               <div className="col-span-2">
                 <span className="text-gray-500">Add-on Services:</span>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  {(order as any).selectedAddOnServices.map((addon: any) => (
+                  {(order as any).addOnServices.map((addon: any) => (
                     <span key={addon.id} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                       {addon.nameEn || addon.name} — {addon.price} kr
                     </span>
@@ -656,7 +659,7 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
               </div>
             )}
             {/* Svensklistan section: personnummer inputs + auto-fill buttons */}
-            {(order as any).selectedAddOnServices?.some((a: any) => a.id && (a.nameEn?.toLowerCase().includes('svensklistan') || a.name?.toLowerCase().includes('svensklistan'))) && (order as any).travelers?.length > 0 && (
+            {(order as any).addOnServices?.some((a: any) => a.id && (a.nameEn?.toLowerCase().includes('svensklistan') || a.name?.toLowerCase().includes('svensklistan'))) && (order as any).travelers?.length > 0 && (
               <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2">
                 <h4 className="text-sm font-semibold text-blue-900 mb-3">🇸🇪 Svensklistan Registration</h4>
                 <div className="space-y-3">
@@ -697,6 +700,48 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
                 </p>
               </div>
             )}
+            {/* Passport Scanner section */}
+            {(order as any).travelers?.length > 0 && (
+              <div className="col-span-2 bg-purple-50 border border-purple-200 rounded-lg p-4 mt-2">
+                <h4 className="text-sm font-semibold text-purple-900 mb-3">📷 Passport Data Extraction</h4>
+                <p className="text-xs text-purple-700 mb-3">
+                  Upload passport photo → OCR extracts name, passport number, dates, nationality automatically
+                </p>
+                <div className="space-y-3">
+                  {(order as any).travelers.map((_t: any, idx: number) => (
+                    <PassportScanner
+                      key={idx}
+                      order={order}
+                      travelerIndex={idx}
+                      onApplyToOrder={onUpdate}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* India e-Visa section: shown when destination is India or addon includes e-visa */}
+            {(order as any).travelers?.length > 0 && (
+              (order as any).destinationCountry?.toLowerCase().includes('indien') ||
+              (order as any).destinationCountry?.toLowerCase().includes('india') ||
+              (order as any).addOnServices?.some((a: any) => 
+                a.nameEn?.toLowerCase().includes('india') || 
+                a.name?.toLowerCase().includes('indien') ||
+                a.nameEn?.toLowerCase().includes('e-visa') ||
+                a.name?.toLowerCase().includes('e-visa')
+              )
+            ) && (
+              <div className="col-span-2 bg-orange-50 border border-orange-200 rounded-lg p-4 mt-2">
+                <h4 className="text-sm font-semibold text-orange-900 mb-3">🇮🇳 India e-Visa Application</h4>
+                <p className="text-xs text-orange-700 mb-3">
+                  Generate auto-fill scripts for the India e-Visa portal — one script per page
+                </p>
+                <div className="space-y-3">
+                  {(order as any).travelers.map((_t: any, idx: number) => (
+                    <IndiaEVisaButton key={idx} order={order} travelerIndex={idx} />
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <span className="text-gray-500">Customer Ref:</span>
               <span className="ml-2 font-medium">{(order as any).invoiceReference || '—'}</span>
@@ -706,12 +751,15 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
               <span className="ml-2 font-medium">{order.customerInfo?.companyName || '—'}</span>
             </div>
           </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="mt-4 px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-          >
-            ✏️ Edit Visa Order Information
-          </button>
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={() => setEditing(true)}
+              className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            >
+              ✏️ Edit Visa Order Information
+            </button>
+          </div>
+          <SendVisaFormButton order={order} />
         </div>
       </div>
     );
@@ -1098,11 +1146,13 @@ function AdminOrderDetailPage() {
     // Initialize from pricingBreakdown only if no saved overrides exist
     const initial = order.pricingBreakdown.map((item: any, idx: number) => {
       const base = (() => {
-        // Prefer total field if it exists (matches pricingService output)
-        if (typeof item.total === 'number') {
-          return item.total;
+        // If we have unitPrice and quantity, always compute total from those
+        // (unitPrice is the authoritative per-unit price from pricingService)
+        if (typeof item.unitPrice === 'number' && item.quantity && item.quantity > 1) {
+          return item.unitPrice * item.quantity;
         }
-        // Fallback to other fields for backwards compatibility
+        // For single-quantity items or items without unitPrice, use total/fee/basePrice
+        if (typeof item.total === 'number') return item.total;
         if (typeof item.fee === 'number') return item.fee;
         if (typeof item.basePrice === 'number') return item.basePrice;
         if (typeof item.unitPrice === 'number') return item.unitPrice * (item.quantity || 1);
@@ -1149,11 +1199,12 @@ function AdminOrderDetailPage() {
           }, 0);
           return overrideTotal;
         }
-        // Fallback to raw breakdown - use total field first, then fallback to other fields
+        // Fallback to raw breakdown
         const calculatedTotal = order.pricingBreakdown.reduce((sum: number, item: any) => {
-          // Prefer total field if it exists
+          // For multi-quantity items, unitPrice × quantity is authoritative
+          if (typeof item.unitPrice === 'number' && item.quantity && item.quantity > 1) return sum + (item.unitPrice * item.quantity);
+          // For single-quantity items, use total/fee/basePrice
           if (typeof item.total === 'number') return sum + item.total;
-          // Fallback to other fields
           if (typeof item.fee === 'number') return sum + item.fee;
           if (typeof item.basePrice === 'number') return sum + item.basePrice;
           if (typeof item.unitPrice === 'number') return sum + (item.unitPrice * (item.quantity || 1));
@@ -2308,26 +2359,28 @@ function AdminOrderDetailPage() {
       const alreadySentOfficePickup = !!extOrder.officePickupReadyEmailSent;
 
       if (returnService === 'own-delivery') {
-        if (!alreadySentOwnDelivery) {
-          if (typeof window !== 'undefined') {
-            const confirmSend = window.confirm('Do you want to send an email to the customer confirming that the tracking number has been registered?');
-            if (confirmSend) {
-              shouldSendOwnDeliveryReturnEmail = true;
-            }
-          } else {
+        if (typeof window !== 'undefined') {
+          const msg = alreadySentOwnDelivery
+            ? 'An email was already sent. Do you want to re-send the email to the customer with the updated tracking number and prices?'
+            : 'Do you want to send an email to the customer confirming that the tracking number has been registered?';
+          const confirmSend = window.confirm(msg);
+          if (confirmSend) {
             shouldSendOwnDeliveryReturnEmail = true;
           }
+        } else {
+          shouldSendOwnDeliveryReturnEmail = true;
         }
       } else if (returnService === 'office-pickup') {
-        if (!alreadySentOfficePickup) {
-          if (typeof window !== 'undefined') {
-            const confirmSend = window.confirm('Do you want to send an email to the customer informing them that the documents are ready for pickup at our office?');
-            if (confirmSend) {
-              shouldSendOfficePickupReadyEmail = true;
-            }
-          } else {
+        if (typeof window !== 'undefined') {
+          const msg = alreadySentOfficePickup
+            ? 'An email was already sent. Do you want to re-send the email to the customer?'
+            : 'Do you want to send an email to the customer informing them that the documents are ready for pickup at our office?';
+          const confirmSend = window.confirm(msg);
+          if (confirmSend) {
             shouldSendOfficePickupReadyEmail = true;
           }
+        } else {
+          shouldSendOfficePickupReadyEmail = true;
         }
       } else {
         if (typeof window !== 'undefined') {
@@ -3038,9 +3091,9 @@ function AdminOrderDetailPage() {
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
             const trackingNumberText = trackingNumberForEmail || '';
 
-            // Get confirmed prices from order - filter out any invalid entries
-            const savedConfirmedPricesOwn = ((order as any).confirmedPrices || [])
-              .filter((p: any) => p && p.label && p.amount);
+            // Get confirmed prices from React state (always current) with fallback to order object
+            const savedConfirmedPricesOwn = (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
+              .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim());
             const hasConfirmedPricesOwn = savedConfirmedPricesOwn.length > 0;
             
             const pricesHtmlEnOwn = hasConfirmedPricesOwn
@@ -3316,9 +3369,9 @@ function AdminOrderDetailPage() {
               ? 'Mon–Thu 09:00–16:00, Fri 09:00–15:00'
               : 'Mån–Tor 09:00–16:00, Fre 09:00–15:00';
 
-            // Get confirmed prices from order - filter out any invalid entries
-            const savedConfirmedPricesPickup = ((order as any).confirmedPrices || [])
-              .filter((p: any) => p && p.label && p.amount);
+            // Get confirmed prices from React state (always current) with fallback to order object
+            const savedConfirmedPricesPickup = (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
+              .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim());
             const hasConfirmedPricesPickup = savedConfirmedPricesPickup.length > 0;
             
             const pricesHtmlEnPickup = hasConfirmedPricesPickup
@@ -3608,9 +3661,9 @@ function AdminOrderDetailPage() {
               ? `<p>You can track your shipment here: <a href="${trackingUrlText}">${trackingUrlText}</a></p>`
               : '';
 
-            // Get confirmed prices from order - filter out any invalid entries
-            const savedConfirmedPrices = ((order as any).confirmedPrices || [])
-              .filter((p: any) => p && p.label && p.amount);
+            // Get confirmed prices from React state (always current) with fallback to order object
+            const savedConfirmedPrices = (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
+              .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim());
             const hasConfirmedPrices = savedConfirmedPrices.length > 0;
             
             const pricesHtmlEn = hasConfirmedPrices

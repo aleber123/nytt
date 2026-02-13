@@ -17,6 +17,7 @@ import { generateVisaConfirmationEmail, generateVisaBusinessNotificationEmail } 
 import { getDocumentRequirementsForProduct, filterDocumentsByNationality } from '@/firebase/visaRequirementsService';
 import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getFormTemplate, createFormSubmission } from '@/firebase/visaFormService';
 
 interface Props {
   answers: VisaOrderAnswers;
@@ -284,6 +285,102 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         }
       } catch (emailError) {
         // Don't fail the order if email fails
+      }
+      
+      // Auto-send data collection form if order has addons that need extra info
+      // (e.g., Svensklistan requires personnummer)
+      const addonsWithForms = (answers.selectedAddOnServices || []).filter(a => a.formTemplateId);
+      if (createdOrder && customerEmail && addonsWithForms.length > 0) {
+        try {
+          // Use the first addon's linked template
+          const templateId = addonsWithForms[0].formTemplateId!;
+          const formTemplate = await getFormTemplate(templateId);
+          
+          if (formTemplate) {
+            // Pre-fill form data from order to avoid asking for info we already have
+            const prefillData: Record<string, string> = {};
+            const travelers = (answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim());
+            for (const field of (formTemplate.fields || [])) {
+              if (!field.prefillFrom) continue;
+              let val = '';
+              if (field.prefillFrom === 'customerInfo.email') val = customerEmail;
+              else if (field.prefillFrom === 'customerInfo.phone') val = customerPhone;
+              else if (field.prefillFrom === 'departureDate') val = answers.departureDate || '';
+              else if (field.prefillFrom === 'returnDateVisa') val = answers.returnDateVisa || '';
+              else if (field.prefillFrom === 'destinationCountry') val = answers.destinationCountry || '';
+              else if (field.prefillFrom.startsWith('travelers[i].') && !field.perTraveler) {
+                // For non-per-traveler fields, use first traveler
+                const prop = field.prefillFrom.replace('travelers[i].', '') as keyof typeof travelers[0];
+                if (travelers[0]) val = (travelers[0] as any)[prop] || '';
+              } else if (field.prefillFrom.startsWith('travelers[i].') && field.perTraveler) {
+                // Per-traveler fields: pre-fill each traveler
+                const prop = field.prefillFrom.replace('travelers[i].', '') as keyof typeof travelers[0];
+                travelers.forEach((t, i) => {
+                  const key = `${field.id}_${i}`;
+                  prefillData[key] = (t as any)[prop] || '';
+                });
+                continue; // Skip the single-field assignment below
+              }
+              if (val) prefillData[field.id] = val;
+            }
+
+            const { token: formToken } = await createFormSubmission({
+              orderId: createdOrderId,
+              orderNumber: createdOrderId,
+              templateId: formTemplate.id,
+              customerEmail,
+              customerName: customerName || 'Kund',
+              prefillData,
+            });
+            
+            const formUrl = `${window.location.origin}/visa-form/${formToken}`;
+            const formLocale = router.locale || 'sv';
+            const isEn = formLocale === 'en';
+            
+            const formEmailHtml = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background: #0EB0A6; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">DOX Visumpartner</h1>
+  </div>
+  <div style="padding: 30px; background: #ffffff;">
+    <p>${isEn ? `Hi ${customerName}` : `Hej ${customerName}`},</p>
+    <p>${isEn 
+      ? `Thank you for your order (#${createdOrderId})! To process your visa application and selected add-on services, we need some additional information from you.`
+      : `Tack för din beställning (#${createdOrderId})! För att vi ska kunna behandla din visumansökan och valda tilläggstjänster behöver vi lite mer information från dig.`}</p>
+    <p>${isEn ? 'Please click the button below to fill in the form:' : 'Klicka på knappen nedan för att fylla i formuläret:'}</p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${formUrl}" style="display: inline-block; background: #0EB0A6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+        ${isEn ? 'Fill in the form' : 'Fyll i formuläret'}
+      </a>
+    </div>
+    <p style="color: #666; font-size: 14px;">${isEn 
+      ? 'You can save your progress and return to the form later. The link is valid for 30 days.'
+      : 'Du kan spara ditt framsteg och återkomma till formuläret senare. Länken är giltig i 30 dagar.'}</p>
+  </div>
+  <div style="background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #999;">
+    DOX Visumpartner AB | info@doxvl.se | 08-409 419 00
+  </div>
+</div>`;
+            
+            const formEmailData = {
+              name: customerName || 'Visumkund',
+              email: customerEmail,
+              phone: customerPhone || '',
+              subject: isEn 
+                ? `Complete your visa application – ${createdOrderId}`
+                : `Komplettera din visumansökan – ${createdOrderId}`,
+              message: formEmailHtml,
+              orderId: createdOrderId,
+              createdAt: Timestamp.now(),
+              status: 'pending',
+            };
+            
+            const emailsRef = collection(db, 'customerEmails');
+            await addDoc(emailsRef, formEmailData);
+          }
+        } catch {
+          // Don't fail the order if form email fails
+        }
       }
       
       // Trigger save customer info event (for "Save my information" checkbox)

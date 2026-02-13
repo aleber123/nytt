@@ -121,6 +121,15 @@ function AdminIndexPage() {
       badge: 'Addons',
       category: 'visa'
     },
+    {
+      title: 'Form Templates',
+      description: 'Configure data collection forms per visa type (fields, groups, rules)',
+      href: '/admin/visa-form-templates',
+      color: 'bg-purple-400 hover:bg-purple-500',
+      icon: 'clipboard-list',
+      badge: 'Forms',
+      category: 'visa'
+    },
     // Customers
     {
       title: 'Customer Registry',

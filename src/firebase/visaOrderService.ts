@@ -127,6 +127,16 @@ export interface VisaOrder {
   invoiceReference?: string;
   additionalNotes?: string;
   
+  // Add-on services
+  addOnServices?: {
+    id: string;
+    name: string;
+    nameEn: string;
+    price: number;
+    icon?: string;
+    formTemplateId?: string;
+  }[];
+  
   // Pricing
   totalPrice: number;
   pricingBreakdown?: {
@@ -193,6 +203,7 @@ export const getDefaultVisaProcessingSteps = (
     pickupService?: boolean;
     confirmReturnAddressLater?: boolean;
     returnAddressConfirmed?: boolean;
+    addOnServices?: { id: string; name: string; formTemplateId?: string }[];
   }
 ): VisaProcessingStep[] => {
   const isEVisa = order.visaProduct?.visaType === 'e-visa';
@@ -207,7 +218,19 @@ export const getDefaultVisaProcessingSteps = (
     status: 'pending'
   });
 
-  // STEP 2: Pickup booking - If customer selected pickup service (sticker visa only)
+  // STEP: Data collection form - If order has addons that require customer data
+  const addonsWithForms = (order.addOnServices || []).filter(a => a.formTemplateId);
+  if (addonsWithForms.length > 0) {
+    const addonNames = addonsWithForms.map(a => a.name).join(', ');
+    steps.push({
+      id: 'data_collection_form',
+      name: '📩 Awaiting customer data',
+      description: `Customer needs to fill in the data collection form (${addonNames}). Form link sent via email.`,
+      status: 'pending'
+    });
+  }
+
+  // STEP: Pickup booking - If customer selected pickup service (sticker visa only)
   if (!isEVisa && order.pickupService) {
     steps.push({
       id: 'pickup_booking',

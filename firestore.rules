@@ -35,6 +35,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // VISA FORM TEMPLATES – public read (needed for customer form page), admin write
+    match /visaFormTemplates/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // VISA FORM SUBMISSIONS – token-based customer access, admin full access
+    match /visaFormSubmissions/{doc} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
     // CONTENT – static content
     match /content/{doc} {
       allow read: if true;

@@ -385,6 +385,37 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
     ? (isEnglish ? 'Single Entry' : 'Enkel inresa')
     : (isEnglish ? 'Multiple Entry' : 'Flera inresor');
 
+  // Generate add-on services section for confirmation email
+  const generateAddOnServicesHtml = (isEn: boolean): string => {
+    const addons = order.addOnServices;
+    if (!addons || addons.length === 0) return '';
+    
+    const hasFormAddon = addons.some((a: any) => a.formTemplateId);
+    
+    const title = isEn ? '🧩 Selected Add-on Services' : '🧩 Valda tilläggstjänster';
+    const formNote = hasFormAddon
+      ? (isEn 
+        ? '<p style="color: #1e40af; font-size: 14px; margin: 12px 0 0 0;">📩 <strong>You will receive a separate email</strong> with a form to fill in additional information needed for your selected services.</p>'
+        : '<p style="color: #1e40af; font-size: 14px; margin: 12px 0 0 0;">📩 <strong>Du kommer att få ett separat mail</strong> med ett formulär för att fylla i ytterligare uppgifter som behövs för dina valda tjänster.</p>')
+      : '';
+    
+    const addonItems = addons.map((a: any) => `
+      <div style="display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #e0e7ff;">
+        <span style="margin-right: 8px;">${a.icon || '📋'}</span>
+        <span style="flex: 1; font-weight: 500; color: #1f2937;">${isEn ? (a.nameEn || a.name) : a.name}</span>
+        <span style="font-weight: 600; color: #4338ca;">${a.price?.toLocaleString()} kr</span>
+      </div>
+    `).join('');
+    
+    return `
+      <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h3 style="color: #3730a3; margin: 0 0 12px 0; font-size: 16px;">${title}</h3>
+        ${addonItems}
+        ${formNote}
+      </div>
+    `;
+  };
+
   if (isEnglish) {
     return `
 <!DOCTYPE html>
@@ -503,6 +534,8 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           `}
         </ol>
       </div>
+
+      ${generateAddOnServicesHtml(true)}
 
       ${generateDocumentRequirementsHtml(documentRequirements, true, confirmationToken)}
 
@@ -645,6 +678,8 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           `}
         </ol>
       </div>
+
+      ${generateAddOnServicesHtml(false)}
 
       ${generateDocumentRequirementsHtml(documentRequirements, false, confirmationToken)}
 
