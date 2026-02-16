@@ -178,10 +178,10 @@ function AdminVisaAddonsPage() {
 
   const adminName = currentUser?.displayName || currentUser?.email || 'Admin';
 
-  // Derive country options from loaded visa requirements
+  // Derive country options from loaded visa requirements (use English names)
   const countryOptions = visaRequirements
     .filter((r) => r.countryCode && r.countryName)
-    .map((r) => ({ value: r.countryCode, label: `${r.countryName} (${r.countryCode})` }))
+    .map((r) => ({ value: r.countryCode, label: `${r.countryNameEn || r.countryName} (${r.countryCode})` }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
   // Derive product options from loaded visa requirements
