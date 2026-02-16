@@ -206,6 +206,119 @@ function getServiceName(id: string): string {
   return map[id] || id;
 }
 
+// Translate Swedish text to English (visa names, countries, nationalities, etc.)
+function translateSwedish(text: string): string {
+  if (!text) return '';
+
+  // Exact matches first
+  const exact: Record<string, string> = {
+    'Svensk': 'Swedish',
+    'Norsk': 'Norwegian',
+    'Dansk': 'Danish',
+    'Finsk': 'Finnish',
+    'Indien': 'India',
+    'Kina': 'China',
+    'Ryssland': 'Russia',
+    'Turkiet': 'Turkey',
+    'Brasilien': 'Brazil',
+    'Saudiarabien': 'Saudi Arabia',
+    'Förenade Arabemiraten': 'United Arab Emirates',
+    'Sydafrika': 'South Africa',
+    'Egypten': 'Egypt',
+    'Etiopien': 'Ethiopia',
+    'Kambodja': 'Cambodia',
+    'Vitryssland': 'Belarus',
+    'Tjeckien': 'Czech Republic',
+    'Ungern': 'Hungary',
+    'Österrike': 'Austria',
+    'Schweiz': 'Switzerland',
+    'Grekland': 'Greece',
+    'Spanien': 'Spain',
+    'Italien': 'Italy',
+    'Frankrike': 'France',
+    'Tyskland': 'Germany',
+    'Storbritannien': 'United Kingdom',
+    'Förenta staterna': 'United States',
+    'Kanada': 'Canada',
+    'Australien': 'Australia',
+    'Nya Zeeland': 'New Zealand',
+    'Japan': 'Japan',
+    'Sydkorea': 'South Korea',
+    'Nordkorea': 'North Korea',
+    'Filippinerna': 'Philippines',
+    'Indonesien': 'Indonesia',
+    'Malaysia': 'Malaysia',
+    'Singapore': 'Singapore',
+    'Vietnam': 'Vietnam',
+    'Thailand': 'Thailand',
+    'Myanmar': 'Myanmar',
+    'Bangladesh': 'Bangladesh',
+    'Pakistan': 'Pakistan',
+    'Afghanistan': 'Afghanistan',
+    'Iran': 'Iran',
+    'Irak': 'Iraq',
+    'Jordanien': 'Jordan',
+    'Libanon': 'Lebanon',
+    'Marocko': 'Morocco',
+    'Tunisien': 'Tunisia',
+    'Algeriet': 'Algeria',
+    'Nigeria': 'Nigeria',
+    'Ghana': 'Ghana',
+    'Kenya': 'Kenya',
+    'Tanzania': 'Tanzania',
+    'Uganda': 'Uganda',
+    'Angola': 'Angola',
+    'Moçambique': 'Mozambique',
+    'Mexiko': 'Mexico',
+    'Colombia': 'Colombia',
+    'Argentina': 'Argentina',
+    'Chile': 'Chile',
+    'Peru': 'Peru',
+    'Venezuela': 'Venezuela',
+    'Kuba': 'Cuba',
+    'Kuwait': 'Kuwait',
+    'Qatar': 'Qatar',
+    'Bahrain': 'Bahrain',
+    'Oman': 'Oman',
+    'Sri Lanka': 'Sri Lanka',
+    'Nepal': 'Nepal',
+    'Danmark': 'Denmark',
+    'Norge': 'Norway',
+    'Finland': 'Finland',
+    'Island': 'Iceland',
+    'Polen': 'Poland',
+    'Rumänien': 'Romania',
+    'Bulgarien': 'Bulgaria',
+    'Kroatien': 'Croatia',
+    'Serbien': 'Serbia',
+    'Ukraina': 'Ukraine',
+  };
+  if (exact[text]) return exact[text];
+
+  // Pattern-based replacements for visa product names
+  let result = text;
+  result = result.replace(/Affärsvisum/g, 'Business Visa');
+  result = result.replace(/Turistvisum/g, 'Tourist Visa');
+  result = result.replace(/Transitvisum/g, 'Transit Visa');
+  result = result.replace(/Transittvisum/g, 'Transit Visa');
+  result = result.replace(/Arbetsvisum/g, 'Work Visa');
+  result = result.replace(/Besöksvisum/g, 'Visitor Visa');
+  result = result.replace(/Forretningsvisum/g, 'Business Visa');
+  result = result.replace(/E-visum/g, 'E-Visa');
+  result = result.replace(/E-Turistvisum/g, 'E-Tourist Visa');
+  result = result.replace(/E-Affärsvisum/g, 'E-Business Visa');
+  result = result.replace(/Förlängning/g, 'Extension');
+  result = result.replace(/Kombinerat/g, 'Combined');
+  result = result.replace(/dagar/g, 'days');
+  result = result.replace(/dag/g, 'day');
+  result = result.replace(/timmar/g, 'hours');
+  result = result.replace(/år/g, 'year');
+  result = result.replace(/månad(er)?/g, 'months');
+  result = result.replace(/Upp till/g, 'Up to');
+
+  return result;
+}
+
 // Translate Swedish pricing descriptions to English
 function translateDescription(desc: string): string {
   if (!desc) return '';
@@ -603,9 +716,9 @@ export async function generateOrderConfirmationPDF(order: Order, internalNotesLi
     const destinationCountry = (order as any).destinationCountry || '';
     const nationality = (order as any).nationality || '';
     
-    details.push(['Visa type', visaProduct?.name || 'Visa']);
-    details.push(['Destination', destinationCountry]);
-    details.push(['Nationality', nationality]);
+    details.push(['Visa type', translateSwedish(visaProduct?.name || 'Visa')]);
+    details.push(['Destination', translateSwedish(destinationCountry)]);
+    details.push(['Nationality', translateSwedish(nationality)]);
     if (visaProduct?.visaType) {
       details.push(['Format', visaProduct.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa']);
     }
