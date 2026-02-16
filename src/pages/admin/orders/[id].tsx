@@ -2224,7 +2224,7 @@ function AdminOrderDetailPage() {
   const handleDownloadOrderConfirmation = () => {
     if (!order) return;
     try {
-      downloadOrderConfirmation(order);
+      downloadOrderConfirmation(order, internalNotesList);
       toast.success('Order confirmation downloading');
     } catch (err) {
       toast.error('Could not create order confirmation');

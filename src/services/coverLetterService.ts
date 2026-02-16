@@ -262,15 +262,6 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   doc.setLineWidth(1);
   doc.line(20, 28, 190, 28);
 
-  // Logo (left) - use new logo
-  try {
-    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
-    const targetH = 20; // mm (doubled for better visibility)
-    const ratio = width / height || 1;
-    const targetW = targetH * ratio;
-    doc.addImage(dataUrl, 'PNG', 20, 6, targetW, targetH);
-  } catch {}
-
   // Order number prominent
   doc.setTextColor(primary[0], primary[1], primary[2]);
   doc.setFont('helvetica', 'bold');
@@ -478,20 +469,14 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
     y += 6;
   }
 
-  // Notes box — larger with lined space for handwriting
-  const notesBoxHeight = 44;
+  // Notes box
+  const notesBoxHeight = 30;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   doc.roundedRect(16, y, 178, notesBoxHeight, 2, 2);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text('Internal notes:', 20, y + 6);
-  // Draw faint lines for handwriting
-  doc.setDrawColor(220, 220, 220);
-  for (let lineY = y + 14; lineY < y + notesBoxHeight - 4; lineY += 7) {
-    doc.line(20, lineY, 190, lineY);
-  }
-  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   y += notesBoxHeight + 8;
 
   // Footer (match footer address)
@@ -535,7 +520,7 @@ export async function printCoverLetter(order: Order): Promise<void> {
   }
 }
 
-export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF> {
+export async function generateOrderConfirmationPDF(order: Order, internalNotesList?: Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>): Promise<jsPDF> {
   const doc = new jsPDF();
 
   // Brand palette - ink-saving version (no large dark fills)
@@ -549,15 +534,6 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.setDrawColor(primary[0], primary[1], primary[2]);
   doc.setLineWidth(1);
   doc.line(20, 28, 190, 28);
-
-  // Logo (left) - use new logo
-  try {
-    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
-    const targetH = 20; // mm (doubled for better visibility)
-    const ratio = width / height || 1;
-    const targetW = targetH * ratio;
-    doc.addImage(dataUrl, 'PNG', 20, 6, targetW, targetH);
-  } catch {}
 
   // Order number prominent
   doc.setTextColor(primary[0], primary[1], primary[2]);
@@ -950,14 +926,32 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   doc.text('Internal notes', 20, y);
   y += 4;
 
-  const notesText = (order.internalNotes || '').trim();
+  // Combine internalNotes (string field) and internalNotesList (subcollection)
+  const allNoteTexts: string[] = [];
+  const legacyNotes = (order.internalNotes || '').trim();
+  if (legacyNotes) allNoteTexts.push(legacyNotes);
+  if (Array.isArray(internalNotesList) && internalNotesList.length > 0) {
+    internalNotesList.forEach((n) => {
+      if (n.content && n.content.trim()) {
+        const by = n.createdBy || '';
+        let dateStr = '';
+        try {
+          const d = n.createdAt?.toDate ? n.createdAt.toDate() : n.createdAt ? new Date(n.createdAt) : null;
+          if (d && !isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-GB');
+        } catch {}
+        const prefix = [dateStr, by].filter(Boolean).join(' - ');
+        allNoteTexts.push(prefix ? `[${prefix}] ${n.content.trim()}` : n.content.trim());
+      }
+    });
+  }
+  const combinedNotes = allNoteTexts.join('\n');
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(text[0], text[1], text[2]);
 
-  if (notesText) {
-    const wrappedNotes = doc.splitTextToSize(notesText, 170);
+  if (combinedNotes) {
+    const wrappedNotes = doc.splitTextToSize(combinedNotes, 170);
     const notesBoxH = wrappedNotes.length * 5 + 12;
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
@@ -965,8 +959,8 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     doc.text(wrappedNotes, 20, y + 8);
     y += notesBoxH;
   } else {
-    // No notes — show label + lined space for handwriting
-    const emptyBoxH = 40;
+    // No notes — show empty box without handwriting lines
+    const emptyBoxH = 30;
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
     doc.roundedRect(16, y, 178, emptyBoxH, 2, 2);
@@ -974,12 +968,6 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
     doc.setFontSize(9);
     doc.setTextColor(160, 160, 160);
     doc.text('No internal notes.', 20, y + 7);
-    // Draw faint lines for handwriting
-    doc.setDrawColor(220, 220, 220);
-    for (let lineY = y + 14; lineY < y + emptyBoxH - 4; lineY += 7) {
-      doc.line(20, lineY, 190, lineY);
-    }
-    doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
     y += emptyBoxH;
   }
 
@@ -1000,8 +988,8 @@ export async function generateOrderConfirmationPDF(order: Order): Promise<jsPDF>
   return doc;
 }
 
-export async function downloadOrderConfirmation(order: Order): Promise<void> {
-  const doc = await generateOrderConfirmationPDF(order);
+export async function downloadOrderConfirmation(order: Order, internalNotesList?: Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>): Promise<void> {
+  const doc = await generateOrderConfirmationPDF(order, internalNotesList);
   const ord = order.orderNumber || order.id || '';
   const file = ord ? `Order confirmation ${ord}.pdf` : 'Order confirmation.pdf';
   doc.save(file);
@@ -1253,8 +1241,8 @@ export async function generateNotaryApostilleCoverLetter(
 
   y = Math.max(leftY, rightY) + 8;
 
-  // Internal notes box — with lined space for handwriting
-  const notesBox3H = 44;
+  // Internal notes box
+  const notesBox3H = 30;
   doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
   doc.setFillColor(255, 255, 255);
   doc.roundedRect(16, y, 178, notesBox3H, 2, 2);
@@ -1262,12 +1250,6 @@ export async function generateNotaryApostilleCoverLetter(
   doc.setFontSize(9);
   doc.setTextColor(grayText[0], grayText[1], grayText[2]);
   doc.text('Internal notes:', 20, y + 6);
-  // Draw faint lines for handwriting
-  doc.setDrawColor(220, 220, 220);
-  for (let lineY3 = y + 14; lineY3 < y + notesBox3H - 4; lineY3 += 7) {
-    doc.line(20, lineY3, 190, lineY3);
-  }
-  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
 
   // Footer
   const footerY = 286;
