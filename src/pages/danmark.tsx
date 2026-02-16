@@ -29,7 +29,6 @@ export default function DanmarkPage() {
         <title>Legalisering for Danmark | Ambassader i Stockholm | DOX Visumpartner</title>
         <meta name="description" content="Bor du i Danmark og skal legalisere dokumenter eller søge visum for lande uden ambassade i København? Vi hjælper dig via ambassader i Stockholm. Kuwait, Qatar, Libyen m.fl." />
         <meta name="keywords" content="legalisering Danmark, visum Danmark, ambassade Stockholm, Kuwait visum Danmark, Qatar legalisering Danmark, danske dokumenter legalisering" />
-        <link rel="canonical" href="https://doxvl.se/danmark" />
         
         <meta property="og:title" content="Legalisering for Danmark | Ambassader i Stockholm" />
         <meta property="og:description" content="Vi hjælper danske kunder med legalisering og visum via ambassader i Stockholm." />

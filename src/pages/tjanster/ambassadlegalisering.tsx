@@ -14,10 +14,6 @@ export default function AmbassadlegaliseringPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner – Ambassadlegalisering Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="ambassadlegalisering, ambassadlegalisering Sverige, legalisering ambassad, legalisera dokument ambassad, konsulat legalisering, legalisering Qatar, legalisering Kuwait, legalisering UAE, legalisering Saudiarabien, legalisering Egypten, legalisering Kina, dokument utomlands, internationell legalisering, ambassadlegalisering pris, ambassadlegalisering Stockholm, legalisering mellanöstern, legalisering afrika" />
-        <link rel="canonical" href="https://doxvl.se/tjanster/ambassadlegalisering" />
-        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/ambassadlegalisering" />
-        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/ambassadlegalisering" />
-        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/ambassadlegalisering" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />

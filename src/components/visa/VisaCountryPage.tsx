@@ -263,14 +263,8 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
         <meta name="twitter:title" content={c.seo.ogTitle} />
         <meta name="twitter:description" content={c.seo.ogDescription} />
 
-        <link rel="canonical" href={`https://doxvl.se/visum/${c.slug}`} />
-        <link rel="alternate" hrefLang="sv" href={`https://doxvl.se/visum/${c.slug}`} />
-        <link rel="alternate" hrefLang="en" href={`https://doxvl.se/en/visum/${c.slug}`} />
-        <link rel="alternate" hrefLang="x-default" href={`https://doxvl.se/visum/${c.slug}`} />
         {isNo && (
           <>
-            <link rel="alternate" hrefLang="sv" href="https://doxvl.se/visum/angola" />
-            <link rel="alternate" hrefLang="nb" href="https://doxvl.se/visum/angola-no" />
           </>
         )}
 

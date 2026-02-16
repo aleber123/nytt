@@ -13,7 +13,6 @@ export default function HandelskammarenLandingPage() {
         <title>Handelskammaren Legalisering | Certifiering av Exportdokument | DOX Visumpartner</title>
         <meta name="description" content="Professionell hjälp med legalisering hos Handelskammaren. Vi hanterar ursprungsintyg, Certificate of Origin, fakturor och exportdokument för internationell handel." />
         <meta name="keywords" content="handelskammaren, handelskammaren legalisering, ursprungsintyg, certificate of origin, exportdokument, legalisering dokument, internationell handel, chamber of commerce" />
-        <link rel="canonical" href="https://doxvl.se/handelskammaren" />
         
         <meta property="og:title" content="Handelskammaren Legalisering | DOX Visumpartner" />
         <meta property="og:description" content="Professionell hjälp med certifiering av handelsdokument hos Handelskammaren. Ursprungsintyg, fakturor och exportdokument." />

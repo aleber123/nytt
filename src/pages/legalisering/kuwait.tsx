@@ -195,12 +195,6 @@ export default function KuwaitLegaliseringPage() {
         <meta name="twitter:title" content={content.metaTitle} />
         <meta name="twitter:description" content={content.ogDesc} />
         
-        <link rel="canonical" href="https://doxvl.se/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/legalisering/kuwait" />
-        <link rel="alternate" hrefLang="fi" href="https://doxvl.se/legalisering/kuwait-finland" />
-        <link rel="alternate" hrefLang="da" href="https://doxvl.se/legalisering/kuwait-danmark" />
-        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/legalisering/kuwait" />
         
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",

@@ -56,7 +56,7 @@ export default function LegaliseringCountrySEO({
   const pageDescription = isEn && descriptionEn ? descriptionEn : description;
   const pageKeywords = isEn && keywordsEn ? keywordsEn : keywords;
   const pageOgDescription = isEn && ogDescriptionEn ? ogDescriptionEn : (ogDescription || pageDescription);
-  const canonicalUrl = `${baseUrl}/legalisering/${slug}`;
+  const canonicalUrl = isEn ? `${baseUrl}/en/legalisering/${slug}` : `${baseUrl}/legalisering/${slug}`;
   const displayCountry = isEn && countryNameEn ? countryNameEn : countryName;
 
   // Service Schema
@@ -119,17 +119,6 @@ export default function LegaliseringCountrySEO({
       <title>{pageTitle}</title>
       <meta name="description" content={pageDescription} />
       <meta name="keywords" content={pageKeywords} />
-
-      {/* Canonical */}
-      <link rel="canonical" href={canonicalUrl} />
-
-      {/* hreflang */}
-      <link rel="alternate" hrefLang="sv" href={`${baseUrl}/legalisering/${slug}`} />
-      <link rel="alternate" hrefLang="en" href={`${baseUrl}/en/legalisering/${slug}`} />
-      <link rel="alternate" hrefLang="x-default" href={`${baseUrl}/legalisering/${slug}`} />
-      {alternateLanguages?.map(alt => (
-        <link key={alt.lang} rel="alternate" hrefLang={alt.lang} href={alt.href} />
-      ))}
 
       {/* Open Graph */}
       <meta property="og:title" content={pageTitle} />

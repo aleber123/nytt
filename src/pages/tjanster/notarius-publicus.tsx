@@ -16,10 +16,6 @@ export default function NotariusPublicusPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner – Notarius Publicus Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="notarius publicus, notarisering, bestyrka underskrift, bevittna underskrift, notarius publicus Stockholm, notarisering dokument, bestyrkt kopia, notarisering fullmakt, notarisering pris, notarius publicus pris, legalisering dokument, notarisering inför apostille, notarisering inför ambassadlegalisering, bestyrka handlingar, notarius publicus online, notarisering snabb" />
-        <link rel="canonical" href="https://doxvl.se/tjanster/notarius-publicus" />
-        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/notarius-publicus" />
-        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/notarius-publicus" />
-        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/notarius-publicus" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />

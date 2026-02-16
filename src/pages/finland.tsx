@@ -29,7 +29,6 @@ export default function FinlandPage() {
         <title>Legalisointi Suomelle | Suurlähetystöt Tukholmassa | DOX Visumpartner</title>
         <meta name="description" content="Asutko Suomessa ja tarvitset asiakirjojen legalisointia tai viisumia maihin, joilla ei ole suurlähetystöä Helsingissä? Autamme Tukholman suurlähetystöjen kautta. Kuwait, Qatar, Libya ym." />
         <meta name="keywords" content="legalisointi Suomi, viisumi Suomi, suurlähetystö Tukholma, Kuwait viisumi Suomi, Qatar legalisointi Suomi, suomalaiset asiakirjat legalisointi" />
-        <link rel="canonical" href="https://doxvl.se/finland" />
         
         <meta property="og:title" content="Legalisointi Suomelle | Suurlähetystöt Tukholmassa" />
         <meta property="og:description" content="Autamme suomalaisia asiakkaita legalisoinnissa ja viisumihakemuksissa Tukholman suurlähetystöjen kautta." />

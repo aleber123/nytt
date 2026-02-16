@@ -120,7 +120,6 @@ export default function VisaCountryTemplate({ config }: VisaCountryTemplateProps
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="website" />
         
-        <link rel="canonical" href={canonicalUrl} />
         
         {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

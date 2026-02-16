@@ -72,7 +72,6 @@ export const OrderSEO: React.FC<OrderSEOProps> = ({ step, totalSteps = 10 }) => 
       <meta property="twitter:image" content={twitterImage} />
       
       {/* Canonical URL */}
-      <link rel="canonical" href={orderUrl} />
       
       {/* Structured Data - Service */}
       <script

@@ -19,7 +19,6 @@ export default function StockholmPage() {
         <title>Legalisering Stockholm | Dokumentlegalisering & Apostille | DOX</title>
         <meta name="description" content="Behöver du legalisera dokument i Stockholm? Vi erbjuder snabb dokumentlegalisering, apostille och ambassadstämpel. Hämtning i hela Stockholmsområdet. Från 695 kr." />
         <meta name="keywords" content="legalisering Stockholm, dokumentlegalisering Stockholm, apostille Stockholm, notarius publicus Stockholm, ambassadlegalisering Stockholm" />
-        <link rel="canonical" href="https://doxvl.se/stockholm" />
         
         <meta property="og:title" content="Legalisering Stockholm | DOX Visumpartner" />
         <meta property="og:description" content="Professionell dokumentlegalisering i Stockholm. Apostille, ambassadlegalisering och översättning." />

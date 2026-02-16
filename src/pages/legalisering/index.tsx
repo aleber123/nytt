@@ -54,7 +54,6 @@ export default function LegaliseringIndexPage() {
         <meta name="keywords" content={isEn 
           ? 'legalization, documents, embassy, notarization, ministry foreign affairs, apostille, Sweden'
           : 'legalisering, dokument, ambassad, notarisering, utrikesdepartementet, apostille'} />
-        <link rel="canonical" href="https://doxvl.se/legalisering" />
         
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />

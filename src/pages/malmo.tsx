@@ -19,7 +19,6 @@ export default function MalmoPage() {
         <title>Legalisering Malmö | Dokumentlegalisering & Apostille | DOX</title>
         <meta name="description" content="Behöver du legalisera dokument i Malmö? Vi erbjuder snabb dokumentlegalisering, apostille och ambassadstämpel. Service i hela Skåne. Från 695 kr." />
         <meta name="keywords" content="legalisering Malmö, dokumentlegalisering Malmö, apostille Malmö, notarius publicus Malmö, ambassadlegalisering Malmö, legalisering Skåne" />
-        <link rel="canonical" href="https://doxvl.se/malmo" />
         
         <meta property="og:title" content="Legalisering Malmö | DOX Visumpartner" />
         <meta property="og:description" content="Professionell dokumentlegalisering i Malmö och Skåne. Apostille, ambassadlegalisering och översättning." />

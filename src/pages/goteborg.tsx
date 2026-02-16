@@ -19,7 +19,6 @@ export default function GoteborgPage() {
         <title>Legalisering Göteborg | Dokumentlegalisering & Apostille | DOX</title>
         <meta name="description" content="Behöver du legalisera dokument i Göteborg? Vi erbjuder snabb dokumentlegalisering, apostille och ambassadstämpel. Service i hela Göteborgsområdet. Från 695 kr." />
         <meta name="keywords" content="legalisering Göteborg, dokumentlegalisering Göteborg, apostille Göteborg, notarius publicus Göteborg, ambassadlegalisering Göteborg" />
-        <link rel="canonical" href="https://doxvl.se/goteborg" />
         
         <meta property="og:title" content="Legalisering Göteborg | DOX Visumpartner" />
         <meta property="og:description" content="Professionell dokumentlegalisering i Göteborg. Apostille, ambassadlegalisering och översättning." />

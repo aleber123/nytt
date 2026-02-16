@@ -14,10 +14,6 @@ export default function OversattningPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner – Auktoriserad Översättning Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="auktoriserad översättning, certified translation, officiell översättning, Kammarkollegiet, auktoriserad översättare, översätta dokument, översättning födelsebevis, översättning examensbevis, översättning vigselbevis, översättning fullmakt, översättning engelska, översättning arabiska, översättning pris, översättning Stockholm, juridisk översättning, edsvuren översättare, översättning för legalisering, översättning intyg, dokument översättning online" />
-        <link rel="canonical" href="https://doxvl.se/tjanster/oversattning" />
-        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/oversattning" />
-        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/oversattning" />
-        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/oversattning" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />

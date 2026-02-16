@@ -240,14 +240,6 @@ const Seo: React.FC<SeoProps> = ({
       {keywords && <meta name="keywords" content={keywords} />}
       {noindex && <meta name="robots" content="noindex, nofollow" />}
       
-      {/* Canonical URL */}
-      <link rel="canonical" href={url} />
-
-      {/* Language alternates - handle locale prefix correctly */}
-      <link rel="alternate" hrefLang="sv" href={`${baseUrl}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`} />
-      <link rel="alternate" hrefLang="en" href={`${baseUrl}/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`} />
-      <link rel="alternate" hrefLang="x-default" href={`${baseUrl}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`} />
-
       {/* Open Graph */}
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content={siteConfig.name} />

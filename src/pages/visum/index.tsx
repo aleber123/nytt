@@ -17,7 +17,6 @@ export default function VisumPage() {
       
       <Head>
         <meta name="keywords" content="visum, visumtjänster, visumansökan, e-visum, turistvisum, affärsvisum, visum Sverige, DOX Visumpartner" />
-        <link rel="canonical" href="https://doxvl.se/visum" />
         
         {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

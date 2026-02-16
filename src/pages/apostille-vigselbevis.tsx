@@ -46,7 +46,6 @@ export default function ApostilleVigselbevisPage() {
         <title>Apostille för Vigselbevis | Legalisera Vigselbevis för Utlandet | DOX</title>
         <meta name="description" content="Behöver du Apostille eller legalisering av ditt vigselbevis? Vi hjälper dig med Apostille, UD-stämpel och ambassadlegalisering för alla länder. Från 695 kr." />
         <meta name="keywords" content="apostille vigselbevis, legalisera vigselbevis, vigselbevis utomlands, apostille äktenskapsbevis, legalisering vigselbevis, vigselbevis Saudiarabien, vigselbevis UAE, legalisera giftermål" />
-        <link rel="canonical" href="https://doxvl.se/apostille-vigselbevis" />
 
         <meta property="og:title" content="Apostille för Vigselbevis | DOX Visumpartner" />
         <meta property="og:description" content="Professionell legalisering av vigselbevis för utlandet. Apostille, UD och ambassadlegalisering." />

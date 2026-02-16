@@ -20,7 +20,6 @@ export default function ThailandLegaliseringPage() {
         <meta property="og:url" content="https://doxvl.se/legalisering/thailand" />
         <meta property="og:type" content="website" />
         
-        <link rel="canonical" href="https://doxvl.se/legalisering/thailand" />
         
         {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

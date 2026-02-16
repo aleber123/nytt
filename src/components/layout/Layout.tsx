@@ -38,10 +38,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex flex-col min-h-screen">
       <Head>
-        <link rel="canonical" href={canonicalUrl} />
-        <link rel="alternate" hrefLang="sv" href={altSv} />
-        <link rel="alternate" hrefLang="en" href={altEn} />
-        <link rel="alternate" hrefLang="x-default" href={altSv} />
+        <link key="canonical" rel="canonical" href={canonicalUrl} />
+        <link key="hreflang-sv" rel="alternate" hrefLang="sv" href={altSv} />
+        <link key="hreflang-en" rel="alternate" hrefLang="en" href={altEn} />
+        <link key="hreflang-default" rel="alternate" hrefLang="x-default" href={altSv} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

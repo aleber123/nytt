@@ -16,10 +16,6 @@ export default function UtrikesdepartementetPage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner – UD-legalisering Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="utrikesdepartementet, UD legalisering, UD-legalisering, legalisering utrikesdepartementet, legalisering UD Sverige, UD stämpel, legalisera dokument UD, utrikesdepartementet legalisering pris, UD legalisering Stockholm, legalisering innan ambassad, UD legalisering handläggningstid, legalisering svenska dokument, UD legalisering online, utrikesdepartementet dokument, legalisering för utlandet, UD legalisering 255 kr, Malmtorgsgatan 3A, legalisering myndighetshandlingar, UD legalisering nya regler 2025, legalisering postförskott, legalisering stämpel namnteckning, legalisering universitet betyg, legalisering vigselbevis, legalisering fullmakt notarius publicus, EU undantag legalisering apostille" />
-        <link rel="canonical" href="https://doxvl.se/tjanster/utrikesdepartementet" />
-        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/utrikesdepartementet" />
-        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/utrikesdepartementet" />
-        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/utrikesdepartementet" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />

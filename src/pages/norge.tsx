@@ -29,7 +29,6 @@ export default function NorgePage() {
         <title>Legalisering för Norge | Ambassader i Stockholm | DOX Visumpartner</title>
         <meta name="description" content="Bor du i Norge och behöver legalisera dokument eller ansöka om visum för länder utan ambassad i Oslo? Vi hjälper dig via ambassader i Stockholm. Kuwait, Qatar, Libyen m.fl." />
         <meta name="keywords" content="legalisering Norge, visum Norge, ambassad Stockholm, Kuwait visum Norge, Qatar legalisering Norge, norska dokument legalisering" />
-        <link rel="canonical" href="https://doxvl.se/norge" />
         
         <meta property="og:title" content="Legalisering för Norge | Ambassader i Stockholm" />
         <meta property="og:description" content="Vi hjälper norska kunder med legalisering och visum via ambassader i Stockholm." />

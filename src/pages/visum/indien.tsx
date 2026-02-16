@@ -73,7 +73,6 @@ export default function IndienVisumPage() {
         <meta property="og:url" content="https://doxvl.se/visum/indien" />
         <meta property="og:type" content="website" />
         
-        <link rel="canonical" href="https://doxvl.se/visum/indien" />
         
         {/* Service Schema */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

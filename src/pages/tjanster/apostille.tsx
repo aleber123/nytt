@@ -14,10 +14,6 @@ export default function ApostillePage() {
         <title>{t(`${sp}.title`)} | DOX Visumpartner – Apostille Sverige</title>
         <meta name="description" content={t(`${sp}.metaDescription`)} />
         <meta name="keywords" content="apostille, apostille Sverige, apostille stämpel, haagkonventionen, legalisering dokument, apostille födelsebevis, apostille examensbevis, apostille vigselbevis, apostille fullmakt, apostille bolagshandlingar, apostille pris, apostille Stockholm, apostille snabb handläggning, apostille online, legalisera dokument utomlands, internationell dokumentlegalisering" />
-        <link rel="canonical" href="https://doxvl.se/tjanster/apostille" />
-        <link rel="alternate" hrefLang="sv" href="https://doxvl.se/tjanster/apostille" />
-        <link rel="alternate" hrefLang="en" href="https://doxvl.se/en/tjanster/apostille" />
-        <link rel="alternate" hrefLang="x-default" href="https://doxvl.se/tjanster/apostille" />
         
         <meta property="og:title" content={`${t(`${sp}.title`)} | DOX Visumpartner`} />
         <meta property="og:description" content={t(`${sp}.metaDescription`)} />

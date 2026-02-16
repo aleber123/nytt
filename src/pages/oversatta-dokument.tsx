@@ -33,7 +33,6 @@ export default function OversattaDokumentPage() {
         <title>Översätta Dokument | Auktoriserad Översättning Sverige | DOX</title>
         <meta name="description" content="Behöver du översätta dokument? Vi erbjuder auktoriserad översättning av Kammarkollegiet-godkända översättare. Snabb leverans, alla språk. Från 495 kr." />
         <meta name="keywords" content="översätta dokument, auktoriserad översättning, certified translation, officiell översättning, Kammarkollegiet, dokumentöversättning, översättare" />
-        <link rel="canonical" href="https://doxvl.se/oversatta-dokument" />
         
         <meta property="og:title" content="Översätta Dokument | Auktoriserad Översättning | DOX" />
         <meta property="og:description" content="Auktoriserad översättning av dokument för internationellt bruk. Certifierade översättare godkända av Kammarkollegiet." />
