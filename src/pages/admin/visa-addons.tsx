@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GetStaticProps } from 'next';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +15,126 @@ import {
   AddonRequiredField,
   ADDON_CATEGORY_LABELS,
 } from '@/firebase/visaAddonService';
+import { getAllVisaRequirements, VisaRequirement, VisaCategory } from '@/firebase/visaRequirementsService';
+
+const VISA_CATEGORY_OPTIONS: { value: VisaCategory; label: string }[] = [
+  { value: 'tourist', label: 'Tourist' },
+  { value: 'business', label: 'Business' },
+  { value: 'transit', label: 'Transit' },
+  { value: 'student', label: 'Student' },
+  { value: 'work', label: 'Work' },
+  { value: 'medical', label: 'Medical' },
+  { value: 'conference', label: 'Conference' },
+  { value: 'non-immigrant', label: 'Non-Immigrant' },
+  { value: 'other', label: 'Other' },
+];
+
+function MultiSelectDropdown({
+  label,
+  options,
+  selected,
+  onChange,
+  allLabel = 'All',
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+  allLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const isAll = selected.length === 1 && selected[0] === 'all';
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggleAll = () => {
+    onChange(isAll ? [] : ['all']);
+  };
+
+  const toggleOption = (value: string) => {
+    if (isAll) {
+      onChange([value]);
+      return;
+    }
+    const next = selected.includes(value)
+      ? selected.filter((v) => v !== value)
+      : [...selected, value];
+    onChange(next.length === 0 ? ['all'] : next);
+  };
+
+  const filtered = search
+    ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()) || o.value.toLowerCase().includes(search.toLowerCase()))
+    : options;
+
+  const displayText = isAll
+    ? allLabel
+    : selected.length <= 3
+      ? selected.map((v) => options.find((o) => o.value === v)?.label || v).join(', ')
+      : `${selected.length} selected`;
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-3 py-2 border rounded-lg text-sm text-left bg-white hover:bg-gray-50 focus:ring-2 focus:ring-emerald-500 flex items-center justify-between"
+      >
+        <span className={isAll ? 'text-gray-500' : 'text-gray-900'}>{displayText}</span>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-64 overflow-hidden flex flex-col">
+          {options.length > 6 && (
+            <div className="p-2 border-b">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full px-2 py-1.5 border rounded text-sm focus:ring-1 focus:ring-emerald-500"
+                autoFocus
+              />
+            </div>
+          )}
+          <div className="overflow-y-auto">
+            <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b">
+              <input
+                type="checkbox"
+                checked={isAll}
+                onChange={toggleAll}
+                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span className="text-sm font-medium text-gray-700">{allLabel}</span>
+            </label>
+            {filtered.map((opt) => (
+              <label key={opt.value} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!isAll && selected.includes(opt.value)}
+                  onChange={() => toggleOption(opt.value)}
+                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="text-sm text-gray-700">{opt.label}</span>
+              </label>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const EMPTY_ADDON: Partial<VisaAddon> = {
   name: '',
@@ -54,12 +174,37 @@ function AdminVisaAddonsPage() {
   const [editingAddon, setEditingAddon] = useState<Partial<VisaAddon> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [visaRequirements, setVisaRequirements] = useState<VisaRequirement[]>([]);
 
   const adminName = currentUser?.displayName || currentUser?.email || 'Admin';
 
+  // Derive country options from loaded visa requirements
+  const countryOptions = visaRequirements
+    .filter((r) => r.countryCode && r.countryName)
+    .map((r) => ({ value: r.countryCode, label: `${r.countryName} (${r.countryCode})` }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  // Derive product options from loaded visa requirements
+  const productOptions = visaRequirements
+    .flatMap((r) =>
+      (r.visaProducts || []).filter((p) => p.isActive).map((p) => ({
+        value: p.id,
+        label: `${r.countryCode} - ${p.nameEn || p.name} (${p.id})`,
+      }))
+    )
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   useEffect(() => {
     loadAddons();
+    loadVisaRequirements();
   }, []);
+
+  const loadVisaRequirements = async () => {
+    try {
+      const data = await getAllVisaRequirements();
+      setVisaRequirements(data);
+    } catch {}
+  };
 
   const loadAddons = async () => {
     setLoading(true);
@@ -139,18 +284,6 @@ function AdminVisaAddonsPage() {
   const removeRequiredField = (index: number) => {
     const fields = (editingAddon?.requiredFields || []).filter((_, i) => i !== index);
     updateEditField('requiredFields', fields);
-  };
-
-  // Parse comma-separated string to array, handling "all"
-  const parseArrayField = (value: string): string[] => {
-    const trimmed = value.trim();
-    if (trimmed.toLowerCase() === 'all') return ['all'];
-    return trimmed.split(',').map(s => s.trim()).filter(Boolean);
-  };
-
-  const arrayToString = (arr: string[]): string => {
-    if (arr.length === 1 && arr[0] === 'all') return 'all';
-    return arr.join(', ');
   };
 
   return (
@@ -249,8 +382,8 @@ function AdminVisaAddonsPage() {
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               <span className="font-semibold text-emerald-700">{addon.price} kr</span>
                               <span>{addon.perTraveler ? 'Per traveler' : 'Per order'}</span>
-                              <span>Countries: {arrayToString(addon.applicableCountries)}</span>
-                              <span>Categories: {arrayToString(addon.applicableCategories)}</span>
+                              <span>Countries: {addon.applicableCountries?.length === 1 && addon.applicableCountries[0] === 'all' ? 'All' : (addon.applicableCountries || []).map(c => countryOptions.find(o => o.value === c)?.label || c).join(', ')}</span>
+                              <span>Categories: {addon.applicableCategories?.length === 1 && addon.applicableCategories[0] === 'all' ? 'All' : (addon.applicableCategories || []).map(c => VISA_CATEGORY_OPTIONS.find(o => o.value === c)?.label || c).join(', ')}</span>
                               {addon.requiredFields?.length > 0 && (
                                 <span>{addon.requiredFields.length} extra field(s)</span>
                               )}
@@ -432,42 +565,27 @@ function AdminVisaAddonsPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">📍 Applicability Rules</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Countries (comma-separated codes, or &quot;all&quot;)
-                      </label>
-                      <input
-                        type="text"
-                        value={arrayToString(editingAddon.applicableCountries || ['all'])}
-                        onChange={(e) => updateEditField('applicableCountries', parseArrayField(e.target.value))}
-                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                        placeholder="all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Visa categories (comma-separated, or &quot;all&quot;)
-                      </label>
-                      <input
-                        type="text"
-                        value={arrayToString(editingAddon.applicableCategories || ['all'])}
-                        onChange={(e) => updateEditField('applicableCategories', parseArrayField(e.target.value))}
-                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                        placeholder="all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Product IDs (comma-separated, or &quot;all&quot;)
-                      </label>
-                      <input
-                        type="text"
-                        value={arrayToString(editingAddon.applicableProductIds || ['all'])}
-                        onChange={(e) => updateEditField('applicableProductIds', parseArrayField(e.target.value))}
-                        className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                        placeholder="all"
-                      />
-                    </div>
+                    <MultiSelectDropdown
+                      label="Countries"
+                      options={countryOptions}
+                      selected={editingAddon.applicableCountries || ['all']}
+                      onChange={(values) => updateEditField('applicableCountries', values)}
+                      allLabel="All countries"
+                    />
+                    <MultiSelectDropdown
+                      label="Visa categories"
+                      options={VISA_CATEGORY_OPTIONS}
+                      selected={editingAddon.applicableCategories || ['all']}
+                      onChange={(values) => updateEditField('applicableCategories', values)}
+                      allLabel="All categories"
+                    />
+                    <MultiSelectDropdown
+                      label="Product IDs"
+                      options={productOptions}
+                      selected={editingAddon.applicableProductIds || ['all']}
+                      onChange={(values) => updateEditField('applicableProductIds', values)}
+                      allLabel="All products"
+                    />
                   </div>
                 </div>
 
