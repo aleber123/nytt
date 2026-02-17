@@ -837,7 +837,7 @@ function UnifiedEditModal({
   const handleNationalitySelect = (code: string) => {
     setNationalityCode(code);
     if (code === '*') {
-      setNationalityName('Övriga nationaliteter');
+      setNationalityName('Other nationalities');
     } else {
       const country = ALL_COUNTRIES.find(c => c.code === code);
       if (country) {
@@ -1331,7 +1331,7 @@ function UnifiedEditModal({
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Embassy Express Fee (kr) <span className="text-gray-400">0% moms</span></label>
+                          <label className="block text-xs text-gray-500 mb-1">Embassy Express Fee (kr) <span className="text-gray-400">0% VAT</span></label>
                           <input
                             type="number"
                             value={expressEmbassyFee}
@@ -1341,7 +1341,7 @@ function UnifiedEditModal({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">DOX Express Fee (kr) <span className="text-gray-400">25% moms</span></label>
+                          <label className="block text-xs text-gray-500 mb-1">DOX Express Fee (kr) <span className="text-gray-400">25% VAT</span></label>
                           <input
                             type="number"
                             value={expressDoxFee}
@@ -1385,7 +1385,7 @@ function UnifiedEditModal({
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Embassy Urgent Fee (kr) <span className="text-gray-400">0% moms</span></label>
+                          <label className="block text-xs text-gray-500 mb-1">Embassy Urgent Fee (kr) <span className="text-gray-400">0% VAT</span></label>
                           <input
                             type="number"
                             value={urgentEmbassyFee}
@@ -1395,7 +1395,7 @@ function UnifiedEditModal({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">DOX Urgent Fee (kr) <span className="text-gray-400">25% moms</span></label>
+                          <label className="block text-xs text-gray-500 mb-1">DOX Urgent Fee (kr) <span className="text-gray-400">25% VAT</span></label>
                           <input
                             type="number"
                             value={urgentDoxFee}
@@ -1452,18 +1452,18 @@ function UnifiedEditModal({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-wrap">
-                            <span className="font-medium">{rule.nationalityName}</span>
+                            <span className="font-medium">{rule.nationalityCode === '*' ? 'Other nationalities' : (ALL_COUNTRIES.find(c => c.code === rule.nationalityCode)?.nameEn || rule.nationalityName)}</span>
                             <span className={`px-2 py-0.5 text-xs rounded ${VISA_TYPE_LABELS[rule.visaType]?.color}`}>
                               {VISA_TYPE_LABELS[rule.visaType]?.label}
                             </span>
                             {rule.useStandardPricing !== false && rule.embassyFeeOverride && (
                               <span className="px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">
-                                Ambassad: {rule.embassyFeeOverride} kr
+                                Embassy: {rule.embassyFeeOverride} kr
                               </span>
                             )}
                             {rule.useStandardPricing === false && (
                               <span className="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-800">
-                                Pris TBC
+                                Price TBC
                               </span>
                             )}
                           </div>
@@ -1506,7 +1506,7 @@ function UnifiedEditModal({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
                     >
                       <option value="">Select...</option>
-                      <option value="*">* Övriga nationaliteter</option>
+                      <option value="*">* Other nationalities</option>
                       {ALL_COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>
                           {country.nameEn || country.name}
@@ -1556,7 +1556,7 @@ function UnifiedEditModal({
                         type="text"
                         value={rulePricingNote}
                         onChange={(e) => setRulePricingNote(e.target.value)}
-                        placeholder="e.g. Ambassadavgift bekräftas efter ansökan"
+                        placeholder="e.g. Embassy fee confirmed after application"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                       />
                     </div>
