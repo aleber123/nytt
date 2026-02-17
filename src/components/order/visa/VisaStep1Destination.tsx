@@ -55,6 +55,7 @@ const ALL_VISA_COUNTRIES: VisaCountry[] = [
   { code: 'KE', name: 'Kenya', nameEn: 'Kenya' },
   { code: 'CN', name: 'Kina', nameEn: 'China' },
   { code: 'CD', name: 'Kongo-Kinshasa', nameEn: 'DR Congo' },
+  { code: 'CG', name: 'Kongo-Brazzaville', nameEn: 'Republic of Congo' },
   { code: 'CU', name: 'Kuba', nameEn: 'Cuba' },
   { code: 'KW', name: 'Kuwait', nameEn: 'Kuwait' },
   { code: 'LA', name: 'Laos', nameEn: 'Laos' },
