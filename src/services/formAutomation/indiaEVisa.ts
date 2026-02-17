@@ -4,7 +4,7 @@
  * Generates JavaScript snippets for each page of the India e-Visa application portal
  * at https://indianvisaonline.gov.in/evisa/tvoa.html
  * 
- * The India e-Visa Business application has multiple pages:
+ * The India e-Visa application (Tourist & Business) has multiple pages:
  * 1. Page 1: Passport & Personal Details
  * 2. Page 2: Applicant Details (address, family, profession)
  * 3. Page 3: Travel Details (visa type, purpose, itinerary)
@@ -29,8 +29,9 @@ export interface IndiaEVisaData {
   emailId: string;
   reenterEmailId: string;
   expectedDateOfArrival: string;    // DD/MM/YYYY
-  visaService: string;              // e.g. "e-Business Visa"
-  visaSubType?: string;             // e.g. "ATTEND TECHNICAL/BUSINESS MEETINGS"
+  visaService: string;              // e.g. "e-Business Visa" or "e-Tourist Visa"
+  visaCategory: 'tourist' | 'business'; // Determines which radio + purpose options to use
+  visaSubType?: string;             // e.g. "ATTEND TECHNICAL/BUSINESS MEETINGS" or "RECREATION/SIGHT-SEEING"
   
   // Applicant details
   surname: string;
@@ -124,6 +125,11 @@ export interface IndiaEVisaData {
   // Accommodation
   expectedPortOfExit?: string;
   hasItineraryCities?: string;      // Comma-separated cities
+  
+  // Tourist-specific fields
+  hotelName?: string;               // Hotel/resort name
+  hotelAddress?: string;            // Hotel address
+  hotelCity?: string;               // Hotel city
   
   // === Page 4: Previous Visa & Other Info ===
   haveYouVisitedIndiaBefore: 'Yes' | 'No';
@@ -297,9 +303,12 @@ function esc(s: string): string {
  * Fields: nationality, passport type, DOB, email, arrival date, visa service + purpose
  */
 export function generatePage1Script(data: IndiaEVisaData): string {
+  const isTourist = data.visaCategory === 'tourist';
+
   // Map visa purpose to the portal's radio button name
   // e-Business Visa purposes use evisa_purpose_31 radio group
-  const purposeMap: Record<string, { radioName: string; radioValue: string }> = {
+  // e-Tourist Visa purposes use evisa_purpose_11 radio group
+  const businessPurposeMap: Record<string, { radioName: string; radioValue: string }> = {
     'TO SET UP INDUSTRIAL/BUSINESS VENTURE': { radioName: 'evisa_purpose_31', radioValue: '311' },
     'SALE/PURCHASE/TRADE': { radioName: 'evisa_purpose_31', radioValue: '312' },
     'ATTEND TECHNICAL/BUSINESS MEETINGS': { radioName: 'evisa_purpose_31', radioValue: '313' },
@@ -307,12 +316,27 @@ export function generatePage1Script(data: IndiaEVisaData): string {
     'PARTICIPATION IN EXHIBITIONS/BUSINESS FAIRS': { radioName: 'evisa_purpose_31', radioValue: '315' },
     'EXPERT/SPECIALIST IN CONNECTION WITH AN ONGOING PROJECT': { radioName: 'evisa_purpose_31', radioValue: '316' },
   };
-  const purpose = purposeMap[(data.purposeOfVisit || data.visaSubType || 'ATTEND TECHNICAL/BUSINESS MEETINGS').toUpperCase()] 
-    || purposeMap['ATTEND TECHNICAL/BUSINESS MEETINGS'];
+  const touristPurposeMap: Record<string, { radioName: string; radioValue: string }> = {
+    'RECREATION/SIGHT-SEEING': { radioName: 'evisa_purpose_11', radioValue: '111' },
+    'VISIT FRIENDS/RELATIVES': { radioName: 'evisa_purpose_11', radioValue: '112' },
+    'SHORT TERM YOGA PROGRAMME': { radioName: 'evisa_purpose_11', radioValue: '113' },
+    'SHORT TERM COURSES': { radioName: 'evisa_purpose_11', radioValue: '114' },
+    'VOLUNTARY WORK': { radioName: 'evisa_purpose_11', radioValue: '115' },
+  };
+
+  const purposeMap = isTourist ? touristPurposeMap : businessPurposeMap;
+  const defaultPurpose = isTourist ? 'RECREATION/SIGHT-SEEING' : 'ATTEND TECHNICAL/BUSINESS MEETINGS';
+  const purpose = purposeMap[(data.purposeOfVisit || data.visaSubType || defaultPurpose).toUpperCase()] 
+    || purposeMap[defaultPurpose];
+
+  // Visa service radio value: 11 = e-Tourist, 31 = e-Business
+  const visaServiceValue = isTourist ? '11' : '31';
+  const visaServiceLabel = isTourist ? 'TOURIST' : 'BUSINESS';
 
   return `${SCRIPT_HEADER}
   // === REGISTRATION PAGE ===
   // Traveler: ${esc(data.givenName)} ${esc(data.surname)}
+  // Visa type: e-${visaServiceLabel} Visa
   
   // Nationality
   r('Nationality', setSelect('#nationality_id, [name="appl.nationality"]', '${esc(data.nationality)}'));
@@ -330,37 +354,37 @@ export function generatePage1Script(data: IndiaEVisaData): string {
   r('Email', setVal('#email_id, [name="appl.email"]', '${esc(data.emailId)}'));
   r('Re-enter Email', setVal('#email_re_id, [name="appl.email_re"]', '${esc(data.reenterEmailId || data.emailId)}'));
   
-  // Visa Service — radio buttons for visa type (e-BUSINESS VISA, e-TOURIST VISA, etc.)
-  r('Visa Service', (function() {
-    // Try all possible selectors for the e-Business Visa radio
+  // Visa Service — radio buttons for visa type
+  r('Visa Service (e-${visaServiceLabel})', (function() {
+    var val = '${visaServiceValue}';
     var selectors = [
-      'input[name="visa_ser_id"][value="31"]',
-      'input[name="evisa_service"][value="31"]',
-      '#visa_ser_id_31',
-      '#evisa_service_31'
+      'input[name="visa_ser_id"][value="' + val + '"]',
+      'input[name="evisa_service"][value="' + val + '"]',
+      '#visa_ser_id_' + val,
+      '#evisa_service_' + val
     ];
     for (var s = 0; s < selectors.length; s++) {
       var el = document.querySelector(selectors[s]);
       if (el) { el.checked = true; el.click(); el.dispatchEvent(new Event('change', {bubbles:true})); return true; }
     }
-    // Fallback: find radio by label text containing 'Business'
+    // Fallback: find radio by label text
     var allRadios = document.querySelectorAll('input[type="radio"]');
     for (var i = 0; i < allRadios.length; i++) {
       var lbl = allRadios[i].closest('label') || document.querySelector('label[for="' + allRadios[i].id + '"]');
       var parent = allRadios[i].parentElement;
       var txt = (lbl ? lbl.textContent : '') + (parent ? parent.textContent : '');
-      if (txt.toUpperCase().includes('BUSINESS') && txt.toUpperCase().includes('VISA')) {
+      if (txt.toUpperCase().includes('${visaServiceLabel}') && txt.toUpperCase().includes('VISA')) {
         allRadios[i].checked = true;
         allRadios[i].click();
         allRadios[i].dispatchEvent(new Event('change', {bubbles:true}));
         return true;
       }
     }
-    console.warn('e-Business Visa radio not found');
+    console.warn('e-${visaServiceLabel} Visa radio not found');
     return false;
   })());
   
-  // Purpose radio within eBusiness — wait briefly for sub-options to appear
+  // Purpose radio — wait briefly for sub-options to appear
   r('Purpose', (function() {
     var radios = document.querySelectorAll('input[name="${purpose.radioName}"]');
     for (var i = 0; i < radios.length; i++) {
@@ -619,10 +643,33 @@ export function generatePage4Script(data: IndiaEVisaData): string {
   return `${SCRIPT_HEADER}
   // === PAGE 4: Travel Details, Previous Visa & References ===
   // Traveler: ${esc(data.givenName)} ${esc(data.surname)}
+  // Visa category: ${data.visaCategory}
   
   // Places to visit
   r('Place to Visit 1', setVal('#placesToBeVisited1_id, [name="appl.placesToBeVisited1"]', '${esc(data.placesToVisit || '')}'));
   
+  ${data.visaCategory === 'tourist' ? `
+  // === TOURIST: Hotel / Accommodation ===
+  ${data.hotelName ? `
+  // Hotel booking — Yes
+  r('Hotel Booked', (function() {
+    var el = document.querySelector('#haveYouBookedRoomInHotel_yes_id');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
+  r('Hotel Name', setVal('#hotelName_id, [name="appl.hotelName"]', '${esc(data.hotelName)}'));
+  ${data.hotelAddress ? `r('Hotel Address', setVal('#hotelAddress_id, [name="appl.hotelAddress"]', '${esc(data.hotelAddress)}'));` : ''}
+  ${data.hotelCity ? `r('Hotel City', setVal('#hotelCity_id, [name="appl.hotelCity"]', '${esc(data.hotelCity)}'));` : ''}
+  ` : `
+  // Hotel booking — No
+  r('Hotel Booked', (function() {
+    var el = document.querySelector('#haveYouBookedRoomInHotel_no_id');
+    if (el) { el.click(); return true; }
+    return false;
+  })());
+  `}
+  ` : `
+  // === BUSINESS: Company & Purpose Details ===
   // Hotel booking — No
   r('Hotel Booked', (function() {
     var el = document.querySelector('#haveYouBookedRoomInHotel_no_id');
@@ -631,11 +678,11 @@ export function generatePage4Script(data: IndiaEVisaData): string {
   })());
   
   // Business visa service request fields (visa_serreq_id_*)
-  // These are dynamic fields for eBusiness purpose details
   ${data.detailsOfPurpose ? `r('Purpose Details', setVal('#visa_serreq_id_20', '${esc(data.detailsOfPurpose)}'));` : ''}
   ${data.invitingCompanyName ? `r('Company Name', setVal('#visa_serreq_id_26', '${esc(data.invitingCompanyName)}'));` : ''}
   ${data.invitingCompanyAddress ? `r('Company Address', setVal('#visa_serreq_id_27', '${esc(data.invitingCompanyAddress)}'));` : ''}
   ${data.invitingCompanyPhone ? `r('Company Phone', setVal('#visa_serreq_id_29', '${esc(data.invitingCompanyPhone)}'));` : ''}
+  `}
   
   // Port of Exit
   ${data.expectedPortOfExit ? `r('Port of Exit', setSelect('#exitpoint, [name="appl.exitpoint"]', '${esc(data.expectedPortOfExit)}'));` : ''}
@@ -739,6 +786,11 @@ export function buildIndiaEVisaDataFromOrder(
 
   const email = get('email') || customer.email || '';
 
+  // Detect visa category from order data
+  const orderCategory = (order.selectedVisaProduct?.category || order.visaCategory || '').toLowerCase();
+  const isTourist = orderCategory === 'tourist' || orderCategory.includes('turist');
+  const visaCategory: 'tourist' | 'business' = isTourist ? 'tourist' : 'business';
+
   return {
     // Page 1
     nationality: (get('nationality') || passport.nationality || 'SWEDEN').toUpperCase(),
@@ -748,8 +800,9 @@ export function buildIndiaEVisaDataFromOrder(
     emailId: email,
     reenterEmailId: email,
     expectedDateOfArrival: toIndiaDate(get('expectedDateOfArrival') || order.departureDate || ''),
-    visaService: 'e-Business Visa',
-    visaSubType: get('purposeOfVisit') || 'ATTEND TECHNICAL/BUSINESS MEETINGS',
+    visaService: isTourist ? 'e-Tourist Visa' : 'e-Business Visa',
+    visaCategory,
+    visaSubType: get('purposeOfVisit') || (isTourist ? 'RECREATION/SIGHT-SEEING' : 'ATTEND TECHNICAL/BUSINESS MEETINGS'),
 
     surname: (get('surname') || passport.surname || traveler.lastName || '').toUpperCase(),
     givenName: (get('givenName') || passport.givenNames || traveler.firstName || '').toUpperCase(),
@@ -802,11 +855,11 @@ export function buildIndiaEVisaDataFromOrder(
     wereYouInMilitary: (get('wereYouInMilitary') as any) || 'No',
 
     // Page 3
-    purposeOfVisit: get('purposeOfVisit') || 'ATTEND TECHNICAL/BUSINESS MEETINGS',
+    purposeOfVisit: get('purposeOfVisit') || (isTourist ? 'RECREATION/SIGHT-SEEING' : 'ATTEND TECHNICAL/BUSINESS MEETINGS'),
     detailsOfPurpose: get('detailsOfPurpose') || '',
     placesToVisit: get('placesToVisit') || '',
-    durationOfVisa: get('durationOfVisa') || '1 YEAR',
-    numberOfEntries: get('numberOfEntries') || 'MULTIPLE',
+    durationOfVisa: get('durationOfVisa') || (isTourist ? '30 DAYS' : '1 YEAR'),
+    numberOfEntries: get('numberOfEntries') || (isTourist ? 'DOUBLE' : 'MULTIPLE'),
 
     referenceNameInIndia: get('referenceNameInIndia') || '',
     referenceAddressInIndia: get('referenceAddressInIndia') || '',
@@ -821,6 +874,11 @@ export function buildIndiaEVisaDataFromOrder(
     invitingCompanyPhone: get('invitingCompanyPhone') || '',
 
     expectedPortOfExit: get('expectedPortOfExit') || '',
+
+    // Tourist-specific
+    hotelName: get('hotelName') || undefined,
+    hotelAddress: get('hotelAddress') || undefined,
+    hotelCity: get('hotelCity') || undefined,
 
     // Page 4
     haveYouVisitedIndiaBefore: (get('haveYouVisitedIndiaBefore') as any) || 'No',

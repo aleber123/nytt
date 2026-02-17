@@ -38,10 +38,16 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
     ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city', 'postnord-rek'].includes(answers.returnService);
 
   // Skip if return address is not required
+  const skipTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => {
     if (!requiresReturnAddress) {
-      onSkip();
+      // Defer to avoid React StrictMode double-fire incrementing step twice
+      if (skipTimer.current) clearTimeout(skipTimer.current);
+      skipTimer.current = setTimeout(() => onSkip(), 0);
     }
+    return () => {
+      if (skipTimer.current) clearTimeout(skipTimer.current);
+    };
   }, [requiresReturnAddress, onSkip]);
 
   // Pre-fill return address from pickup address if sameAsPickup is true and pickup service was used

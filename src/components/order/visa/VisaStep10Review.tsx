@@ -38,15 +38,26 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
   const handleSubmit = async () => {
     if (!termsAccepted || !answers.selectedVisaProduct) return;
     
+    // Validate customer contact info is present (guards against step-skipping via progress bar)
+    const customerEmail = answers.billingInfo?.email || answers.returnAddress?.email || '';
+    const customerPhone = answers.billingInfo?.phone || answers.returnAddress?.phone || '';
+    const customerName = answers.billingInfo?.companyName 
+      || `${answers.billingInfo?.firstName || ''} ${answers.billingInfo?.lastName || ''}`.trim()
+      || `${answers.returnAddress?.firstName || ''} ${answers.returnAddress?.lastName || ''}`.trim();
+    
+    if (!customerEmail || !customerName) {
+      toast.error(
+        router.locale === 'en'
+          ? 'Please fill in your contact information before submitting.'
+          : 'Vänligen fyll i dina kontaktuppgifter innan du skickar.'
+      );
+      onGoToStep(8); // Navigate to customer info step
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      // Get customer info from billingInfo (where CustomerInfoForm saves data)
-      const customerName = answers.billingInfo?.companyName 
-        || `${answers.billingInfo?.firstName || ''} ${answers.billingInfo?.lastName || ''}`.trim()
-        || `${answers.returnAddress?.firstName || ''} ${answers.returnAddress?.lastName || ''}`.trim();
-      const customerEmail = answers.billingInfo?.email || answers.returnAddress?.email || '';
-      const customerPhone = answers.billingInfo?.phone || answers.returnAddress?.phone || '';
       
       // Check for customer-specific pricing based on email domain
       let matchedCustomer = null;

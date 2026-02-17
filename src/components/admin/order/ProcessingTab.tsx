@@ -2,6 +2,7 @@
 import type { ExtendedOrder, ProcessingStep } from './types';
 import SvensklistanButton from './SvensklistanButton';
 import IndiaEVisaButton from './IndiaEVisaButton';
+import AngolaVisaPdfButton from './AngolaVisaPdfButton';
 import FormDataPrintButton from './FormDataPrintButton';
 
 // ProcessingTab receives all needed state/functions via a context object
@@ -125,6 +126,11 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                 a.name?.toLowerCase().includes('india') || a.name?.toLowerCase().includes('indien') ||
                                 a.id?.toLowerCase().includes('india') || a.id?.toLowerCase().includes('indien')
                               );
+                              const hasAngola = (order as any).destinationCountryCode === 'AO' ||
+                                (order as any).destinationCountry?.toLowerCase().includes('angola') ||
+                                addons.some((a: any) => 
+                                  a.name?.toLowerCase().includes('angola') || a.id?.toLowerCase().includes('angola')
+                                );
                               const hasTravelers = (order as any).travelers?.length > 0;
 
                               return (
@@ -154,6 +160,17 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                       <div className="space-y-2">
                                         {(order as any).travelers.map((t: any, idx: number) => (
                                           <IndiaEVisaButton key={idx} order={order} travelerIndex={idx} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {hasAngola && hasTravelers && (
+                                    <div className="p-3 rounded-lg border bg-red-50 border-red-200">
+                                      <p className="text-sm font-medium text-red-900 mb-2">🇦🇴 Angola Visa — generate filled PDF:</p>
+                                      <div className="space-y-2">
+                                        {(order as any).travelers.map((t: any, idx: number) => (
+                                          <AngolaVisaPdfButton key={idx} order={order} travelerIndex={idx} />
                                         ))}
                                       </div>
                                     </div>

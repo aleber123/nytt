@@ -15,6 +15,7 @@ import CountryFlag from '@/components/ui/CountryFlag';
 import SvensklistanButton from '@/components/admin/order/SvensklistanButton';
 import PassportScanner from '@/components/admin/order/PassportScanner';
 import IndiaEVisaButton from '@/components/admin/order/IndiaEVisaButton';
+import AngolaVisaPdfButton from '@/components/admin/order/AngolaVisaPdfButton';
 import SendVisaFormButton from '@/components/admin/order/SendVisaFormButton';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -738,6 +739,23 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
                 <div className="space-y-3">
                   {(order as any).travelers.map((_t: any, idx: number) => (
                     <IndiaEVisaButton key={idx} order={order} travelerIndex={idx} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Angola visa PDF section: shown when destination is Angola */}
+            {(order as any).travelers?.length > 0 && (
+              (order as any).destinationCountryCode === 'AO' ||
+              (order as any).destinationCountry?.toLowerCase().includes('angola')
+            ) && (
+              <div className="col-span-2 bg-red-50 border border-red-200 rounded-lg p-4 mt-2">
+                <h4 className="text-sm font-semibold text-red-900 mb-3">🇦🇴 Angola Visa Application</h4>
+                <p className="text-xs text-red-700 mb-3">
+                  Generate filled visa application PDF — download, print and submit to embassy
+                </p>
+                <div className="space-y-3">
+                  {(order as any).travelers.map((_t: any, idx: number) => (
+                    <AngolaVisaPdfButton key={idx} order={order} travelerIndex={idx} />
                   ))}
                 </div>
               </div>

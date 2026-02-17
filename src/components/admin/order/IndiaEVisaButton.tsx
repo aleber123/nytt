@@ -32,6 +32,9 @@ export default function IndiaEVisaButton({ order, travelerIndex }: IndiaEVisaBut
 
   const name = `${traveler.firstName || ''} ${traveler.lastName || ''}`.trim() || `Traveler ${travelerIndex + 1}`;
   const hasPassportData = !!traveler.passportData?.passportNumber;
+  const orderCategory = (order.selectedVisaProduct?.category || order.visaCategory || '').toLowerCase();
+  const isTourist = orderCategory === 'tourist' || orderCategory.includes('turist');
+  const visaTypeLabel = isTourist ? 'Tourist' : 'Business';
 
   // Fetch form submission data on mount
   useEffect(() => {
@@ -112,7 +115,7 @@ export default function IndiaEVisaButton({ order, travelerIndex }: IndiaEVisaBut
         <div className="flex items-center gap-2">
           <span className="text-lg">🇮🇳</span>
           <div>
-            <span className="text-sm font-medium text-orange-900">India e-Visa</span>
+            <span className="text-sm font-medium text-orange-900">India e-{visaTypeLabel} Visa</span>
             <span className="text-xs text-orange-600 ml-2">({name})</span>
           </div>
           {hasPassportData && (

@@ -270,7 +270,8 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
         const data = result.data as PassportData;
         const autoFill: Record<string, string> = {};
 
-        // Map passport data to form field IDs (supports both common and India e-Visa template IDs)
+        // Map passport data to form field IDs
+        // Supports: common fields, India e-Visa, Angola visa, and other templates
         if (data.surname) {
           autoFill['surname'] = data.surname;
           autoFill['lastName'] = data.surname;
@@ -279,25 +280,41 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
           autoFill['givenName'] = data.givenNames;
           autoFill['firstName'] = data.givenNames.split(' ')[0];
         }
+        // Angola: full name field
+        if (data.givenNames && data.surname) {
+          autoFill['name'] = `${data.givenNames} ${data.surname}`.toUpperCase();
+        }
         if (data.dateOfBirth) autoFill['dateOfBirth'] = data.dateOfBirth;
         if (data.gender) {
           autoFill['gender'] = data.gender; // MALE/FEMALE matches India template options
+          // Angola: sex field uses M/F
+          autoFill['sex'] = data.gender === 'MALE' ? 'M' : data.gender === 'FEMALE' ? 'F' : data.gender;
         }
         if (data.passportNumber) autoFill['passportNumber'] = data.passportNumber;
         if (data.expiryDate) {
           autoFill['dateOfExpiry'] = data.expiryDate;
           autoFill['passportExpiryDate'] = data.expiryDate;
+          autoFill['passportValidUntil'] = data.expiryDate; // Angola
         }
         if (data.issuingCountry) {
           autoFill['passportIssuingCountry'] = data.issuingCountry;
           autoFill['countryOfBirth'] = data.issuingCountry;
           autoFill['nationality'] = data.issuingCountry;
+          autoFill['presentNationality'] = data.issuingCountry; // Angola
+          autoFill['nationalityAtBirth'] = data.issuingCountry; // Angola
+          autoFill['issuedIn'] = data.issuingCountry; // Angola: passport issued in
         }
         if (data.personalNumber) {
           autoFill['citizenshipNationalId'] = data.personalNumber;
         }
         if (data.nationality) {
           autoFill['nationality'] = data.nationality;
+          autoFill['presentNationality'] = data.nationality; // Angola
+          autoFill['nationalityAtBirth'] = data.nationality; // Angola
+        }
+        if ((data as any).placeOfBirth) {
+          autoFill['placeOfBirth'] = (data as any).placeOfBirth; // Angola
+          autoFill['townCityOfBirth'] = (data as any).placeOfBirth; // India
         }
 
         // Fill fields that exist in the template (overwrite existing values with passport data)
@@ -529,6 +546,9 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     previousVisaPlaceOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
     previousVisaDateOfIssue: { parent: 'haveYouVisitedIndiaBefore', showWhen: 'Yes' },
     refusedVisaDetails: { parent: 'haveYouBeenRefusedVisa', showWhen: 'Yes' },
+    // Angola-specific conditional rules
+    dateOfLastEntryInAngola: { parent: 'everTravelledToAngola', showWhen: 'Yes' },
+    borderUsed: { parent: 'everTravelledToAngola', showWhen: 'Yes' },
   };
 
   const isFieldVisible = (fieldId: string) => {
@@ -584,6 +604,27 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                 ? 'Please fill in the information below. Fields marked with * are required. You can save your progress and return later.'
                 : 'Vänligen fyll i informationen nedan. Fält markerade med * är obligatoriska. Du kan spara och återkomma senare.'}
             </p>
+
+            {/* Progress bar */}
+            {template && (() => {
+              const visibleRequired = fields.filter(f => f.required && isFieldVisible(f.id));
+              const filledRequired = visibleRequired.filter(f => formData[f.id]?.trim());
+              const pct = visibleRequired.length > 0 ? Math.round((filledRequired.length / visibleRequired.length) * 100) : 0;
+              return (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                    <span>{isEn ? 'Progress' : 'Framsteg'}</span>
+                    <span className="font-medium">{filledRequired.length}/{visibleRequired.length} {isEn ? 'required fields' : 'obligatoriska fält'} ({pct}%)</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-500 ${pct === 100 ? 'bg-green-500' : 'bg-[#0EB0A6]'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* No template */}
@@ -698,10 +739,17 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
             if (!groupFields || groupFields.length === 0) return null;
 
             return (
-              <div key={group.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6 mb-4 overflow-hidden">
+              <div key={group.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6 mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <span>{group.icon}</span>
                   {isEn ? group.labelEn : group.label}
+                  {(() => {
+                    const gRequired = groupFields.filter(f => f.required && isFieldVisible(f.id));
+                    const gFilled = gRequired.filter(f => formData[f.id]?.trim());
+                    if (gRequired.length === 0) return null;
+                    if (gFilled.length === gRequired.length) return <span className="ml-auto text-green-500 text-sm">✓</span>;
+                    return <span className="ml-auto text-xs text-gray-400 font-normal">{gFilled.length}/{gRequired.length}</span>;
+                  })()}
                 </h2>
                 <div className="space-y-4">
                   {groupFields
@@ -756,7 +804,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                               {isEn ? field.placeholderEn || field.labelEn : field.placeholder || field.label}
                             </span>
                           </label>
-                        ) : ['countryOfBirth', 'nationality', 'passportIssuingCountry', 'fatherNationality', 'motherNationality', 'spouseNationality', 'fatherCountryOfBirth', 'motherCountryOfBirth', 'spouseCountryOfBirth', 'otherPassportCountry'].includes(field.id) ? (
+                        ) : ['countryOfBirth', 'nationality', 'passportIssuingCountry', 'fatherNationality', 'motherNationality', 'spouseNationality', 'fatherCountryOfBirth', 'motherCountryOfBirth', 'spouseCountryOfBirth', 'otherPassportCountry', 'presentNationality', 'nationalityAtBirth', 'fathersNationality', 'mothersNationality'].includes(field.id) ? (
                           <CountryDropdown
                             value={formData[field.id] || ''}
                             onChange={(v) => handleFieldChange(field.id, v)}
@@ -768,7 +816,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                             onChange={(v) => handleFieldChange(field.id, v)}
                             isEn={isEn}
                           />
-                        ) : field.type === 'text' && ['streetAddress', 'address', 'houseNoStreet', 'employerAddress', 'referenceAddressInHomeCountry'].includes(field.id) ? (
+                        ) : field.type === 'text' && ['streetAddress', 'address', 'houseNoStreet', 'employerAddress', 'referenceAddressInHomeCountry', 'road', 'lodgingRoad', 'responsibleRoad'].includes(field.id) ? (
                           <AddressAutocomplete
                             value={formData[field.id] || ''}
                             onChange={(val) => handleFieldChange(field.id, val)}
@@ -783,12 +831,21 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                               if (data.city) {
                                 const cityField = ['city', 'village'].find(id => templateFieldIds.has(id));
                                 if (cityField) handleFieldChange(cityField, data.city);
+                                // Angola: auto-fill lodging city when lodging address is selected
+                                if (field.id === 'lodgingRoad' && templateFieldIds.has('lodgingCity')) {
+                                  handleFieldChange('lodgingCity', data.city);
+                                }
+                              }
+                              // Also try to fill state/region from formatted address
+                              if ((data as any).state) {
+                                const stateField = ['placeOfResidenceState', 'state'].find(id => templateFieldIds.has(id));
+                                if (stateField) handleFieldChange(stateField, (data as any).state);
                               }
                             }}
                             placeholder={isEn ? (field.placeholderEn || 'Search address...') : (field.placeholder || 'Sök adress...')}
                             className="rounded-lg focus:ring-2 focus:ring-[#0EB0A6] focus:border-[#0EB0A6]"
                             required={field.required}
-                            countryRestriction={['se', 'dk', 'no', 'fi', 'de', 'gb', 'us']}
+                            countryRestriction={['lodgingRoad', 'responsibleRoad'].includes(field.id) ? ['ao'] : ['se', 'dk', 'no', 'fi', 'de', 'gb', 'us']}
                           />
                         ) : (
                           <>

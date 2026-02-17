@@ -425,9 +425,16 @@ export const updateFormSubmission = async (submissionId: string, updates: Partia
 };
 
 export const getFormSubmissionsForOrder = async (orderId: string): Promise<VisaFormSubmission[]> => {
-  const q = query(collection(db, SUBMISSIONS_COLLECTION), where('orderId', '==', orderId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as VisaFormSubmission));
+  // Search by orderId first
+  const q1 = query(collection(db, SUBMISSIONS_COLLECTION), where('orderId', '==', orderId));
+  const snapshot1 = await getDocs(q1);
+  if (!snapshot1.empty) {
+    return snapshot1.docs.map(d => ({ id: d.id, ...d.data() } as VisaFormSubmission));
+  }
+  // Fallback: search by orderNumber (button may pass orderNumber instead of doc ID)
+  const q2 = query(collection(db, SUBMISSIONS_COLLECTION), where('orderNumber', '==', orderId));
+  const snapshot2 = await getDocs(q2);
+  return snapshot2.docs.map(d => ({ id: d.id, ...d.data() } as VisaFormSubmission));
 };
 
 // ============================================================

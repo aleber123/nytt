@@ -175,6 +175,10 @@ function AdminVisaAddonsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [visaRequirements, setVisaRequirements] = useState<VisaRequirement[]>([]);
+  const [filterCountry, setFilterCountry] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'disabled'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const adminName = currentUser?.displayName || currentUser?.email || 'Admin';
 
@@ -344,91 +348,239 @@ function AdminVisaAddonsPage() {
                     + Create First Addon
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {addons.map((addon) => (
-                    <div
-                      key={addon.id}
-                      className={`bg-white rounded-xl shadow-sm border p-6 transition-all ${
-                        !addon.enabled ? 'opacity-60 border-gray-200' : 'border-emerald-100'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4">
-                          <span className="text-3xl">{addon.icon}</span>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-semibold text-gray-900">{addon.nameEn}</h3>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                addon.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                              }`}>
-                                {addon.enabled ? 'Active' : 'Disabled'}
-                              </span>
-                              {addon.required && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                  Required
-                                </span>
-                              )}
-                              {addon.includedInProduct && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                  Included in product
-                                </span>
-                              )}
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                {ADDON_CATEGORY_LABELS[addon.category]?.icon} {ADDON_CATEGORY_LABELS[addon.category]?.label}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600 mb-2">{addon.descriptionEn}</p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span className="font-semibold text-emerald-700">{addon.price} kr</span>
-                              <span>{addon.perTraveler ? 'Per traveler' : 'Per order'}</span>
-                              <span>Countries: {addon.applicableCountries?.length === 1 && addon.applicableCountries[0] === 'all' ? 'All' : (addon.applicableCountries || []).map(c => countryOptions.find(o => o.value === c)?.label || c).join(', ')}</span>
-                              <span>Categories: {addon.applicableCategories?.length === 1 && addon.applicableCategories[0] === 'all' ? 'All' : (addon.applicableCategories || []).map(c => VISA_CATEGORY_OPTIONS.find(o => o.value === c)?.label || c).join(', ')}</span>
-                              {addon.requiredFields?.length > 0 && (
-                                <span>{addon.requiredFields.length} extra field(s)</span>
-                              )}
-                              <span className="text-gray-400">Sort: {addon.sortOrder}</span>
-                            </div>
-                            {addon.adminNotes && (
-                              <p className="text-xs text-amber-700 mt-2 bg-amber-50 px-2 py-1 rounded">
-                                📝 {addon.adminNotes}
-                              </p>
-                            )}
-                          </div>
+              ) : (() => {
+                // Filter addons
+                const filtered = addons.filter(addon => {
+                  if (filterStatus === 'active' && !addon.enabled) return false;
+                  if (filterStatus === 'disabled' && addon.enabled) return false;
+                  if (filterCountry !== 'all') {
+                    const countries = addon.applicableCountries || ['all'];
+                    if (!countries.includes('all') && !countries.includes(filterCountry)) return false;
+                  }
+                  if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase();
+                    const matchName = (addon.nameEn || '').toLowerCase().includes(q) || (addon.name || '').toLowerCase().includes(q);
+                    const matchDesc = (addon.descriptionEn || '').toLowerCase().includes(q);
+                    const matchNotes = (addon.adminNotes || '').toLowerCase().includes(q);
+                    if (!matchName && !matchDesc && !matchNotes) return false;
+                  }
+                  return true;
+                });
+
+                // Group by country
+                const grouped: Record<string, VisaAddon[]> = {};
+                filtered.forEach(addon => {
+                  const countries = addon.applicableCountries || ['all'];
+                  if (countries.includes('all')) {
+                    if (!grouped['ALL']) grouped['ALL'] = [];
+                    grouped['ALL'].push(addon);
+                  } else {
+                    countries.forEach(cc => {
+                      if (!grouped[cc]) grouped[cc] = [];
+                      grouped[cc].push(addon);
+                    });
+                  }
+                });
+
+                // Sort groups: specific countries first (alphabetically), then ALL
+                const sortedKeys = Object.keys(grouped).sort((a, b) => {
+                  if (a === 'ALL') return 1;
+                  if (b === 'ALL') return -1;
+                  const nameA = countryOptions.find(o => o.value === a)?.label || a;
+                  const nameB = countryOptions.find(o => o.value === b)?.label || b;
+                  return nameA.localeCompare(nameB);
+                });
+
+                const toggleGroup = (key: string) => {
+                  setCollapsedGroups(prev => {
+                    const next = new Set(prev);
+                    if (next.has(key)) next.delete(key);
+                    else next.add(key);
+                    return next;
+                  });
+                };
+
+                const getCountryLabel = (cc: string) => {
+                  if (cc === 'ALL') return '🌍 All Countries';
+                  const opt = countryOptions.find(o => o.value === cc);
+                  return opt ? opt.label : cc;
+                };
+
+                return (
+                  <>
+                    {/* Filter Bar */}
+                    <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex-1 min-w-[200px]">
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search addons..."
+                            className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                          />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleToggleEnabled(addon)}
-                            className={`px-3 py-1.5 rounded text-sm font-medium ${
-                              addon.enabled
-                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                : 'bg-green-100 text-green-700 hover:bg-green-200'
-                            }`}
+                        <div>
+                          <select
+                            value={filterCountry}
+                            onChange={(e) => setFilterCountry(e.target.value)}
+                            className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                           >
-                            {addon.enabled ? 'Disable' : 'Enable'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingAddon({ ...addon });
-                              setIsCreating(false);
-                            }}
-                            className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200"
+                            <option value="all">All countries</option>
+                            {countryOptions.map(o => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as any)}
+                            className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                           >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(addon.id)}
-                            disabled={deletingId === addon.id}
-                            className="px-3 py-1.5 bg-red-100 text-red-700 rounded text-sm font-medium hover:bg-red-200 disabled:opacity-50"
-                          >
-                            {deletingId === addon.id ? '...' : 'Delete'}
-                          </button>
+                            <option value="all">All statuses</option>
+                            <option value="active">Active only</option>
+                            <option value="disabled">Disabled only</option>
+                          </select>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {filtered.length} of {addons.length} addons
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    {/* Grouped List */}
+                    {filtered.length === 0 ? (
+                      <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
+                        <p className="text-gray-500">No addons match your filters.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {sortedKeys.map(countryKey => {
+                          const groupAddons = grouped[countryKey].sort((a, b) => (a.sortOrder || 100) - (b.sortOrder || 100));
+                          const isCollapsed = collapsedGroups.has(countryKey);
+                          const activeCount = groupAddons.filter(a => a.enabled).length;
+                          const disabledCount = groupAddons.length - activeCount;
+
+                          return (
+                            <div key={countryKey}>
+                              {/* Group Header */}
+                              <button
+                                onClick={() => toggleGroup(countryKey)}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl shadow-sm border hover:bg-gray-50 transition-colors mb-2"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                  <h2 className="text-base font-semibold text-gray-900">{getCountryLabel(countryKey)}</h2>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                    {groupAddons.length} addon{groupAddons.length !== 1 ? 's' : ''}
+                                  </span>
+                                  {activeCount > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                      {activeCount} active
+                                    </span>
+                                  )}
+                                  {disabledCount > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                      {disabledCount} disabled
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+
+                              {/* Group Items */}
+                              {!isCollapsed && (
+                                <div className="space-y-3 pl-4">
+                                  {groupAddons.map((addon) => (
+                                    <div
+                                      key={addon.id}
+                                      className={`bg-white rounded-xl shadow-sm border p-5 transition-all ${
+                                        !addon.enabled ? 'opacity-60 border-gray-200' : 'border-emerald-100'
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex items-start gap-3">
+                                          <span className="text-2xl">{addon.icon}</span>
+                                          <div>
+                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                              <h3 className="text-base font-semibold text-gray-900">{addon.nameEn}</h3>
+                                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                addon.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                              }`}>
+                                                {addon.enabled ? 'Active' : 'Disabled'}
+                                              </span>
+                                              {addon.required && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                  Required
+                                                </span>
+                                              )}
+                                              {addon.includedInProduct && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                                  Included
+                                                </span>
+                                              )}
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                {ADDON_CATEGORY_LABELS[addon.category]?.icon} {ADDON_CATEGORY_LABELS[addon.category]?.label}
+                                              </span>
+                                            </div>
+                                            <p className="text-sm text-gray-600 mb-1.5">{addon.descriptionEn}</p>
+                                            <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                                              <span className="font-semibold text-emerald-700 text-sm">{addon.price} kr</span>
+                                              <span>{addon.perTraveler ? 'Per traveler' : 'Per order'}</span>
+                                              <span>Categories: {addon.applicableCategories?.length === 1 && addon.applicableCategories[0] === 'all' ? 'All' : (addon.applicableCategories || []).map(c => VISA_CATEGORY_OPTIONS.find(o => o.value === c)?.label || c).join(', ')}</span>
+                                              {addon.requiredFields?.length > 0 && (
+                                                <span>{addon.requiredFields.length} extra field(s)</span>
+                                              )}
+                                              <span className="text-gray-400">Sort: {addon.sortOrder}</span>
+                                            </div>
+                                            {addon.adminNotes && (
+                                              <p className="text-xs text-amber-700 mt-1.5 bg-amber-50 px-2 py-1 rounded">
+                                                📝 {addon.adminNotes}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                          <button
+                                            onClick={() => handleToggleEnabled(addon)}
+                                            className={`px-3 py-1.5 rounded text-sm font-medium ${
+                                              addon.enabled
+                                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                            }`}
+                                          >
+                                            {addon.enabled ? 'Disable' : 'Enable'}
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setEditingAddon({ ...addon });
+                                              setIsCreating(false);
+                                            }}
+                                            className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200"
+                                          >
+                                            Edit
+                                          </button>
+                                          <button
+                                            onClick={() => handleDelete(addon.id)}
+                                            disabled={deletingId === addon.id}
+                                            className="px-3 py-1.5 bg-red-100 text-red-700 rounded text-sm font-medium hover:bg-red-200 disabled:opacity-50"
+                                          >
+                                            {deletingId === addon.id ? '...' : 'Delete'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
 
