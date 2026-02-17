@@ -161,9 +161,16 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
           serviceFee: finalServiceFee,
           embassyFee: embassyFee,
           expressPrice: expressPrice,
+          ...(answers.expressRequired && answers.selectedVisaProduct.expressEmbassyFee ? { expressEmbassyFee: answers.selectedVisaProduct.expressEmbassyFee } : {}),
+          ...(answers.expressRequired && answers.selectedVisaProduct.expressDoxFee ? { expressDoxFee: answers.selectedVisaProduct.expressDoxFee } : {}),
           urgentPrice: urgentPrice,
+          ...(answers.urgentRequired && answers.selectedVisaProduct.urgentEmbassyFee ? { urgentEmbassyFee: answers.selectedVisaProduct.urgentEmbassyFee } : {}),
+          ...(answers.urgentRequired && answers.selectedVisaProduct.urgentDoxFee ? { urgentDoxFee: answers.selectedVisaProduct.urgentDoxFee } : {}),
           ...(addOnServicesTotal > 0 ? { addOnServicesTotal } : {}),
           ...(discountAmount > 0 ? { discountAmount, discountPercent: customDiscountPercent } : {}),
+          // VAT info: DOX fees have 25% VAT (included in price), embassy fees are 0% VAT
+          vatRate: 0.25,
+          vatNote: 'DOX service fees include 25% VAT. Embassy fees are exempt (0% VAT).',
         },
         
         // Customer pricing info (for reference in admin)
@@ -492,24 +499,85 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
     {
       title: locale === 'en' ? 'Visa Product' : 'Visumprodukt',
       step: 3,
-      items: [
-        { label: locale === 'en' ? 'Product' : 'Produkt', value: locale === 'en' && answers.selectedVisaProduct?.nameEn ? answers.selectedVisaProduct.nameEn : answers.selectedVisaProduct?.name },
-        { label: locale === 'en' ? 'Visa Type' : 'Visumtyp', value: answers.selectedVisaProduct?.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa' },
-        { label: locale === 'en' ? 'Entries' : 'Inresor', value: answers.selectedVisaProduct?.entryType === 'single' 
-          ? (locale === 'en' ? 'Single entry' : 'Enkelinresa') 
-          : answers.selectedVisaProduct?.entryType === 'double' 
-            ? (locale === 'en' ? 'Double entry' : 'Dubbelinresa') 
-            : (locale === 'en' ? 'Multiple entry' : 'Flerresor') },
-        { label: locale === 'en' ? 'Validity' : 'Giltighet', value: answers.selectedVisaProduct ? `${answers.selectedVisaProduct.validityDays} ${locale === 'en' ? 'days' : 'dagar'}` : undefined },
-        { label: locale === 'en' ? 'Service fee' : 'Serviceavgift', value: answers.selectedVisaProduct?.serviceFee ? `${answers.selectedVisaProduct.serviceFee.toLocaleString()} kr` : undefined },
-        { label: locale === 'en' ? 'Embassy fee' : 'Ambassadavgift', value: answers.selectedVisaProduct?.embassyFee ? `${answers.selectedVisaProduct.embassyFee.toLocaleString()} kr` : undefined },
-        ...(answers.expressRequired && answers.selectedVisaProduct?.expressPrice ? [{ label: locale === 'en' ? 'Express fee' : 'Expressavgift', value: `+${answers.selectedVisaProduct.expressPrice.toLocaleString()} kr` }] : []),
-        ...(answers.urgentRequired && answers.selectedVisaProduct?.urgentPrice ? [{ label: locale === 'en' ? 'Urgent fee' : 'Brådskande avgift', value: `+${answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr` }] : []),
-        ...(answers.selectedAddOnServices && answers.selectedAddOnServices.length > 0 ? answers.selectedAddOnServices.map(a => ({ label: locale === 'en' ? a.nameEn : a.name, value: `+${a.price.toLocaleString()} kr` })) : []),
-        { label: locale === 'en' ? 'Price per person' : 'Pris per person', value: answers.selectedVisaProduct ? `${(answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) + (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0)).toLocaleString()} kr` : undefined },
-        ...((answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length > 1 ? [{ label: locale === 'en' ? 'Travelers' : 'Resenärer', value: `${(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length} ${locale === 'en' ? 'persons' : 'personer'}` }] : []),
-        { label: locale === 'en' ? 'Total' : 'Totalt', value: answers.selectedVisaProduct ? `${(((answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length || 1) * (answers.selectedVisaProduct.price + (answers.expressRequired ? (answers.selectedVisaProduct.expressPrice || 0) : 0) + (answers.urgentRequired ? (answers.selectedVisaProduct.urgentPrice || 0) : 0) + (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0))).toLocaleString()} kr` : undefined },
-      ],
+      items: (() => {
+        const p = answers.selectedVisaProduct;
+        if (!p) return [];
+
+        const vatLabel0 = locale === 'en' ? '0% VAT' : '0% moms';
+        const vatLabel25 = locale === 'en' ? 'incl. 25% VAT' : 'inkl. 25% moms';
+
+        // Express fee breakdown
+        const expressEmbassy = answers.expressRequired ? (p.expressEmbassyFee || 0) : 0;
+        const expressDox = answers.expressRequired ? (p.expressDoxFee || 0) : 0;
+        const expressFallback = answers.expressRequired && !p.expressEmbassyFee && !p.expressDoxFee ? (p.expressPrice || 0) : 0;
+
+        // Urgent fee breakdown
+        const urgentEmbassy = answers.urgentRequired ? (p.urgentEmbassyFee || 0) : 0;
+        const urgentDox = answers.urgentRequired ? (p.urgentDoxFee || 0) : 0;
+        const urgentFallback = answers.urgentRequired && !p.urgentEmbassyFee && !p.urgentDoxFee ? (p.urgentPrice || 0) : 0;
+
+        // Add-on total
+        const addOnTotal = (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0);
+
+        // VAT calculation: 25% on DOX fees (service fee, express DOX, urgent DOX, add-ons)
+        // Embassy fees are 0% VAT
+        const doxFeesTotal = (p.serviceFee || 0) + expressDox + urgentDox + addOnTotal + expressFallback + urgentFallback;
+        const vatAmount = Math.round(doxFeesTotal * 0.25 / 1.25); // VAT is included in price
+
+        // Per-person total
+        const perPerson = (p.price || 0) + (answers.expressRequired ? (p.expressPrice || 0) : 0) + (answers.urgentRequired ? (p.urgentPrice || 0) : 0) + addOnTotal;
+        const travelerCount = (answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length || 1;
+        const total = perPerson * travelerCount;
+        const totalVat = vatAmount * travelerCount;
+
+        const items: { label: string; value: string | undefined }[] = [
+          { label: locale === 'en' ? 'Product' : 'Produkt', value: locale === 'en' && p.nameEn ? p.nameEn : p.name },
+          { label: locale === 'en' ? 'Visa Type' : 'Visumtyp', value: p.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa' },
+          { label: locale === 'en' ? 'Entries' : 'Inresor', value: p.entryType === 'single' 
+            ? (locale === 'en' ? 'Single entry' : 'Enkelinresa') 
+            : p.entryType === 'double' 
+              ? (locale === 'en' ? 'Double entry' : 'Dubbelinresa') 
+              : (locale === 'en' ? 'Multiple entry' : 'Flerresor') },
+          { label: locale === 'en' ? 'Validity' : 'Giltighet', value: `${p.validityDays} ${locale === 'en' ? 'days' : 'dagar'}` },
+          { label: `${locale === 'en' ? 'Service fee' : 'Serviceavgift'} (${vatLabel25})`, value: p.serviceFee ? `${p.serviceFee.toLocaleString()} kr` : undefined },
+          { label: `${locale === 'en' ? 'Embassy fee' : 'Ambassadavgift'} (${vatLabel0})`, value: p.embassyFee ? `${p.embassyFee.toLocaleString()} kr` : undefined },
+        ];
+
+        // Express fee split
+        if (answers.expressRequired && (expressEmbassy || expressDox)) {
+          items.push({ label: `${locale === 'en' ? 'Express – embassy fee' : 'Express – ambassadavgift'} (${vatLabel0})`, value: `+${expressEmbassy.toLocaleString()} kr` });
+          items.push({ label: `${locale === 'en' ? 'Express – service fee' : 'Express – serviceavgift'} (${vatLabel25})`, value: `+${expressDox.toLocaleString()} kr` });
+        } else if (answers.expressRequired && expressFallback) {
+          items.push({ label: locale === 'en' ? 'Express fee' : 'Expressavgift', value: `+${expressFallback.toLocaleString()} kr` });
+        }
+
+        // Urgent fee split
+        if (answers.urgentRequired && (urgentEmbassy || urgentDox)) {
+          items.push({ label: `${locale === 'en' ? 'Urgent – embassy fee' : 'Brådskande – ambassadavgift'} (${vatLabel0})`, value: `+${urgentEmbassy.toLocaleString()} kr` });
+          items.push({ label: `${locale === 'en' ? 'Urgent – service fee' : 'Brådskande – serviceavgift'} (${vatLabel25})`, value: `+${urgentDox.toLocaleString()} kr` });
+        } else if (answers.urgentRequired && urgentFallback) {
+          items.push({ label: locale === 'en' ? 'Urgent fee' : 'Brådskande avgift', value: `+${urgentFallback.toLocaleString()} kr` });
+        }
+
+        // Add-on services
+        if (answers.selectedAddOnServices && answers.selectedAddOnServices.length > 0) {
+          answers.selectedAddOnServices.forEach(a => {
+            items.push({ label: `${locale === 'en' ? a.nameEn : a.name} (${vatLabel25})`, value: `+${a.price.toLocaleString()} kr` });
+          });
+        }
+
+        // Per person & total
+        items.push({ label: locale === 'en' ? 'Price per person' : 'Pris per person', value: `${perPerson.toLocaleString()} kr` });
+
+        if (travelerCount > 1) {
+          items.push({ label: locale === 'en' ? 'Travelers' : 'Resenärer', value: `${travelerCount} ${locale === 'en' ? 'persons' : 'personer'}` });
+        }
+
+        items.push({ label: `${locale === 'en' ? 'VAT (25%)' : 'Varav moms (25%)'}`, value: `${totalVat.toLocaleString()} kr` });
+        items.push({ label: locale === 'en' ? 'Total' : 'Totalt', value: `${total.toLocaleString()} kr` });
+
+        return items;
+      })(),
     },
     {
       title: locale === 'en' ? 'Travelers & dates' : 'Resenärer & datum',

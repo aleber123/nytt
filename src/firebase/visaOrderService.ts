@@ -140,12 +140,21 @@ export interface VisaOrder {
   // Pricing
   totalPrice: number;
   pricingBreakdown?: {
-    serviceFee: number; // DOX service fee
-    embassyFee: number; // Embassy/government fee
+    serviceFee: number; // DOX service fee (incl. 25% VAT)
+    embassyFee: number; // Embassy/government fee (0% VAT)
     shippingFee?: number;
     expeditedFee?: number;
     expressPrice?: number;
+    expressEmbassyFee?: number; // Embassy portion of express fee (0% VAT)
+    expressDoxFee?: number; // DOX portion of express fee (incl. 25% VAT)
     urgentPrice?: number;
+    urgentEmbassyFee?: number; // Embassy portion of urgent fee (0% VAT)
+    urgentDoxFee?: number; // DOX portion of urgent fee (incl. 25% VAT)
+    addOnServicesTotal?: number;
+    discountAmount?: number;
+    discountPercent?: number;
+    vatRate?: number; // 0.25 for Swedish VAT
+    vatNote?: string;
   };
   
   // Status

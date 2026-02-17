@@ -532,34 +532,87 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
           </div>
           {/* Show fee breakdown */}
           <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 space-y-1">
-            <div className="flex justify-between">
-              <span>{currentLocale === 'en' ? 'Base price' : 'Grundpris'}:</span>
-              <span>{answers.selectedVisaProduct.price.toLocaleString()} kr</span>
-            </div>
-            {answers.expressRequired && answers.selectedVisaProduct.expressPrice && (
-              <div className="flex justify-between text-orange-600">
-                <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}:</span>
-                <span>+{answers.selectedVisaProduct.expressPrice.toLocaleString()} kr</span>
-              </div>
-            )}
-            {answers.urgentRequired && answers.selectedVisaProduct.urgentPrice && (
-              <div className="flex justify-between text-red-600">
-                <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}:</span>
-                <span>+{answers.selectedVisaProduct.urgentPrice.toLocaleString()} kr</span>
-              </div>
-            )}
-            {answers.selectedAddOnServices && answers.selectedAddOnServices.map(addon => (
-              <div key={addon.id} className="flex justify-between text-purple-600">
-                <span>{currentLocale === 'en' ? addon.nameEn : addon.name}:</span>
-                <span>+{addon.price.toLocaleString()} kr</span>
-              </div>
-            ))}
-            {(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length > 1 && (
-              <div className="flex justify-between font-medium text-gray-700 pt-1 border-t border-gray-100">
-                <span>{currentLocale === 'en' ? 'Travelers' : 'Resenärer'}:</span>
-                <span>× {(answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length}</span>
-              </div>
-            )}
+            {(() => {
+              const p = answers.selectedVisaProduct!;
+              const vatLabel0 = currentLocale === 'en' ? '0% VAT' : '0% moms';
+              const vatLabel25 = currentLocale === 'en' ? 'incl. 25% VAT' : 'inkl. 25% moms';
+              const expressEmbassy = answers.expressRequired ? (p.expressEmbassyFee || 0) : 0;
+              const expressDox = answers.expressRequired ? (p.expressDoxFee || 0) : 0;
+              const expressFallback = answers.expressRequired && !p.expressEmbassyFee && !p.expressDoxFee ? (p.expressPrice || 0) : 0;
+              const urgentEmbassy = answers.urgentRequired ? (p.urgentEmbassyFee || 0) : 0;
+              const urgentDox = answers.urgentRequired ? (p.urgentDoxFee || 0) : 0;
+              const urgentFallback = answers.urgentRequired && !p.urgentEmbassyFee && !p.urgentDoxFee ? (p.urgentPrice || 0) : 0;
+              const addOnTotal = (answers.selectedAddOnServices || []).reduce((sum, a) => sum + a.price, 0);
+              const doxFeesTotal = (p.serviceFee || 0) + expressDox + urgentDox + addOnTotal + expressFallback + urgentFallback;
+              const vatAmount = Math.round(doxFeesTotal * 0.25 / 1.25);
+              const tc = (answers.travelers || []).filter(t => t.firstName.trim() && t.lastName.trim()).length || 1;
+              const totalVat = vatAmount * tc;
+
+              return (
+                <>
+                  <div className="flex justify-between">
+                    <span>{currentLocale === 'en' ? 'Service fee' : 'Serviceavgift'} ({vatLabel25}):</span>
+                    <span>{(p.serviceFee || 0).toLocaleString()} kr</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{currentLocale === 'en' ? 'Embassy fee' : 'Ambassadavgift'} ({vatLabel0}):</span>
+                    <span>{(p.embassyFee || 0).toLocaleString()} kr</span>
+                  </div>
+                  {answers.expressRequired && (expressEmbassy > 0 || expressDox > 0) && (
+                    <>
+                      <div className="flex justify-between text-orange-600">
+                        <span>{currentLocale === 'en' ? 'Express – embassy' : 'Express – ambassad'} ({vatLabel0}):</span>
+                        <span>+{expressEmbassy.toLocaleString()} kr</span>
+                      </div>
+                      <div className="flex justify-between text-orange-600">
+                        <span>{currentLocale === 'en' ? 'Express – service' : 'Express – service'} ({vatLabel25}):</span>
+                        <span>+{expressDox.toLocaleString()} kr</span>
+                      </div>
+                    </>
+                  )}
+                  {answers.expressRequired && expressFallback > 0 && (
+                    <div className="flex justify-between text-orange-600">
+                      <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}:</span>
+                      <span>+{expressFallback.toLocaleString()} kr</span>
+                    </div>
+                  )}
+                  {answers.urgentRequired && (urgentEmbassy > 0 || urgentDox > 0) && (
+                    <>
+                      <div className="flex justify-between text-red-600">
+                        <span>{currentLocale === 'en' ? 'Urgent – embassy' : 'Bråds. – ambassad'} ({vatLabel0}):</span>
+                        <span>+{urgentEmbassy.toLocaleString()} kr</span>
+                      </div>
+                      <div className="flex justify-between text-red-600">
+                        <span>{currentLocale === 'en' ? 'Urgent – service' : 'Bråds. – service'} ({vatLabel25}):</span>
+                        <span>+{urgentDox.toLocaleString()} kr</span>
+                      </div>
+                    </>
+                  )}
+                  {answers.urgentRequired && urgentFallback > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}:</span>
+                      <span>+{urgentFallback.toLocaleString()} kr</span>
+                    </div>
+                  )}
+                  {answers.selectedAddOnServices && answers.selectedAddOnServices.map(addon => (
+                    <div key={addon.id} className="flex justify-between text-purple-600">
+                      <span>{currentLocale === 'en' ? addon.nameEn : addon.name} ({vatLabel25}):</span>
+                      <span>+{addon.price.toLocaleString()} kr</span>
+                    </div>
+                  ))}
+                  {tc > 1 && (
+                    <div className="flex justify-between font-medium text-gray-700 pt-1 border-t border-gray-100">
+                      <span>{currentLocale === 'en' ? 'Travelers' : 'Resenärer'}:</span>
+                      <span>× {tc}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-1 border-t border-gray-100 text-gray-400">
+                    <span>{currentLocale === 'en' ? 'VAT (25%)' : 'Varav moms (25%)'}:</span>
+                    <span>{totalVat.toLocaleString()} kr</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
