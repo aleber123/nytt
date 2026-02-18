@@ -28,7 +28,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { downloadDhlReturnLabel } from '@/services/shippingLabelService';
 import { adminFetch } from '@/lib/adminFetch';
 import { getCustomerByEmailDomain } from '@/firebase/customerService';
-import { NotesTab, CommunicationTab, InvoiceTab, FilesTab, OverviewTab, ServicesTab, PriceTab, ProcessingTab, CoverLettersTab } from '@/components/admin/order';
+import { NotesTab, CommunicationTab, InvoiceTab, FilesTab, OverviewTab, ServicesTab, PriceTab, ProcessingTab, CoverLettersTab, FormFillTab } from '@/components/admin/order';
 import { generateVisaSubmittedEmail, generateVisaApprovedEmail, generateVisaRejectedEmail, generateEVisaDeliveryEmail, generateVisaDocsReceivedEmail, generateVisaReturnShippingEmail, generateVisaEmbassySubmittedEmail } from '@/components/order/templates/visaStatusUpdateEmail';
 
 // Define Order interface locally to match the updated interface
@@ -912,7 +912,7 @@ function AdminOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedStatus, setEditedStatus] = useState<Order['status']>('pending');
-  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'services' | 'price' | 'files' | 'notes' | 'invoice' | 'coverletters' | 'communication'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'processing' | 'services' | 'price' | 'files' | 'notes' | 'invoice' | 'coverletters' | 'communication' | 'formfill'>('overview');
   const [newNote, setNewNote] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
@@ -6206,7 +6206,8 @@ function AdminOrderDetailPage() {
                     { id: 'files', label: 'Files', icon: '📎' },
                     { id: 'invoice', label: 'Invoice', icon: '🧾' },
                     { id: 'communication', label: 'Communication', icon: '📧' },
-                    { id: 'notes', label: 'Notes', icon: '📝' }
+                    { id: 'notes', label: 'Notes', icon: '📝' },
+                    ...(order.orderType === 'visa' ? [{ id: 'formfill', label: 'Form Fill', icon: '🖊️' }] : [])
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -6485,6 +6486,14 @@ function AdminOrderDetailPage() {
                       setOrder(updatedOrder);
                       toast.success('Note added');
                     }}
+                  />
+                )}
+
+                {/* Form Fill Tab */}
+                {activeTab === 'formfill' && (
+                  <FormFillTab
+                    order={order}
+                    orderId={router.query.id as string}
                   />
                 )}
               </div>

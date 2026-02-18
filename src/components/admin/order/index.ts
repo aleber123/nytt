@@ -7,4 +7,5 @@ export { default as ServicesTab } from './ServicesTab';
 export { default as PriceTab } from './PriceTab';
 export { default as ProcessingTab } from './ProcessingTab';
 export { default as CoverLettersTab } from './CoverLettersTab';
+export { default as FormFillTab } from './FormFillTab';
 export type { ExtendedOrder, ProcessingStep, AdminNote } from './types';

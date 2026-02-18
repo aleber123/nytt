@@ -3,6 +3,7 @@ import type { ExtendedOrder, ProcessingStep } from './types';
 import SvensklistanButton from './SvensklistanButton';
 import IndiaEVisaButton from './IndiaEVisaButton';
 import AngolaVisaPdfButton from './AngolaVisaPdfButton';
+import BrazilVisaScriptButton from './BrazilVisaScriptButton';
 import FormDataPrintButton from './FormDataPrintButton';
 
 // ProcessingTab receives all needed state/functions via a context object
@@ -131,6 +132,12 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                 addons.some((a: any) => 
                                   a.name?.toLowerCase().includes('angola') || a.id?.toLowerCase().includes('angola')
                                 );
+                              const hasBrazil = (order as any).destinationCountryCode === 'BR' ||
+                                (order as any).destinationCountry?.toLowerCase().includes('brazil') ||
+                                (order as any).destinationCountry?.toLowerCase().includes('brasilien') ||
+                                addons.some((a: any) => 
+                                  a.name?.toLowerCase().includes('brazil') || a.name?.toLowerCase().includes('brasilien') || a.id?.toLowerCase().includes('brazil')
+                                );
                               const hasTravelers = (order as any).travelers?.length > 0;
 
                               return (
@@ -171,6 +178,17 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                       <div className="space-y-2">
                                         {(order as any).travelers.map((t: any, idx: number) => (
                                           <AngolaVisaPdfButton key={idx} order={order} travelerIndex={idx} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {hasBrazil && hasTravelers && (
+                                    <div className="p-3 rounded-lg border bg-green-50 border-green-200">
+                                      <p className="text-sm font-medium text-green-900 mb-2">🇧🇷 Brazil Visa — copy DPVN auto-fill script:</p>
+                                      <div className="space-y-2">
+                                        {(order as any).travelers.map((t: any, idx: number) => (
+                                          <BrazilVisaScriptButton key={idx} order={order} travelerIndex={idx} />
                                         ))}
                                       </div>
                                     </div>
