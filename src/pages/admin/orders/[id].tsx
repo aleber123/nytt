@@ -1115,6 +1115,7 @@ function AdminOrderDetailPage() {
               overrideAmount: o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : null,
               overrideUnitPrice: o.overrideUnitPrice !== undefined && o.overrideUnitPrice !== null ? Number(o.overrideUnitPrice) : null,
               quantity: o.quantity ? Number(o.quantity) : null,
+              overrideQuantity: o.overrideQuantity !== undefined && o.overrideQuantity !== null ? Number(o.overrideQuantity) : null,
               vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
               include: o.include !== false
             };

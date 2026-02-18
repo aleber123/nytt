@@ -935,10 +935,10 @@ export async function generateOrderConfirmationPDF(order: Order, internalNotesLi
         description = translateDescription(description);
         
         // Append quantity × unitPrice detail if available
-        if (breakdownItem?.quantity && breakdownItem.quantity > 1) {
-          // Use the actual price (which may be admin-overridden) to calculate per-unit
-          const effectiveUnitPrice = price / breakdownItem.quantity;
-          description += ` (${breakdownItem.quantity} × ${Math.round(effectiveUnitPrice)})`;
+        const effectiveQty = (override as any).overrideQuantity != null ? Number((override as any).overrideQuantity) : (breakdownItem?.quantity || 1);
+        if (effectiveQty > 1) {
+          const effectiveUnitPrice = price / effectiveQty;
+          description += ` (${effectiveQty} × ${Math.round(effectiveUnitPrice)})`;
         }
         
         doc.text(description, labelX, y);

@@ -1347,15 +1347,16 @@ function createLineItemsFromAdminPrice(
     const description = originalItem?.description || override.label || `Line ${i + 1}`;
 
     // Determine correct quantity and unitPrice for the invoice line
-    // If admin set an overrideUnitPrice, use that; otherwise use original breakdown values
-    const itemQuantity = originalItem?.quantity && originalItem.quantity > 1 ? originalItem.quantity : 1;
+    // If admin set an overrideQuantity or overrideUnitPrice, use those; otherwise use original breakdown values
+    const baseQuantity = originalItem?.quantity && originalItem.quantity > 1 ? originalItem.quantity : 1;
+    const itemQuantity = (override as any).overrideQuantity != null ? Number((override as any).overrideQuantity) : baseQuantity;
     let itemUnitPrice: number;
     if (override.overrideUnitPrice !== null && override.overrideUnitPrice !== undefined) {
       itemUnitPrice = Number(override.overrideUnitPrice);
-    } else if (itemQuantity > 1 && originalItem?.unitPrice) {
+    } else if (baseQuantity > 1 && originalItem?.unitPrice) {
       itemUnitPrice = originalItem.unitPrice;
     } else {
-      itemUnitPrice = amount;
+      itemUnitPrice = itemQuantity > 1 && amount > 0 ? amount / itemQuantity : amount;
     }
 
     lineItems.push({

@@ -9,6 +9,7 @@ interface LineOverride {
   overrideAmount?: number | null;
   overrideUnitPrice?: number | null;
   quantity?: number | null;
+  overrideQuantity?: number | null;
   vatPercent?: number | null;
   include: boolean;
 }
@@ -130,11 +131,25 @@ export default function PriceTab({
           if (savedUnitPrice !== null && savedQuantity && savedQuantity > 1) {
             finalOverrideAmount = savedUnitPrice * savedQuantity;
           }
+          const savedOverrideQuantity = o.overrideQuantity !== undefined && o.overrideQuantity !== null ? Number(o.overrideQuantity) : null;
+          // Recalculate overrideAmount if quantity or unit price was overridden
+          if (savedOverrideQuantity !== null || savedUnitPrice !== null) {
+            const effectiveQty = savedOverrideQuantity ?? savedQuantity ?? 1;
+            if (savedUnitPrice !== null) {
+              finalOverrideAmount = savedUnitPrice * effectiveQty;
+            } else if (savedOverrideQuantity !== null && Array.isArray(order?.pricingBreakdown)) {
+              const item = order!.pricingBreakdown[o.index] as any;
+              if (typeof item?.unitPrice === 'number') {
+                finalOverrideAmount = item.unitPrice * savedOverrideQuantity;
+              }
+            }
+          }
           return {
             index: o.index, label: currentLabel, baseAmount: Number(o.baseAmount || 0),
             overrideAmount: finalOverrideAmount,
             overrideUnitPrice: savedUnitPrice,
             quantity: savedQuantity,
+            overrideQuantity: savedOverrideQuantity,
             vatPercent: o.vatPercent !== undefined && o.vatPercent !== null ? Number(o.vatPercent) : null,
             include: o.include !== false
           };
@@ -202,6 +217,7 @@ export default function PriceTab({
                               <th className="px-3 py-2 text-left">Description</th>
                               <th className="px-3 py-2 text-right">Base Amount</th>
                               <th className="px-3 py-2 text-right">New Unit Price</th>
+                              <th className="px-3 py-2 text-center">Qty</th>
                               <th className="px-3 py-2 text-right">New Total</th>
                               <th className="px-3 py-2 text-right">VAT %</th>
                             </tr>
@@ -314,24 +330,47 @@ export default function PriceTab({
                                     </td>
                                     <td className="px-3 py-2 text-right">
                                       {item.quantity && item.quantity > 1 ? (
-                                        <div className="flex items-center justify-end gap-1">
+                                        <input
+                                          type="number"
+                                          className="w-24 border rounded px-2 py-1 text-right"
+                                          value={o.overrideUnitPrice ?? ''}
+                                          placeholder={typeof item.unitPrice === 'number' ? String(item.unitPrice) : ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value === '' ? null : Number(e.target.value);
+                                            const next = [...lineOverrides];
+                                            const effectiveQty = o.overrideQuantity ?? item.quantity;
+                                            const computedTotal = val !== null ? val * effectiveQty : (o.overrideQuantity != null && typeof item.unitPrice === 'number' ? item.unitPrice * o.overrideQuantity : null);
+                                            next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideUnitPrice: val, quantity: item.quantity, overrideQuantity: o.overrideQuantity, overrideAmount: computedTotal };
+                                            setLineOverrides(next);
+                                          }}
+                                        />
+                                      ) : (
+                                        <span className="text-gray-300">—</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      {item.quantity && item.quantity > 1 ? (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <span className="text-gray-400 text-xs">×</span>
                                           <input
                                             type="number"
-                                            className="w-24 border rounded px-2 py-1 text-right"
-                                            value={o.overrideUnitPrice ?? ''}
-                                            placeholder={typeof item.unitPrice === 'number' ? String(item.unitPrice) : ''}
+                                            min="0"
+                                            className={`w-14 border rounded px-2 py-1 text-center ${
+                                              o.overrideQuantity != null && o.overrideQuantity !== item.quantity ? 'border-blue-400 bg-blue-50 font-semibold text-blue-700' : ''
+                                            }`}
+                                            value={o.overrideQuantity ?? item.quantity}
                                             onChange={(e) => {
                                               const val = e.target.value === '' ? null : Number(e.target.value);
                                               const next = [...lineOverrides];
-                                              const computedTotal = val !== null ? val * item.quantity : null;
-                                              next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideUnitPrice: val, quantity: item.quantity, overrideAmount: computedTotal };
+                                              const effectiveUnitPrice = o.overrideUnitPrice ?? (typeof item.unitPrice === 'number' ? item.unitPrice : null);
+                                              const computedTotal = effectiveUnitPrice !== null && val !== null ? effectiveUnitPrice * val : null;
+                                              next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideQuantity: val, quantity: item.quantity, overrideUnitPrice: o.overrideUnitPrice, overrideAmount: computedTotal };
                                               setLineOverrides(next);
                                             }}
                                           />
-                                          <span className="text-gray-400 text-xs">× {item.quantity}</span>
                                         </div>
                                       ) : (
-                                        <span className="text-gray-300">—</span>
+                                        <span className="text-gray-300 text-xs">× 1</span>
                                       )}
                                     </td>
                                     <td className="px-3 py-2 text-right">

@@ -437,16 +437,15 @@ export async function extractPersonbevisData(
       }
     }
 
-    // Extract place of birth — personbevis often uses "Födelse(hem)ort" or "Födelseort"
+    // Extract place of birth — personbevis uses "Födelseort", "Födelse(hem)ort", "Födelse (hem) ort", etc.
     let placeOfBirth = '';
     for (let i = 0; i < lines.length; i++) {
       const lower = lines[i].toLowerCase();
       if (lower.includes('födelse') && (lower.includes('ort') || lower.includes('hem'))) {
-        // Match variants: Födelseort, Födelse(hem)ort, Födelsehem ort, etc.
-        const val = lines[i].replace(/^.*?födelse\(?hem\)?\s*ort[:\s]*/i, '')
-          .replace(/^.*?födelseort[:\s]*/i, '')
-          .replace(/^.*?fodelseort[:\s]*/i, '')
-          .replace(/^.*?fodelse\(?hem\)?\s*ort[:\s]*/i, '')
+        // Strip all label variants: "Födelse (hem) ort", "Födelse(hem)ort", "Födelseort", etc.
+        const val = lines[i]
+          .replace(/^.*?f[öo]delse\s*\(?\s*hem\s*\)?\s*ort[:\s]*/i, '')
+          .replace(/^.*?f[öo]delseort[:\s]*/i, '')
           .trim();
         if (val && val.length > 1) placeOfBirth = val;
         else if (i + 1 < lines.length && lines[i + 1].trim().length > 1) placeOfBirth = lines[i + 1].trim();

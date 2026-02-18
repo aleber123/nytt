@@ -317,7 +317,13 @@ export function ConfirmationPage() {
                     <div className="bg-white rounded-lg border border-gray-200 p-6 overflow-hidden">
                       <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.deliveryAddress')}:</h3>
                       <div className="space-y-3">
-                        {order.returnAddress ? (
+                        {order.confirmReturnAddressLater || order.returnAddressConfirmationRequired ? (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <p className="text-amber-800 font-medium">
+                              {locale === 'en' ? '📩 You will receive an email to confirm your delivery address.' : '📩 Du kommer att få ett e-postmeddelande för att bekräfta din leveransadress.'}
+                            </p>
+                          </div>
+                        ) : order.returnAddress && order.returnAddress.street ? (
                           <>
                             {order.returnAddress.companyName && (
                               <p className="text-gray-700 font-medium break-words">{order.returnAddress.companyName}</p>

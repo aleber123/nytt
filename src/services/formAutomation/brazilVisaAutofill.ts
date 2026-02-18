@@ -402,7 +402,31 @@ function fillDocuments() {
   
   setSelect('comboTipoDocVisto', 'Passport');
   setVal('numeroDocViagemVisto', '${escapeJS(data.passportNumber)}');
-  setSelect('orgaoDocViagemVisto', 'Sweden');
+  
+  // Passport Issuing Authority dropdown may load dynamically after Document Type selection
+  // Try immediately, then retry after a delay
+  function setIssuingAuthority() {
+    const sel = document.getElementById('orgaoDocViagemVisto') || document.querySelector('[id="orgaoDocViagemVisto"]');
+    if (!sel) { console.warn('⚠️ orgaoDocViagemVisto not found'); return false; }
+    const options = sel.querySelectorAll('option');
+    // Try exact match first, then partial
+    for (const opt of options) {
+      const txt = opt.textContent.trim();
+      if (txt.toLowerCase() === 'sweden') { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); console.log('✅ orgaoDocViagemVisto = Sweden'); return true; }
+    }
+    for (const opt of options) {
+      const txt = opt.textContent.trim().toLowerCase();
+      if (txt.includes('sweden') || txt.includes('suécia') || txt.includes('suecia')) { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); console.log('✅ orgaoDocViagemVisto =', opt.textContent.trim()); return true; }
+    }
+    // Log available options for debugging
+    console.warn('⚠️ Sweden not found in orgaoDocViagemVisto. Available options:', Array.from(options).map(o => o.textContent.trim()).join(', '));
+    return false;
+  }
+  if (!setIssuingAuthority()) {
+    console.log('⏳ Retrying Passport Issuing Authority in 1s...');
+    setTimeout(() => { setIssuingAuthority(); }, 1000);
+  }
+  
   setDate('dataExpedicaoDocViagemVisto', '${escapeJS(data.passportDateOfIssue)}');
   setDate('dataExpiracaoDocViagemVisto', '${escapeJS(data.passportDateOfExpiry)}');
   
