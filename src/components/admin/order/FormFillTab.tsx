@@ -11,10 +11,24 @@
  * Works independently of whether the customer purchased a form-fill addon.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFormSubmissionsForOrder } from '@/firebase/visaFormService';
 import { buildBrazilVisaDataFromOrder, generateBrazilAutoFillScript } from '@/services/formAutomation/brazilVisaAutofill';
 import { toast } from 'react-hot-toast';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateVisaOrder } from '@/firebase/visaOrderService';
+import { extractPassportData, extractPersonbevisData, extractCriminalRecordData, COUNTRY_CODE_MAP } from '@/services/passportOcrService';
+
+type OcrStatus = { progress: number | null; result: string | null };
+
+interface UploadedDoc {
+  id: string;
+  label: string;
+  fileName: string;
+  downloadURL: string;
+  storagePath: string;
+  uploadedAt: string;
+}
 
 // Country-specific config: embassy URLs, script generators, etc.
 const COUNTRY_CONFIG: Record<string, {
@@ -82,6 +96,10 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
   const [manualFields, setManualFields] = useState<Record<string, string>>({});
   const [selectedTraveler, setSelectedTraveler] = useState(0);
   const [scriptCopied, setScriptCopied] = useState(false);
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [ocrStatuses, setOcrStatuses] = useState<Record<string, OcrStatus>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const countryCode = order.destinationCountryCode || '';
   const countryConfig = COUNTRY_CONFIG[countryCode] || null;
@@ -109,6 +127,136 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     };
     fetchData();
   }, [orderId, order.orderNumber]);
+
+  // Load previously uploaded docs from order
+  useEffect(() => {
+    if (order.formFillDocuments) {
+      setUploadedDocs(order.formFillDocuments);
+    }
+  }, [order.formFillDocuments]);
+
+  // Upload a document to Firebase Storage
+  const handleFileUpload = async (docId: string, label: string, file: File) => {
+    setUploading(docId);
+    try {
+      const storage = getStorage();
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `visa-documents/${orderId}_formfill_${docId}_${selectedTraveler}_${cleanName}`;
+      const storageRef = ref(storage, storagePath);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      const newDoc: UploadedDoc = {
+        id: `${docId}_${selectedTraveler}`,
+        label,
+        fileName: file.name,
+        downloadURL,
+        storagePath,
+        uploadedAt: new Date().toISOString(),
+      };
+
+      const updated = [...uploadedDocs.filter(d => d.id !== newDoc.id), newDoc];
+      setUploadedDocs(updated);
+
+      // Save to order
+      await updateVisaOrder(orderId, { formFillDocuments: updated });
+      toast.success(`${label} uploaded`);
+
+      // Run OCR for scannable documents
+      if (docId === 'passportCopy' || docId === 'personbevis' || docId === 'criminalRecord') {
+        await runOcrForDocument(docId, file);
+      }
+    } catch (err: any) {
+      toast.error(`Upload failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  // Run OCR for a specific document type and auto-fill fields
+  const runOcrForDocument = async (docId: string, file: File) => {
+    setOcrStatuses(prev => ({ ...prev, [docId]: { progress: 0, result: null } }));
+    const updateProgress = (p: number) => setOcrStatuses(prev => ({ ...prev, [docId]: { ...prev[docId], progress: p } }));
+    const docLabels: Record<string, string> = { passportCopy: 'Passport', personbevis: 'Personbevis', criminalRecord: 'Criminal Record' };
+    toast(`\ud83d\udd0d Scanning ${docLabels[docId] || docId}...`, { duration: 4000 });
+
+    try {
+      const fieldsToFill: Record<string, string> = {};
+
+      if (docId === 'passportCopy') {
+        const ocrData = await extractPassportData(file, updateProgress);
+        if (ocrData.success) {
+          if (ocrData.givenNames) { fieldsToFill['givenNames'] = ocrData.givenNames; fieldsToFill['firstName'] = ocrData.givenNames; }
+          if (ocrData.familyNames) { fieldsToFill['familyNames'] = ocrData.familyNames; fieldsToFill['lastName'] = ocrData.familyNames; }
+          if (ocrData.passportNumber) fieldsToFill['passportNumber'] = ocrData.passportNumber;
+          if (ocrData.dateOfBirth) fieldsToFill['dateOfBirth'] = ocrData.dateOfBirth;
+          if (ocrData.dateOfExpiry) fieldsToFill['passportDateOfExpiry'] = ocrData.dateOfExpiry;
+          if (ocrData.gender) fieldsToFill['sex'] = ocrData.gender;
+          if (ocrData.nationality) fieldsToFill['nationality'] = COUNTRY_CODE_MAP[ocrData.nationality] || ocrData.nationality;
+          if (ocrData.issuingCountry) fieldsToFill['passportIssuedBy'] = COUNTRY_CODE_MAP[ocrData.issuingCountry] || ocrData.issuingCountry;
+        } else {
+          setOcrStatuses(prev => ({ ...prev, [docId]: { progress: null, result: `\u26a0\ufe0f ${ocrData.error || 'Could not read passport'}` } }));
+          toast.error(ocrData.error || 'Could not read passport MRZ');
+          return;
+        }
+      } else if (docId === 'personbevis') {
+        const ocrData = await extractPersonbevisData(file, updateProgress);
+        if (ocrData.success) {
+          if (ocrData.givenNames) { fieldsToFill['givenNames'] = ocrData.givenNames; fieldsToFill['firstName'] = ocrData.givenNames; }
+          if (ocrData.familyNames) { fieldsToFill['familyNames'] = ocrData.familyNames; fieldsToFill['lastName'] = ocrData.familyNames; }
+          if (ocrData.dateOfBirth) fieldsToFill['dateOfBirth'] = ocrData.dateOfBirth;
+          if (ocrData.maritalStatus) fieldsToFill['maritalStatus'] = ocrData.maritalStatus;
+          if (ocrData.address) fieldsToFill['permanentAddressStreet'] = ocrData.address;
+          if (ocrData.postalCode) fieldsToFill['permanentAddressZip'] = ocrData.postalCode;
+          if (ocrData.city) fieldsToFill['permanentAddressCity'] = ocrData.city;
+          if (ocrData.placeOfBirth) fieldsToFill['placeOfBirthCity'] = ocrData.placeOfBirth;
+          if (ocrData.citizenship) fieldsToFill['nationality'] = ocrData.citizenship;
+          if (ocrData.county) fieldsToFill['permanentAddressState'] = ocrData.county;
+          // Personbevis is always Swedish — set country of residence
+          fieldsToFill['permanentAddressCountry'] = 'Sweden';
+          fieldsToFill['placeOfBirthCountry'] = 'Sweden';
+          // Auto-fill email/phone from order data (not in personbevis)
+          if (order.customerInfo?.email) fieldsToFill['email'] = order.customerInfo.email;
+          if (order.customerInfo?.phone) fieldsToFill['phone'] = order.customerInfo.phone;
+        } else {
+          setOcrStatuses(prev => ({ ...prev, [docId]: { progress: null, result: `\u26a0\ufe0f ${ocrData.error || 'Could not read personbevis'}` } }));
+          toast.error(ocrData.error || 'Could not read personbevis');
+          return;
+        }
+      } else if (docId === 'criminalRecord') {
+        const ocrData = await extractCriminalRecordData(file, updateProgress);
+        if (ocrData.success) {
+          if (ocrData.dateOfBirth) fieldsToFill['dateOfBirth'] = ocrData.dateOfBirth;
+          // Split fullName if available
+          if (ocrData.fullName) {
+            const parts = ocrData.fullName.split(/,\s*/);
+            if (parts.length === 2) {
+              fieldsToFill['familyNames'] = parts[0].trim();
+              fieldsToFill['lastName'] = parts[0].trim();
+              fieldsToFill['givenNames'] = parts[1].trim();
+              fieldsToFill['firstName'] = parts[1].trim();
+            }
+          }
+        } else {
+          setOcrStatuses(prev => ({ ...prev, [docId]: { progress: null, result: `\u26a0\ufe0f ${ocrData.error || 'Could not read criminal record'}` } }));
+          toast.error(ocrData.error || 'Could not read criminal record');
+          return;
+        }
+      }
+
+      const count = Object.keys(fieldsToFill).length;
+      if (count > 0) {
+        setManualFields(prev => ({ ...prev, ...fieldsToFill }));
+        setOcrStatuses(prev => ({ ...prev, [docId]: { progress: null, result: `\u2705 Extracted ${count} fields` } }));
+        toast.success(`${docLabels[docId]} scanned \u2014 ${count} fields auto-filled!`);
+      } else {
+        setOcrStatuses(prev => ({ ...prev, [docId]: { progress: null, result: '\u26a0\ufe0f No fields extracted' } }));
+      }
+    } catch (ocrErr: any) {
+      setOcrStatuses(prev => ({ ...prev, [docId]: { progress: null, result: `\u274c OCR failed: ${ocrErr.message}` } }));
+      toast.error('Document scan failed');
+    }
+  };
 
   // Merge form submission data + manual overrides into a single data object
   const getMergedData = useCallback(() => {
@@ -147,7 +295,7 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
   const handleCopyScript = async () => {
     if (countryCode === 'BR') {
       const mergedData = getMergedData();
-      const data = buildBrazilVisaDataFromOrder(order, selectedTraveler, mergedData);
+      const data = buildBrazilVisaDataFromOrder(order, selectedTraveler, mergedData, uploadedDocs);
       if (!data) {
         toast.error('Could not build visa data for this traveler');
         return;
@@ -238,6 +386,97 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
         </div>
       )}
 
+      {/* Documents & Uploads */}
+      {countryCode === 'BR' && (
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <span>\ud83d\udcce</span> Step 1: Upload & Scan Documents
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upload the customer\u2019s documents below. Passport, personbevis and criminal record will be <strong>automatically scanned</strong> to extract data and pre-fill the form fields.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { id: 'passportCopy', label: 'Passport Copy (first page)', accept: '.jpg,.jpeg,.png,.pdf', icon: '\ud83d\udcd8', scannable: true },
+              { id: 'personbevis', label: 'Personbevis (Population Register)', accept: '.jpg,.jpeg,.png,.pdf', icon: '\ud83d\udccb', scannable: true },
+              { id: 'criminalRecord', label: 'Criminal Record Extract', accept: '.jpg,.jpeg,.png,.pdf', icon: '\ud83d\udcc4', scannable: true },
+              { id: 'passportPhoto', label: 'Passport Photo (biometric)', accept: '.jpg,.jpeg,.png', icon: '\ud83d\udcf7', scannable: false },
+            ].map(docType => {
+              const existing = uploadedDocs.find(d => d.id === `${docType.id}_${selectedTraveler}`);
+              const isUploading = uploading === docType.id;
+              const ocr = ocrStatuses[docType.id];
+              return (
+                <div key={docType.id} className={`border rounded-lg p-4 ${docType.scannable ? 'border-blue-200 bg-blue-50/30' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      {docType.icon} {docType.label}
+                      {docType.scannable && <span className="ml-1 text-xs text-blue-500 font-normal">(auto-scan)</span>}
+                    </span>
+                  </div>
+                  {existing ? (
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={existing.downloadURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline truncate flex-1"
+                      >
+                        \u2705 {existing.fileName}
+                      </a>
+                      <button
+                        onClick={() => fileInputRefs.current[docType.id]?.click()}
+                        className="text-xs text-gray-500 hover:text-gray-700 whitespace-nowrap"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => fileInputRefs.current[docType.id]?.click()}
+                      disabled={isUploading}
+                      className="w-full py-2 px-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                    >
+                      {isUploading ? '\u23f3 Uploading...' : 'Click to upload'}
+                    </button>
+                  )}
+                  {/* Per-document OCR progress */}
+                  {ocr?.progress !== null && ocr?.progress !== undefined && (
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-blue-600">\ud83d\udd0d Scanning... {ocr.progress}%</span>
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-1.5">
+                        <div className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${ocr.progress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  {ocr?.result && ocr?.progress === null && (
+                    <div className={`mt-2 text-xs px-2 py-1 rounded ${
+                      ocr.result.startsWith('\u2705') ? 'bg-green-100 text-green-700' :
+                      ocr.result.startsWith('\u26a0') ? 'bg-amber-100 text-amber-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {ocr.result}
+                    </div>
+                  )}
+                  <input
+                    ref={el => { fileInputRefs.current[docType.id] = el; }}
+                    type="file"
+                    accept={docType.accept}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(docType.id, docType.label, file);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Generate Script Button */}
       {countryConfig?.hasAutoFill && (
         <div className="flex items-center gap-3">
@@ -271,6 +510,32 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
             <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <span>{group.icon}</span> {group.label}
             </h3>
+            {/* SAAB quick-fill for Brazil Contact */}
+            {group.id === 'brazilContact' && (
+              <div className="mb-4 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualFields(prev => ({
+                      ...prev,
+                      brazilContactName: 'Jose Laercio Pereira',
+                      brazilContactAddress: 'Base Aérea de Anápolis BR 414 KM 4, Zona Rural Caixa Postal 811',
+                      brazilContactZip: '75024970',
+                      brazilContactCity: 'Anápolis',
+                      brazilContactState: 'GO',
+                      brazilContactRelationship: 'Co-worker',
+                      brazilContactEmail: 'Laercio.pereira@saabgroup.com',
+                      brazilContactPhone: '+55 11 9 8676 4053',
+                    }));
+                    toast.success('SAAB contact info filled');
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                >
+                  <span className="font-bold">SAAB</span> — Fill Jose Laercio Pereira
+                </button>
+                <span className="text-xs text-gray-400">Quick-fill SAAB contact in Brazil</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {group.fields.map(field => {
                 const value = getFieldValue(field.id, field.defaultValue || '');
@@ -420,7 +685,7 @@ function getBrazilFields(): FieldGroup[] {
       icon: '📘',
       fields: [
         { id: 'passportNumber', label: 'Passport Number', required: true },
-        { id: 'passportIssuedBy', label: 'Issued by', required: true, placeholder: 'Swedish Police Authority' },
+        { id: 'passportIssuedBy', label: 'Issued by', required: true, defaultValue: 'Suécia/Polismyndigheten' },
         { id: 'passportDateOfIssue', label: 'Date of Issue', type: 'date', required: true },
         { id: 'passportDateOfExpiry', label: 'Date of Expiry', type: 'date', required: true },
       ],
@@ -458,19 +723,19 @@ function getBrazilFields(): FieldGroup[] {
       label: 'Professional Data',
       icon: '💼',
       fields: [
-        { id: 'profession', label: 'Profession / Occupation', required: true },
-        { id: 'jobDescription', label: 'Job Description', required: true },
-        { id: 'activitiesInBrazil', label: 'Activities in Brazil', type: 'textarea', required: true, fullWidth: true },
-        { id: 'monthlyIncomeUSD', label: 'Monthly Income (USD)', required: true },
-        { id: 'employerName', label: 'Employer Name', required: true },
-        { id: 'employerCountry', label: 'Employer Country', required: true, placeholder: 'Sweden' },
+        { id: 'profession', label: 'Profession / Occupation', placeholder: 'e.g. Engineer' },
+        { id: 'jobDescription', label: 'Job Description' },
+        { id: 'activitiesInBrazil', label: 'Activities in Brazil', type: 'textarea', fullWidth: true },
+        { id: 'monthlyIncomeUSD', label: 'Monthly Income (USD)' },
+        { id: 'employerName', label: 'Employer Name' },
+        { id: 'employerCountry', label: 'Employer Country', placeholder: 'Sweden' },
         { id: 'employerState', label: 'Employer State/Province' },
-        { id: 'employerCity', label: 'Employer City', required: true },
-        { id: 'employerAddress', label: 'Employer Address', required: true },
+        { id: 'employerCity', label: 'Employer City' },
+        { id: 'employerAddress', label: 'Employer Address' },
         { id: 'employerZipCode', label: 'Employer Zip Code' },
         { id: 'employerEmail', label: 'Employer Email' },
         { id: 'employerPhone', label: 'Employer Phone' },
-        { id: 'employerBusinessNature', label: 'Nature of Business in Brazil', required: true, fullWidth: true },
+        { id: 'employerBusinessNature', label: 'Nature of Business in Brazil', type: 'textarea', fullWidth: true },
       ],
     },
     {
@@ -493,15 +758,16 @@ function getBrazilFields(): FieldGroup[] {
       icon: '🇧🇷',
       fields: [
         { id: 'brazilContactName', label: 'Contact Name', helpText: 'Leave empty if no contact in Brazil' },
-        { id: 'brazilContactState', label: 'Contact State' },
-        { id: 'brazilContactCity', label: 'Contact City' },
-        { id: 'brazilContactAddress', label: 'Contact Address' },
+        { id: 'brazilContactAddress', label: 'Contact Address', fullWidth: true },
         { id: 'brazilContactZip', label: 'Contact Zip Code' },
+        { id: 'brazilContactCity', label: 'Contact City' },
+        { id: 'brazilContactState', label: 'Contact State' },
         { id: 'brazilContactRelationship', label: 'Relationship', type: 'select', options: [
           { value: 'Co-worker', label: 'Co-worker' }, { value: 'Friend', label: 'Friend' },
           { value: 'Relative', label: 'Relative' }, { value: 'Others', label: 'Others' },
         ]},
-        { id: 'brazilContactPhone', label: 'Contact Phone/Email' },
+        { id: 'brazilContactEmail', label: 'Contact Email' },
+        { id: 'brazilContactPhone', label: 'Contact Phone' },
       ],
     },
   ];

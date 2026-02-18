@@ -935,8 +935,10 @@ export async function generateOrderConfirmationPDF(order: Order, internalNotesLi
         description = translateDescription(description);
         
         // Append quantity × unitPrice detail if available
-        if (breakdownItem?.quantity && breakdownItem.quantity > 1 && breakdownItem.unitPrice) {
-          description += ` (${breakdownItem.quantity} × ${breakdownItem.unitPrice})`;
+        if (breakdownItem?.quantity && breakdownItem.quantity > 1) {
+          // Use the actual price (which may be admin-overridden) to calculate per-unit
+          const effectiveUnitPrice = price / breakdownItem.quantity;
+          description += ` (${breakdownItem.quantity} × ${Math.round(effectiveUnitPrice)})`;
         }
         
         doc.text(description, labelX, y);

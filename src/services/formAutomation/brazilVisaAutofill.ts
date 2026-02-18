@@ -84,6 +84,12 @@ export interface BrazilVisaData {
   brazilContactZip?: string;
   brazilContactRelationship?: string; // Co-worker, Friend, Relative, Others
   brazilContactPhone?: string;
+
+  // Document URLs (uploaded by admin in Form Fill tab)
+  passportCopyUrl?: string;
+  passportPhotoUrl?: string;
+  criminalRecordUrl?: string;
+  personbevisUrl?: string;
 }
 
 /**
@@ -102,7 +108,8 @@ function toBrazilDate(isoDate: string): string {
 export function buildBrazilVisaDataFromOrder(
   order: any,
   travelerIndex: number,
-  formSubmissionData?: Record<string, string>
+  formSubmissionData?: Record<string, string>,
+  uploadedDocs?: { id: string; downloadURL: string }[]
 ): BrazilVisaData | null {
   const travelers = order.travelers || [];
   const traveler = travelers[travelerIndex];
@@ -182,6 +189,12 @@ export function buildBrazilVisaDataFromOrder(
     brazilContactZip: get('brazilContactZip') || '',
     brazilContactRelationship: get('brazilContactRelationship') || '',
     brazilContactPhone: get('brazilContactPhone') || '',
+
+    // Document URLs from admin uploads
+    passportCopyUrl: uploadedDocs?.find(d => d.id === `passportCopy_${travelerIndex}`)?.downloadURL || '',
+    passportPhotoUrl: uploadedDocs?.find(d => d.id === `passportPhoto_${travelerIndex}`)?.downloadURL || '',
+    criminalRecordUrl: uploadedDocs?.find(d => d.id === `criminalRecord_${travelerIndex}`)?.downloadURL || '',
+    personbevisUrl: uploadedDocs?.find(d => d.id === `personbevis_${travelerIndex}`)?.downloadURL || '',
   };
 }
 
@@ -460,18 +473,28 @@ function fillContacts() {
 // ============================================================
 function fillBiometricData() {
   console.log('📋 Biometric Data section...');
-  console.log('⚠️ File uploads must be done manually:');
-  console.log('  1. Upload passport PHOTO (uploadArqBio_foto)');
-  console.log('  2. Upload SIGNATURE (uploadArqBio_assinatura)');
-  console.log('  3. Select "Passport" in document type dropdown and upload passport COPY');
-  console.log('  4. Select "Criminal Records" and upload criminal record');
-  console.log('  5. Select "Other" and upload Personbevis');
-  console.log('  6. Check "declaroInformacoesVerdadeiras" (I declare information is true)');
+  console.log('');
+  console.log('⬇️  DOWNLOAD DOCUMENTS AND UPLOAD THEM BELOW:');
+  console.log('─'.repeat(50));
+${data.passportPhotoUrl ? `  console.log('📷 Passport Photo:  ${escapeJS(data.passportPhotoUrl)}');` : `  console.log('⚠️ Passport Photo: NOT UPLOADED');`}
+${data.passportCopyUrl ? `  console.log('📘 Passport Copy:   ${escapeJS(data.passportCopyUrl)}');` : `  console.log('⚠️ Passport Copy: NOT UPLOADED');`}
+${data.criminalRecordUrl ? `  console.log('📄 Criminal Record: ${escapeJS(data.criminalRecordUrl)}');` : `  console.log('⚠️ Criminal Record: NOT UPLOADED');`}
+${data.personbevisUrl ? `  console.log('📋 Personbevis:     ${escapeJS(data.personbevisUrl)}');` : `  console.log('⚠️ Personbevis: NOT UPLOADED');`}
+  console.log('─'.repeat(50));
+  console.log('');
+  console.log('📌 UPLOAD STEPS:');
+  console.log('  1. Click links above → download each file');
+  console.log('  2. Upload passport PHOTO to "uploadArqBio_foto"');
+  console.log('  3. Upload SIGNATURE to "uploadArqBio_assinatura" (if required)');
+  console.log('  4. Select "Passport" in doc type dropdown → upload passport COPY');
+  console.log('  5. Click "+" → Select "Criminal Records" → upload criminal record');
+  console.log('  6. Click "+" → Select "Other" → upload Personbevis');
   
   // Auto-check the declaration
   setCheckbox('declaroInformacoesVerdadeiras', true);
   
-  console.log('✅ Biometric Data — manual uploads remaining!');
+  console.log('');
+  console.log('✅ Declaration checked. Upload files above to complete!');
 }
 
 // ============================================================
