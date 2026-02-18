@@ -208,22 +208,24 @@ export function buildBrazilVisaDataFromOrder(
  * one at a time as they navigate through the DPVN tabs.
  */
 export function generateBrazilAutoFillScript(data: BrazilVisaData): string {
+  // DPVN form uses English option text for marital status and relationship dropdowns
   const maritalStatusMap: Record<string, string> = {
-    'Single': 'SOLTEIRO',
-    'Married': 'CASADO',
-    'Divorced': 'DIVORCIADO',
-    'Separated': 'SEPARADO',
-    'Widowed': 'VIUVO',
-    'Stable Union': 'UNIAO_ESTAVEL',
-    'Other': 'OUTRO',
+    'Single': 'Single',
+    'Married': 'Married',
+    'Divorced': 'Divorced',
+    'Separated': 'Separated',
+    'Widowed': 'Widow',
+    'Widow(er)': 'Widow',
+    'Stable Union': 'Stable Union',
+    'Other': 'Other',
   };
 
   const relationshipMap: Record<string, string> = {
-    'Co-worker': 'COLEGA_TRABALHO',
-    'Friend': 'AMIGO',
-    'Relative': 'PARENTE',
-    'Neighbor': 'VIZINHO',
-    'Others': 'OUTROS',
+    'Co-worker': 'Co-worker',
+    'Friend': 'Friend',
+    'Relative': 'Relative',
+    'Neighbor': 'Neighbor',
+    'Others': 'Others',
   };
 
   const escapeJS = (s: string) => (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
@@ -254,16 +256,29 @@ function setVal(id, value) {
 
 // Helper: set select dropdown
 function setSelect(id, value) {
-  const el = document.getElementById(id);
+  let el = document.getElementById(id);
+  // Fallback: querySelector with escaped colons (Angular IDs often contain colons)
+  if (!el) { try { el = document.querySelector('[id="' + id + '"]'); } catch(e) {} }
   if (!el) { console.warn('⚠️ Select not found:', id); return; }
-  // Try to find option by value or text
   const options = el.querySelectorAll('option');
   let found = false;
+  // 1st pass: exact match on value or text
   for (const opt of options) {
-    if (opt.value === value || opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) {
+    const txt = opt.textContent.trim();
+    if (opt.value === value || txt.toLowerCase() === value.toLowerCase()) {
       el.value = opt.value;
       found = true;
       break;
+    }
+  }
+  // 2nd pass: partial match (includes) as fallback
+  if (!found) {
+    for (const opt of options) {
+      if (opt.textContent.trim().toLowerCase().includes(value.toLowerCase())) {
+        el.value = opt.value;
+        found = true;
+        break;
+      }
     }
   }
   if (!found) {
@@ -319,7 +334,7 @@ function fillGeneralData() {
   setVal('prenome', '${escapeJS(data.givenNames)}');
   setVal('sobrenome', '${escapeJS(data.familyNames)}');
   setDate('indataNascimento', '${escapeJS(data.dateOfBirth)}');
-  setSelect('comboEstadoCivil', '${maritalStatusMap[data.maritalStatus] || 'SOLTEIRO'}');
+  setSelect('comboEstadoCivil', '${maritalStatusMap[data.maritalStatus] || 'Single'}');
   setRadio('sexo:${data.sex === 'Female' ? '1' : '0'}');
   ${data.formerNames ? `setRadio('possuiNomeAnt:0'); // Yes, has former names` : `setRadio('possuiNomeAnt:1'); // No former names`}
   
@@ -387,7 +402,7 @@ function fillDocuments() {
   
   setSelect('comboTipoDocVisto', 'Passport');
   setVal('numeroDocViagemVisto', '${escapeJS(data.passportNumber)}');
-  setVal('orgaoDocViagemVisto', '${escapeJS(data.passportIssuedBy)}');
+  setSelect('orgaoDocViagemVisto', 'Sweden');
   setDate('dataExpedicaoDocViagemVisto', '${escapeJS(data.passportDateOfIssue)}');
   setDate('dataExpiracaoDocViagemVisto', '${escapeJS(data.passportDateOfExpiry)}');
   
@@ -452,7 +467,7 @@ function fillContacts() {
   ${data.brazilContactCity ? `setVal('0:contatoCidade', '${escapeJS(data.brazilContactCity)}');` : ''}
   ${data.brazilContactAddress ? `setVal('0:contatoLogradouro', '${escapeJS(data.brazilContactAddress)}');` : ''}
   ${data.brazilContactZip ? `setVal('contatoCEP', '${escapeJS(data.brazilContactZip)}');` : ''}
-  ${data.brazilContactRelationship ? `setSelect('0:contatoTipoRelacao', '${relationshipMap[data.brazilContactRelationship] || 'OUTROS'}');` : ''}
+  ${data.brazilContactRelationship ? `setSelect('0:contatoTipoRelacao', '${relationshipMap[data.brazilContactRelationship] || 'Others'}');` : ''}
   ${data.brazilContactPhone ? `
   setSelect('0:0:formaContato', 'Cell Phone');
   setVal('0:0:contatoConteudo', '${escapeJS(data.brazilContactPhone)}');
@@ -509,4 +524,59 @@ console.log('  fillProfessionalData() — Tab: Professional Data');
 console.log('  fillContacts()       — Tab: Contacts');
 console.log('  fillBiometricData()  — Tab: Biometric Data');
 `.trim();
+}
+
+export interface SectionScript {
+  id: string;
+  label: string;
+  icon: string;
+  script: string;
+}
+
+/**
+ * Generate per-section scripts for the DPVN form.
+ * Each script is self-contained (includes helpers) and can be pasted directly into the console.
+ */
+export function generateBrazilSectionScripts(data: BrazilVisaData): SectionScript[] {
+  const full = generateBrazilAutoFillScript(data);
+  
+  // Extract the helpers block (everything before SECTION 1)
+  const helpersEnd = full.indexOf('// ============================================================\n// SECTION 1');
+  const helpers = helpersEnd > 0 ? full.substring(0, helpersEnd).trim() : '';
+
+  // Extract each section function body
+  const sections: { id: string; label: string; icon: string; fnName: string }[] = [
+    { id: 'generalData', label: '1. General Data', icon: '👤', fnName: 'fillGeneralData' },
+    { id: 'visaData', label: '2. Visa Data', icon: '✈️', fnName: 'fillVisaData' },
+    { id: 'documents', label: '3. Documents', icon: '📘', fnName: 'fillDocuments' },
+    { id: 'professionalData', label: '4. Professional Data', icon: '💼', fnName: 'fillProfessionalData' },
+    { id: 'contacts', label: '5. Contacts', icon: '🏠', fnName: 'fillContacts' },
+    { id: 'biometricData', label: '6. Biometric Data', icon: '📷', fnName: 'fillBiometricData' },
+  ];
+
+  return sections.map(sec => {
+    // Find the function in the full script and extract it
+    const fnStart = full.indexOf(`function ${sec.fnName}()`);
+    if (fnStart < 0) return { id: sec.id, label: sec.label, icon: sec.icon, script: `// ${sec.fnName} not found` };
+    
+    // Find the closing brace of this function
+    let braceCount = 0;
+    let fnEnd = fnStart;
+    let started = false;
+    for (let i = fnStart; i < full.length; i++) {
+      if (full[i] === '{') { braceCount++; started = true; }
+      if (full[i] === '}') { braceCount--; }
+      if (started && braceCount === 0) { fnEnd = i + 1; break; }
+    }
+    
+    const fnBody = full.substring(fnStart, fnEnd);
+    
+    // Build self-contained script: helpers + function + immediate call
+    return {
+      id: sec.id,
+      label: sec.label,
+      icon: sec.icon,
+      script: `${helpers}\n\n${fnBody}\n\n// Auto-run\n${sec.fnName}();`,
+    };
+  });
 }

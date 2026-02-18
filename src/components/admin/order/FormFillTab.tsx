@@ -13,7 +13,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFormSubmissionsForOrder } from '@/firebase/visaFormService';
-import { buildBrazilVisaDataFromOrder, generateBrazilAutoFillScript } from '@/services/formAutomation/brazilVisaAutofill';
+import { buildBrazilVisaDataFromOrder, generateBrazilAutoFillScript, generateBrazilSectionScripts } from '@/services/formAutomation/brazilVisaAutofill';
+import type { SectionScript } from '@/services/formAutomation/brazilVisaAutofill';
 import { toast } from 'react-hot-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateVisaOrder } from '@/firebase/visaOrderService';
@@ -96,6 +97,7 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
   const [manualFields, setManualFields] = useState<Record<string, string>>({});
   const [selectedTraveler, setSelectedTraveler] = useState(0);
   const [scriptCopied, setScriptCopied] = useState(false);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
   const [uploading, setUploading] = useState<string | null>(null);
   const [ocrStatuses, setOcrStatuses] = useState<Record<string, OcrStatus>>({});
@@ -291,7 +293,7 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     setManualFields(prev => ({ ...prev, [fieldId]: value }));
   };
 
-  // Generate and copy script
+  // Generate and copy full script (legacy)
   const handleCopyScript = async () => {
     if (countryCode === 'BR') {
       const mergedData = getMergedData();
@@ -312,6 +314,41 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     } else {
       toast.error(`Auto-fill script not yet available for ${countryCode}`);
     }
+  };
+
+  // Copy a single section script to clipboard
+  const handleCopySectionScript = async (sectionId: string) => {
+    if (countryCode === 'BR') {
+      const mergedData = getMergedData();
+      const data = buildBrazilVisaDataFromOrder(order, selectedTraveler, mergedData, uploadedDocs);
+      if (!data) {
+        toast.error('Could not build visa data for this traveler');
+        return;
+      }
+      const sections = generateBrazilSectionScripts(data);
+      const section = sections.find(s => s.id === sectionId);
+      if (!section) {
+        toast.error('Section not found');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(section.script);
+        setCopiedSection(sectionId);
+        toast.success(`${section.label} script copied!`);
+        setTimeout(() => setCopiedSection(null), 3000);
+      } catch {
+        toast.error('Failed to copy to clipboard');
+      }
+    }
+  };
+
+  // Get section scripts for rendering buttons
+  const getSectionScripts = (): SectionScript[] => {
+    if (countryCode !== 'BR') return [];
+    const mergedData = getMergedData();
+    const data = buildBrazilVisaDataFromOrder(order, selectedTraveler, mergedData, uploadedDocs);
+    if (!data) return [];
+    return generateBrazilSectionScripts(data);
   };
 
   // Field groups for the manual form
@@ -584,13 +621,13 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
         ))}
       </div>
 
-      {/* Bottom action bar */}
-      {countryConfig?.hasAutoFill && (
-        <div className="sticky bottom-0 bg-white border-t p-4 -mx-6 -mb-6 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            {Object.keys(manualFields).filter(k => manualFields[k].trim()).length} field(s) manually edited
-          </p>
-          <div className="flex items-center gap-3">
+      {/* Per-section copy buttons */}
+      {countryConfig?.hasAutoFill && countryCode === 'BR' && (
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <span>🇧🇷</span> DPVN Auto-fill Scripts
+            </h3>
             {countryConfig.websiteUrl && (
               <a
                 href={countryConfig.websiteUrl}
@@ -598,18 +635,30 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
               >
-                🌐 Open Website
+                🌐 Open DPVN Website
               </a>
             )}
-            <button
-              onClick={handleCopyScript}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors ${
-                scriptCopied ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              {scriptCopied ? '✅ Copied!' : '📋 Copy Script to Clipboard'}
-            </button>
           </div>
+          <p className="text-xs text-gray-500 mb-3">Navigate to each tab on the DPVN website, then click the corresponding button to copy & paste the script into the browser console.</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {getSectionScripts().map(sec => (
+              <button
+                key={sec.id}
+                onClick={() => handleCopySectionScript(sec.id)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium border transition-colors ${
+                  copiedSection === sec.id
+                    ? 'bg-green-50 border-green-300 text-green-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700'
+                }`}
+              >
+                <span>{copiedSection === sec.id ? '✅' : sec.icon}</span>
+                <span>{copiedSection === sec.id ? 'Copied!' : sec.label}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-3">
+            {Object.keys(manualFields).filter(k => manualFields[k].trim()).length} field(s) manually edited
+          </p>
         </div>
       )}
 
