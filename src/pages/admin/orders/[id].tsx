@@ -2425,6 +2425,7 @@ function AdminOrderDetailPage() {
         orderNumber: order.orderNumber || orderId,
         destinationCountry: (order as any).destinationCountry || '',
         visaProductName: (order as any).visaProduct?.name || (order as any).visaProduct?.category || 'Visa',
+        visaProductNameEn: (order as any).visaProduct?.nameEn || '',
         locale: (order as any).locale || 'sv',
         invoiceReference: (order as any).invoiceReference,
       };
@@ -2454,11 +2455,14 @@ function AdminOrderDetailPage() {
           }
         }
       } else if (visaStepEmailMap[previousStep.id]) {
+        const hasEVisaFile = !!(order as any).eVisaFileUrl;
         const stepLabels: Record<string, string> = {
           'documents_received': 'Send confirmation email that documents have been received?',
           'portal_submission': 'Send email notifying the customer that the visa application has been submitted?',
           'embassy_delivery': 'Send email notifying the customer that the passport has been submitted to the embassy?',
-          'evisa_delivery': 'Send email with the approved e-visa to the customer?',
+          'evisa_delivery': hasEVisaFile
+            ? 'Send email with the approved e-visa attached to the customer?'
+            : '⚠️ No e-visa file uploaded!\n\nSend email WITHOUT e-visa attachment to the customer?\n(You can upload the e-visa PDF in the processing step before completing it)',
           'return_shipping': 'Send email notifying the customer that the passport has been shipped?',
         };
         if (typeof window !== 'undefined') {
@@ -3931,7 +3935,7 @@ function AdminOrderDetailPage() {
           const db = getFirebaseDb();
           if (db) {
             const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer';
-            await addDoc(collection(db, 'customerEmails'), {
+            const emailDoc: any = {
               name: customerName,
               email: customerEmail,
               phone: order.customerInfo?.phone || '',
@@ -3941,7 +3945,30 @@ function AdminOrderDetailPage() {
               createdAt: serverTimestamp(),
               status: 'unread',
               type: 'visa_status_update'
-            });
+            };
+
+            // Attach e-visa file if this is an evisa_delivery email and file exists
+            const eVisaUrl = (order as any).eVisaFileUrl;
+            const eVisaName = (order as any).eVisaFileName;
+            if (previousStep?.id === 'evisa_delivery' && eVisaUrl && eVisaName) {
+              try {
+                const response = await fetch(eVisaUrl);
+                const blob = await response.blob();
+                const buffer = await blob.arrayBuffer();
+                const base64 = btoa(
+                  new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+                );
+                emailDoc.attachments = [{
+                  filename: eVisaName,
+                  content: base64,
+                  encoding: 'base64',
+                }];
+              } catch (attachErr) {
+                toast.error('Could not attach e-visa file, sending email without attachment');
+              }
+            }
+
+            await addDoc(collection(db, 'customerEmails'), emailDoc);
             toast.success('Visa status update email sent to customer');
           }
         } catch (visaEmailErr) {

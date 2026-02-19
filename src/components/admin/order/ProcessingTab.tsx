@@ -1,10 +1,12 @@
 // @ts-nocheck
+import { useState, useRef } from 'react';
 import type { ExtendedOrder, ProcessingStep } from './types';
 import SvensklistanButton from './SvensklistanButton';
 import IndiaEVisaButton from './IndiaEVisaButton';
 import AngolaVisaPdfButton from './AngolaVisaPdfButton';
 import BrazilVisaScriptButton from './BrazilVisaScriptButton';
 import FormDataPrintButton from './FormDataPrintButton';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // ProcessingTab receives all needed state/functions via a context object
 // to avoid 50+ individual props
@@ -44,6 +46,35 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
   } = ctx;
   const steps = processingSteps as ProcessingStep[];
   const notes = internalNotesList as any[];
+
+  // E-visa file upload state
+  const [uploadingEVisa, setUploadingEVisa] = useState(false);
+  const eVisaInputRef = useRef<HTMLInputElement>(null);
+  const eVisaFileUrl = (order as any)?.eVisaFileUrl || '';
+  const eVisaFileName = (order as any)?.eVisaFileName || '';
+
+  const handleEVisaUpload = async (file: File) => {
+    if (!file || !orderId) return;
+    setUploadingEVisa(true);
+    try {
+      const storage = getStorage();
+      const path = `orders/${orderId}/evisa/${file.name}`;
+      const fileRef = storageRef(storage, path);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+      await adminUpdateOrder(orderId, {
+        eVisaFileUrl: url,
+        eVisaFileName: file.name,
+      });
+      setOrder({ ...order, eVisaFileUrl: url, eVisaFileName: file.name });
+      toast.success('E-visa uploaded successfully');
+    } catch (err) {
+      toast.error('Failed to upload e-visa file');
+    } finally {
+      setUploadingEVisa(false);
+    }
+  };
+
   return (
                 <div className="space-y-6">
                     <div>
@@ -439,6 +470,56 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                               </div>
                             )}
                             
+                            {/* E-visa file upload — shown on evisa_delivery step */}
+                            {step.id === 'evisa_delivery' && (
+                              <div className="mt-3 p-3 rounded-lg border bg-purple-50 border-purple-200">
+                                <p className="text-sm font-medium text-purple-900 mb-2">📎 E-visa PDF attachment</p>
+                                <p className="text-xs text-purple-700 mb-3">
+                                  Upload the approved e-visa PDF. It will be attached to the delivery email sent to the customer.
+                                </p>
+                                <input
+                                  ref={eVisaInputRef}
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleEVisaUpload(file);
+                                  }}
+                                />
+                                {eVisaFileUrl ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-green-700 flex items-center gap-1">
+                                      ✅ <strong>{eVisaFileName}</strong> uploaded
+                                    </span>
+                                    <a
+                                      href={eVisaFileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-purple-600 hover:underline"
+                                    >
+                                      View
+                                    </a>
+                                    <button
+                                      onClick={() => eVisaInputRef.current?.click()}
+                                      disabled={uploadingEVisa}
+                                      className="text-xs text-purple-600 hover:underline"
+                                    >
+                                      Replace
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => eVisaInputRef.current?.click()}
+                                    disabled={uploadingEVisa}
+                                    className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 disabled:opacity-50"
+                                  >
+                                    {uploadingEVisa ? 'Uploading...' : '📎 Upload e-visa PDF'}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
                             {isAuthorityService(step.id) && (
                               <div className="mt-4 space-y-4">
                                 {/* Embassy delivery: only date in */}

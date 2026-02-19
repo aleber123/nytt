@@ -8,6 +8,7 @@ interface VisaStatusEmailParams {
   orderNumber: string;
   destinationCountry: string;
   visaProductName: string;
+  visaProductNameEn?: string;
   locale: string;
   invoiceReference?: string;
 }
@@ -29,16 +30,21 @@ const emailStyles = `
     overflow: hidden;
   }
   .header {
-    background: #2E2D2C;
-    color: #ffffff;
+    background: #ffffff;
+    color: #2E2D2C;
     padding: 28px 36px;
     text-align: center;
+    border-bottom: 2px solid #2E2D2C;
   }
   .header h1 {
     margin: 0;
     font-size: 22px;
     font-weight: 700;
     letter-spacing: 0.2px;
+    color: #2E2D2C;
+  }
+  .header p {
+    color: #5f6368;
   }
   .content { padding: 32px 36px; }
   .greeting { font-size: 17px; font-weight: 600; color: #202124; margin-bottom: 16px; }
@@ -74,7 +80,7 @@ function orderSummaryHtml(params: VisaStatusEmailParams, isEnglish: boolean): st
         </div>
         <div class="detail-row">
           <span class="detail-label">${isEnglish ? 'Visa type' : 'Visumtyp'}:</span>
-          <span class="detail-value">${params.visaProductName}</span>
+          <span class="detail-value">${isEnglish ? (params.visaProductNameEn || params.visaProductName) : params.visaProductName}</span>
         </div>
         ${params.invoiceReference ? `
         <div class="detail-row">
@@ -133,7 +139,7 @@ function wrapEmail(lang: string, title: string, headerTitle: string, headerSubti
 <body>
   <div class="email-container">
     <div class="header">
-      <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" style="max-height:50px;width:auto;margin-bottom:16px;">
+      <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" style="max-height:50px;width:auto;margin-bottom:16px;border:1px solid #e2e8f0;border-radius:6px;padding:4px;background:#fff;">
       <h1>${headerTitle}</h1>
       <p>${headerSubtitle}</p>
     </div>
