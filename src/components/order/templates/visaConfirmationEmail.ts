@@ -497,26 +497,10 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           ` : ''}
         </div>
 
-        ${order.totalPrice && order.totalPrice > 0 ? `
-        <div class="price-box">
-          ${(order.pricingBreakdown?.serviceFee || order.pricingBreakdown?.embassyFee || order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) ? `
-          <div style="font-size:14px; color:#6b7280; margin-bottom:8px;">
-            <div>Service fee: ${(order.pricingBreakdown?.serviceFee || 0).toLocaleString()} kr</div>
-            <div>Embassy fee: ${(order.pricingBreakdown?.embassyFee || 0).toLocaleString()} kr</div>
-            ${order.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Express fee: +${order.pricingBreakdown.expressPrice.toLocaleString()} kr</div>` : ''}
-            ${order.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Urgent fee: +${order.pricingBreakdown.urgentPrice.toLocaleString()} kr</div>` : ''}
-            ${order.travelerCount > 1 ? `<div style="color:#4b5563; font-weight:600;">× ${order.travelerCount} travelers</div>` : ''}
-          </div>
-          ` : ''}
-          <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
-          <div style="color:#6b7280; font-size:13px;">Total price ${order.customerType === 'company' ? '(excl. VAT)' : '(incl. VAT)'}</div>
+        <div class="price-box" style="background:#f0f9ff; border-color:#bae6fd;">
+          <div class="amount" style="font-size:18px; color:#0369a1;">Invoice will be sent separately</div>
+          <div style="color:#6b7280; font-size:13px;">You will receive an invoice by email once your order has been processed</div>
         </div>
-        ` : `
-        <div class="price-box" style="background:#fef3c7; border-color:#fcd34d;">
-          <div class="amount" style="color:#92400e; font-size:18px;">Price to be confirmed</div>
-          <div style="color:#a16207; font-size:13px;">We will contact you with pricing information</div>
-        </div>
-        `}
       </div>
 
       <div class="next-steps">
@@ -641,26 +625,10 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
           ` : ''}
         </div>
 
-        ${order.totalPrice && order.totalPrice > 0 ? `
-        <div class="price-box">
-          ${(order.pricingBreakdown?.serviceFee || order.pricingBreakdown?.embassyFee || order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) ? `
-          <div style="font-size:14px; color:#6b7280; margin-bottom:8px;">
-            <div>Serviceavgift: ${(order.pricingBreakdown?.serviceFee || 0).toLocaleString()} kr</div>
-            <div>Ambassadavgift: ${(order.pricingBreakdown?.embassyFee || 0).toLocaleString()} kr</div>
-            ${order.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Expressavgift: +${order.pricingBreakdown.expressPrice.toLocaleString()} kr</div>` : ''}
-            ${order.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Brådskande avgift: +${order.pricingBreakdown.urgentPrice.toLocaleString()} kr</div>` : ''}
-            ${order.travelerCount > 1 ? `<div style="color:#4b5563; font-weight:600;">× ${order.travelerCount} resenärer</div>` : ''}
-          </div>
-          ` : ''}
-          <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
-          <div style="color:#6b7280; font-size:13px;">Totalt pris ${order.customerType === 'company' ? '(exkl. moms)' : '(inkl. moms)'}</div>
+        <div class="price-box" style="background:#f0f9ff; border-color:#bae6fd;">
+          <div class="amount" style="font-size:18px; color:#0369a1;">Faktura skickas separat</div>
+          <div style="color:#6b7280; font-size:13px;">Du får en faktura via e-post när din beställning har behandlats</div>
         </div>
-        ` : `
-        <div class="price-box" style="background:#fef3c7; border-color:#fcd34d;">
-          <div class="amount" style="color:#92400e; font-size:18px;">Pris meddelas separat</div>
-          <div style="color:#a16207; font-size:13px;">Vi kontaktar dig med prisinformation</div>
-        </div>
-        `}
       </div>
 
       <div class="next-steps">
