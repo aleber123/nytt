@@ -259,3 +259,171 @@ export const addActivity = async (activity: Omit<CrmActivity, 'id' | 'createdAt'
   } catch (_) { /* ignore */ }
   return ref.id;
 };
+
+// ── SALES EMAIL ──
+
+const CUSTOMER_EMAILS_COLLECTION = 'customerEmails';
+
+export interface CrmEmailParams {
+  to: string;
+  toName: string;
+  subject: string;
+  bodyHtml: string;
+  leadId: string;
+  sentBy: string;
+}
+
+// Generate a professional sales email HTML wrapper
+export const generateSalesEmailHtml = (params: {
+  recipientName: string;
+  bodyText: string;
+  senderName: string;
+}): string => {
+  const { recipientName, bodyText, senderName } = params;
+  const bodyHtml = bodyText.replace(/\n/g, '<br/>');
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px; }
+    .email-container { background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { background: #2E2D2C; color: #ffffff; padding: 24px 36px; text-align: center; }
+    .header img { max-height: 40px; width: auto; }
+    .content { padding: 32px 36px; }
+    .greeting { font-size: 16px; font-weight: 600; color: #202124; margin-bottom: 16px; }
+    .body-text { font-size: 15px; color: #374151; line-height: 1.7; }
+    .signature { margin-top: 28px; padding-top: 20px; border-top: 1px solid #eaecef; font-size: 14px; color: #5f6368; }
+    .footer { background: #f8f9fa; padding: 20px 36px; text-align: center; border-top: 1px solid #eaecef; }
+    .footer p { margin: 4px 0; color: #9ca3af; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB">
+    </div>
+    <div class="content">
+      ${recipientName ? `<div class="greeting">Dear ${recipientName},</div>` : ''}
+      <div class="body-text">${bodyHtml}</div>
+      <div class="signature">
+        <strong>${senderName}</strong><br/>
+        DOX Visumpartner AB<br/>
+        📧 <a href="mailto:info@doxvl.se">info@doxvl.se</a> · 📞 08-40941900<br/>
+        <a href="https://doxvl.se">doxvl.se</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>DOX Visumpartner AB · Livdjursgatan 4 · 121 62 Johanneshov</p>
+    </div>
+  </div>
+</body>
+</html>`;
+};
+
+// Send a sales email via the customerEmails queue (triggers Cloud Function)
+export const sendCrmEmail = async (params: CrmEmailParams): Promise<void> => {
+  if (!db) throw new Error('Firestore is not initialized');
+
+  // Queue the email (Cloud Function will pick it up and send via SMTP)
+  await addDoc(collection(db, CUSTOMER_EMAILS_COLLECTION), {
+    name: params.toName,
+    email: params.to,
+    phone: '',
+    subject: params.subject,
+    message: params.bodyHtml,
+    orderId: '',
+    createdAt: new Date(),
+    status: 'unread',
+    type: 'crm_sales_email',
+    crmLeadId: params.leadId,
+  });
+
+  // Log as activity on the lead
+  await addActivity({
+    leadId: params.leadId,
+    type: 'email',
+    description: `Email sent: "${params.subject}"`,
+    createdBy: params.sentBy,
+  });
+
+  // Update lead status to 'contacted' if still 'new'
+  try {
+    const lead = await getLead(params.leadId);
+    if (lead && lead.status === 'new') {
+      await updateLead(params.leadId, { status: 'contacted' as LeadStatus });
+    }
+  } catch (_) { /* ignore */ }
+};
+
+// Send bulk sales emails to multiple leads
+export const sendBulkCrmEmails = async (
+  leadIds: string[],
+  subject: string,
+  bodyText: string,
+  senderName: string,
+): Promise<{ sent: number; failed: number }> => {
+  let sent = 0;
+  let failed = 0;
+
+  for (const leadId of leadIds) {
+    try {
+      const lead = await getLead(leadId);
+      if (!lead || !lead.email) { failed++; continue; }
+
+      const html = generateSalesEmailHtml({
+        recipientName: lead.contactName || '',
+        bodyText,
+        senderName,
+      });
+
+      await sendCrmEmail({
+        to: lead.email,
+        toName: lead.contactName || lead.companyName || '',
+        subject,
+        bodyHtml: html,
+        leadId,
+        sentBy: senderName,
+      });
+      sent++;
+    } catch (_) {
+      failed++;
+    }
+  }
+
+  return { sent, failed };
+};
+
+// ── CSV EXPORT ──
+
+export const exportLeadsToCsv = (leads: CrmLead[]): string => {
+  const headers = ['Company', 'Contact', 'Email', 'Phone', 'Website', 'Status', 'Source', 'Follow-up', 'Est. Value (SEK)', 'Notes', 'Tags', 'Created'];
+  const rows = leads.map((l) => [
+    l.companyName || '',
+    l.contactName || '',
+    l.email || '',
+    l.phone || '',
+    l.website || '',
+    l.status || '',
+    l.source || '',
+    l.followUpDate || '',
+    l.estimatedValue != null ? String(l.estimatedValue) : '',
+    (l.notes || '').replace(/[\n\r]+/g, ' '),
+    (l.tags || []).join('; '),
+    l.createdAt?.toDate ? l.createdAt.toDate().toISOString().split('T')[0] : '',
+  ]);
+
+  const escape = (v: string) => {
+    if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+      return '"' + v.replace(/"/g, '""') + '"';
+    }
+    return v;
+  };
+
+  const lines = [headers.map(escape).join(',')];
+  for (const row of rows) {
+    lines.push(row.map(escape).join(','));
+  }
+  return lines.join('\n');
+};

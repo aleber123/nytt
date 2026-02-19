@@ -14,6 +14,10 @@ import {
   bulkImportLeads,
   addActivity,
   getActivitiesForLead,
+  sendCrmEmail,
+  sendBulkCrmEmails,
+  generateSalesEmailHtml,
+  exportLeadsToCsv,
   type CrmLead,
   type CrmActivity,
   type LeadStatus,
@@ -66,6 +70,19 @@ function CrmPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importing, setImporting] = useState(false);
+
+  // Email modal (single)
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailLeadId, setEmailLeadId] = useState<string>('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  // Bulk email modal
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [bulkSubject, setBulkSubject] = useState('');
+  const [bulkBody, setBulkBody] = useState('');
+  const [sendingBulk, setSendingBulk] = useState(false);
 
   const adminName = currentUser?.displayName || currentUser?.email || 'Admin';
 
@@ -130,14 +147,22 @@ function CrmPage() {
     const byStatus: Record<string, number> = {};
     let followUpToday = 0;
     let followUpWeek = 0;
+    let pipelineValue = 0;
+    let wonValue = 0;
     leads.forEach((l) => {
       byStatus[l.status] = (byStatus[l.status] || 0) + 1;
       if (l.followUpDate) {
         if (l.followUpDate <= today) followUpToday++;
         else if (l.followUpDate <= weekFromNow) followUpWeek++;
       }
+      if (l.estimatedValue && l.status !== 'lost' && l.status !== 'won') {
+        pipelineValue += l.estimatedValue;
+      }
+      if (l.estimatedValue && l.status === 'won') {
+        wonValue += l.estimatedValue;
+      }
     });
-    return { byStatus, followUpToday, followUpWeek, total: leads.length };
+    return { byStatus, followUpToday, followUpWeek, total: leads.length, pipelineValue, wonValue };
   }, [leads]);
 
   // ── SAVE LEAD ──
@@ -224,6 +249,92 @@ function CrmPage() {
     }
   };
 
+  // ── SEND SINGLE EMAIL ──
+  const openEmailModal = (lead: CrmLead) => {
+    setEmailLeadId(lead.id!);
+    setEmailSubject('');
+    setEmailBody('');
+    setEmailOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailLeadId || !emailSubject.trim() || !emailBody.trim()) return;
+    try {
+      setSendingEmail(true);
+      const lead = leads.find((l) => l.id === emailLeadId);
+      if (!lead) { toast.error('Lead not found'); return; }
+
+      const html = generateSalesEmailHtml({
+        recipientName: lead.contactName || '',
+        bodyText: emailBody,
+        senderName: adminName,
+      });
+
+      await sendCrmEmail({
+        to: lead.email,
+        toName: lead.contactName || lead.companyName || '',
+        subject: emailSubject,
+        bodyHtml: html,
+        leadId: emailLeadId,
+        sentBy: adminName,
+      });
+
+      toast.success(`Email sent to ${lead.email}`);
+      setEmailOpen(false);
+      await loadLeads();
+      // Refresh activities if this lead is selected
+      if (selectedLead?.id === emailLeadId) {
+        const acts = await getActivitiesForLead(emailLeadId);
+        setActivities(acts);
+      }
+    } catch (e) {
+      toast.error('Failed to send email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // ── BULK EMAIL ──
+  const handleSendBulkEmail = async () => {
+    if (!bulkSubject.trim() || !bulkBody.trim()) return;
+    const targetLeads = filteredLeads.filter((l) => l.status !== 'won' && l.status !== 'lost');
+    if (targetLeads.length === 0) { toast.error('No leads to email'); return; }
+
+    if (!confirm(`Send email to ${targetLeads.length} leads? This cannot be undone.`)) return;
+
+    try {
+      setSendingBulk(true);
+      const result = await sendBulkCrmEmails(
+        targetLeads.map((l) => l.id!),
+        bulkSubject,
+        bulkBody,
+        adminName,
+      );
+      toast.success(`Sent ${result.sent} emails (${result.failed} failed)`);
+      setBulkEmailOpen(false);
+      setBulkSubject('');
+      setBulkBody('');
+      await loadLeads();
+    } catch (e) {
+      toast.error('Bulk email failed');
+    } finally {
+      setSendingBulk(false);
+    }
+  };
+
+  // ── CSV EXPORT ──
+  const handleExportCsv = () => {
+    const csv = exportLeadsToCsv(filteredLeads);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'crm-leads-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filteredLeads.length} leads`);
+  };
+
   // ── ACTIVITIES ──
   const openLeadDetail = async (lead: CrmLead) => {
     setSelectedLead(lead);
@@ -287,12 +398,24 @@ function CrmPage() {
               </div>
               <p className="text-sm text-gray-500 mt-1">{stats.total} leads total</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleExportCsv}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+              >
+                📊 Export CSV
+              </button>
+              <button
+                onClick={() => setBulkEmailOpen(true)}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+              >
+                📨 Bulk Email
+              </button>
               <button
                 onClick={() => setImportOpen(true)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
               >
-                📥 Import Emails
+                📥 Import
               </button>
               <button
                 onClick={() => {
@@ -326,6 +449,18 @@ function CrmPage() {
               <div className="text-2xl font-bold text-red-700">{stats.followUpToday}</div>
               <div className="text-xs font-medium text-red-700">Due Today</div>
             </div>
+            {stats.followUpWeek > 0 && (
+              <div className="rounded-lg p-3 text-center bg-amber-50 border-2 border-transparent">
+                <div className="text-2xl font-bold text-amber-700">{stats.followUpWeek}</div>
+                <div className="text-xs font-medium text-amber-700">This Week</div>
+              </div>
+            )}
+            {stats.pipelineValue > 0 && (
+              <div className="rounded-lg p-3 text-center bg-indigo-50 border-2 border-transparent col-span-2 lg:col-span-1">
+                <div className="text-lg font-bold text-indigo-700">{stats.pipelineValue.toLocaleString()}</div>
+                <div className="text-xs font-medium text-indigo-700">Pipeline SEK</div>
+              </div>
+            )}
           </div>
 
           {/* Search & Sort */}
@@ -486,12 +621,12 @@ function CrmPage() {
                   >
                     ✏️ Edit
                   </button>
-                  <a
-                    href={`mailto:${selectedLead.email}`}
-                    className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 text-center"
+                  <button
+                    onClick={() => openEmailModal(selectedLead)}
+                    className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100"
                   >
-                    📧 Email
-                  </a>
+                    📧 Send Email
+                  </button>
                 </div>
 
                 {/* Activity log */}
@@ -724,6 +859,105 @@ function CrmPage() {
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
               >
                 {importing ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── SINGLE EMAIL MODAL ── */}
+      {emailOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">📧 Send Email</h2>
+              <button onClick={() => setEmailOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">To</label>
+                <p className="text-sm text-gray-600">{leads.find((l) => l.id === emailLeadId)?.email || ''}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder="Document legalization services — DOX Visumpartner"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Message (plain text, will be formatted)</label>
+                <textarea
+                  rows={8}
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder={"We help companies with document legalization, apostille and visa services.\n\nWould you be interested in a brief call to discuss how we can help?"}
+                />
+              </div>
+              <p className="text-xs text-gray-400">Email will be sent from DOX Visumpartner with your name as signature.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button onClick={() => setEmailOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+              <button
+                onClick={handleSendEmail}
+                disabled={sendingEmail || !emailSubject.trim() || !emailBody.trim()}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+              >
+                {sendingEmail ? 'Sending...' : 'Send Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── BULK EMAIL MODAL ── */}
+      {bulkEmailOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">📨 Bulk Email</h2>
+              <button onClick={() => setBulkEmailOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800 font-medium">
+                  This will send to {filteredLeads.filter((l) => l.status !== 'won' && l.status !== 'lost').length} leads
+                  {filterStatus !== 'all' ? ` (filtered: ${filterStatus})` : ' (excluding Won & Lost)'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={bulkSubject}
+                  onChange={(e) => setBulkSubject(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder="Document legalization services — DOX Visumpartner"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Message (plain text, personalized with contact name)</label>
+                <textarea
+                  rows={8}
+                  value={bulkBody}
+                  onChange={(e) => setBulkBody(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder={"We help companies with document legalization, apostille and visa services for international business.\n\nWould you be interested in a brief call to discuss how we can assist your company?"}
+                />
+              </div>
+              <p className="text-xs text-gray-400">Each email will be personalized with the contact name. Lead status will auto-update to &quot;Contacted&quot; for new leads.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button onClick={() => setBulkEmailOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+              <button
+                onClick={handleSendBulkEmail}
+                disabled={sendingBulk || !bulkSubject.trim() || !bulkBody.trim()}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
+              >
+                {sendingBulk ? 'Sending...' : 'Send to All'}
               </button>
             </div>
           </div>
