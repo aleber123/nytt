@@ -130,7 +130,16 @@ function AdminIndexPage() {
       badge: 'Forms',
       category: 'visa'
     },
-    // Customers
+    // Customers & Sales
+    {
+      title: 'Sales CRM',
+      description: 'Track leads, follow-ups and sales pipeline',
+      href: '/admin/crm',
+      color: 'bg-emerald-600 hover:bg-emerald-700',
+      badge: 'Sales',
+      icon: 'chart',
+      category: 'customers'
+    },
     {
       title: 'Customer Registry',
       description: 'Manage business customers, contacts and terms',
