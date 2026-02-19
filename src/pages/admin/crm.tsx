@@ -314,7 +314,7 @@ info@doxvl.se | doxvl.se`;
     const targetLeads = filteredLeads.filter((l) => l.status !== 'won' && l.status !== 'lost');
     if (targetLeads.length === 0) { toast.error('No leads to email'); return; }
 
-    if (!confirm(`Send email to ${targetLeads.length} leads? This cannot be undone.`)) return;
+    if (!confirm(`⚠️ WARNING: You are about to send ${targetLeads.length} emails.\n\nSubject: "${bulkSubject}"\nTemplate: ${bulkTemplate === 'personal' ? 'Personal' : 'Branded'}\n\nThis CANNOT be undone. Continue?`)) return;
 
     try {
       setSendingBulk(true);
@@ -890,11 +890,11 @@ info@doxvl.se | doxvl.se`;
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Till</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">To</label>
                 <p className="text-sm text-gray-600">{leads.find((l) => l.id === emailLeadId)?.email || ''}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Mall</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Template</label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setEmailTemplate('personal')}
@@ -904,8 +904,8 @@ info@doxvl.se | doxvl.se`;
                         : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    ✉️ Personligt<br/>
-                    <span className="font-normal text-[10px]">Ser ut som vanligt mejl</span>
+                    ✉️ Personal<br/>
+                    <span className="font-normal text-[10px]">Looks like a normal email</span>
                   </button>
                   <button
                     onClick={() => setEmailTemplate('branded')}
@@ -916,12 +916,12 @@ info@doxvl.se | doxvl.se`;
                     }`}
                   >
                     🏢 Branded<br/>
-                    <span className="font-normal text-[10px]">Med DOX-logga &amp; design</span>
+                    <span className="font-normal text-[10px]">With DOX logo &amp; design</span>
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Ämne</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Subject</label>
                 <input
                   type="text"
                   value={emailSubject}
@@ -931,7 +931,7 @@ info@doxvl.se | doxvl.se`;
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Meddelande</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Message</label>
                 <textarea
                   rows={6}
                   value={emailBody}
@@ -941,7 +941,7 @@ info@doxvl.se | doxvl.se`;
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Signatur</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Signature</label>
                 <textarea
                   rows={4}
                   value={emailSignature}
@@ -949,7 +949,7 @@ info@doxvl.se | doxvl.se`;
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 />
               </div>
-              <p className="text-xs text-gray-400">{emailTemplate === 'personal' ? 'Ser ut som ett vanligt mejl — "Hej [namn]" + ren text.' : 'Med DOX-logga, design och footer.'}</p>
+              <p className="text-xs text-gray-400">{emailTemplate === 'personal' ? 'Looks like a normal email — "Hej [name]" + plain text.' : 'With DOX logo, design and footer.'}</p>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setEmailOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
@@ -976,12 +976,12 @@ info@doxvl.se | doxvl.se`;
             <div className="px-6 py-4 space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800 font-medium">
-                  Skickar till {filteredLeads.filter((l) => l.status !== 'won' && l.status !== 'lost').length} leads
-                  {filterStatus !== 'all' ? ` (filter: ${filterStatus})` : ' (exkl. Won & Lost)'}
+                  Sending to {filteredLeads.filter((l) => l.status !== 'won' && l.status !== 'lost').length} leads
+                  {filterStatus !== 'all' ? ` (filtered: ${filterStatus})` : ' (excluding Won & Lost)'}
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Mall</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Template</label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setBulkTemplate('personal')}
@@ -991,7 +991,7 @@ info@doxvl.se | doxvl.se`;
                         : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    ✉️ Personligt
+                    ✉️ Personal
                   </button>
                   <button
                     onClick={() => setBulkTemplate('branded')}
@@ -1006,7 +1006,7 @@ info@doxvl.se | doxvl.se`;
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Ämne</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Subject</label>
                 <input
                   type="text"
                   value={bulkSubject}
@@ -1016,7 +1016,7 @@ info@doxvl.se | doxvl.se`;
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Meddelande (personaliseras med kontaktnamn)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Message (personalized with contact name)</label>
                 <textarea
                   rows={6}
                   value={bulkBody}
@@ -1026,7 +1026,7 @@ info@doxvl.se | doxvl.se`;
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Signatur</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Signature</label>
                 <textarea
                   rows={4}
                   value={bulkSignature}
@@ -1034,7 +1034,7 @@ info@doxvl.se | doxvl.se`;
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 />
               </div>
-              <p className="text-xs text-gray-400">Varje mejl personaliseras med kontaktnamn. Leads med status &quot;New&quot; uppdateras automatiskt till &quot;Contacted&quot;.</p>
+              <p className="text-xs text-gray-400">Each email is personalized with contact name. Leads with status &quot;New&quot; auto-update to &quot;Contacted&quot;.</p>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setBulkEmailOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
