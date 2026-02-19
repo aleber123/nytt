@@ -283,6 +283,7 @@ export const generateSalesEmailHtml = (params: {
   template?: EmailTemplate;
 }): string => {
   const { recipientName, bodyText, signatureText, template = 'personal' } = params;
+  const firstName = recipientName ? recipientName.split(' ')[0] : '';
   const bodyHtml = bodyText.replace(/\n/g, '<br/>');
   const sigHtml = signatureText.replace(/\n/g, '<br/>');
 
@@ -296,7 +297,7 @@ export const generateSalesEmailHtml = (params: {
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #222; margin: 0; padding: 20px; background-color: #ffffff;">
   <div style="max-width: 600px;">
-    ${recipientName ? `<p>Hej ${recipientName},</p>` : '<p>Hej,</p>'}
+    ${firstName ? `<p>Hej ${firstName},</p>` : '<p>Hej,</p>'}
     <div>${bodyHtml}</div>
     <div style="margin-top: 24px; font-size: 14px; color: #555; white-space: pre-line;">${sigHtml}</div>
   </div>
@@ -304,37 +305,23 @@ export const generateSalesEmailHtml = (params: {
 </html>`;
   }
 
-  // ── BRANDED: formal DOX design with logo ──
+  // ── BRANDED: same plain-text feel but with logo in signature ──
+  // Research: HTML-rich emails get 23% lower open rates (HubSpot A/B tests).
+  // Gmail filters heavy HTML to Promotions tab. Images blocked by default from unknown senders.
+  // Best approach: minimal HTML that looks personal, logo only in signature as subtle branding.
   return `<!DOCTYPE html>
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px; }
-    .email-container { background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
-    .header { background: #2E2D2C; color: #ffffff; padding: 24px 36px; text-align: center; }
-    .header img { max-height: 40px; width: auto; }
-    .content { padding: 32px 36px; }
-    .greeting { font-size: 16px; font-weight: 600; color: #202124; margin-bottom: 16px; }
-    .body-text { font-size: 15px; color: #374151; line-height: 1.7; }
-    .signature { margin-top: 28px; padding-top: 20px; border-top: 1px solid #eaecef; font-size: 14px; color: #5f6368; }
-    .footer { background: #f8f9fa; padding: 20px 36px; text-align: center; border-top: 1px solid #eaecef; }
-    .footer p { margin: 4px 0; color: #9ca3af; font-size: 12px; }
-  </style>
 </head>
-<body>
-  <div class="email-container">
-    <div class="header">
-      <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB">
-    </div>
-    <div class="content">
-      ${recipientName ? `<div class="greeting">Hej ${recipientName},</div>` : ''}
-      <div class="body-text">${bodyHtml}</div>
-      <div class="signature">${sigHtml}</div>
-    </div>
-    <div class="footer">
-      <p>DOX Visumpartner AB · Livdjursgatan 4 · 121 62 Johanneshov</p>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #222; margin: 0; padding: 20px; background-color: #ffffff;">
+  <div style="max-width: 600px;">
+    ${firstName ? `<p>Hej ${firstName},</p>` : '<p>Hej,</p>'}
+    <div>${bodyHtml}</div>
+    <div style="margin-top: 24px; font-size: 14px; color: #555; white-space: pre-line;">${sigHtml}</div>
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
+      <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" style="max-height: 45px; width: auto;">
     </div>
   </div>
 </body>

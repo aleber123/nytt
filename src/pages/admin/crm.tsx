@@ -186,7 +186,7 @@ info@doxvl.se | doxvl.se`;
         await updateLead(editingLead.id, editingLead);
         toast.success('Lead updated');
       } else {
-        await createLead({
+        const newLead: Record<string, any> = {
           companyName: editingLead.companyName || '',
           contactName: editingLead.contactName || '',
           email: editingLead.email || '',
@@ -195,18 +195,19 @@ info@doxvl.se | doxvl.se`;
           status: editingLead.status || 'new',
           source: editingLead.source || 'other',
           notes: editingLead.notes || '',
-          followUpDate: editingLead.followUpDate || undefined,
-          estimatedValue: editingLead.estimatedValue || undefined,
           tags: editingLead.tags || [],
           createdBy: adminName,
-        });
+        };
+        if (editingLead.followUpDate) newLead.followUpDate = editingLead.followUpDate;
+        if (editingLead.estimatedValue) newLead.estimatedValue = editingLead.estimatedValue;
+        await createLead(newLead as any);
         toast.success('Lead created');
       }
       setModalOpen(false);
       setEditingLead(null);
       await loadLeads();
-    } catch (e) {
-      toast.error('Failed to save lead');
+    } catch (e: any) {
+      toast.error('Failed to save lead: ' + (e?.message || 'unknown error'));
     } finally {
       setSaving(false);
     }
@@ -295,17 +296,19 @@ info@doxvl.se | doxvl.se`;
 
       toast.success(`Email sent to ${lead.email}`);
       setEmailOpen(false);
+    } catch (e: any) {
+      toast.error('Failed to send email: ' + (e?.message || 'unknown error'));
+    } finally {
+      setSendingEmail(false);
+    }
+    // Refresh data separately so errors here don't show "Failed to send"
+    try {
       await loadLeads();
-      // Refresh activities if this lead is selected
       if (selectedLead?.id === emailLeadId) {
         const acts = await getActivitiesForLead(emailLeadId);
         setActivities(acts);
       }
-    } catch (e) {
-      toast.error('Failed to send email');
-    } finally {
-      setSendingEmail(false);
-    }
+    } catch (_) { /* ignore refresh errors */ }
   };
 
   // ── BULK EMAIL ──
@@ -905,7 +908,7 @@ info@doxvl.se | doxvl.se`;
                     }`}
                   >
                     ✉️ Personal<br/>
-                    <span className="font-normal text-[10px]">Looks like a normal email</span>
+                    <span className="font-normal text-[10px]">Plain text, no logo</span>
                   </button>
                   <button
                     onClick={() => setEmailTemplate('branded')}
@@ -915,8 +918,8 @@ info@doxvl.se | doxvl.se`;
                         : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    🏢 Branded<br/>
-                    <span className="font-normal text-[10px]">With DOX logo &amp; design</span>
+                    🏢 With Logo<br/>
+                    <span className="font-normal text-[10px]">Same style + DOX logo</span>
                   </button>
                 </div>
               </div>
@@ -949,7 +952,7 @@ info@doxvl.se | doxvl.se`;
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 />
               </div>
-              <p className="text-xs text-gray-400">{emailTemplate === 'personal' ? 'Looks like a normal email — "Hej [name]" + plain text.' : 'With DOX logo, design and footer.'}</p>
+              <p className="text-xs text-gray-400">{emailTemplate === 'personal' ? 'Looks like a normal email — "Hej [name]" + plain text.' : 'Same plain text feel + DOX logo below signature.'}</p>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setEmailOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
