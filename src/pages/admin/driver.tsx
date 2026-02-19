@@ -28,6 +28,7 @@ interface DriverTask {
   orderId: string;
   orderNumber: string;
   customerName: string;
+  documentInfo: string; // Document type for legalization, visa destination for visa orders
   stepName: string;
   stepDescription: string;
   authority: string;
@@ -124,10 +125,10 @@ function DriverDashboardPage() {
     const upper = value.toUpperCase();
 
     let match = ALL_COUNTRIES.find((c) => c.code === upper);
-    if (match) return { code: match.code, name: match.name, flag: match.flag };
+    if (match) return { code: match.code, name: match.nameEn || match.name, flag: match.flag };
 
-    match = ALL_COUNTRIES.find((c) => c.name.toLowerCase() === value.toLowerCase());
-    if (match) return { code: match.code, name: match.name, flag: match.flag };
+    match = ALL_COUNTRIES.find((c) => c.name.toLowerCase() === value.toLowerCase() || (c.nameEn && c.nameEn.toLowerCase() === value.toLowerCase()));
+    if (match) return { code: match.code, name: match.nameEn || match.name, flag: match.flag };
 
     return { code: value, name: value, flag: '🌍' };
   };
@@ -463,19 +464,19 @@ function DriverDashboardPage() {
         });
       }
 
-      // Apostille - DELIVERY first, then PICKUP
+      // Apostille - handled by Notarius Publicus in Sweden - DELIVERY first, then PICKUP
       if (orderData.services.includes('apostille')) {
         steps.push({
           id: 'apostille_delivery',
-          name: '📤 Apostille - drop off',
-          description: 'Drop off documents for apostille',
+          name: '📤 Apostille (Notarius Publicus) - drop off',
+          description: 'Drop off documents for apostille at Notarius Publicus',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for delivery
         });
         steps.push({
           id: 'apostille_pickup',
-          name: '📦 Apostille - pick up',
-          description: 'Pick up apostilled documents',
+          name: '📦 Apostille (Notarius Publicus) - pick up',
+          description: 'Pick up apostilled documents from Notarius Publicus',
           status: 'pending',
           expectedCompletionDate: undefined // Today - ready for pickup
         });
@@ -691,12 +692,12 @@ function DriverDashboardPage() {
               address = 'Ministry of Foreign Affairs office';
             } else if (step.id === 'apostille_delivery' || step.id === 'apostille') {
               taskType = 'delivery';
-              authority = 'Ministry of Foreign Affairs';
-              address = 'Ministry of Foreign Affairs office';
+              authority = 'Notarius Publicus';
+              address = 'Notarius Publicus';
             } else if (step.id === 'apostille_pickup') {
               taskType = 'pickup';
-              authority = 'Ministry of Foreign Affairs';
-              address = 'Ministry of Foreign Affairs office';
+              authority = 'Notarius Publicus';
+              address = 'Notarius Publicus';
             } else if (step.id === 'embassy_delivery' || step.id === 'embassy_processing') {
               taskType = 'delivery';
               const c = getCountryInfo(order.country);
@@ -748,6 +749,7 @@ function DriverDashboardPage() {
                     orderId: order.id || '',
                     orderNumber: order.orderNumber || order.id || '',
                     customerName: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Unknown customer',
+                    documentInfo: (order as any).receivedDocumentsDescription || order.documentType || 'Document',
                     stepName: step.name || 'Unknown step',
                     stepDescription: step.description || 'No description',
                     authority,
@@ -786,7 +788,7 @@ function DriverDashboardPage() {
           c.code === visaOrder.destinationCountryCode?.toUpperCase() ||
           c.name.toLowerCase() === visaOrder.destinationCountry?.toLowerCase()
         );
-        const embassyName = destCountry?.name || visaOrder.destinationCountry || 'Unknown';
+        const embassyName = destCountry?.nameEn || destCountry?.name || visaOrder.destinationCountry || 'Unknown';
 
         processingSteps.forEach((step: ProcessingStep) => {
           let taskType: 'pickup' | 'delivery' | null = null;
@@ -839,7 +841,8 @@ function DriverDashboardPage() {
                   orderId: visaOrder.id || '',
                   orderNumber: visaOrder.orderNumber || visaOrder.id || '',
                   customerName,
-                  stepName: `🛂 ${step.name || 'Visa task'}`,
+                  documentInfo: 'Visa - ' + embassyName,
+                  stepName: `\u{1F6C2} ${step.name || 'Visa task'}`,
                   stepDescription: step.description || 'No description',
                   authority,
                   date: taskDate,
@@ -924,129 +927,141 @@ function DriverDashboardPage() {
     }
   };
 
-  // Generate PDF for driver task list - simple black & white design
+  // Strip emoji prefixes from step names for clean PDF text
+  const stripEmoji = (text: string) => {
+    // Remove common emoji characters used in step names (surrogate pairs + basic symbols)
+    // eslint-disable-next-line no-control-regex
+    return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').replace(/[\u2600-\u27BF\uFE0F]/g, '').trim();
+  };
+
+  // Generate PDF for driver task list - practical route list for the driver
   const generatePDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const contentWidth = pageWidth - 30;
     const margin = 15;
     let y = 20;
 
-    // Header - simple black text
+    const checkNewPage = (needed: number) => {
+      if (y + needed > 280) { doc.addPage(); y = 15; }
+    };
+
+    // ── HEADER ──
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Driver Task List', margin, y);
-    y += 8;
-    
+    doc.text('DRIVER ROUTE LIST', margin, y);
+    y += 7;
+
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(selectedDate + ' | Total: ' + tasks.length + ' tasks', margin, y);
-    y += 5;
-    
-    // Line separator
-    doc.setDrawColor(0, 0, 0);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 10;
+    const dateLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    doc.text(dateLabel, margin, y);
+    y += 6;
 
-    // Group tasks by authority
-    Object.entries(groupedTasks).forEach(([authority, authorityTasks]) => {
+    // Summary line
+    const totalDeliveries = filteredTasks.filter(t => t.type === 'delivery').length;
+    const totalPickups = filteredTasks.filter(t => t.type === 'pickup').length;
+    const locationCount = Object.keys(groupedTasks).length;
+    doc.setFontSize(9);
+    doc.text(locationCount + ' locations  |  ' + totalDeliveries + ' drop-offs  |  ' + totalPickups + ' pickups  |  ' + filteredTasks.length + ' total', margin, y);
+    y += 4;
+
+    // Separator
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 8;
+
+    // ── TASKS GROUPED BY AUTHORITY ──
+    const authorities = Object.entries(groupedTasks);
+    authorities.forEach(([authority, authorityTasks], authIdx) => {
       const deliveryTasks = (authorityTasks as DriverTask[]).filter(t => t.type === 'delivery');
       const pickupTasks = (authorityTasks as DriverTask[]).filter(t => t.type === 'pickup');
 
-      // Check if we need a new page
-      if (y > 250) {
-        doc.addPage();
-        y = 20;
+      // Estimate space: header(10) + address(5) + tasks(8 each) + gap(5)
+      const estimatedHeight = 15 + (deliveryTasks.length + pickupTasks.length) * 8 + 10;
+      checkNewPage(Math.min(estimatedHeight, 60));
+
+      // Authority header with background
+      doc.setFillColor(230, 230, 230);
+      doc.rect(margin, y - 4, contentWidth, 8, 'F');
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      const authLabel = (authIdx + 1) + '.  ' + authority;
+      doc.text(authLabel, margin + 2, y + 1);
+      y += 8;
+
+      // Show address of first task (they share the same authority/location)
+      const firstTask = (authorityTasks as DriverTask[])[0];
+      if (firstTask?.address && firstTask.address !== authority) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(80, 80, 80);
+        doc.text('Address: ' + firstTask.address, margin + 4, y);
+        doc.setTextColor(0, 0, 0);
+        y += 5;
       }
 
-      // Authority header
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(authority, margin, y);
-      y += 7;
+      // Helper to render a task row with checkbox
+      const renderTask = (task: DriverTask, label: string) => {
+        checkNewPage(10);
+
+        // Checkbox (5×5)
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.3);
+        doc.rect(margin + 2, y - 3.5, 4, 4);
+
+        // Label (DROP OFF / PICK UP)
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text(label, margin + 9, y);
+
+        // Order number
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        const orderLabel = '#' + task.orderNumber;
+        doc.text(orderLabel, margin + 34, y);
+
+        // Document type / visa info
+        doc.setFont('helvetica', 'bold');
+        doc.text((task.documentInfo || '').substring(0, 40), margin + 62, y);
+
+        y += 9;
+      };
 
       // Delivery tasks
-      if (deliveryTasks.length > 0) {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('DROP OFF (' + deliveryTasks.length + ')', margin + 2, y);
-        y += 6;
-
-        doc.setFont('helvetica', 'normal');
-        deliveryTasks.forEach((task) => {
-          if (y > 275) {
-            doc.addPage();
-            y = 20;
-          }
-
-          // Checkbox
-          doc.setDrawColor(0, 0, 0);
-          doc.rect(margin, y - 3, 4, 4);
-          
-          // Task info
-          doc.setFontSize(9);
-          const stepText = task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim();
-          doc.text('#' + task.orderNumber + '  ' + task.customerName + '  -  ' + stepText.substring(0, 40), margin + 7, y);
-          
-          y += 6;
-        });
-        y += 3;
-      }
+      deliveryTasks.forEach((task) => renderTask(task, 'DROP OFF'));
 
       // Pickup tasks
-      if (pickupTasks.length > 0) {
-        if (y > 265) {
-          doc.addPage();
-          y = 20;
-        }
+      pickupTasks.forEach((task) => renderTask(task, 'PICK UP'));
 
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('PICK UP (' + pickupTasks.length + ')', margin + 2, y);
-        y += 6;
-
-        doc.setFont('helvetica', 'normal');
-        pickupTasks.forEach((task) => {
-          if (y > 275) {
-            doc.addPage();
-            y = 20;
-          }
-
-          // Checkbox
-          doc.setDrawColor(0, 0, 0);
-          doc.rect(margin, y - 3, 4, 4);
-          
-          // Task info
-          doc.setFontSize(9);
-          const stepText = task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim();
-          doc.text('#' + task.orderNumber + '  ' + task.customerName + '  -  ' + stepText.substring(0, 40), margin + 7, y);
-          
-          y += 6;
-        });
-        y += 3;
+      // Separator between authorities
+      if (authIdx < authorities.length - 1) {
+        y += 2;
+        doc.setDrawColor(180);
+        doc.setLineWidth(0.2);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 5;
       }
-
-      y += 5;
     });
 
-    // Footer
+    // ── FOOTER on every page ──
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
       doc.text(
-        'DOX Visumpartner AB | Generated: ' + new Date().toLocaleString('en-GB') + ' | Page ' + i + '/' + pageCount,
+        'DOX Visumpartner AB  |  ' + dateLabel + '  |  Page ' + i + '/' + pageCount,
         pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
+        doc.internal.pageSize.getHeight() - 8,
         { align: 'center' }
       );
     }
 
-    // Save PDF
-    const fileName = 'driver-tasks-' + selectedDate + '.pdf';
-    doc.save(fileName);
+    doc.save('driver-route-' + selectedDate + '.pdf');
   };
 
   return (
@@ -1578,7 +1593,7 @@ function DriverDashboardPage() {
                                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium ${
                                               task.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800'
                                             }`}>
-                                              {task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim()}
+                                              {task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾🛂]+/, '').trim()}
                                             </span>
                                           </div>
                                         </div>
@@ -1670,7 +1685,7 @@ function DriverDashboardPage() {
                                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium ${
                                               task.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800'
                                             }`}>
-                                              {task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾]+/, '').trim()}
+                                              {task.stepName.replace(/^[📦📤✍️🏛️🌐🇸🇪🏢🔍✅🚚🧾🛂]+/, '').trim()}
                                             </span>
                                           </div>
                                         </div>
