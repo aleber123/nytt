@@ -81,6 +81,23 @@ export default function OverviewTab({
                       </div>
                     )}
 
+                    {/* Return Address Missing Banner */}
+                    {((order as any).confirmReturnAddressLater || (order as any).returnAddressConfirmationRequired) && !(order as any).returnAddressConfirmed && (
+                      <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">📍</span>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-amber-800">
+                              Return address not confirmed
+                            </h4>
+                            <p className="text-sm text-amber-700 mt-0.5">
+                              Customer chose to confirm return address later. Make sure to request the address before shipping documents back.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Linked Orders Display - Show if this order has linked orders (from tracking number match) */}
                     {linkedOrders.length > 0 && linkedOrdersDetails.length > 0 && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4">

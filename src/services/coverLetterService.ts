@@ -789,28 +789,33 @@ export async function generateOrderConfirmationPDF(order: Order, internalNotesLi
 
   // Return address - only show if NOT own-delivery (customer handles their own return)
   if (!isOwnDelivery) {
-    const addressParts: string[] = [];
-    // Prefer order.returnAddress if available, fallback to customerInfo
-    const ra = order.returnAddress;
-    if (ra && (ra.street || ra.city)) {
-      const raName = [ra.firstName, ra.lastName].filter(Boolean).join(' ');
-      if (ra.companyName) addressParts.push(ra.companyName);
-      if (raName) addressParts.push(raName);
-      if (ra.street) addressParts.push(ra.street);
-      if (ra.addressLine2) addressParts.push(ra.addressLine2);
-      const raCityLine = [ra.postalCode, ra.city].filter(Boolean).join(' ');
-      if (raCityLine) addressParts.push(raCityLine);
-      if (ra.country) addressParts.push(ra.country);
+    const confirmLater = (order as any).confirmReturnAddressLater || (order as any).returnAddressConfirmationRequired;
+    if (confirmLater) {
+      details.push(['Return address', 'To be confirmed (customer will provide later)']);
     } else {
-      // Fallback to customerInfo
-      if (customerName) addressParts.push(customerName);
-      if (order.customerInfo?.address) addressParts.push(order.customerInfo.address);
-      const cityLine = [order.customerInfo?.postalCode, order.customerInfo?.city].filter(Boolean).join(' ');
-      if (cityLine) addressParts.push(cityLine);
-    }
-    const returnAddress = addressParts.join(', ');
-    if (returnAddress) {
-      details.push(['Return address', returnAddress]);
+      const addressParts: string[] = [];
+      // Prefer order.returnAddress if available, fallback to customerInfo
+      const ra = order.returnAddress;
+      if (ra && (ra.street || ra.city)) {
+        const raName = [ra.firstName, ra.lastName].filter(Boolean).join(' ');
+        if (ra.companyName) addressParts.push(ra.companyName);
+        if (raName) addressParts.push(raName);
+        if (ra.street) addressParts.push(ra.street);
+        if (ra.addressLine2) addressParts.push(ra.addressLine2);
+        const raCityLine = [ra.postalCode, ra.city].filter(Boolean).join(' ');
+        if (raCityLine) addressParts.push(raCityLine);
+        if (ra.country) addressParts.push(ra.country);
+      } else {
+        // Fallback to customerInfo
+        if (customerName) addressParts.push(customerName);
+        if (order.customerInfo?.address) addressParts.push(order.customerInfo.address);
+        const cityLine = [order.customerInfo?.postalCode, order.customerInfo?.city].filter(Boolean).join(' ');
+        if (cityLine) addressParts.push(cityLine);
+      }
+      const returnAddress = addressParts.join(', ');
+      if (returnAddress) {
+        details.push(['Return address', returnAddress]);
+      }
     }
   }
 

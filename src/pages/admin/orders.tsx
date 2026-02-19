@@ -58,6 +58,9 @@ interface Order {
   invoiceReference?: string;
   additionalNotes?: string;
   linkedOrders?: string[]; // Linked orders for combined shipping
+  confirmReturnAddressLater?: boolean;
+  returnAddressConfirmationRequired?: boolean;
+  returnAddressConfirmed?: boolean;
   // Visa-specific fields
   destinationCountry?: string;
   destinationCountryCode?: string;
@@ -774,6 +777,14 @@ function AdminOrdersPage() {
                                 title={`Samskick med ${order.linkedOrders.length} ${order.linkedOrders.length === 1 ? 'order' : 'ordrar'}`}
                               >
                                 📦 +{order.linkedOrders.length}
+                              </span>
+                            )}
+                            {(order.confirmReturnAddressLater || order.returnAddressConfirmationRequired) && !order.returnAddressConfirmed && (
+                              <span 
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800"
+                                title="Return address not confirmed"
+                              >
+                                📍 No return addr
                               </span>
                             )}
                           </span>
