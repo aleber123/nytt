@@ -273,16 +273,40 @@ export interface CrmEmailParams {
   sentBy: string;
 }
 
-// Generate a professional sales email HTML wrapper
+export type EmailTemplate = 'personal' | 'branded';
+
+// Generate email HTML — two styles available
 export const generateSalesEmailHtml = (params: {
   recipientName: string;
   bodyText: string;
-  senderName: string;
+  signatureText: string;
+  template?: EmailTemplate;
 }): string => {
-  const { recipientName, bodyText, senderName } = params;
+  const { recipientName, bodyText, signatureText, template = 'personal' } = params;
   const bodyHtml = bodyText.replace(/\n/g, '<br/>');
+  const sigHtml = signatureText.replace(/\n/g, '<br/>');
+
+  if (template === 'personal') {
+    // ── PERSONAL: looks like a normal email from Outlook/Gmail ──
+    return `<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #222; margin: 0; padding: 20px; background-color: #ffffff;">
+  <div style="max-width: 600px;">
+    ${recipientName ? `<p>Hej ${recipientName},</p>` : '<p>Hej,</p>'}
+    <div>${bodyHtml}</div>
+    <div style="margin-top: 24px; font-size: 14px; color: #555; white-space: pre-line;">${sigHtml}</div>
+  </div>
+</body>
+</html>`;
+  }
+
+  // ── BRANDED: formal DOX design with logo ──
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -305,14 +329,9 @@ export const generateSalesEmailHtml = (params: {
       <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB">
     </div>
     <div class="content">
-      ${recipientName ? `<div class="greeting">Dear ${recipientName},</div>` : ''}
+      ${recipientName ? `<div class="greeting">Hej ${recipientName},</div>` : ''}
       <div class="body-text">${bodyHtml}</div>
-      <div class="signature">
-        <strong>${senderName}</strong><br/>
-        DOX Visumpartner AB<br/>
-        📧 <a href="mailto:info@doxvl.se">info@doxvl.se</a> · 📞 08-40941900<br/>
-        <a href="https://doxvl.se">doxvl.se</a>
-      </div>
+      <div class="signature">${sigHtml}</div>
     </div>
     <div class="footer">
       <p>DOX Visumpartner AB · Livdjursgatan 4 · 121 62 Johanneshov</p>
@@ -362,7 +381,9 @@ export const sendBulkCrmEmails = async (
   leadIds: string[],
   subject: string,
   bodyText: string,
-  senderName: string,
+  signatureText: string,
+  sentBy: string,
+  template: EmailTemplate = 'personal',
 ): Promise<{ sent: number; failed: number }> => {
   let sent = 0;
   let failed = 0;
@@ -375,7 +396,8 @@ export const sendBulkCrmEmails = async (
       const html = generateSalesEmailHtml({
         recipientName: lead.contactName || '',
         bodyText,
-        senderName,
+        signatureText,
+        template,
       });
 
       await sendCrmEmail({
@@ -384,7 +406,7 @@ export const sendBulkCrmEmails = async (
         subject,
         bodyHtml: html,
         leadId,
-        sentBy: senderName,
+        sentBy,
       });
       sent++;
     } catch (_) {

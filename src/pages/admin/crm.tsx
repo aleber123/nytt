@@ -22,6 +22,7 @@ import {
   type CrmActivity,
   type LeadStatus,
   type LeadSource,
+  type EmailTemplate,
 } from '@/firebase/crmService';
 
 const STATUS_OPTIONS: { value: LeadStatus; label: string; color: string; bg: string }[] = [
@@ -71,17 +72,28 @@ function CrmPage() {
   const [importText, setImportText] = useState('');
   const [importing, setImporting] = useState(false);
 
+  // Shared default signature (editable per email)
+  const defaultSignature = `Med vänliga hälsningar,
+${currentUser?.displayName || ''}
+DOX Visumpartner AB
+Tel: 08-409 41 900
+info@doxvl.se | doxvl.se`;
+
   // Email modal (single)
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailLeadId, setEmailLeadId] = useState<string>('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
+  const [emailSignature, setEmailSignature] = useState(defaultSignature);
+  const [emailTemplate, setEmailTemplate] = useState<EmailTemplate>('personal');
   const [sendingEmail, setSendingEmail] = useState(false);
 
   // Bulk email modal
   const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
   const [bulkSubject, setBulkSubject] = useState('');
   const [bulkBody, setBulkBody] = useState('');
+  const [bulkSignature, setBulkSignature] = useState(defaultSignature);
+  const [bulkTemplate, setBulkTemplate] = useState<EmailTemplate>('personal');
   const [sendingBulk, setSendingBulk] = useState(false);
 
   const adminName = currentUser?.displayName || currentUser?.email || 'Admin';
@@ -254,6 +266,7 @@ function CrmPage() {
     setEmailLeadId(lead.id!);
     setEmailSubject('');
     setEmailBody('');
+    setEmailSignature(defaultSignature);
     setEmailOpen(true);
   };
 
@@ -267,7 +280,8 @@ function CrmPage() {
       const html = generateSalesEmailHtml({
         recipientName: lead.contactName || '',
         bodyText: emailBody,
-        senderName: adminName,
+        signatureText: emailSignature,
+        template: emailTemplate,
       });
 
       await sendCrmEmail({
@@ -308,7 +322,9 @@ function CrmPage() {
         targetLeads.map((l) => l.id!),
         bulkSubject,
         bulkBody,
+        bulkSignature,
         adminName,
+        bulkTemplate,
       );
       toast.success(`Sent ${result.sent} emails (${result.failed} failed)`);
       setBulkEmailOpen(false);
@@ -874,30 +890,66 @@ function CrmPage() {
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">To</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Till</label>
                 <p className="text-sm text-gray-600">{leads.find((l) => l.id === emailLeadId)?.email || ''}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Subject</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Mall</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEmailTemplate('personal')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${
+                      emailTemplate === 'personal'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    ✉️ Personligt<br/>
+                    <span className="font-normal text-[10px]">Ser ut som vanligt mejl</span>
+                  </button>
+                  <button
+                    onClick={() => setEmailTemplate('branded')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${
+                      emailTemplate === 'branded'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    🏢 Branded<br/>
+                    <span className="font-normal text-[10px]">Med DOX-logga &amp; design</span>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ämne</label>
                 <input
                   type="text"
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                  placeholder="Document legalization services — DOX Visumpartner"
+                  placeholder="Legalisering av dokument — DOX Visumpartner"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Message (plain text, will be formatted)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Meddelande</label>
                 <textarea
-                  rows={8}
+                  rows={6}
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                  placeholder={"We help companies with document legalization, apostille and visa services.\n\nWould you be interested in a brief call to discuss how we can help?"}
+                  placeholder={"Vi hjälper företag med legalisering av dokument, apostille och visumtjänster.\n\nSkulle ni vara intresserade av ett kort samtal för att diskutera hur vi kan hjälpa er?"}
                 />
               </div>
-              <p className="text-xs text-gray-400">Email will be sent from DOX Visumpartner with your name as signature.</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Signatur</label>
+                <textarea
+                  rows={4}
+                  value={emailSignature}
+                  onChange={(e) => setEmailSignature(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                />
+              </div>
+              <p className="text-xs text-gray-400">{emailTemplate === 'personal' ? 'Ser ut som ett vanligt mejl — "Hej [namn]" + ren text.' : 'Med DOX-logga, design och footer.'}</p>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setEmailOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
@@ -924,31 +976,65 @@ function CrmPage() {
             <div className="px-6 py-4 space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800 font-medium">
-                  This will send to {filteredLeads.filter((l) => l.status !== 'won' && l.status !== 'lost').length} leads
-                  {filterStatus !== 'all' ? ` (filtered: ${filterStatus})` : ' (excluding Won & Lost)'}
+                  Skickar till {filteredLeads.filter((l) => l.status !== 'won' && l.status !== 'lost').length} leads
+                  {filterStatus !== 'all' ? ` (filter: ${filterStatus})` : ' (exkl. Won & Lost)'}
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Subject</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Mall</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setBulkTemplate('personal')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${
+                      bulkTemplate === 'personal'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    ✉️ Personligt
+                  </button>
+                  <button
+                    onClick={() => setBulkTemplate('branded')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border-2 transition-all ${
+                      bulkTemplate === 'branded'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    🏢 Branded
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Ämne</label>
                 <input
                   type="text"
                   value={bulkSubject}
                   onChange={(e) => setBulkSubject(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                  placeholder="Document legalization services — DOX Visumpartner"
+                  placeholder="Legalisering av dokument — DOX Visumpartner"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Message (plain text, personalized with contact name)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Meddelande (personaliseras med kontaktnamn)</label>
                 <textarea
-                  rows={8}
+                  rows={6}
                   value={bulkBody}
                   onChange={(e) => setBulkBody(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                  placeholder={"We help companies with document legalization, apostille and visa services for international business.\n\nWould you be interested in a brief call to discuss how we can assist your company?"}
+                  placeholder={"Vi hjälper företag med legalisering av dokument, apostille och visumtjänster för internationell verksamhet.\n\nSkulle ni vara intresserade av ett kort samtal för att diskutera hur vi kan hjälpa ert företag?"}
                 />
               </div>
-              <p className="text-xs text-gray-400">Each email will be personalized with the contact name. Lead status will auto-update to &quot;Contacted&quot; for new leads.</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Signatur</label>
+                <textarea
+                  rows={4}
+                  value={bulkSignature}
+                  onChange={(e) => setBulkSignature(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-500 focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                />
+              </div>
+              <p className="text-xs text-gray-400">Varje mejl personaliseras med kontaktnamn. Leads med status &quot;New&quot; uppdateras automatiskt till &quot;Contacted&quot;.</p>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setBulkEmailOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
