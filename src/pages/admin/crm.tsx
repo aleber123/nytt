@@ -379,9 +379,12 @@ info@doxvl.se | doxvl.se`;
         createdBy: adminName,
       });
       setNewActivityText('');
-      const acts = await getActivitiesForLead(selectedLead.id);
-      setActivities(acts);
       toast.success('Activity logged');
+      // Refresh activity list (may fail if index is still building)
+      try {
+        const acts = await getActivitiesForLead(selectedLead.id);
+        setActivities(acts);
+      } catch (_) { /* index may still be building, activity was saved */ }
     } catch (e) {
       toast.error('Failed to log activity');
     } finally {
