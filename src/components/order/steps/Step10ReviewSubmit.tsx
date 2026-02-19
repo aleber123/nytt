@@ -960,6 +960,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
                     translationDetails: answers.translationDetails,
+                    notarizationDetails: answers.notarizationDetails || undefined,
+                    documentTypes: answers.documentTypes || undefined,
+                    documentTypeQuantities: answers.documentTypeQuantities || undefined,
                     locale: locale,
                     publicAccessToken: publicAccessToken
                   };
@@ -1410,6 +1413,9 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
                     translationDetails: answers.translationDetails,
+                    notarizationDetails: answers.notarizationDetails || undefined,
+                    documentTypes: answers.documentTypes || undefined,
+                    documentTypeQuantities: answers.documentTypeQuantities || undefined,
                     locale: locale,
                     publicAccessToken: publicAccessToken2
                   };

@@ -300,6 +300,7 @@ export const generateSalesEmailHtml = (params: {
     ${firstName ? `<p>Hej ${firstName},</p>` : '<p>Hej,</p>'}
     <div>${bodyHtml}</div>
     <div style="margin-top: 24px; font-size: 14px; color: #555; white-space: pre-line;">${sigHtml}</div>
+    <div style="margin-top: 8px;"><a href="https://doxvl.se" style="color: #1a73e8; text-decoration: none; font-size: 13px;">doxvl.se</a></div>
   </div>
 </body>
 </html>`;
@@ -320,6 +321,7 @@ export const generateSalesEmailHtml = (params: {
     ${firstName ? `<p>Hej ${firstName},</p>` : '<p>Hej,</p>'}
     <div>${bodyHtml}</div>
     <div style="margin-top: 24px; font-size: 14px; color: #555; white-space: pre-line;">${sigHtml}</div>
+    <div style="margin-top: 8px;"><a href="https://doxvl.se" style="color: #1a73e8; text-decoration: none; font-size: 13px;">doxvl.se</a></div>
     <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
       <img src="https://doxvl.se/dox-logo-new.png" alt="DOX Visumpartner AB" style="max-height: 45px; width: auto;">
     </div>

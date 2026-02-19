@@ -1162,14 +1162,15 @@ export function getNotaryApostilleDefaults(order: Order): NotaryApostilleCoverLe
   const docType = getAllDocumentTypesDisplay(order);
 
   return {
-    documentDescription: `${quantity} x ${docType}`,
+    documentDescription: (order as any).receivedDocumentsDescription || `${quantity} x ${docType}`,
     documentIssuer: '', // To be filled in by admin
     actions,
     countryOfUse: getCountryName(order.country),
     language: (order as any).language || (order as any).documentLanguage || 'English',
     invoiceReference: order.orderNumber || '', // Use our order number (SWE000...)
-    paymentMethod: order.paymentMethod || 'Invoice',
-    returnMethod: 'Pickup by DOX Visumpartner AB'
+    paymentMethod: 'Invoice',
+    returnMethod: 'Pickup by DOX Visumpartner AB',
+    isExpress: !!(order as any).expedited
   };
 }
 
@@ -1239,12 +1240,16 @@ export async function generateNotaryApostilleCoverLetter(
   doc.setFontSize(16);
   doc.text('Cover Letter', 20, y);
 
-  // Express label
+  // Express label — large and unmissable
   if (data.isExpress) {
-    doc.setTextColor(220, 38, 38);
+    const expX = 190;
+    const expY = y - 6;
+    doc.setFillColor(220, 38, 38);
+    doc.roundedRect(expX - 42, expY - 8, 44, 14, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('EXPRESS', 190, y, { align: 'right' });
+    doc.setFontSize(22);
+    doc.text('EXPRESS', expX - 20, expY + 2, { align: 'center' });
   }
   y += 12;
 
@@ -1436,7 +1441,7 @@ export function getEmbassyDefaults(order: Order): EmbassyCoverLetterData {
   return {
     embassyName: `Embassy of ${countryName}`,
     embassyAddress: '',
-    documentDescription: `${quantity} x ${docType}`,
+    documentDescription: (order as any).receivedDocumentsDescription || `${quantity} x ${docType}`,
     documentIssuer: '',
     countryOfUse: countryName,
     purpose: '',
@@ -1716,7 +1721,7 @@ export function getUDDefaults(order: Order): UDCoverLetterData {
   const countryName = getCountryName(order.country);
 
   return {
-    documentDescription: `${quantity} x ${docType}`,
+    documentDescription: (order as any).receivedDocumentsDescription || `${quantity} x ${docType}`,
     documentIssuer: '',
     countryOfUse: countryName,
     language: (order as any).language || (order as any).documentLanguage || 'English',

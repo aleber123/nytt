@@ -273,15 +273,24 @@ export default function CoverLettersTab({
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Payment method
                                         </label>
-                                        <input
-                                          type="text"
-                                          value={notaryApostilleData.paymentMethod}
-                                          onChange={(e) => setNotaryApostilleData({
-                                            ...notaryApostilleData,
-                                            paymentMethod: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
+                                        <div className="flex flex-wrap gap-3 mt-1">
+                                          {['Cash', 'Invoice', 'Bank', 'Swish'].map((method) => (
+                                            <label key={method} className="flex items-center gap-1.5 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name="notary-payment-method"
+                                                value={method}
+                                                checked={notaryApostilleData.paymentMethod === method}
+                                                onChange={() => setNotaryApostilleData({
+                                                  ...notaryApostilleData,
+                                                  paymentMethod: method
+                                                })}
+                                                className="text-primary-600 focus:ring-primary-500"
+                                              />
+                                              <span className="text-sm text-gray-700">{method}</span>
+                                            </label>
+                                          ))}
+                                        </div>
                                       </div>
                                     </div>
 
@@ -552,15 +561,24 @@ export default function CoverLettersTab({
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Payment method
                                         </label>
-                                        <input
-                                          type="text"
-                                          value={embassyData.paymentMethod}
-                                          onChange={(e) => setEmbassyData({
-                                            ...embassyData,
-                                            paymentMethod: e.target.value
-                                          })}
-                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                        />
+                                        <div className="flex flex-wrap gap-3 mt-1">
+                                          {['Cash', 'Invoice', 'Bank', 'Swish'].map((method) => (
+                                            <label key={method} className="flex items-center gap-1.5 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name="embassy-payment-method"
+                                                value={method}
+                                                checked={embassyData.paymentMethod === method}
+                                                onChange={() => setEmbassyData({
+                                                  ...embassyData,
+                                                  paymentMethod: method
+                                                })}
+                                                className="text-primary-600 focus:ring-primary-500"
+                                              />
+                                              <span className="text-sm text-gray-700">{method}</span>
+                                            </label>
+                                          ))}
+                                        </div>
                                       </div>
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -720,12 +738,21 @@ export default function CoverLettersTab({
                                     <div className="grid grid-cols-2 gap-4">
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                                        <input
-                                          type="text"
-                                          value={udData.paymentMethod}
-                                          onChange={(e) => setUdData({ ...udData, paymentMethod: e.target.value })}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                        />
+                                        <div className="flex flex-wrap gap-3 mt-1">
+                                          {['Cash', 'Invoice', 'Bank', 'Swish'].map((method) => (
+                                            <label key={method} className="flex items-center gap-1.5 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name="ud-payment-method"
+                                                value={method}
+                                                checked={udData.paymentMethod === method}
+                                                onChange={() => setUdData({ ...udData, paymentMethod: method })}
+                                                className="text-primary-600 focus:ring-primary-500"
+                                              />
+                                              <span className="text-sm text-gray-700">{method}</span>
+                                            </label>
+                                          ))}
+                                        </div>
                                       </div>
                                     </div>
                                     <div>
