@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import type { ExtendedOrder, NotaryApostilleCoverLetterData, EmbassyCoverLetterData, UDCoverLetterData } from './types';
 import { getNotaryApostilleDefaults, getEmbassyDefaults, getUDDefaults,
@@ -8,6 +9,8 @@ import { getNotaryApostilleDefaults, getEmbassyDefaults, getUDDefaults,
 
 interface CoverLettersTabProps {
   order: ExtendedOrder;
+  orderId: string;
+  onSave: (updates: Record<string, any>) => Promise<void>;
   notaryApostilleData: NotaryApostilleCoverLetterData | null;
   setNotaryApostilleData: (data: NotaryApostilleCoverLetterData | null) => void;
   embassyData: EmbassyCoverLetterData | null;
@@ -17,9 +20,12 @@ interface CoverLettersTabProps {
 }
 
 export default function CoverLettersTab({
-  order, notaryApostilleData, setNotaryApostilleData,
+  order, orderId, onSave, notaryApostilleData, setNotaryApostilleData,
   embassyData, setEmbassyData, udData, setUdData,
 }: CoverLettersTabProps) {
+  const [savingNotary, setSavingNotary] = useState(false);
+  const [savingEmbassy, setSavingEmbassy] = useState(false);
+  const [savingUd, setSavingUd] = useState(false);
   const handleDownloadCover = () => {
     try {
       downloadCoverLetter(order);
@@ -333,7 +339,23 @@ export default function CoverLettersTab({
                                   </div>
 
                                   {/* Action buttons */}
-                                  <div className="flex items-center justify-end space-x-2 mt-4 pt-4 border-t">
+                                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                                    <button
+                                      onClick={async () => {
+                                        setSavingNotary(true);
+                                        try {
+                                          await onSave({ coverLetterNotaryData: notaryApostilleData });
+                                          toast.success('Cover letter data saved');
+                                        } catch { toast.error('Failed to save'); }
+                                        finally { setSavingNotary(false); }
+                                      }}
+                                      disabled={savingNotary}
+                                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                                      {savingNotary ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <div className="flex items-center space-x-2">
                                     <button
                                       onClick={async () => {
                                         try {
@@ -366,6 +388,7 @@ export default function CoverLettersTab({
                                       </svg>
                                       Print
                                     </button>
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -620,7 +643,23 @@ export default function CoverLettersTab({
                                   </div>
 
                                   {/* Action buttons */}
-                                  <div className="flex items-center justify-end space-x-2 mt-4 pt-4 border-t border-amber-200">
+                                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-amber-200">
+                                    <button
+                                      onClick={async () => {
+                                        setSavingEmbassy(true);
+                                        try {
+                                          await onSave({ coverLetterEmbassyData: embassyData });
+                                          toast.success('Cover letter data saved');
+                                        } catch { toast.error('Failed to save'); }
+                                        finally { setSavingEmbassy(false); }
+                                      }}
+                                      disabled={savingEmbassy}
+                                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                                      {savingEmbassy ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <div className="flex items-center space-x-2">
                                     <button
                                       onClick={async () => {
                                         try {
@@ -653,6 +692,7 @@ export default function CoverLettersTab({
                                       </svg>
                                       Print
                                     </button>
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -789,7 +829,23 @@ export default function CoverLettersTab({
                                   </div>
 
                                   {/* Action buttons */}
-                                  <div className="flex items-center space-x-3">
+                                  <div className="flex items-center justify-between">
+                                    <button
+                                      onClick={async () => {
+                                        setSavingUd(true);
+                                        try {
+                                          await onSave({ coverLetterUdData: udData });
+                                          toast.success('Cover letter data saved');
+                                        } catch { toast.error('Failed to save'); }
+                                        finally { setSavingUd(false); }
+                                      }}
+                                      disabled={savingUd}
+                                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                                      {savingUd ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <div className="flex items-center space-x-3">
                                     <button
                                       onClick={async () => {
                                         try {
@@ -822,6 +878,7 @@ export default function CoverLettersTab({
                                       </svg>
                                       Print
                                     </button>
+                                    </div>
                                   </div>
                                 </div>
                               );

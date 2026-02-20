@@ -1955,6 +1955,10 @@ function AdminOrderDetailPage() {
         setTrackingUrl(extendedOrder.returnTrackingUrl || '');
         setPickupTrackingNumber((extendedOrder as any).pickupTrackingNumber || '');
         setReceivedDocumentsDescription((extendedOrder as any).receivedDocumentsDescription || '');
+        // Restore saved cover letter data
+        if ((extendedOrder as any).coverLetterNotaryData) setNotaryApostilleData((extendedOrder as any).coverLetterNotaryData);
+        if ((extendedOrder as any).coverLetterEmbassyData) setEmbassyData((extendedOrder as any).coverLetterEmbassyData);
+        if ((extendedOrder as any).coverLetterUdData) setUdData((extendedOrder as any).coverLetterUdData);
         // Pre-populate confirmedPrices from pricing data if no saved prices exist
         const savedConfirmedPrices = (extendedOrder as any).confirmedPrices;
         if (Array.isArray(savedConfirmedPrices) && savedConfirmedPrices.length > 0) {
@@ -6459,6 +6463,11 @@ function AdminOrderDetailPage() {
                 {activeTab === 'coverletters' && (
                   <CoverLettersTab
                     order={order}
+                    orderId={orderId}
+                    onSave={async (updates) => {
+                      await adminUpdateOrder(orderId, updates);
+                      setOrder({ ...order, ...updates } as any);
+                    }}
                     notaryApostilleData={notaryApostilleData}
                     setNotaryApostilleData={setNotaryApostilleData}
                     embassyData={embassyData}
