@@ -274,7 +274,7 @@ export default function CoverLettersTab({
                                           Payment method
                                         </label>
                                         <div className="flex flex-wrap gap-3 mt-1">
-                                          {['Cash', 'Invoice', 'Bank', 'Swish'].map((method) => (
+                                          {['Cash', 'Invoice', 'Bank', 'Swish', 'Card'].map((method) => (
                                             <label key={method} className="flex items-center gap-1.5 cursor-pointer">
                                               <input
                                                 type="radio"
@@ -562,7 +562,7 @@ export default function CoverLettersTab({
                                           Payment method
                                         </label>
                                         <div className="flex flex-wrap gap-3 mt-1">
-                                          {['Cash', 'Invoice', 'Bank', 'Swish'].map((method) => (
+                                          {['Cash', 'Invoice', 'Bank', 'Swish', 'Card'].map((method) => (
                                             <label key={method} className="flex items-center gap-1.5 cursor-pointer">
                                               <input
                                                 type="radio"
@@ -739,7 +739,7 @@ export default function CoverLettersTab({
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                                         <div className="flex flex-wrap gap-3 mt-1">
-                                          {['Cash', 'Invoice', 'Bank', 'Swish'].map((method) => (
+                                          {['Cash', 'Invoice', 'Bank', 'Swish', 'Card'].map((method) => (
                                             <label key={method} className="flex items-center gap-1.5 cursor-pointer">
                                               <input
                                                 type="radio"
