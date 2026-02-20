@@ -763,6 +763,23 @@ function AdminOrdersPage() {
                         <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">
                           <span className="flex items-center gap-1">
                             #{order.orderNumber || order.id}
+                            <button
+                              title="Copy order number"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const num = order.orderNumber || order.id || '';
+                                navigator.clipboard.writeText(num).then(() => {
+                                  toast.success(`Copied ${num}`);
+                                }).catch(() => {
+                                  toast.error('Could not copy');
+                                });
+                              }}
+                              className="inline-flex items-center p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
                             {order.orderType === 'visa' && (
                               <span 
                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800"
