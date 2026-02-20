@@ -6463,9 +6463,9 @@ function AdminOrderDetailPage() {
                 {activeTab === 'coverletters' && (
                   <CoverLettersTab
                     order={order}
-                    orderId={orderId}
+                    orderId={router.query.id as string}
                     onSave={async (updates) => {
-                      await adminUpdateOrder(orderId, updates);
+                      await adminUpdateOrder(router.query.id as string, updates);
                       setOrder({ ...order, ...updates } as any);
                     }}
                     notaryApostilleData={notaryApostilleData}
