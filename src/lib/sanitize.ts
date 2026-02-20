@@ -132,6 +132,10 @@ const ALLOWED_ORDER_FIELDS = [
   'postnordShipmentId',
   'dhlPickupBooked',
   'dhlPickupBookedAt',
+  // Cover letter data
+  'coverLetterNotaryData',
+  'coverLetterEmbassyData',
+  'coverLetterUdData',
 ];
 
 /**
