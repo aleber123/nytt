@@ -409,6 +409,18 @@
         "E-visum & sticker-visum",
         "Snabb handläggning",
         "Personlig service"
+      ],
+      "coo": [
+        "Handelskammarens certifiering",
+        "Elektronisk eller fysisk stämpel",
+        "Leverans inom 1–3 dagar",
+        "Expertgranskning av ursprung"
+      ],
+      "cpp": [
+        "Läkemedelsverkets certifiering",
+        "WHO-format certifikat",
+        "Fullmaktshantering (LoA)",
+        "Leverans av original via kurir"
       ]
     }
   },
@@ -553,6 +565,30 @@
       "feature2": "E-visum & sticker-visum",
       "feature3": "Snabb handläggning",
       "feature4": "Personlig service"
+    },
+    "coo": {
+      "title": "Ursprungsintyg (COO)",
+      "description": "Certificate of Origin via Handelskammaren för export utanför EU",
+      "shortDesc": "Ursprungsintyg för export",
+      "longDescription": "Vi hanterar hela processen med Handelskammaren – från dokumentgranskning och ansökan till leverans av ditt färdiga ursprungsintyg (Certificate of Origin). Välj mellan elektronisk certifiering eller Full Service med fysisk stämpel.",
+      "price": "Offert",
+      "timeframe": "1–3 arbetsdagar",
+      "feature1": "Handelskammarens certifiering",
+      "feature2": "Elektronisk eller fysisk stämpel",
+      "feature3": "Leverans inom 1–3 dagar",
+      "feature4": "Expertgranskning av ursprung"
+    },
+    "cpp": {
+      "title": "Exportcertifikat (CPP)",
+      "description": "Certificate of Pharmaceutical Product via Läkemedelsverket för läkemedelsexport",
+      "shortDesc": "Exportcertifikat för läkemedel",
+      "longDescription": "Vi hanterar hela CPP-ansökan hos Läkemedelsverket – från dokumentgranskning och fullmaktskontroll till leverans av ditt färdiga exportcertifikat. WHO-format certifikat för export av läkemedel utanför EU.",
+      "price": "Offert",
+      "timeframe": "Inom 30 dagar",
+      "feature1": "Läkemedelsverkets certifiering",
+      "feature2": "WHO-format certifikat",
+      "feature3": "Fullmaktshantering (LoA)",
+      "feature4": "Leverans av original via kurir"
     },
     "details": {
       "process": "Process",
@@ -1546,6 +1582,215 @@
         {"flag": "🇪🇬", "name": "Egypten"},
         {"flag": "🇯🇴", "name": "Jordanien"}
       ]
+    },
+    "ursprungsintyg": {
+      "title": "Beställ ursprungsintyg online",
+      "metaTitle": "Ursprungsintyg (Certificate of Origin) | Beställ COO Online | DOX Visumpartner",
+      "metaDescription": "Beställ ursprungsintyg (Certificate of Origin) enkelt online. Vi hanterar hela processen med Handelskammaren – från ansökan till leverans.",
+      "heroTag": "Ursprungsintyg / Certificate of Origin",
+      "heroText": "Vi hanterar hela processen med Handelskammaren åt dig – från dokumentgranskning och ansökan till leverans av ditt färdiga ursprungsintyg (Certificate of Origin).",
+      "heroChecks": "✓ Snabb handläggning \u00a0 ✓ Expertgranskning \u00a0 ✓ Leverans inom 1–3 dagar",
+      "orderNow": "Beställ nu",
+      "contactUs": "Kontakta oss för offert",
+      "whatTitle": "Vad är ett ursprungsintyg?",
+      "whatText1": "Ett ursprungsintyg (Certificate of Origin, COO) är ett officiellt dokument som intygar i vilket land en vara har tillverkats eller genomgått sin sista väsentliga bearbetning. Det utfärdas av Handelskammaren och är ett krav vid export till många länder utanför EU.",
+      "whatText2": "Tullmyndigheter i importlandet använder ursprungsintyget för att fastställa tullavgifter, kontrollera importrestriktioner och verifiera att varan uppfyller handelsavtal mellan länderna.",
+      "whatText3": "Det finns två typer av ursprung: helt framställda varor (t.ex. råvaror utvunna i Sverige) och varor som genomgått sista väsentliga bearbetning i ett land (t.ex. montering eller förädling som väsentligt förändrar varan).",
+      "whatText4": "Vi på DOX Visumpartner granskar dina dokument, ansöker via Handelskammarens plattform TradePort och levererar det färdiga certifikatet till dig.",
+      "docsTitle": "Dokument du behöver skicka in:",
+      "docs": [
+        {"title": "Kommersiell faktura", "desc": "Med varuspecifikation och värde"},
+        {"title": "Packlista", "desc": "Detaljerad förteckning av varor"},
+        {"title": "Exportdeklaration", "desc": "Tulldeklaration för exporten"},
+        {"title": "Transportdokument", "desc": "T.ex. bill of lading eller fraktsedel"},
+        {"title": "Styrkande handlingar för ursprung", "desc": "Leverantörsdeklaration eller tillverkningsintyg"}
+      ],
+      "processTitle": "Så fungerar det – steg för steg",
+      "processSubtitle": "Vi tar hand om hela processen så att du kan fokusera på din affär.",
+      "processSteps": [
+        {"title": "Skicka in dokument", "desc": "Ladda upp faktura, packlista och övriga handlingar via vårt formulär eller e-post"},
+        {"title": "Vi granskar", "desc": "Vi kontrollerar att ursprunget stämmer och att dokumenten uppfyller Handelskammarens krav"},
+        {"title": "Ansökan & certifiering", "desc": "Vi ansöker via TradePort och Handelskammaren utfärdar ditt ursprungsintyg"},
+        {"title": "Leverans", "desc": "Du får ditt certifikat digitalt eller fysiskt via DHL/PostNord – vanligtvis inom 1–3 dagar"}
+      ],
+      "chooseTitle": "Välj rätt alternativ för dig",
+      "chooseSubtitle": "Handelskammaren erbjuder två alternativ för ursprungsintyg. Vi hjälper dig med båda.",
+      "diyTitle": "DIY – Elektronisk",
+      "diyDesc": "Elektronisk certifiering – du skriver ut certifikatet själv.",
+      "diyPros": ["Snabbaste alternativet", "Lägre kostnad", "Digital leverans"],
+      "diyCon": "Ingen fysisk stämpel",
+      "diyNote": "Passar när mottagaren accepterar elektroniskt certifikat.",
+      "fullTitle": "Full Service",
+      "fullBadge": "Populärast",
+      "fullDesc": "Handelskammaren skriver ut och stämplar dokumentet fysiskt.",
+      "fullPros": ["Fysisk stämpel och underskrift", "Originaldokument", "Accepteras överallt", "Vi hämtar och skickar till dig"],
+      "fullNote": "Rekommenderas när mottagaren kräver fysiskt original.",
+      "pricingTitle": "Priser för ursprungsintyg",
+      "pricingSubtitle": "Priserna inkluderar vår serviceavgift samt Handelskammarens officiella avgift.",
+      "pricingDisclaimer": "Alla priser exkl. moms. Eventuella kuriravgifter tillkommer vid fysisk leverans.",
+      "pricingTiers": [
+        {"name": "Bas", "desc": "Enkel hantering av ett certifikat", "features": ["1 ursprungsintyg", "Dokumentgranskning", "Ansökan via TradePort", "Digital leverans (DIY)"]},
+        {"name": "Premium", "desc": "Inkl. granskning + Full Service", "features": ["1 ursprungsintyg", "Expertgranskning av ursprungsregler", "Full Service (fysisk stämpel)", "Upphämtning hos Handelskammaren", "Leverans via DHL/PostNord"]},
+        {"name": "Företagsavtal", "desc": "För återkommande exportörer", "features": ["Obegränsat antal certifikat", "Fast månadspris", "Prioriterad handläggning", "Dedikerad kontaktperson", "Volymrabatt"]}
+      ],
+      "requestQuote": "Begär offert",
+      "recommended": "Rekommenderad",
+      "whenTitle": "När behöver du ett ursprungsintyg?",
+      "whenSubtitle": "Ursprungsintyg krävs vid export till många länder. Här är de vanligaste situationerna.",
+      "whenCards": [
+        {"icon": "🌍", "title": "Export utanför EU", "text": "De flesta länder utanför EU kräver ursprungsintyg för att fastställa tullavgifter och verifiera varans ursprung vid import."},
+        {"icon": "📋", "title": "Tullkrav i importlandet", "text": "Tullmyndigheter kräver COO för att tillämpa rätt tullsats. Utan certifikat kan varorna hållas kvar i tullen eller beläggas med högre avgifter."},
+        {"icon": "🤝", "title": "Handelsavtal & L/C", "text": "Vid remburs (Letter of Credit) kräver banker ofta ursprungsintyg som en del av dokumentationen. Det kan även krävas i handelsavtal mellan parterna."}
+      ],
+      "countriesTitle": "Länder som ofta kräver ursprungsintyg",
+      "countriesSubtitle": "Följande regioner och länder kräver regelbundet Certificate of Origin vid import.",
+      "countriesMiddleEast": "Mellanöstern & Nordafrika",
+      "countriesAsia": "Asien, Afrika & Sydamerika",
+      "countriesMiddleEastList": [
+        {"flag": "🇸🇦", "name": "Saudiarabien"},
+        {"flag": "🇦🇪", "name": "Förenade Arabemiraten"},
+        {"flag": "🇶🇦", "name": "Qatar"},
+        {"flag": "🇰🇼", "name": "Kuwait"},
+        {"flag": "🇧🇭", "name": "Bahrain"},
+        {"flag": "🇴🇲", "name": "Oman"},
+        {"flag": "🇪🇬", "name": "Egypten"},
+        {"flag": "🇯🇴", "name": "Jordanien"},
+        {"flag": "🇮🇶", "name": "Irak"},
+        {"flag": "🇱🇧", "name": "Libanon"}
+      ],
+      "countriesAsiaList": [
+        {"flag": "🇨🇳", "name": "Kina"},
+        {"flag": "🇮🇳", "name": "Indien"},
+        {"flag": "🇮🇩", "name": "Indonesien"},
+        {"flag": "🇻🇳", "name": "Vietnam"},
+        {"flag": "🇳🇬", "name": "Nigeria"},
+        {"flag": "🇰🇪", "name": "Kenya"},
+        {"flag": "🇧🇷", "name": "Brasilien"},
+        {"flag": "🇦🇷", "name": "Argentina"},
+        {"flag": "🇲🇽", "name": "Mexiko"},
+        {"flag": "🇨🇴", "name": "Colombia"}
+      ],
+      "faqTitle": "Vanliga frågor om ursprungsintyg",
+      "faqs": [
+        {"q": "Vad är ett ursprungsintyg (Certificate of Origin)?", "a": "Ett ursprungsintyg (COO) är ett officiellt dokument som intygar i vilket land en vara har tillverkats eller genomgått sin sista väsentliga bearbetning. Det utfärdas av Handelskammaren och krävs ofta vid export utanför EU."},
+        {"q": "Vad är skillnaden mellan preferentiellt och icke-preferentiellt ursprung?", "a": "Icke-preferentiellt ursprung (som COO) anger varans faktiska ursprungsland och används för tullstatistik och handelsrestriktioner. Preferentiellt ursprung (t.ex. EUR.1) ger tullförmåner inom handelsavtal. Handelskammaren utfärdar icke-preferentiella ursprungsintyg."},
+        {"q": "Hur lång tid tar det att få ett ursprungsintyg?", "a": "Handläggningstiden är normalt 1–3 arbetsdagar efter att alla dokument är inlämnade och godkända. Vi erbjuder även expresstjänst för brådskande ärenden."},
+        {"q": "Kan jag få ursprungsintyget digitalt?", "a": "Ja, med DIY-alternativet får du ett elektroniskt certifierat ursprungsintyg som du kan skriva ut själv. Om mottagaren kräver fysiskt original med stämpel rekommenderar vi Full Service."},
+        {"q": "Behöver jag vara medlem i Handelskammaren?", "a": "Nej, du behöver inte vara medlem. Vi hanterar ansökan åt dig via vårt medlemskap i Handelskammaren, vilket ger dig tillgång till förmånligare priser utan att du själv behöver bli medlem."},
+        {"q": "Vad händer om ursprunget inte stämmer?", "a": "Felaktigt angivet ursprung kan leda till tullproblem, böter och försenade leveranser i importlandet. Därför granskar vi alltid dina dokument noggrant innan ansökan för att säkerställa att ursprunget är korrekt dokumenterat."}
+      ],
+      "relatedTitle": "Relaterade tjänster",
+      "relatedServices": [
+        {"title": "Handelskammar-legalisering", "desc": "Certifiering av kommersiella fakturor, fraktdokument och andra exporthandlingar.", "href": "/handelskammaren"},
+        {"title": "UD-legalisering", "desc": "Legalisering hos Utrikesdepartementet – ofta nästa steg efter Handelskammaren.", "href": "/tjanster/utrikesdepartementet"},
+        {"title": "Ambassadlegalisering", "desc": "Slutgiltig legalisering hos destinationslandets ambassad för full giltighet.", "href": "/tjanster/ambassadlegalisering"}
+      ],
+      "ctaTitle": "Behöver du ett ursprungsintyg?",
+      "ctaText": "Vi har lång erfarenhet av att hjälpa svenska företag med exportdokumentation. Kontakta oss för en offert eller beställ direkt online.",
+      "ctaPhone": "📞 Ring oss: 08-40941900",
+      "ctaEmail": "📧 E-post: info@doxvl.se"
+    },
+    "exportcertifikat": {
+      "title": "Exportcertifikat för läkemedel (CPP)",
+      "metaTitle": "Exportcertifikat för läkemedel (CPP) | Certificate of Pharmaceutical Product | DOX Visumpartner",
+      "metaDescription": "Vi hanterar ansökan om exportcertifikat (CPP) hos Läkemedelsverket åt dig. Certificate of Pharmaceutical Product för export av läkemedel utanför EU.",
+      "heroTag": "Exportcertifikat / Certificate of Pharmaceutical Product",
+      "heroText": "Vi hanterar hela CPP-ansökan hos Läkemedelsverket åt dig – från dokumentgranskning och fullmaktskontroll till leverans av ditt färdiga exportcertifikat.",
+      "heroChecks": "✓ Komplett ansökningshantering \u00a0 ✓ Fullmaktskontroll \u00a0 ✓ Handläggning inom 30 dagar",
+      "orderNow": "Beställ nu",
+      "contactUs": "Kontakta oss för offert",
+      "whatTitle": "Vad är ett exportcertifikat (CPP)?",
+      "whatText1": "Ett Certificate of Pharmaceutical Product (CPP) är ett WHO-format certifikat som bekräftar att ett läkemedel är godkänt och säljs fritt i Sverige/EU. Det utfärdas av Läkemedelsverket och krävs ofta vid export av läkemedel till länder utanför EU/EEA.",
+      "whatText2": "Tullmyndigheter och läkemedelsmyndigheter i importlandet använder CPP för att verifiera att produkten uppfyller kvalitets- och säkerhetskrav enligt WHO:s standarder.",
+      "whatText3": "Ansökan kan göras av innehavaren av marknadsföringstillståndet (MAH) eller av en representant med fullmakt (Letter of Authorisation). Det innebär att vi kan hantera hela processen åt dig – inklusive signering – så länge fullmakt bifogas.",
+      "whatText4": "Vi på DOX Visumpartner granskar dina dokument, kontrollerar fullmakten, fyller i ansökningsblanketten och skickar in till Läkemedelsverket. Du får det färdiga certifikatet levererat direkt till dig.",
+      "docsTitle": "Dokument du behöver skicka in:",
+      "docs": [
+        {"title": "Ansökningsblankett", "desc": "\"Request for certificate of a pharmaceutical product\" – PDF-formulär från Läkemedelsverket"},
+        {"title": "Produktlista", "desc": "Detaljerad lista med produktnamn, styrka, doseringsform och tillverkningsställen"},
+        {"title": "Fullmakt (LoA)", "desc": "Letter of Authorisation från MAH till ert företag – underskriven av behörig person"},
+        {"title": "GMP-certifikat", "desc": "Good Manufacturing Practice-certifikat om tillämpligt"},
+        {"title": "Övriga handlingar", "desc": "Batchinfo eller specifik information som ska ingå i CPP:et"}
+      ],
+      "processTitle": "Så fungerar det – steg för steg",
+      "processSubtitle": "Vi tar hand om hela processen så att du kan fokusera på din verksamhet.",
+      "processSteps": [
+        {"title": "Skicka in underlag", "desc": "Skicka ansökningsblankett, produktlista, fullmakt och övriga dokument via vårt formulär eller e-post"},
+        {"title": "Vi granskar", "desc": "Vi kontrollerar att fullmakten är giltig, att blanketten är korrekt ifylld och att alla underlag är kompletta"},
+        {"title": "Ansökan till Läkemedelsverket", "desc": "Vi signerar och skickar in ansökan till Läkemedelsverket med alla bilagor"},
+        {"title": "Leverans", "desc": "Läkemedelsverket utfärdar certifikatet på säkerhetspapper. Vi levererar originalet till dig via kurir"}
+      ],
+      "whoTitle": "Vem kan ansöka om CPP?",
+      "whoSubtitle": "Läkemedelsverket tillåter två typer av sökande för exportcertifikat.",
+      "mahTitle": "MAH (Marketing Authorisation Holder)",
+      "mahDesc": "Innehavaren av marknadsföringstillståndet kan själv ansöka direkt hos Läkemedelsverket.",
+      "mahPros": ["Direkt kontakt med myndigheten", "Ingen fullmakt krävs", "Full kontroll över processen"],
+      "mahNote": "Kräver intern kapacitet och kunskap om ansökningsprocessen.",
+      "repTitle": "Representant med fullmakt",
+      "repBadge": "Vi hjälper dig",
+      "repDesc": "En tredje part (som DOX Visumpartner) kan hantera hela ansökan med en giltig fullmakt från MAH.",
+      "repPros": ["Vi hanterar allt pappersarbete", "Minimerar risk för fel", "Sparar tid och resurser", "Expertgranskning av underlag"],
+      "repNote": "Rekommenderas för företag som saknar exportavdelning eller vill effektivisera processen.",
+      "pricingTitle": "Priser för exportcertifikat (CPP)",
+      "pricingSubtitle": "Priserna inkluderar vår serviceavgift. Läkemedelsverkets officiella avgift tillkommer.",
+      "pricingDisclaimer": "Alla priser exkl. moms. Läkemedelsverkets avgift är normalt 1 500–3 000 SEK per certifikat. Kuriravgifter kan tillkomma.",
+      "pricingTiers": [
+        {"name": "Bas", "desc": "Enkel CPP-ansökan", "features": ["1 exportcertifikat (CPP)", "Dokumentgranskning", "Fullmaktskontroll", "Ansökan till Läkemedelsverket", "Leverans av original"]},
+        {"name": "Premium", "desc": "Inkl. rådgivning + express", "features": ["1 exportcertifikat (CPP)", "Rådgivning om mottagarlands krav", "Expertgranskning av alla underlag", "Prioriterad hantering", "Leverans via kurir"]},
+        {"name": "Volymavtal", "desc": "För MAH med många produkter", "features": ["Obegränsat antal certifikat", "Fast månadspris", "Dedikerad kontaktperson", "Bundling med COO möjlig", "Volymrabatt på Läkemedelsverkets avgifter"]}
+      ],
+      "requestQuote": "Begär offert",
+      "recommended": "Rekommenderad",
+      "whenTitle": "När behöver du ett exportcertifikat (CPP)?",
+      "whenSubtitle": "CPP krävs vid export av läkemedel till många länder. Här är de vanligaste situationerna.",
+      "whenCards": [
+        {"icon": "💊", "title": "Export av läkemedel utanför EU", "text": "De flesta länder utanför EU/EEA kräver CPP för att verifiera att läkemedlet är godkänt och säljs fritt i ursprungslandet."},
+        {"icon": "🏥", "title": "Registrering i nytt land", "text": "Vid ansökan om marknadsföringstillstånd i ett nytt land kräver läkemedelsmyndigheten ofta CPP som del av dokumentationen."},
+        {"icon": "📋", "title": "WHO-krav & upphandlingar", "text": "Internationella organisationer och upphandlingar (t.ex. via WHO, UNICEF) kräver ofta CPP som bevis på produktens kvalitet och godkännande."}
+      ],
+      "countriesTitle": "Regioner som ofta kräver CPP",
+      "countriesSubtitle": "Följande regioner kräver regelbundet Certificate of Pharmaceutical Product vid import av läkemedel.",
+      "countriesRegion1": "Mellanöstern & Afrika",
+      "countriesRegion2": "Asien & Latinamerika",
+      "countriesRegion1List": [
+        {"flag": "🇸🇦", "name": "Saudiarabien"},
+        {"flag": "🇦🇪", "name": "Förenade Arabemiraten"},
+        {"flag": "🇪🇬", "name": "Egypten"},
+        {"flag": "🇳🇬", "name": "Nigeria"},
+        {"flag": "🇰🇪", "name": "Kenya"},
+        {"flag": "🇿🇦", "name": "Sydafrika"},
+        {"flag": "🇬🇭", "name": "Ghana"},
+        {"flag": "🇹🇳", "name": "Tunisien"}
+      ],
+      "countriesRegion2List": [
+        {"flag": "🇮🇳", "name": "Indien"},
+        {"flag": "🇨🇳", "name": "Kina"},
+        {"flag": "🇮🇩", "name": "Indonesien"},
+        {"flag": "🇧🇷", "name": "Brasilien"},
+        {"flag": "🇲🇽", "name": "Mexiko"},
+        {"flag": "🇨🇴", "name": "Colombia"},
+        {"flag": "🇵🇭", "name": "Filippinerna"},
+        {"flag": "🇻🇳", "name": "Vietnam"}
+      ],
+      "faqTitle": "Vanliga frågor om exportcertifikat (CPP)",
+      "faqs": [
+        {"q": "Vad är ett Certificate of Pharmaceutical Product (CPP)?", "a": "CPP är ett WHO-format certifikat utfärdat av Läkemedelsverket som bekräftar att ett läkemedel är godkänt och säljs fritt i Sverige. Det krävs ofta vid export av läkemedel till länder utanför EU/EEA."},
+        {"q": "Kan ni ansöka om CPP åt oss?", "a": "Ja, enligt Läkemedelsverkets regler kan en representant ansöka om CPP med en giltig fullmakt (Letter of Authorisation) från MAH. Vi hanterar hela processen – inklusive signering av ansökan."},
+        {"q": "Hur lång tid tar det att få ett CPP?", "a": "Läkemedelsverkets handläggningstid är normalt inom 30 dagar efter att en komplett ansökan har lämnats in. Vi granskar alla underlag noggrant innan inskickning för att undvika förseningar."},
+        {"q": "Vad kostar ett exportcertifikat?", "a": "Priset består av Läkemedelsverkets officiella avgift (normalt 1 500–3 000 SEK) plus vår serviceavgift för hantering, granskning och leverans. Kontakta oss för en exakt offert."},
+        {"q": "Vilka dokument behöver jag skicka in?", "a": "Du behöver skicka in ansökningsblanketten från Läkemedelsverket, produktlista, fullmakt (LoA) från MAH, och eventuellt GMP-certifikat eller annan produktspecifik information."},
+        {"q": "Hur länge är ett CPP giltigt?", "a": "CPP har ingen fast giltighetstid men avser produktens status vid utfärdandet. Många mottagarländer begär uppdaterade versioner årligen. Vi kan hjälpa till med förnyelser."}
+      ],
+      "relatedTitle": "Relaterade tjänster",
+      "relatedServices": [
+        {"title": "Ursprungsintyg (COO)", "desc": "Certificate of Origin via Handelskammaren – ofta relevant vid export av läkemedel.", "href": "/ursprungsintyg"},
+        {"title": "Apostille", "desc": "Internationell certifiering för dokument som ska användas i Haag-länder.", "href": "/tjanster/apostille"},
+        {"title": "Ambassadlegalisering", "desc": "Slutgiltig legalisering hos destinationslandets ambassad för full giltighet.", "href": "/tjanster/ambassadlegalisering"}
+      ],
+      "ctaTitle": "Behöver du ett exportcertifikat för läkemedel?",
+      "ctaText": "Vi har erfarenhet av att hjälpa läkemedelsföretag med exportdokumentation. Kontakta oss för en offert eller beställ direkt online.",
+      "ctaPhone": "📞 Ring oss: 08-40941900",
+      "ctaEmail": "📧 E-post: info@doxvl.se"
     },
     "apostille": {
       "title": "Apostille",

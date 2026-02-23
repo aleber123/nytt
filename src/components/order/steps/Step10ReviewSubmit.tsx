@@ -632,6 +632,14 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           </div>
 
           {/* Selected Services */}
+          {answers.helpMeChooseServices ? (
+            <div className="py-2">
+              <span className="text-gray-700 font-medium">{t('orderFlow.step10.services')}:</span>
+              <div className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                {locale === 'en' ? 'Unsure about services – we will review and contact you with a recommendation and price.' : 'Osäker på tjänster – vi granskar och kontaktar dig med rekommendation och pris.'}
+              </div>
+            </div>
+          ) : (
           <div className="py-2">
             <span className="text-gray-700 font-medium">{t('orderFlow.step10.services')}:</span>
             <div className="mt-2 space-y-2">
@@ -683,6 +691,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
               )}
             </div>
           </div>
+          )}
 
           {/* Own Return Tracking Number - only show if customer provides their own return */}
           {answers.returnService === 'own-delivery' && answers.ownReturnTrackingNumber && (
@@ -718,6 +727,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           )}
 
           {/* VAT and Total Price */}
+          {!answers.helpMeChooseServices && (
           <div className="flex flex-col py-3 border-t-2 border-green-300 bg-green-100 -mx-4 sm:-mx-6 px-4 sm:px-6 rounded-b-lg">
             {/* For company customers: show subtotal excl. VAT first */}
             {isCompanyCustomer && !loadingPricing && (
@@ -768,6 +778,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
               </p>
             )}
           </div>
+          )}
         </div>
       </div>
 

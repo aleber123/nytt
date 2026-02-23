@@ -1366,7 +1366,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   setAnswers={setAnswers}
                   onNext={() => {
                     if (answers.helpMeChooseServices) {
-                      navigateToStep(10);
+                      navigateToStep(9);
                     } else {
                       navigateToStep(5);
                     }
@@ -1471,6 +1471,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   setAnswers={setAnswers}
                   onNext={() => navigateToStep(10)}
                   onBack={() => {
+                    if (answers.helpMeChooseServices) {
+                      navigateToStep(4);
+                      return;
+                    }
                     // Go back to step 8.5 if return address was required, otherwise step 8
                     const requiresReturnAddress = !!answers.returnService && 
                       ['dhl-sweden', 'dhl-europe', 'dhl-worldwide', 'stockholm-city', 'postnord-rek'].includes(answers.returnService);
@@ -1487,7 +1491,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
                   onNext={() => {}}
                   onBack={() => {
                     if (answers.helpMeChooseServices) {
-                      navigateToStep(4);
+                      navigateToStep(9);
                       return;
                     }
                     navigateToStep(9);

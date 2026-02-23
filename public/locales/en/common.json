@@ -459,6 +459,18 @@
         "E-visa & sticker visa",
         "Fast processing",
         "Personal service"
+      ],
+      "coo": [
+        "Chamber of Commerce certification",
+        "Electronic or physical stamp",
+        "Delivery within 1–3 days",
+        "Expert origin review"
+      ],
+      "cpp": [
+        "Medical Products Agency certification",
+        "WHO-format certificate",
+        "Power of attorney handling (LoA)",
+        "Original delivery via courier"
       ]
     }
   },
@@ -555,6 +567,30 @@
       "feature2": "E-visa & sticker visa",
       "feature3": "Fast processing",
       "feature4": "Personal service"
+    },
+    "coo": {
+      "title": "Certificate of Origin (COO)",
+      "description": "Certificate of Origin via the Chamber of Commerce for export outside the EU",
+      "shortDesc": "Certificate of Origin for export",
+      "longDescription": "We handle the entire process with the Chamber of Commerce – from document review and application to delivery of your completed Certificate of Origin. Choose between electronic certification or Full Service with physical stamp.",
+      "price": "Quote",
+      "timeframe": "1–3 business days",
+      "feature1": "Chamber of Commerce certification",
+      "feature2": "Electronic or physical stamp",
+      "feature3": "Delivery within 1–3 days",
+      "feature4": "Expert origin review"
+    },
+    "cpp": {
+      "title": "Export Certificate (CPP)",
+      "description": "Certificate of Pharmaceutical Product via the Swedish Medical Products Agency for pharma export",
+      "shortDesc": "Export certificate for pharmaceuticals",
+      "longDescription": "We handle the entire CPP application with the Swedish Medical Products Agency – from document review and power of attorney verification to delivery of your completed export certificate. WHO-format certificate for pharmaceutical export outside the EU.",
+      "price": "Quote",
+      "timeframe": "Within 30 days",
+      "feature1": "Medical Products Agency certification",
+      "feature2": "WHO-format certificate",
+      "feature3": "Power of attorney handling (LoA)",
+      "feature4": "Original delivery via courier"
     },
     "details": {
       "process": "Process",
@@ -1544,6 +1580,215 @@
         {"flag": "🇪🇬", "name": "Egypt"},
         {"flag": "🇯🇴", "name": "Jordan"}
       ]
+    },
+    "ursprungsintyg": {
+      "title": "Order Certificate of Origin online",
+      "metaTitle": "Certificate of Origin (COO) | Order Online | DOX Visumpartner",
+      "metaDescription": "Order your Certificate of Origin (COO) easily online. We handle the entire process with the Chamber of Commerce – from application to delivery.",
+      "heroTag": "Certificate of Origin / Ursprungsintyg",
+      "heroText": "We handle the entire process with the Chamber of Commerce for you – from document review and application to delivery of your completed Certificate of Origin.",
+      "heroChecks": "✓ Fast processing \u00a0 ✓ Expert review \u00a0 ✓ Delivery within 1–3 days",
+      "orderNow": "Order now",
+      "contactUs": "Contact us for a quote",
+      "whatTitle": "What is a Certificate of Origin?",
+      "whatText1": "A Certificate of Origin (COO) is an official document certifying in which country goods were manufactured or underwent their last substantial transformation. It is issued by the Chamber of Commerce and is required for export to many countries outside the EU.",
+      "whatText2": "Customs authorities in the importing country use the Certificate of Origin to determine customs duties, check import restrictions, and verify that goods comply with trade agreements between countries.",
+      "whatText3": "There are two types of origin: wholly obtained goods (e.g., raw materials extracted in Sweden) and goods that have undergone last substantial transformation in a country (e.g., assembly or processing that substantially changes the product).",
+      "whatText4": "At DOX Visumpartner, we review your documents, apply through the Chamber of Commerce's TradePort platform, and deliver the completed certificate to you.",
+      "docsTitle": "Documents you need to submit:",
+      "docs": [
+        {"title": "Commercial invoice", "desc": "With product specification and value"},
+        {"title": "Packing list", "desc": "Detailed list of goods"},
+        {"title": "Export declaration", "desc": "Customs declaration for the export"},
+        {"title": "Transport document", "desc": "E.g., bill of lading or waybill"},
+        {"title": "Supporting documents for origin", "desc": "Supplier declaration or manufacturing certificate"}
+      ],
+      "processTitle": "How it works – step by step",
+      "processSubtitle": "We take care of the entire process so you can focus on your business.",
+      "processSteps": [
+        {"title": "Submit documents", "desc": "Upload invoice, packing list and other documents via our form or email"},
+        {"title": "We review", "desc": "We verify that the origin is correct and that documents meet Chamber of Commerce requirements"},
+        {"title": "Application & certification", "desc": "We apply via TradePort and the Chamber of Commerce issues your Certificate of Origin"},
+        {"title": "Delivery", "desc": "You receive your certificate digitally or physically via DHL/PostNord – usually within 1–3 days"}
+      ],
+      "chooseTitle": "Choose the right option for you",
+      "chooseSubtitle": "The Chamber of Commerce offers two options for Certificates of Origin. We help you with both.",
+      "diyTitle": "DIY – Electronic",
+      "diyDesc": "Electronic certification – you print the certificate yourself.",
+      "diyPros": ["Fastest option", "Lower cost", "Digital delivery"],
+      "diyCon": "No physical stamp",
+      "diyNote": "Suitable when the recipient accepts an electronic certificate.",
+      "fullTitle": "Full Service",
+      "fullBadge": "Most popular",
+      "fullDesc": "The Chamber of Commerce prints and stamps the document physically.",
+      "fullPros": ["Physical stamp and signature", "Original document", "Accepted everywhere", "We collect and send to you"],
+      "fullNote": "Recommended when the recipient requires a physical original.",
+      "pricingTitle": "Pricing for Certificate of Origin",
+      "pricingSubtitle": "Prices include our service fee and the Chamber of Commerce's official fee.",
+      "pricingDisclaimer": "All prices excl. VAT. Courier fees may apply for physical delivery.",
+      "pricingTiers": [
+        {"name": "Basic", "desc": "Simple handling of one certificate", "features": ["1 Certificate of Origin", "Document review", "Application via TradePort", "Digital delivery (DIY)"]},
+        {"name": "Premium", "desc": "Incl. expert review + Full Service", "features": ["1 Certificate of Origin", "Expert review of origin rules", "Full Service (physical stamp)", "Collection from Chamber of Commerce", "Delivery via DHL/PostNord"]},
+        {"name": "Business plan", "desc": "For recurring exporters", "features": ["Unlimited certificates", "Fixed monthly price", "Priority processing", "Dedicated contact person", "Volume discount"]}
+      ],
+      "requestQuote": "Request a quote",
+      "recommended": "Recommended",
+      "whenTitle": "When do you need a Certificate of Origin?",
+      "whenSubtitle": "Certificates of Origin are required for export to many countries. Here are the most common situations.",
+      "whenCards": [
+        {"icon": "🌍", "title": "Export outside the EU", "text": "Most countries outside the EU require a Certificate of Origin to determine customs duties and verify the origin of goods upon import."},
+        {"icon": "📋", "title": "Customs requirements", "text": "Customs authorities require COO to apply the correct tariff rate. Without a certificate, goods may be held in customs or subject to higher fees."},
+        {"icon": "🤝", "title": "Trade agreements & L/C", "text": "For Letters of Credit, banks often require a Certificate of Origin as part of the documentation. It may also be required in trade agreements between parties."}
+      ],
+      "countriesTitle": "Countries that commonly require Certificate of Origin",
+      "countriesSubtitle": "The following regions and countries regularly require Certificate of Origin for imports.",
+      "countriesMiddleEast": "Middle East & North Africa",
+      "countriesAsia": "Asia, Africa & South America",
+      "countriesMiddleEastList": [
+        {"flag": "🇸🇦", "name": "Saudi Arabia"},
+        {"flag": "🇦🇪", "name": "United Arab Emirates"},
+        {"flag": "🇶🇦", "name": "Qatar"},
+        {"flag": "🇰🇼", "name": "Kuwait"},
+        {"flag": "🇧🇭", "name": "Bahrain"},
+        {"flag": "🇴🇲", "name": "Oman"},
+        {"flag": "🇪🇬", "name": "Egypt"},
+        {"flag": "🇯🇴", "name": "Jordan"},
+        {"flag": "🇮🇶", "name": "Iraq"},
+        {"flag": "🇱🇧", "name": "Lebanon"}
+      ],
+      "countriesAsiaList": [
+        {"flag": "🇨🇳", "name": "China"},
+        {"flag": "🇮🇳", "name": "India"},
+        {"flag": "🇮🇩", "name": "Indonesia"},
+        {"flag": "🇻🇳", "name": "Vietnam"},
+        {"flag": "🇳🇬", "name": "Nigeria"},
+        {"flag": "🇰🇪", "name": "Kenya"},
+        {"flag": "🇧🇷", "name": "Brazil"},
+        {"flag": "🇦🇷", "name": "Argentina"},
+        {"flag": "🇲🇽", "name": "Mexico"},
+        {"flag": "🇨🇴", "name": "Colombia"}
+      ],
+      "faqTitle": "Frequently asked questions about Certificate of Origin",
+      "faqs": [
+        {"q": "What is a Certificate of Origin (COO)?", "a": "A Certificate of Origin (COO) is an official document certifying in which country goods were manufactured or underwent their last substantial transformation. It is issued by the Chamber of Commerce and is often required for export outside the EU."},
+        {"q": "What is the difference between preferential and non-preferential origin?", "a": "Non-preferential origin (like COO) states the actual country of origin and is used for customs statistics and trade restrictions. Preferential origin (e.g., EUR.1) provides customs benefits under trade agreements. The Chamber of Commerce issues non-preferential Certificates of Origin."},
+        {"q": "How long does it take to get a Certificate of Origin?", "a": "Processing time is normally 1–3 business days after all documents have been submitted and approved. We also offer express service for urgent matters."},
+        {"q": "Can I get the Certificate of Origin digitally?", "a": "Yes, with the DIY option you receive an electronically certified Certificate of Origin that you can print yourself. If the recipient requires a physical original with stamp, we recommend Full Service."},
+        {"q": "Do I need to be a member of the Chamber of Commerce?", "a": "No, you don't need to be a member. We handle the application for you through our membership with the Chamber of Commerce, giving you access to favorable prices without needing to become a member yourself."},
+        {"q": "What happens if the origin is incorrect?", "a": "Incorrectly stated origin can lead to customs problems, fines, and delayed deliveries in the importing country. That's why we always carefully review your documents before application to ensure the origin is correctly documented."}
+      ],
+      "relatedTitle": "Related services",
+      "relatedServices": [
+        {"title": "Chamber of Commerce legalization", "desc": "Certification of commercial invoices, shipping documents and other export documents.", "href": "/handelskammaren"},
+        {"title": "Ministry for Foreign Affairs", "desc": "Legalization at the Ministry for Foreign Affairs – often the next step after the Chamber of Commerce.", "href": "/tjanster/utrikesdepartementet"},
+        {"title": "Embassy legalization", "desc": "Final legalization at the destination country's embassy for full validity.", "href": "/tjanster/ambassadlegalisering"}
+      ],
+      "ctaTitle": "Need a Certificate of Origin?",
+      "ctaText": "We have extensive experience helping Swedish companies with export documentation. Contact us for a quote or order directly online.",
+      "ctaPhone": "📞 Call us: 08-40941900",
+      "ctaEmail": "📧 Email: info@doxvl.se"
+    },
+    "exportcertifikat": {
+      "title": "Export Certificate for Pharmaceuticals (CPP)",
+      "metaTitle": "Export Certificate for Pharmaceuticals (CPP) | Certificate of Pharmaceutical Product | DOX Visumpartner",
+      "metaDescription": "We handle the CPP application with the Swedish Medical Products Agency on your behalf. Certificate of Pharmaceutical Product for pharmaceutical export outside the EU.",
+      "heroTag": "Export Certificate / Certificate of Pharmaceutical Product",
+      "heroText": "We handle the entire CPP application with the Swedish Medical Products Agency – from document review and power of attorney verification to delivery of your completed export certificate.",
+      "heroChecks": "✓ Complete application handling \u00a0 ✓ Power of attorney verification \u00a0 ✓ Processing within 30 days",
+      "orderNow": "Order now",
+      "contactUs": "Contact us for a quote",
+      "whatTitle": "What is an Export Certificate (CPP)?",
+      "whatText1": "A Certificate of Pharmaceutical Product (CPP) is a WHO-format certificate confirming that a pharmaceutical product is approved and freely sold in Sweden/EU. It is issued by the Swedish Medical Products Agency (Läkemedelsverket) and is often required for pharmaceutical export to countries outside the EU/EEA.",
+      "whatText2": "Customs authorities and pharmaceutical agencies in the importing country use the CPP to verify that the product meets quality and safety requirements according to WHO standards.",
+      "whatText3": "The application can be made by the Marketing Authorisation Holder (MAH) or by a representative with a Letter of Authorisation (LoA). This means we can handle the entire process for you – including signing – as long as a valid LoA is included.",
+      "whatText4": "At DOX Visumpartner, we review your documents, verify the power of attorney, complete the application form, and submit it to the Swedish Medical Products Agency. You receive the completed certificate delivered directly to you.",
+      "docsTitle": "Documents you need to submit:",
+      "docs": [
+        {"title": "Application form", "desc": "\"Request for certificate of a pharmaceutical product\" – PDF form from the Swedish Medical Products Agency"},
+        {"title": "Product list", "desc": "Detailed list with product name, strength, dosage form, and manufacturing sites"},
+        {"title": "Power of Attorney (LoA)", "desc": "Letter of Authorisation from MAH to your company – signed by an authorized person"},
+        {"title": "GMP certificate", "desc": "Good Manufacturing Practice certificate if applicable"},
+        {"title": "Additional documents", "desc": "Batch information or specific information to be included in the CPP"}
+      ],
+      "processTitle": "How it works – step by step",
+      "processSubtitle": "We take care of the entire process so you can focus on your business.",
+      "processSteps": [
+        {"title": "Submit documents", "desc": "Send application form, product list, power of attorney, and other documents via our form or email"},
+        {"title": "We review", "desc": "We verify that the power of attorney is valid, the form is correctly filled in, and all documents are complete"},
+        {"title": "Application to the Agency", "desc": "We sign and submit the application to the Swedish Medical Products Agency with all attachments"},
+        {"title": "Delivery", "desc": "The Agency issues the certificate on security paper. We deliver the original to you via courier"}
+      ],
+      "whoTitle": "Who can apply for a CPP?",
+      "whoSubtitle": "The Swedish Medical Products Agency allows two types of applicants for export certificates.",
+      "mahTitle": "MAH (Marketing Authorisation Holder)",
+      "mahDesc": "The marketing authorisation holder can apply directly with the Swedish Medical Products Agency.",
+      "mahPros": ["Direct contact with the authority", "No power of attorney required", "Full control over the process"],
+      "mahNote": "Requires internal capacity and knowledge of the application process.",
+      "repTitle": "Representative with Power of Attorney",
+      "repBadge": "We help you",
+      "repDesc": "A third party (such as DOX Visumpartner) can handle the entire application with a valid power of attorney from the MAH.",
+      "repPros": ["We handle all paperwork", "Minimizes risk of errors", "Saves time and resources", "Expert review of documents"],
+      "repNote": "Recommended for companies without an export department or those looking to streamline the process.",
+      "pricingTitle": "Pricing for Export Certificate (CPP)",
+      "pricingSubtitle": "Prices include our service fee. The official fee from the Swedish Medical Products Agency is additional.",
+      "pricingDisclaimer": "All prices excl. VAT. The Agency's fee is typically SEK 1,500–3,000 per certificate. Courier fees may apply.",
+      "pricingTiers": [
+        {"name": "Basic", "desc": "Simple CPP application", "features": ["1 export certificate (CPP)", "Document review", "Power of attorney verification", "Application to the Agency", "Delivery of original"]},
+        {"name": "Premium", "desc": "Incl. advisory + express", "features": ["1 export certificate (CPP)", "Advisory on destination country requirements", "Expert review of all documents", "Priority handling", "Courier delivery"]},
+        {"name": "Volume agreement", "desc": "For MAH with many products", "features": ["Unlimited certificates", "Fixed monthly price", "Dedicated contact person", "Bundling with COO possible", "Volume discount on Agency fees"]}
+      ],
+      "requestQuote": "Request a quote",
+      "recommended": "Recommended",
+      "whenTitle": "When do you need an Export Certificate (CPP)?",
+      "whenSubtitle": "CPP is required for pharmaceutical export to many countries. Here are the most common situations.",
+      "whenCards": [
+        {"icon": "💊", "title": "Pharmaceutical export outside the EU", "text": "Most countries outside the EU/EEA require a CPP to verify that the pharmaceutical product is approved and freely sold in the country of origin."},
+        {"icon": "🏥", "title": "Registration in a new country", "text": "When applying for marketing authorisation in a new country, the pharmaceutical authority often requires a CPP as part of the documentation."},
+        {"icon": "📋", "title": "WHO requirements & procurement", "text": "International organizations and procurement processes (e.g., via WHO, UNICEF) often require a CPP as proof of product quality and approval."}
+      ],
+      "countriesTitle": "Regions that commonly require CPP",
+      "countriesSubtitle": "The following regions regularly require a Certificate of Pharmaceutical Product for pharmaceutical imports.",
+      "countriesRegion1": "Middle East & Africa",
+      "countriesRegion2": "Asia & Latin America",
+      "countriesRegion1List": [
+        {"flag": "🇸🇦", "name": "Saudi Arabia"},
+        {"flag": "🇦🇪", "name": "United Arab Emirates"},
+        {"flag": "🇪🇬", "name": "Egypt"},
+        {"flag": "🇳🇬", "name": "Nigeria"},
+        {"flag": "🇰🇪", "name": "Kenya"},
+        {"flag": "🇿🇦", "name": "South Africa"},
+        {"flag": "🇬🇭", "name": "Ghana"},
+        {"flag": "🇹🇳", "name": "Tunisia"}
+      ],
+      "countriesRegion2List": [
+        {"flag": "🇮🇳", "name": "India"},
+        {"flag": "🇨🇳", "name": "China"},
+        {"flag": "🇮🇩", "name": "Indonesia"},
+        {"flag": "🇧🇷", "name": "Brazil"},
+        {"flag": "🇲🇽", "name": "Mexico"},
+        {"flag": "🇨🇴", "name": "Colombia"},
+        {"flag": "🇵🇭", "name": "Philippines"},
+        {"flag": "🇻🇳", "name": "Vietnam"}
+      ],
+      "faqTitle": "Frequently asked questions about Export Certificates (CPP)",
+      "faqs": [
+        {"q": "What is a Certificate of Pharmaceutical Product (CPP)?", "a": "A CPP is a WHO-format certificate issued by the Swedish Medical Products Agency confirming that a pharmaceutical product is approved and freely sold in Sweden. It is often required for pharmaceutical export to countries outside the EU/EEA."},
+        {"q": "Can you apply for a CPP on our behalf?", "a": "Yes, according to the Swedish Medical Products Agency's rules, a representative can apply for a CPP with a valid Letter of Authorisation (LoA) from the MAH. We handle the entire process – including signing the application."},
+        {"q": "How long does it take to get a CPP?", "a": "The Agency's processing time is normally within 30 days after a complete application has been submitted. We carefully review all documents before submission to avoid delays."},
+        {"q": "How much does an export certificate cost?", "a": "The price consists of the Agency's official fee (normally SEK 1,500–3,000) plus our service fee for handling, review, and delivery. Contact us for an exact quote."},
+        {"q": "What documents do I need to submit?", "a": "You need to submit the application form from the Swedish Medical Products Agency, product list, power of attorney (LoA) from the MAH, and possibly a GMP certificate or other product-specific information."},
+        {"q": "How long is a CPP valid?", "a": "A CPP has no fixed validity period but refers to the product's status at the time of issuance. Many destination countries request updated versions annually. We can help with renewals."}
+      ],
+      "relatedTitle": "Related services",
+      "relatedServices": [
+        {"title": "Certificate of Origin (COO)", "desc": "Certificate of Origin via the Chamber of Commerce – often relevant for pharmaceutical export.", "href": "/ursprungsintyg"},
+        {"title": "Apostille", "desc": "International certification for documents to be used in Hague Convention countries.", "href": "/tjanster/apostille"},
+        {"title": "Embassy legalization", "desc": "Final legalization at the destination country's embassy for full validity.", "href": "/tjanster/ambassadlegalisering"}
+      ],
+      "ctaTitle": "Need an export certificate for pharmaceuticals?",
+      "ctaText": "We have experience helping pharmaceutical companies with export documentation. Contact us for a quote or order directly online.",
+      "ctaPhone": "📞 Call us: 08-40941900",
+      "ctaEmail": "📧 Email: info@doxvl.se"
     },
     "apostille": {
       "title": "Apostille",

@@ -840,7 +840,7 @@ function AdminOrdersPage() {
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-blue-100 text-blue-800">
                             {order.orderType === 'visa' 
-                              ? (order.destinationCountry || getCountryName(order.destinationCountryCode || ''))
+                              ? (getCountryName(order.destinationCountryCode || '') !== '—' ? getCountryName(order.destinationCountryCode || '') : (order.destinationCountry || '—'))
                               : getCountryName(order.country || '')}
                           </span>
                         </td>

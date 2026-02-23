@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { GetStaticProps } from 'next';
@@ -6,6 +6,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
+import type { ParsedContact } from '@/pages/api/admin/business-card-scan';
 import {
   getAllLeads,
   createLead,
@@ -71,6 +72,15 @@ function CrmPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importing, setImporting] = useState(false);
+
+  // PDF scanner modal
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState('');
+  const [scannedContacts, setScannedContacts] = useState<(ParsedContact & { selected: boolean })[]>([]);
+  const [scanRawText, setScanRawText] = useState('');
+  const [importingScanned, setImportingScanned] = useState(false);
+  const pdfFileRef = useRef<HTMLInputElement>(null);
 
   // Shared default signature (editable per email)
   const defaultSignature = `Med vänliga hälsningar,
@@ -234,6 +244,118 @@ info@doxvl.se | doxvl.se`;
       if (selectedLead?.id === lead.id) setSelectedLead({ ...selectedLead, status: newStatus } as CrmLead);
     } catch (e) {
       toast.error('Failed to update status');
+    }
+  };
+
+  // ── PDF SCAN ──
+  const handlePdfScan = async (file: File) => {
+    try {
+      setScanning(true);
+      setScannedContacts([]);
+      setScanRawText('');
+      setScanProgress('Loading PDF...');
+
+      // Dynamically import pdfjs-dist
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPages = pdf.numPages;
+
+      const allContacts: (ParsedContact & { selected: boolean })[] = [];
+      let allRawText = '';
+      const seenEmails = new Set<string>();
+
+      // Get auth token
+      const { getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        setScanProgress(`Scanning page ${pageNum} of ${totalPages}...`);
+
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 2.0 });
+
+        // Render page to canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d')!;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        // Convert to base64
+        const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
+
+        // Send to Vision API
+        const response = await fetch('/api/admin/business-card-scan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ image: base64 }),
+        });
+
+        const result = await response.json();
+        if (result.rawText) {
+          allRawText += `\n--- Page ${pageNum} ---\n${result.rawText}`;
+        }
+        if (result.contacts) {
+          for (const c of result.contacts) {
+            if (!seenEmails.has(c.email)) {
+              seenEmails.add(c.email);
+              allContacts.push({ ...c, selected: true });
+            }
+          }
+        }
+      }
+
+      setScannedContacts(allContacts);
+      setScanRawText(allRawText);
+      setScanProgress(`Done! Found ${allContacts.length} contacts from ${totalPages} pages.`);
+
+      if (allContacts.length === 0) {
+        toast.error('No contacts found in the PDF');
+      } else {
+        toast.success(`Found ${allContacts.length} contacts`);
+      }
+    } catch (error: any) {
+      toast.error('PDF scan failed: ' + (error?.message || 'unknown error'));
+      setScanProgress('');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleImportScanned = async () => {
+    const selected = scannedContacts.filter(c => c.selected);
+    if (selected.length === 0) { toast.error('No contacts selected'); return; }
+
+    try {
+      setImportingScanned(true);
+      // Convert to text lines for the existing bulkImportLeads function
+      const lines = selected.map(c => {
+        const parts = [c.email];
+        if (c.contactName) parts.push(c.contactName);
+        if (c.phone) parts.push(c.phone);
+        if (c.companyName) parts.push(c.companyName);
+        if (c.title) parts.push(c.title);
+        return parts.join(' ');
+      });
+
+      const count = await bulkImportLeads(lines, 'event', adminName);
+      toast.success(`Imported ${count} new leads (${selected.length - count} duplicates/skipped)`);
+      setScanOpen(false);
+      setScannedContacts([]);
+      setScanRawText('');
+      setScanProgress('');
+      await loadLeads();
+    } catch (e) {
+      toast.error('Import failed');
+    } finally {
+      setImportingScanned(false);
     }
   };
 
@@ -432,6 +554,12 @@ info@doxvl.se | doxvl.se`;
                 className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
               >
                 📨 Bulk Email
+              </button>
+              <button
+                onClick={() => setScanOpen(true)}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+              >
+                📇 Scan Cards
               </button>
               <button
                 onClick={() => setImportOpen(true)}
@@ -1051,6 +1179,143 @@ info@doxvl.se | doxvl.se`;
               >
                 {sendingBulk ? 'Sending...' : 'Send to All'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── PDF SCANNER MODAL ── */}
+      {scanOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">📇 Scan Business Cards (PDF)</h2>
+              <button onClick={() => { setScanOpen(false); setScannedContacts([]); setScanRawText(''); setScanProgress(''); }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-4 flex-1 overflow-y-auto">
+              {/* Upload area */}
+              {scannedContacts.length === 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Upload a PDF with scanned business cards. Each page will be OCR-scanned using Google Cloud Vision to extract contact information.
+                  </p>
+                  <input
+                    ref={pdfFileRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePdfScan(file);
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => pdfFileRef.current?.click()}
+                    disabled={scanning}
+                    className="w-full py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                  >
+                    {scanning ? (
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <p className="text-sm text-blue-600 font-medium">{scanProgress}</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-3xl mb-2">📄</div>
+                        <p className="text-sm text-gray-600 font-medium">Click to select PDF file</p>
+                        <p className="text-xs text-gray-400 mt-1">Supports multi-page PDFs with multiple business cards</p>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Results */}
+              {scannedContacts.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-gray-700">
+                      {scannedContacts.filter(c => c.selected).length} of {scannedContacts.length} contacts selected
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setScannedContacts(prev => prev.map(c => ({ ...c, selected: true })))}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Select all
+                      </button>
+                      <button
+                        onClick={() => setScannedContacts(prev => prev.map(c => ({ ...c, selected: false })))}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Deselect all
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    {scannedContacts.map((contact, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setScannedContacts(prev => prev.map((c, i) => i === idx ? { ...c, selected: !c.selected } : c))}
+                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                          contact.selected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={contact.selected}
+                            onChange={() => {}}
+                            className="mt-1 h-4 w-4 accent-blue-600"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {contact.contactName && <span className="font-medium text-sm text-gray-900">{contact.contactName}</span>}
+                              {contact.title && <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">{contact.title}</span>}
+                            </div>
+                            <div className="text-xs text-gray-600 mt-0.5">{contact.email}</div>
+                            <div className="flex gap-3 mt-0.5 text-xs text-gray-500">
+                              {contact.companyName && <span>🏢 {contact.companyName}</span>}
+                              {contact.phone && <span>📞 {contact.phone}</span>}
+                              {contact.website && <span>🌐 {contact.website}</span>}
+                            </div>
+                            {contact.notes && <div className="text-xs text-gray-400 mt-0.5 truncate">{contact.notes}</div>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Raw text toggle */}
+                  <details className="text-xs">
+                    <summary className="text-gray-400 cursor-pointer hover:text-gray-600">Show raw OCR text</summary>
+                    <pre className="mt-2 p-3 bg-gray-100 rounded text-xs text-gray-600 whitespace-pre-wrap max-h-40 overflow-y-auto">{scanRawText}</pre>
+                  </details>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
+              <div>
+                {scannedContacts.length > 0 && (
+                  <button
+                    onClick={() => { setScannedContacts([]); setScanRawText(''); setScanProgress(''); }}
+                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    ← Scan another PDF
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => { setScanOpen(false); setScannedContacts([]); setScanRawText(''); setScanProgress(''); }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                {scannedContacts.length > 0 && (
+                  <button
+                    onClick={handleImportScanned}
+                    disabled={importingScanned || scannedContacts.filter(c => c.selected).length === 0}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {importingScanned ? 'Importing...' : `Import ${scannedContacts.filter(c => c.selected).length} Leads`}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
