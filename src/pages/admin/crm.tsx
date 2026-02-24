@@ -23,6 +23,7 @@ import {
   type CrmActivity,
   type LeadStatus,
   type LeadSource,
+  type LeadPriority,
   type EmailTemplate,
 } from '@/firebase/crmService';
 
@@ -45,6 +46,12 @@ const SOURCE_OPTIONS: { value: LeadSource; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
+const PRIORITY_OPTIONS: { value: LeadPriority; label: string; color: string; bg: string; icon: string }[] = [
+  { value: 'high', label: 'High', color: 'text-red-700', bg: 'bg-red-100', icon: '🔴' },
+  { value: 'medium', label: 'Medium', color: 'text-yellow-700', bg: 'bg-yellow-100', icon: '🟡' },
+  { value: 'low', label: 'Low', color: 'text-green-700', bg: 'bg-green-100', icon: '🟢' },
+];
+
 const getStatusStyle = (status: LeadStatus) => STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
 
 function CrmPage() {
@@ -52,8 +59,9 @@ function CrmPage() {
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<LeadStatus | 'all'>('all');
+  const [filterPriority, setFilterPriority] = useState<LeadPriority | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'updated' | 'followUp' | 'company' | 'status'>('updated');
+  const [sortBy, setSortBy] = useState<'updated' | 'followUp' | 'company' | 'status' | 'priority'>('updated');
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -131,6 +139,9 @@ info@doxvl.se | doxvl.se`;
     if (filterStatus !== 'all') {
       result = result.filter((l) => l.status === filterStatus);
     }
+    if (filterPriority !== 'all') {
+      result = result.filter((l) => l.priority === filterPriority);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -154,13 +165,17 @@ info@doxvl.se | doxvl.se`;
         const order = STATUS_OPTIONS.map((s) => s.value);
         return order.indexOf(a.status) - order.indexOf(b.status);
       }
+      if (sortBy === 'priority') {
+        const order: (LeadPriority | undefined)[] = ['high', 'medium', 'low', undefined];
+        return order.indexOf(a.priority) - order.indexOf(b.priority);
+      }
       // default: updated desc
       const aTime = a.updatedAt?.seconds || 0;
       const bTime = b.updatedAt?.seconds || 0;
       return bTime - aTime;
     });
     return result;
-  }, [leads, filterStatus, searchQuery, sortBy]);
+  }, [leads, filterStatus, filterPriority, searchQuery, sortBy]);
 
   // ── STATS ──
   const stats = useMemo(() => {
@@ -204,6 +219,7 @@ info@doxvl.se | doxvl.se`;
           website: editingLead.website || '',
           status: editingLead.status || 'new',
           source: editingLead.source || 'other',
+          priority: editingLead.priority || undefined,
           notes: editingLead.notes || '',
           tags: editingLead.tags || [],
           createdBy: adminName,
@@ -244,6 +260,16 @@ info@doxvl.se | doxvl.se`;
       if (selectedLead?.id === lead.id) setSelectedLead({ ...selectedLead, status: newStatus } as CrmLead);
     } catch (e) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleQuickPriority = async (lead: CrmLead, newPriority: LeadPriority) => {
+    try {
+      await updateLead(lead.id!, { priority: newPriority });
+      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, priority: newPriority } : l)));
+      if (selectedLead?.id === lead.id) setSelectedLead({ ...selectedLead, priority: newPriority } as CrmLead);
+    } catch (e) {
+      toast.error('Failed to update priority');
     }
   };
 
@@ -631,13 +657,24 @@ info@doxvl.se | doxvl.se`;
               <option value="followUp">Follow-up Date</option>
               <option value="company">Company Name</option>
               <option value="status">Status</option>
+              <option value="priority">Priority</option>
             </select>
-            {filterStatus !== 'all' && (
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value as LeadPriority | 'all')}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+            >
+              <option value="all">All Priorities</option>
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value}>{p.icon} {p.label}</option>
+              ))}
+            </select>
+            {(filterStatus !== 'all' || filterPriority !== 'all') && (
               <button
-                onClick={() => setFilterStatus('all')}
+                onClick={() => { setFilterStatus('all'); setFilterPriority('all'); }}
                 className="px-3 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
-                Clear filter ✕
+                Clear filters ✕
               </button>
             )}
           </div>
@@ -662,6 +699,7 @@ info@doxvl.se | doxvl.se`;
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Follow-up</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -696,6 +734,32 @@ info@doxvl.se | doxvl.se`;
                                   <option key={s.value} value={s.value}>{s.label}</option>
                                 ))}
                               </select>
+                            </td>
+                            <td className="px-4 py-3">
+                              {lead.priority ? (
+                                <select
+                                  value={lead.priority}
+                                  onChange={(e) => { e.stopPropagation(); handleQuickPriority(lead, e.target.value as LeadPriority); }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer ${PRIORITY_OPTIONS.find(p => p.value === lead.priority)?.bg || ''} ${PRIORITY_OPTIONS.find(p => p.value === lead.priority)?.color || ''}`}
+                                >
+                                  {PRIORITY_OPTIONS.map((p) => (
+                                    <option key={p.value} value={p.value}>{p.label}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <select
+                                  value=""
+                                  onChange={(e) => { e.stopPropagation(); if (e.target.value) handleQuickPriority(lead, e.target.value as LeadPriority); }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-xs text-gray-300 px-2 py-1 rounded-full border-0 cursor-pointer bg-gray-50"
+                                >
+                                  <option value="">—</option>
+                                  {PRIORITY_OPTIONS.map((p) => (
+                                    <option key={p.value} value={p.value}>{p.label}</option>
+                                  ))}
+                                </select>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               {lead.followUpDate ? (
@@ -751,6 +815,14 @@ info@doxvl.se | doxvl.se`;
                   )}
                   {selectedLead.website && (
                     <div><span className="text-gray-500">Website:</span> <a href={selectedLead.website.startsWith('http') ? selectedLead.website : `https://${selectedLead.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{selectedLead.website}</a></div>
+                  )}
+                  {selectedLead.priority && (
+                    <div>
+                      <span className="text-gray-500">Priority:</span>{' '}
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${PRIORITY_OPTIONS.find(p => p.value === selectedLead.priority)?.bg || ''} ${PRIORITY_OPTIONS.find(p => p.value === selectedLead.priority)?.color || ''}`}>
+                        {PRIORITY_OPTIONS.find(p => p.value === selectedLead.priority)?.icon} {PRIORITY_OPTIONS.find(p => p.value === selectedLead.priority)?.label}
+                      </span>
+                    </div>
                   )}
                   {selectedLead.estimatedValue != null && selectedLead.estimatedValue > 0 && (
                     <div><span className="text-gray-500">Est. value:</span> <span className="font-medium">{selectedLead.estimatedValue.toLocaleString()} SEK</span></div>
@@ -903,7 +975,7 @@ info@doxvl.se | doxvl.se`;
                   placeholder="www.acme.se"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                   <select
@@ -916,6 +988,21 @@ info@doxvl.se | doxvl.se`;
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    value={editingLead.priority || ''}
+                    onChange={(e) => setEditingLead({ ...editingLead, priority: (e.target.value || undefined) as LeadPriority | undefined })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  >
+                    <option value="">No priority</option>
+                    {PRIORITY_OPTIONS.map((p) => (
+                      <option key={p.value} value={p.value}>{p.icon} {p.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Source</label>
                   <select
@@ -937,16 +1024,16 @@ info@doxvl.se | doxvl.se`;
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Estimated Value (SEK)</label>
-                <input
-                  type="number"
-                  value={editingLead.estimatedValue ?? ''}
-                  onChange={(e) => setEditingLead({ ...editingLead, estimatedValue: e.target.value ? Number(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="10000"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Est. Value (SEK)</label>
+                  <input
+                    type="number"
+                    value={editingLead.estimatedValue ?? ''}
+                    onChange={(e) => setEditingLead({ ...editingLead, estimatedValue: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="10000"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>

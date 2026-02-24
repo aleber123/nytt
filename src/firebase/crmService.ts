@@ -25,6 +25,7 @@ const CRM_ACTIVITIES_COLLECTION = 'crmActivities';
 
 export type LeadStatus = 'new' | 'contacted' | 'meeting' | 'proposal' | 'won' | 'lost';
 export type LeadSource = 'email-list' | 'referral' | 'website' | 'cold-call' | 'linkedin' | 'event' | 'other';
+export type LeadPriority = 'high' | 'medium' | 'low';
 
 export interface CrmLead {
   id?: string;
@@ -35,6 +36,7 @@ export interface CrmLead {
   website?: string;
   status: LeadStatus;
   source: LeadSource;
+  priority?: LeadPriority;
   notes: string;
   followUpDate?: string; // YYYY-MM-DD
   estimatedValue?: number; // SEK

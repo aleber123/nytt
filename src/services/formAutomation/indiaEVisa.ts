@@ -42,7 +42,7 @@ export interface IndiaEVisaData {
   townCityOfBirth: string;
   countryOfBirth: string;           // Must match portal dropdown e.g. "SWEDEN"
   citizenshipNationalId: string;    // e.g. personnummer
-  religion: string;                 // e.g. "CHRISTIANITY", "ISLAM", "HINDUISM", "BUDDHISM", "OTHERS"
+  religion: string;                 // e.g. "CHRISTIAN", "ISLAM", "HINDU", "BUDDHISM", "OTHERS" (must match portal dropdown)
   visibleIdentificationMark: string; // e.g. "NONE" or description
   educationalQualification: string; // e.g. "GRADUATE", "POST GRADUATE", "PROFESSIONAL", etc.
   
@@ -163,15 +163,26 @@ const SCRIPT_HEADER = `
 (function() {
   'use strict';
   
-  // Convert Swedish characters å ä ö to ASCII for India portal
+  // Strip ALL diacritics/accents to plain ASCII for India portal
+  // Handles: é→e, ü→u, ñ→n, å→a, ä→a, ö→o, etc.
   function tr(s) {
-    return s.replace(/å/g,'aa').replace(/Å/g,'AA')
-            .replace(/ä/g,'ae').replace(/Ä/g,'AE')
-            .replace(/ö/g,'oe').replace(/Ö/g,'OE');
+    if (!s) return '';
+    // NFD splits base char + combining mark, then remove combining marks
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  
+  // Try multiple comma-separated selectors
+  function findEl(selectorStr) {
+    var parts = selectorStr.split(',');
+    for (var i = 0; i < parts.length; i++) {
+      var el = document.querySelector(parts[i].trim());
+      if (el) return el;
+    }
+    return null;
   }
   
   function setVal(selector, value) {
-    var el = document.querySelector(selector);
+    var el = findEl(selector);
     if (!el) { console.warn('Not found:', selector); return false; }
     var clean = tr(value);
     var proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -185,11 +196,14 @@ const SCRIPT_HEADER = `
   }
   
   function setSelect(selector, value) {
-    var el = document.querySelector(selector);
+    var el = findEl(selector);
     if (!el) { console.warn('Select not found:', selector); return false; }
-    // Try exact match first
+    var cleanVal = tr(value);
+    // Try exact match first (value or text)
     for (var i = 0; i < el.options.length; i++) {
-      if (el.options[i].value === value || el.options[i].text.trim().toUpperCase() === value.toUpperCase()) {
+      var optVal = el.options[i].value.trim().toUpperCase();
+      var optTxt = el.options[i].text.trim().toUpperCase();
+      if (optVal === cleanVal.toUpperCase() || optTxt === cleanVal.toUpperCase()) {
         el.selectedIndex = i;
         el.dispatchEvent(new Event('change', { bubbles: true }));
         return true;
@@ -197,13 +211,14 @@ const SCRIPT_HEADER = `
     }
     // Try partial match
     for (var i = 0; i < el.options.length; i++) {
-      if (el.options[i].text.trim().toUpperCase().includes(value.toUpperCase())) {
+      var optTxt2 = el.options[i].text.trim().toUpperCase();
+      if (optTxt2.includes(cleanVal.toUpperCase()) || cleanVal.toUpperCase().includes(optTxt2)) {
         el.selectedIndex = i;
         el.dispatchEvent(new Event('change', { bubbles: true }));
         return true;
       }
     }
-    console.warn('Option not found:', value, 'in', selector);
+    console.warn('Option not found:', cleanVal, 'in', selector);
     return false;
   }
   
@@ -252,7 +267,7 @@ const SCRIPT_HEADER = `
   }
   
   function setDate(selector, ddmmyyyy) {
-    var el = document.querySelector(selector);
+    var el = findEl(selector);
     if (!el) { console.warn('Date not found:', selector); return false; }
     var setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
     if (setter && setter.set) { setter.set.call(el, ddmmyyyy); }
@@ -270,10 +285,16 @@ const SCRIPT_HEADER = `
   }
   
   function setCheckbox(selector, checked) {
-    var el = document.querySelector(selector);
+    var el = findEl(selector);
     if (!el) { console.warn('Checkbox not found:', selector); return false; }
     if (el.checked !== checked) { el.click(); }
     return true;
+  }
+  
+  // Delayed setter — retries after a timeout for dynamically loaded fields
+  var pendingDelayed = [];
+  function setValDelayed(selector, value, label, delayMs) {
+    pendingDelayed.push({ selector: selector, value: value, label: label, delay: delayMs || 1500 });
   }
   
   var results = [];
@@ -281,16 +302,46 @@ const SCRIPT_HEADER = `
 `;
 
 const SCRIPT_FOOTER = `
-  // Report
-  var success = 0, fail = 0;
-  for (var i = 0; i < results.length; i++) {
-    if (results[i][1]) { success++; console.log('✅ ' + results[i][0]); }
-    else { fail++; console.log('❌ ' + results[i][0] + ' — CHECK MANUALLY'); }
+  // Process delayed fields with retry
+  function processDelayed() {
+    if (pendingDelayed.length === 0) { showReport(); return; }
+    var item = pendingDelayed.shift();
+    setTimeout(function() {
+      var ok = setVal(item.selector, item.value);
+      if (!ok) {
+        // Retry with setSelect in case it's a dropdown
+        ok = setSelect(item.selector, item.value);
+      }
+      r(item.label, ok);
+      processDelayed();
+    }, item.delay);
   }
-  var msg = 'India e-Visa auto-fill done!\\n\\nFilled: ' + success + '/' + results.length;
-  if (fail > 0) msg += '\\n\\n⚠️ ' + fail + ' field(s) need manual review.';
-  msg += '\\n\\nReview all fields, then click Save & Continue.';
-  alert(msg);
+  
+  function showReport() {
+    var success = 0, fail = 0;
+    for (var i = 0; i < results.length; i++) {
+      if (results[i][1]) { success++; console.log('✅ ' + results[i][0]); }
+      else { fail++; console.log('❌ ' + results[i][0] + ' — CHECK MANUALLY'); }
+    }
+    var msg = 'India e-Visa auto-fill done!\\n\\nFilled: ' + success + '/' + results.length;
+    if (fail > 0) msg += '\\n\\n⚠️ ' + fail + ' field(s) need manual review.';
+    msg += '\\n\\nReview all fields, then click Save & Continue.';
+    alert(msg);
+  }
+  
+  // If there are delayed fields, process them; otherwise show report immediately
+  if (pendingDelayed.length > 0) {
+    console.log('⏳ Processing ' + pendingDelayed.length + ' delayed field(s)...');
+    // Show immediate results first
+    var success = 0, fail = 0;
+    for (var i = 0; i < results.length; i++) {
+      if (results[i][1]) { success++; console.log('✅ ' + results[i][0]); }
+      else { fail++; console.log('❌ ' + results[i][0] + ' — CHECK MANUALLY'); }
+    }
+    processDelayed();
+  } else {
+    showReport();
+  }
 })();
 `;
 
@@ -568,32 +619,35 @@ export function generatePage3Script(data: IndiaEVisaData): string {
   
   // Have you lived for at least two years in the country where you are applying visa?
   r('Lived 2 Years', (function() {
-    // Try common radio IDs
-    var yesIds = ['#lived_flag1', '#lived_2yr_yes', '#livedTwoYears_yes'];
-    var noIds = ['#lived_flag2', '#lived_2yr_no', '#livedTwoYears_no'];
-    var ids = 'Yes' === 'Yes' ? yesIds : noIds;
+    var wantYes = true; // Applicants apply from their country of residence
+    // Try common radio IDs — try multiple known patterns
+    var yesIds = ['#lived_flag1', '#lived_2yr_yes', '#livedTwoYears_yes', '#presentlyLiving_yes_id'];
+    var noIds = ['#lived_flag2', '#lived_2yr_no', '#livedTwoYears_no', '#presentlyLiving_no_id'];
+    var ids = wantYes ? yesIds : noIds;
     for (var i = 0; i < ids.length; i++) {
       var el = document.querySelector(ids[i]);
       if (el) { el.checked = true; el.click(); el.dispatchEvent(new Event('change', {bubbles:true})); return true; }
     }
-    // Fallback: find radio by nearby label text
+    // Fallback: find ALL radio groups on the page and look for the "lived/two years" question
     var allRadios = document.querySelectorAll('input[type="radio"]');
+    var processed = {};
     for (var i = 0; i < allRadios.length; i++) {
-      var lbl = allRadios[i].closest('label') || document.querySelector('label[for="' + allRadios[i].id + '"]');
-      var parent = allRadios[i].closest('div');
-      var ctx = (parent ? parent.textContent : '') + (lbl ? lbl.textContent : '');
-      if (ctx.toUpperCase().includes('LIVED') && ctx.toUpperCase().includes('TWO YEARS') || ctx.toUpperCase().includes('AT LEAST TWO')) {
-        // Found the question context, now pick Yes radio
-        var name = allRadios[i].name;
-        var group = document.querySelectorAll('input[name="' + name + '"]');
-        for (var j = 0; j < group.length; j++) {
-          if (group[j].value.toUpperCase() === 'Y' || group[j].value === '1' || group[j].value.toUpperCase() === 'YES') {
-            group[j].checked = true; group[j].click(); group[j].dispatchEvent(new Event('change', {bubbles:true}));
-            return true;
-          }
+      var radioName = allRadios[i].name;
+      if (processed[radioName]) continue;
+      processed[radioName] = true;
+      // Check context around this radio group
+      var parent = allRadios[i].closest('.form-group') || allRadios[i].closest('tr') || allRadios[i].closest('div');
+      if (!parent) continue;
+      var ctx = parent.textContent.toUpperCase();
+      if ((ctx.includes('LIVED') && ctx.includes('TWO YEAR')) || ctx.includes('AT LEAST TWO') || ctx.includes('PRESENTLY LIVING')) {
+        var group = document.querySelectorAll('input[name="' + radioName + '"]');
+        // Pick Yes (first) or No (second) based on wantYes
+        var targetIdx = wantYes ? 0 : 1;
+        if (group.length > targetIdx) {
+          group[targetIdx].checked = true; group[targetIdx].click(); 
+          group[targetIdx].dispatchEvent(new Event('change', {bubbles:true}));
+          return true;
         }
-        // If values are not Y/N, click the first one (usually Yes)
-        if (group.length >= 1) { group[0].checked = true; group[0].click(); group[0].dispatchEvent(new Event('change', {bubbles:true})); return true; }
       }
     }
     return false;
@@ -678,10 +732,11 @@ export function generatePage4Script(data: IndiaEVisaData): string {
   })());
   
   // Business visa service request fields (visa_serreq_id_*)
-  ${data.detailsOfPurpose ? `r('Purpose Details', setVal('#visa_serreq_id_20', '${esc(data.detailsOfPurpose)}'));` : ''}
-  ${data.invitingCompanyName ? `r('Company Name', setVal('#visa_serreq_id_26', '${esc(data.invitingCompanyName)}'));` : ''}
-  ${data.invitingCompanyAddress ? `r('Company Address', setVal('#visa_serreq_id_27', '${esc(data.invitingCompanyAddress)}'));` : ''}
-  ${data.invitingCompanyPhone ? `r('Company Phone', setVal('#visa_serreq_id_29', '${esc(data.invitingCompanyPhone)}'));` : ''}
+  // These fields load DYNAMICALLY after visa type is selected — use delayed retry
+  ${data.detailsOfPurpose ? `setValDelayed('#visa_serreq_id_20, [name="visa_serreq_id_20"], textarea[id*="visa_serreq"]', '${esc(data.detailsOfPurpose)}', 'Purpose Details', 2000);` : ''}
+  ${data.invitingCompanyName ? `setValDelayed('#visa_serreq_id_26, [name="visa_serreq_id_26"], input[id*="visa_serreq"]', '${esc(data.invitingCompanyName)}', 'Company Name', 2500);` : ''}
+  ${data.invitingCompanyAddress ? `setValDelayed('#visa_serreq_id_27, [name="visa_serreq_id_27"]', '${esc(data.invitingCompanyAddress)}', 'Company Address', 3000);` : ''}
+  ${data.invitingCompanyPhone ? `setValDelayed('#visa_serreq_id_29, [name="visa_serreq_id_29"]', '${esc(data.invitingCompanyPhone)}', 'Company Phone', 3500);` : ''}
   `}
   
   // Port of Exit
@@ -708,19 +763,46 @@ export function generatePage4Script(data: IndiaEVisaData): string {
   })());
   ${data.haveYouBeenRefusedVisa === 'Yes' && data.refusedVisaDetails ? `r('Refusal Details', setVal('#refuse_details, [name="appl.refuse_details"]', '${esc(data.refusedVisaDetails)}'));` : ''}
   
-  // Countries visited in last 10 years (multi-select)
+  // Countries visited in last 10 years (multi-select or searchable widget)
   ${data.countriesVisitedInLast10Years ? `r('Countries Visited', (function() {
-    var sel = document.querySelector('#country_visited');
-    if (!sel) return false;
     var countries = '${esc(data.countriesVisitedInLast10Years)}'.split(',').map(function(s) { return s.trim().toUpperCase(); });
-    for (var i = 0; i < sel.options.length; i++) {
-      var optText = sel.options[i].text.trim().toUpperCase();
-      if (countries.some(function(c) { return optText.includes(c) || c.includes(optText); })) {
-        sel.options[i].selected = true;
+    if (countries.length === 0 || (countries.length === 1 && countries[0] === '')) return false;
+    
+    // Try standard <select multiple>
+    var sel = findEl('#country_visited, #country_visited_id, [name="appl.country_visited"], select[id*="country_visited"]');
+    if (sel && sel.tagName === 'SELECT') {
+      for (var i = 0; i < sel.options.length; i++) {
+        var optText = sel.options[i].text.trim().toUpperCase();
+        var optVal = sel.options[i].value.trim().toUpperCase();
+        if (countries.some(function(c) { return optText.includes(c) || c.includes(optText) || optVal.includes(c); })) {
+          sel.options[i].selected = true;
+        }
       }
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      // Trigger jQuery/Angular if present
+      if (typeof jQuery !== 'undefined') { jQuery(sel).trigger('change'); }
+      if (typeof angular !== 'undefined') {
+        var scope = angular.element(sel).scope();
+        if (scope) { try { scope.$apply(); } catch(e) {} }
+      }
+      return true;
     }
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
+    
+    // Fallback: look for a searchable/autocomplete input widget (select2, chosen, etc.)
+    var searchInputs = document.querySelectorAll('.select2-search__field, .chosen-search input, input[type="text"][placeholder*="country"], input[type="search"][placeholder*="country"]');
+    if (searchInputs.length > 0) {
+      // Type each country into the search box and select it
+      var input = searchInputs[0];
+      countries.forEach(function(country) {
+        input.value = country.substring(0, 5); // Type partial name
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        input.dispatchEvent(new Event('keyup', {bubbles:true}));
+      });
+      console.warn('Countries Visited: searchable widget detected — may need manual selection after typing');
+      return true;
+    }
+    
+    return false;
   })());` : ''}
   
   // SAARC — No
@@ -812,7 +894,7 @@ export function buildIndiaEVisaDataFromOrder(
     townCityOfBirth: (get('townCityOfBirth') || '').toUpperCase(),
     countryOfBirth: (get('countryOfBirth') || passport.issuingCountry || 'SWEDEN').toUpperCase(),
     citizenshipNationalId: get('citizenshipNationalId') || get('personnummer') || traveler.personnummer || '',
-    religion: get('religion') || 'CHRISTIANITY',
+    religion: get('religion') || 'CHRISTIAN',
     visibleIdentificationMark: get('visibleIdentificationMark') || 'NONE',
     educationalQualification: get('educationalQualification') || 'GRADUATE',
 

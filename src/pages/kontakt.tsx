@@ -31,13 +31,13 @@ const ContactPage: React.FC = () => {
 
     // Check reCAPTCHA v3
     if (!executeRecaptcha) {
-      setSubmitError('reCAPTCHA är inte redo, vänligen försök igen.');
+      setSubmitError(t('contact.recaptchaNotReady'));
       setIsSubmitting(false);
       return;
     }
     const recaptchaToken = await executeRecaptcha('contact_form');
     if (!recaptchaToken) {
-      setSubmitError('Vänligen verifiera att du inte är en robot.');
+      setSubmitError(t('contact.recaptchaVerify'));
       setIsSubmitting(false);
       return;
     }
@@ -60,7 +60,7 @@ const ContactPage: React.FC = () => {
       
       setIsSubmitted(true);
     } catch (error) {
-      setSubmitError('Ett fel uppstod när meddelandet skulle skickas. Försök igen senare.');
+      setSubmitError(t('contact.submitError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -78,10 +78,10 @@ const ContactPage: React.FC = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto mb-16 text-center">
           <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-            Kontakta oss för hjälp med dina dokument
+            {t('contact.heroTitle')}
           </h2>
           <p className="text-lg text-gray-600">
-            Vi hjälper dig gärna med frågor om legalisering, priser och processer
+            {t('contact.heroText')}
           </p>
         </div>
 
@@ -125,8 +125,8 @@ const ContactPage: React.FC = () => {
                       {t('contact.contactTitle') || 'Kontakt'}
                     </h3>
                     <p className="text-gray-600">
-                      <strong>Telefon:</strong> 08-409 419 00<br />
-                      <strong>E-post:</strong> info@doxvl.se
+                      <strong>{t('contact.phone')}:</strong> 08-409 419 00<br />
+                      <strong>{t('contact.email')}:</strong> info@doxvl.se
                     </p>
                   </div>
                 </div>
@@ -142,9 +142,9 @@ const ContactPage: React.FC = () => {
                       {t('contact.hoursTitle') || 'Öppettider'}
                     </h3>
                     <p className="text-gray-600">
-                      <strong>Måndag-torsdag:</strong> 09:00-16:00<br />
-                      <strong>Fredag:</strong> 09:00-15:00<br />
-                      <strong>Lördag-söndag:</strong> Stängt
+                      <strong>{t('contact.monThu')}:</strong> 09:00-16:00<br />
+                      <strong>{t('contact.friday')}:</strong> 09:00-15:00<br />
+                      <strong>{t('contact.satSun')}:</strong> {t('contact.closed')}
                     </p>
                   </div>
                 </div>
@@ -198,7 +198,7 @@ const ContactPage: React.FC = () => {
                     </svg>
                     <div>
                       <h3 className="text-lg font-medium text-red-800 mb-1">
-                        Ett fel uppstod
+                        {t('contact.errorTitle')}
                       </h3>
                       <p className="text-red-700 text-sm">
                         {submitError}
@@ -218,10 +218,10 @@ const ContactPage: React.FC = () => {
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.name ? 'border-red-500' : ''
                       }`}
-                      placeholder="Ange ditt fullständiga namn"
+                      placeholder={t('contact.form.namePlaceholder')}
                       {...register('name', {
-                        required: 'Namn är obligatoriskt',
-                        minLength: { value: 2, message: 'Namnet måste vara minst 2 tecken' }
+                        required: t('contact.form.nameRequired'),
+                        minLength: { value: 2, message: t('contact.form.nameMinLength') }
                       })}
                       aria-invalid={errors.name ? 'true' : 'false'}
                       aria-describedby={errors.name ? 'name-error' : undefined}
@@ -243,12 +243,12 @@ const ContactPage: React.FC = () => {
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.email ? 'border-red-500' : ''
                       }`}
-                      placeholder="din@email.com"
+                      placeholder={t('contact.form.emailPlaceholder')}
                       {...register('email', {
-                        required: 'E-postadress är obligatorisk',
+                        required: t('contact.form.emailRequired'),
                         pattern: {
                           value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: 'Ange en giltig e-postadress'
+                          message: t('contact.form.emailInvalid')
                         }
                       })}
                       aria-invalid={errors.email ? 'true' : 'false'}
@@ -269,7 +269,7 @@ const ContactPage: React.FC = () => {
                       type="tel"
                       id="phone"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button"
-                      placeholder="+46 70 123 45 67"
+                      placeholder={t('contact.form.phonePlaceholder')}
                       {...register('phone')}
                     />
                   </div>
@@ -283,7 +283,7 @@ const ContactPage: React.FC = () => {
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.subject ? 'border-red-500' : ''
                       }`}
-                      {...register('subject', { required: 'Välj ett ämne' })}
+                      {...register('subject', { required: t('contact.form.subjectRequired') })}
                       aria-invalid={errors.subject ? 'true' : 'false'}
                       aria-describedby={errors.subject ? 'subject-error' : undefined}
                     >
@@ -311,8 +311,8 @@ const ContactPage: React.FC = () => {
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-button focus:border-custom-button ${
                         errors.message ? 'border-red-500' : ''
                       }`}
-                      placeholder="Beskriv ditt ärende och dina frågor..."
-                      {...register('message', { required: 'Meddelande är obligatoriskt' })}
+                      placeholder={t('contact.form.messagePlaceholder')}
+                      {...register('message', { required: t('contact.form.messageRequired') })}
                       aria-invalid={errors.message ? 'true' : 'false'}
                       aria-describedby={errors.message ? 'message-error' : undefined}
                     ></textarea>
@@ -357,7 +357,7 @@ const ContactPage: React.FC = () => {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Skickar...
+                          {t('contact.form.sending')}
                         </>
                       ) : (
                         t('contact.form.send') || 'Skicka meddelande'
@@ -373,23 +373,23 @@ const ContactPage: React.FC = () => {
         {/* Call to Action */}
         <div className="mt-16 text-center">
           <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-            Behöver du hjälp med att komma igång?
+            {t('contact.ctaTitle')}
           </h3>
           <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Vi hjälper dig att välja rätt tjänst och guidar dig genom hela legaliseringsprocessen
+            {t('contact.ctaText')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/bestall"
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button"
             >
-              Starta beställning
+              {t('contact.ctaOrder')}
             </a>
             <a
               href="/tjanster"
               className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
-              Se våra tjänster
+              {t('contact.ctaServices')}
             </a>
           </div>
         </div>
