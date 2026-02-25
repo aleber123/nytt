@@ -186,7 +186,8 @@
     "orders": "Orders",
     "legalization": "Legalizations",
     "visa": "Visa",
-    "orderStatus": "Order Status"
+    "orderStatus": "Order Status",
+    "portal": "Customer Portal"
   },
   "serviceModal": {
     "title": "What would you like to order?",

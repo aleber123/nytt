@@ -136,7 +136,8 @@
     "orders": "Ordrar",
     "legalization": "Legaliseringar",
     "visa": "Visum",
-    "orderStatus": "Orderstatus"
+    "orderStatus": "Orderstatus",
+    "portal": "Kundportal"
   },
   "serviceModal": {
     "title": "Vad vill du beställa?",

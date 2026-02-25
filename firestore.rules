@@ -236,6 +236,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // PORTAL CUSTOMERS – customer portal accounts
+    match /portalCustomers/{docId} {
+      // Admin full access (create, edit, delete accounts)
+      allow read, write: if isAdmin() || isDoxStaff();
+
+      // Authenticated users can read their own document (by UID or email query)
+      allow read: if request.auth != null && request.auth.uid == docId;
+
+      // Allow authenticated users to update only lastLoginAt on their own doc
+      allow update: if request.auth != null && request.auth.uid == docId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLoginAt', 'updatedAt']);
+
+      // Allow linking: admin creates with pending_* id, first login copies to real UID doc
+      allow create: if request.auth != null;
+    }
+
     // ADMIN USERS – role-based access control for admin panel
     match /adminUsers/{userId} {
       // Allow authenticated users to read their own admin user document

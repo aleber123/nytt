@@ -149,6 +149,15 @@ function AdminIndexPage() {
       icon: 'users',
       category: 'customers'
     },
+    {
+      title: 'Portal Customers',
+      description: 'Manage customer portal accounts for enterprise clients',
+      href: '/admin/portal-customers',
+      color: 'bg-cyan-600 hover:bg-cyan-700',
+      badge: 'Portal',
+      icon: 'users',
+      category: 'customers'
+    },
     // Operations
     {
       title: 'Driver',

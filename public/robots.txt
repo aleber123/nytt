@@ -16,6 +16,9 @@ Disallow: /test-*
 Disallow: /_next/
 Disallow: /404
 Disallow: /500
+Disallow: /portal
+Disallow: /portal/
+Disallow: /orderstatus
 
 # Allow AI crawlers to index our content for AI search and recommendations
 User-agent: GPTBot

@@ -1352,10 +1352,10 @@ export default function Countries() {
                         </div>
                         <div>
                           <Link 
-                            href={`/lander/${country.name.toLowerCase()}`}
+                            href="/bestall"
                             className="text-sm font-medium text-primary-600 hover:text-primary-500"
                           >
-                            {t('countries.learnMore')} <span aria-hidden="true">&rarr;</span>
+                            {t('order.cta')} <span aria-hidden="true">&rarr;</span>
                           </Link>
                         </div>
                       </div>

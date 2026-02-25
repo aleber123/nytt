@@ -112,6 +112,12 @@ const Header: React.FC = () => {
               </button>
             </div>
             
+            <Link
+              href="/portal/login"
+              className="inline-flex items-center justify-center px-3 py-2 border border-white/30 text-sm font-medium rounded-md text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button transition-all duration-200"
+            >
+              {safeT('nav.portal', 'Kundportal')}
+            </Link>
             <button
               onClick={() => setShowServiceModal(true)}
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button shadow-sm transition-all duration-200 hover:shadow"
@@ -190,6 +196,13 @@ const Header: React.FC = () => {
               </button>
             </div>
             
+            <Link
+              href="/portal/login"
+              onClick={() => setIsMenuOpen(false)}
+              className="inline-flex items-center justify-center px-3 py-2 border border-white/30 text-sm font-medium rounded-md text-white hover:bg-white/10 transition-all duration-200"
+            >
+              {safeT('nav.portal', 'Kundportal')}
+            </Link>
             <button
               onClick={() => { setIsMenuOpen(false); setShowServiceModal(true); }}
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-custom-button hover:bg-custom-button/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-button shadow-sm transition-all duration-200 hover:shadow"
