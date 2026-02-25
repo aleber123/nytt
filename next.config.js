@@ -47,21 +47,6 @@ const nextConfig = {
         destination: '/kontakt',
         permanent: true,
       },
-      {
-        source: '/press',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/tillganglighet',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/frameblank.html',
-        destination: '/',
-        permanent: true,
-      },
     ];
   },
   async headers() {
