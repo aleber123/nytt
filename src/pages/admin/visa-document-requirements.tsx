@@ -52,6 +52,7 @@ function VisaDocumentRequirementsPage() {
   const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
   const [editingDoc, setEditingDoc] = useState<DocumentRequirement | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -91,6 +92,28 @@ function VisaDocumentRequirementsPage() {
     } else {
       setDocumentRequirements([]);
     }
+  };
+
+  const handleCopyFromCountry = (sourceCountryCode: string, sourceProductId: string) => {
+    const sourceCountry = requirements.find(r => r.countryCode === sourceCountryCode);
+    const sourceProduct = sourceCountry?.visaProducts?.find(p => p.id === sourceProductId);
+    
+    if (!sourceProduct?.documentRequirements?.length) {
+      toast.error('Source product has no document requirements');
+      return;
+    }
+
+    // Deep copy and assign new order numbers
+    const copiedDocs: DocumentRequirement[] = sourceProduct.documentRequirements.map((doc, i) => ({
+      ...doc,
+      order: i + 1
+    }));
+
+    setDocumentRequirements(copiedDocs);
+    setShowCopyModal(false);
+    toast.success(
+      `Copied ${copiedDocs.length} requirement(s) from ${sourceCountry?.countryNameEn || sourceCountry?.countryName} – ${sourceProduct.nameEn || sourceProduct.name}. Remember to save!`
+    );
   };
 
   const handleLoadDefaults = () => {
@@ -253,6 +276,12 @@ function VisaDocumentRequirementsPage() {
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowCopyModal(true)}
+                        className="px-3 py-2 text-sm border border-purple-300 text-purple-700 rounded-md hover:bg-purple-50"
+                      >
+                        📋 Copy from Country
+                      </button>
                       <button
                         onClick={handleLoadDefaults}
                         className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
@@ -460,6 +489,17 @@ function VisaDocumentRequirementsPage() {
         </div>
       </div>
 
+      {/* Copy from Country Modal */}
+      {showCopyModal && (
+        <CopyFromCountryModal
+          requirements={requirements}
+          currentCountryCode={selectedCountry}
+          currentProductId={selectedProduct}
+          onCopy={handleCopyFromCountry}
+          onClose={() => setShowCopyModal(false)}
+        />
+      )}
+
       {/* Add/Edit Document Modal */}
       {(showAddModal || editingDoc) && (
         <DocumentRequirementModal
@@ -474,6 +514,206 @@ function VisaDocumentRequirementsPage() {
         />
       )}
     </ProtectedRoute>
+  );
+}
+
+// Copy from Country Modal Component
+function CopyFromCountryModal({
+  requirements,
+  currentCountryCode,
+  currentProductId,
+  onCopy,
+  onClose
+}: {
+  requirements: VisaRequirement[];
+  currentCountryCode: string;
+  currentProductId: string;
+  onCopy: (countryCode: string, productId: string) => void;
+  onClose: () => void;
+}) {
+  const [selectedSourceCountry, setSelectedSourceCountry] = useState('');
+  const [selectedSourceProduct, setSelectedSourceProduct] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter countries that have at least one product with document requirements
+  const countriesWithDocs = requirements.filter(r =>
+    r.visaProducts?.some(p => p.documentRequirements && p.documentRequirements.length > 0)
+  );
+
+  const filteredCountries = searchQuery
+    ? countriesWithDocs.filter(r =>
+        (r.countryNameEn || r.countryName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.countryCode.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : countriesWithDocs;
+
+  const sourceCountryData = requirements.find(r => r.countryCode === selectedSourceCountry);
+  const productsWithDocs = sourceCountryData?.visaProducts?.filter(
+    p => p.documentRequirements && p.documentRequirements.length > 0
+  ) || [];
+
+  const selectedSourceProductData = sourceCountryData?.visaProducts?.find(p => p.id === selectedSourceProduct);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b">
+          <h2 className="text-xl font-semibold">📋 Copy Requirements from Another Country</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Select a country and product to copy its document requirements. This will replace the current requirements.
+          </p>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {countriesWithDocs.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg">No countries have document requirements configured yet.</p>
+              <p className="text-sm mt-1">Configure at least one country first, then you can copy from it.</p>
+            </div>
+          ) : (
+            <>
+              {/* Search */}
+              <div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search country..."
+                  autoFocus
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              {/* Country + Product list */}
+              {!selectedSourceCountry ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select source country ({filteredCountries.length} available)
+                  </label>
+                  <div className="border rounded-lg max-h-64 overflow-y-auto divide-y">
+                    {filteredCountries.length === 0 ? (
+                      <div className="p-4 text-center text-gray-400 text-sm">
+                        No countries match &quot;{searchQuery}&quot;
+                      </div>
+                    ) : (
+                      filteredCountries.map(r => {
+                        const productsCount = r.visaProducts?.filter(p => p.documentRequirements && p.documentRequirements.length > 0).length || 0;
+                        const totalDocs = r.visaProducts?.reduce((sum, p) => sum + (p.documentRequirements?.length || 0), 0) || 0;
+                        return (
+                          <button
+                            key={r.countryCode}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSourceCountry(r.countryCode);
+                              setSelectedSourceProduct('');
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors flex items-center justify-between"
+                          >
+                            <span className="font-medium text-gray-900">
+                              {r.countryNameEn || r.countryName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {productsCount} product(s) · {totalDocs} doc(s)
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSourceCountry('');
+                        setSelectedSourceProduct('');
+                      }}
+                      className="text-sm text-purple-600 hover:text-purple-800"
+                    >
+                      ← Back to countries
+                    </button>
+                    <span className="text-sm text-gray-500">|</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {sourceCountryData?.countryNameEn || sourceCountryData?.countryName}
+                    </span>
+                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select product to copy from
+                  </label>
+                  <div className="border rounded-lg max-h-64 overflow-y-auto divide-y">
+                    {productsWithDocs.length === 0 ? (
+                      <div className="p-4 text-center text-gray-400 text-sm">
+                        No products with document requirements
+                      </div>
+                    ) : (
+                      productsWithDocs.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setSelectedSourceProduct(p.id)}
+                          className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors flex items-center justify-between ${
+                            selectedSourceProduct === p.id ? 'bg-purple-50 ring-1 ring-purple-300' : ''
+                          }`}
+                        >
+                          <span className="font-medium text-gray-900">
+                            {p.nameEn || p.name} <span className="text-gray-400 font-normal">({p.visaType})</span>
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {p.documentRequirements?.length || 0} doc(s)
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Preview of what will be copied */}
+              {selectedSourceProduct && selectedSourceProductData?.documentRequirements && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    Preview — {selectedSourceProductData.documentRequirements.length} requirement(s) will be copied:
+                  </h3>
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {selectedSourceProductData.documentRequirements
+                      .sort((a, b) => a.order - b.order)
+                      .map((doc, i) => (
+                      <div key={doc.id} className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-400 w-5 text-right">{i + 1}.</span>
+                        <span>{DOCUMENT_TYPE_LABELS[doc.type]?.icon || '📄'}</span>
+                        <span className="text-gray-900">{doc.nameEn || doc.name}</span>
+                        {doc.required && <span className="text-xs text-red-600">(required)</span>}
+                        {!doc.isActive && <span className="text-xs text-gray-400">(inactive)</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => onCopy(selectedSourceCountry, selectedSourceProduct)}
+              disabled={!selectedSourceCountry || !selectedSourceProduct}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Copy Requirements
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
