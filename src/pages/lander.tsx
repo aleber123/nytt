@@ -3,6 +3,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState } from 'react';
 import Layout from '../components/layout/Layout';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
@@ -1127,10 +1128,69 @@ const countries = [
 
 export default function Countries() {
   const { t } = useTranslation('common');
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [showHagueOnly, setShowHagueOnly] = useState(false);
   const [showNonHagueOnly, setShowNonHagueOnly] = useState(false);
+
+  const isEn = router.locale === 'en';
+  const pageUrl = isEn ? 'https://doxvl.se/en/lander' : 'https://doxvl.se/lander';
+
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": isEn ? "Countries – Document Legalization Requirements" : "Länder – Legaliseringskrav för dokument",
+    "description": isEn
+      ? "Overview of document legalization requirements per country. Find out if your country requires apostille or embassy legalization."
+      : "Översikt av legaliseringskrav per land. Ta reda på om ditt land kräver apostille eller ambassadlegalisering.",
+    "url": pageUrl,
+    "numberOfItems": countries.length,
+    "itemListElement": countries.map((country, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Country",
+        "name": country.name,
+        "description": `${country.process} – ${country.processingTime}`
+      }
+    }))
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": isEn ? "Home" : "Hem", "item": isEn ? "https://doxvl.se/en" : "https://doxvl.se" },
+      { "@type": "ListItem", "position": 2, "name": isEn ? "Countries" : "Länder", "item": pageUrl }
+    ]
+  };
+
+  const serviceJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": isEn ? "International Document Legalization" : "Internationell dokumentlegalisering",
+    "provider": {
+      "@type": "Organization",
+      "name": "DOX Visumpartner AB",
+      "url": "https://doxvl.se",
+      "logo": "https://doxvl.se/dox-logo.webp",
+      "telephone": "+46840941900",
+      "email": "info@doxvl.se",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Livdjursgatan 4",
+        "addressLocality": "Stockholm",
+        "postalCode": "121 62",
+        "addressCountry": "SE"
+      }
+    },
+    "description": isEn
+      ? "Document legalization services for over 90 countries. Apostille for Hague Convention countries and embassy legalization for non-Hague countries."
+      : "Dokumentlegaliseringstjänster för över 90 länder. Apostille för Haagkonventionsländer och ambassadlegalisering för icke-Haagländer.",
+    "areaServed": countries.map(c => ({ "@type": "Country", "name": c.name })),
+    "serviceType": "Document Legalization"
+  };
 
   const regions = [
     { id: 'all', name: t('countries.allCountries') },
@@ -1155,8 +1215,39 @@ export default function Countries() {
   return (
     <>
       <Head>
-        <title>{t('countries.title')} | Legaliseringstjänst</title>
-        <meta name="description" content={t('countries.subtitle')} />
+        <title>{isEn ? 'Countries – Document Legalization Requirements | DOX Visumpartner' : 'Länder – Legaliseringskrav per land | DOX Visumpartner'}</title>
+        <meta name="description" content={isEn
+          ? 'Find document legalization requirements for over 90 countries. Apostille for Hague Convention countries, embassy legalization for others. Processing times, required documents and more.'
+          : 'Hitta legaliseringskrav för över 90 länder. Apostille för Haagkonventionsländer, ambassadlegalisering för övriga. Handläggningstider, dokumentkrav och mer.'
+        } />
+        <meta name="keywords" content={isEn
+          ? 'document legalization countries, apostille countries, embassy legalization, Hague Convention, legalization requirements, document authentication abroad'
+          : 'legalisering länder, apostille länder, ambassadlegalisering, Haagkonventionen, legaliseringskrav, dokumentlegalisering utomlands, legalisera dokument per land'
+        } />
+
+        <meta property="og:title" content={isEn ? 'Countries – Document Legalization Requirements' : 'Länder – Legaliseringskrav per land'} />
+        <meta property="og:description" content={isEn
+          ? 'Find document legalization requirements for over 90 countries. Apostille or embassy legalization – we handle it all.'
+          : 'Hitta legaliseringskrav för över 90 länder. Apostille eller ambassadlegalisering – vi hanterar allt.'
+        } />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://doxvl.se/dox-logo.webp" />
+        <meta property="og:site_name" content="DOX Visumpartner" />
+        <meta property="og:locale" content={isEn ? 'en_GB' : 'sv_SE'} />
+        <meta property="og:locale:alternate" content={isEn ? 'sv_SE' : 'en_GB'} />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={isEn ? 'Countries – Document Legalization | DOX Visumpartner' : 'Länder – Dokumentlegalisering | DOX Visumpartner'} />
+        <meta name="twitter:description" content={isEn
+          ? 'Legalization requirements for 90+ countries. Apostille & embassy legalization services.'
+          : 'Legaliseringskrav för 90+ länder. Apostille- och ambassadlegaliseringstjänster.'
+        } />
+        <meta name="twitter:image" content="https://doxvl.se/dox-logo.webp" />
+
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }} />
       </Head>
 
       <div className="bg-white">
