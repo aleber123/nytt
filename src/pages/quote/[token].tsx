@@ -120,6 +120,16 @@ export default function QuotePage() {
       setSubmitted(true);
       setSubmitResult({ success: true, message: data.message });
 
+      // Track Google Ads conversion (both accounts)
+      if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+        (window as any).gtag('event', 'conversion', {
+          'send_to': 'AW-940620817/m9LzCN3roGEQkfjCwAM'
+        });
+        (window as any).gtag('event', 'conversion', {
+          'send_to': 'AW-1001886627/mL9jCNbbuu8bEKOn3t0D'
+        });
+      }
+
       if (quote) {
         setQuote({ ...quote, status: 'accepted' });
       }

@@ -125,18 +125,14 @@ function MyApp({ Component, pageProps }: AppProps) {
           gtag('config', 'G-0LMELBW76W');
           gtag('config', 'AW-1001886627');
           gtag('config', 'AW-940620817');
-          gtag('event', 'conversion', {
-            'send_to': 'AW-1001886627/K9N_CL7tv-EbEKOn3t0D'
-          });
           function gtag_report_conversion(url) {
-            var callback = function () {
-              if (typeof(url) != 'undefined') { window.location = url; }
-            };
             gtag('event', 'conversion', {
-              'send_to': 'AW-1001886627/mL9jCNbbuu8bEKOn3t0D',
-              'event_callback': callback
+              'send_to': 'AW-1001886627/mL9jCNbbuu8bEKOn3t0D'
             });
-            return false;
+            gtag('event', 'conversion', {
+              'send_to': 'AW-940620817/m9LzCN3roGEQkfjCwAM'
+            });
+            if (typeof(url) != 'undefined') { window.location = url; }
           }
         `}
       </Script>
