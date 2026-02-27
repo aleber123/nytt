@@ -908,6 +908,8 @@ function AdminOrderDetailPage() {
   const { signOut, currentUser } = useAuth();
   const [adminProfile, setAdminProfile] = useState<{ name?: string; phone?: string; email?: string } | null>(null);
   const [order, setOrder] = useState<ExtendedOrder | null>(null);
+  const orderRef = useRef<ExtendedOrder | null>(null);
+  useEffect(() => { orderRef.current = order; }, [order]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -2459,7 +2461,7 @@ function AdminOrderDetailPage() {
           }
         }
       } else if (visaStepEmailMap[previousStep.id]) {
-        const hasEVisaFile = !!(order as any).eVisaFileUrl;
+        const hasEVisaFile = !!(orderRef.current as any)?.eVisaFileUrl;
         const stepLabels: Record<string, string> = {
           'documents_received': 'Send confirmation email that documents have been received?',
           'portal_submission': 'Send email notifying the customer that the visa application has been submitted?',
