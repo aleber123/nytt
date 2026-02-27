@@ -2601,12 +2601,49 @@ function AdminOrderDetailPage() {
       processingSteps: updatedSteps
     };
 
+    // Auto-update order status based on completed processing steps
+    const documentReceiptSteps = ['document_receipt', 'file_upload_verification', 'email_documents_received', 'documents_received'];
+    const deliverySteps = [
+      'notarization_delivery', 'apostille_delivery', 'embassy_delivery',
+      'ud_delivery', 'chamber_delivery', 'translation_delivery',
+      'portal_submission', 'evisa_delivery',
+    ];
+    let autoStatusUpdate: Record<string, any> = {};
+    if (status === 'completed') {
+      if (
+        documentReceiptSteps.includes(stepId) &&
+        order.status === 'pending'
+      ) {
+        autoStatusUpdate = { status: 'received' };
+        updatedOrder.status = 'received';
+        setEditedStatus('received');
+      } else if (
+        deliverySteps.includes(stepId) &&
+        ['pending', 'received'].includes(order.status)
+      ) {
+        autoStatusUpdate = { status: 'submitted' };
+        updatedOrder.status = 'submitted';
+        setEditedStatus('submitted');
+      } else if (
+        stepId === 'return_shipping' &&
+        !['completed', 'cancelled'].includes(order.status)
+      ) {
+        autoStatusUpdate = { status: 'completed' };
+        updatedOrder.status = 'completed';
+        setEditedStatus('completed');
+      }
+    }
+
     try {
       // Use Admin API to bypass Firestore security rules
-      await adminUpdateOrder(orderId, { processingSteps: updatedSteps });
+      await adminUpdateOrder(orderId, { processingSteps: updatedSteps, ...autoStatusUpdate });
       setProcessingSteps(updatedSteps);
       setOrder(updatedOrder);
-      toast.success('Processing step updated');
+      if (autoStatusUpdate.status) {
+        toast.success(`Processing step updated · Order status → ${autoStatusUpdate.status}`);
+      } else {
+        toast.success('Processing step updated');
+      }
 
       if (shouldSendDocumentReceiptEmail) {
         try {
