@@ -1323,8 +1323,8 @@
       "nonHagueDescription": "This country requires embassy legalization (non-Hague Convention)."
     },
     "step2": {
-      "title": "What type of document do you need to legalize?",
-      "subtitle": "Choose the document type that best matches your needs.",
+      "title": "What type of document is it?",
+      "subtitle": "",
       "birthCertificate": "Birth Certificate",
       "marriageCertificate": "Marriage Certificate",
       "certificateOfOrigin": "Certificate of Origin (COO)",

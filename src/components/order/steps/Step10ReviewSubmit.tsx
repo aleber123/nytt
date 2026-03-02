@@ -558,26 +558,29 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
   // Helper: Check if customer is a company (for VAT display)
   const isCompanyCustomer = answers.customerType === 'company';
 
-  // Helper: Calculate price excluding VAT for a single item
+  // Helper: Prices in pricingBreakdown are stored EXCLUDING VAT.
+  // getPriceExclVat simply returns the stored total.
   const getPriceExclVat = (item: any) => {
+    return item.total || 0;
+  };
+
+  // Helper: Calculate price INCLUDING VAT for a single item
+  const getPriceInclVat = (item: any) => {
     if (item.isTBC) return item.total || 0;
     const vatRate = item.vatRate || 0;
     const rate = vatRate > 1 ? vatRate / 100 : vatRate;
     const total = item.total || 0;
-    if (rate > 0) {
-      return Math.round(total / (1 + rate));
-    }
-    return total;
+    return Math.round(total * (1 + rate));
   };
 
-  // Helper: Calculate total VAT
+  // Helper: Calculate total VAT (prices are stored excl. VAT, so VAT = total × rate)
   const calculateTotalVat = () => {
     return pricingBreakdown.reduce((sum, item) => {
       if (item.isTBC) return sum;
       const vatRate = item.vatRate || 0;
       const rate = vatRate > 1 ? vatRate / 100 : vatRate;
       const itemTotal = item.total || 0;
-      const vatAmount = rate > 0 ? Math.round(itemTotal * rate / (1 + rate)) : 0;
+      const vatAmount = Math.round(itemTotal * rate);
       return sum + vatAmount;
     }, 0);
   };
@@ -654,14 +657,18 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   const isTBC = item.isTBC === true;
                   
                   // Calculate price based on customer type
-                  const displayPrice = isCompanyCustomer ? getPriceExclVat(item) : (item.total || 0);
-                  const unitPriceDisplay = isCompanyCustomer && item.unitPrice 
-                    ? (() => {
-                        const vatRate = item.vatRate || 0;
-                        const rate = vatRate > 1 ? vatRate / 100 : vatRate;
-                        return rate > 0 ? Math.round(item.unitPrice / (1 + rate)) : item.unitPrice;
-                      })()
-                    : item.unitPrice;
+                  // Prices in breakdown are stored EXCLUDING VAT
+                  // Company customers see excl. VAT, private customers see incl. VAT
+                  const displayPrice = isCompanyCustomer ? getPriceExclVat(item) : getPriceInclVat(item);
+                  const unitPriceDisplay = isCompanyCustomer 
+                    ? item.unitPrice
+                    : item.unitPrice 
+                      ? (() => {
+                          const vatRate = item.vatRate || 0;
+                          const rate = vatRate > 1 ? vatRate / 100 : vatRate;
+                          return Math.round(item.unitPrice * (1 + rate));
+                        })()
+                      : item.unitPrice;
                   
                   // Build the price detail string
                   let priceDetail = '';
@@ -763,10 +770,13 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                 {(() => {
                   if (loadingPricing) return 'Beräknar...';
 
-                  // Use totalPrice from pricingBreakdown - exclude TBC items from total
-                  const total = pricingBreakdown.reduce((sum, item) => sum + (item.isTBC ? 0 : (item.total || 0)), 0);
+                  // Prices are stored excl. VAT - calculate total incl. VAT
+                  const totalInclVat = pricingBreakdown.reduce((sum, item) => {
+                    if (item.isTBC) return sum;
+                    return sum + getPriceInclVat(item);
+                  }, 0);
                   
-                  return `${total.toLocaleString()} kr`;
+                  return `${totalInclVat.toLocaleString()} kr`;
                 })()}
               </span>
             </div>

@@ -298,7 +298,7 @@ function ShippingServicesPage() {
 
                       {/* Price */}
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-semibold text-gray-900">Price:</span>
+                        <span className="text-lg font-semibold text-gray-900">Price <span className="text-sm font-normal text-gray-500">(exkl. moms)</span>:</span>
                         <div className="flex items-center">
                           <input
                             type="number"

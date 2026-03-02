@@ -24,6 +24,7 @@ import {
   COMMON_FIELDS,
   FormFieldType,
 } from '@/firebase/visaFormService';
+import { exportToJson, importFromJson } from '@/utils/adminExportImport';
 
 export default function VisaFormTemplatesPage() {
   const { currentUser } = useAuth();
@@ -99,12 +100,54 @@ export default function VisaFormTemplatesPage() {
                 Configure which fields to collect from customers for each visa type
               </p>
             </div>
-            <button
-              onClick={handleCreate}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
-            >
-              + Create Template
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  exportToJson(templates, 'visa-form-templates-backup');
+                  toast.success(`Exported ${templates.length} form templates as JSON backup`);
+                }}
+                className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-1.5 text-sm"
+                title="Export all form templates as JSON backup"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export
+              </button>
+              <button
+                onClick={async () => {
+                  const data = await importFromJson<VisaFormTemplate[]>();
+                  if (!data || !Array.isArray(data)) {
+                    toast.error('Invalid file. Expected JSON array of form templates.');
+                    return;
+                  }
+                  if (!confirm(`Import ${data.length} form templates? This will create/overwrite matching templates.`)) return;
+                  let success = 0;
+                  let errors = 0;
+                  for (const tpl of data) {
+                    try {
+                      await saveFormTemplate(tpl, currentUser?.email || 'admin');
+                      success++;
+                    } catch { errors++; }
+                  }
+                  loadTemplates();
+                  toast.success(`Imported ${success} templates${errors > 0 ? `, ${errors} failed` : ''}`);
+                }}
+                className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-1.5 text-sm"
+                title="Import form templates from JSON backup"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Import
+              </button>
+              <button
+                onClick={handleCreate}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+              >
+                + Create Template
+              </button>
+            </div>
           </div>
 
           {/* Template list */}

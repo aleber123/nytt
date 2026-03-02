@@ -277,6 +277,9 @@ const PricesPage: React.FC = () => {
                 ? (isEn ? 'Quote' : 'Offert') 
                 : `${rule.basePrice.toLocaleString('sv-SE')} kr`}
             </div>
+            {!isQuoted && (
+              <div className="text-xs text-gray-400">{isEn ? 'excl. VAT' : 'exkl. moms'}</div>
+            )}
           </div>
 
           {showFeatures && features[rule.serviceType as keyof typeof features] && (
@@ -355,6 +358,9 @@ const PricesPage: React.FC = () => {
                           ? (isEn ? 'Free' : 'Gratis') 
                           : `${rule.basePrice.toLocaleString('sv-SE')} kr`}
                       </div>
+                      {rule.basePrice > 0 && (
+                        <div className="text-xs text-gray-400">{isEn ? 'excl. VAT' : 'exkl. moms'}</div>
+                      )}
                     </div>
                   );
                 })}
@@ -385,6 +391,7 @@ const PricesPage: React.FC = () => {
                       <div className="text-xl font-bold text-primary-600">
                         +{rule.basePrice.toLocaleString('sv-SE')} kr
                       </div>
+                      <div className="text-xs text-gray-400">{isEn ? 'excl. VAT' : 'exkl. moms'}</div>
                     </div>
                   );
                 })}

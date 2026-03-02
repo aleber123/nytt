@@ -391,7 +391,7 @@ function StandardServicesPricesPage() {
                           {/* Official Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Official fee
+                              Official fee <span className="text-xs text-gray-400 font-normal">(exkl. moms)</span>
                             </label>
                             <div className="flex items-center">
                               <input
@@ -424,7 +424,7 @@ function StandardServicesPricesPage() {
                           {/* Service Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Service fee
+                              Service fee <span className="text-xs text-gray-400 font-normal">(exkl. moms)</span>
                             </label>
                             <div className="flex items-center">
                               <input
@@ -458,7 +458,7 @@ function StandardServicesPricesPage() {
                         {/* Total Price */}
                         <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-lg font-semibold text-green-900">Starting price:</span>
+                            <span className="text-lg font-semibold text-green-900">Starting price <span className="text-sm font-normal text-green-700">(exkl. moms)</span>:</span>
                             <span className="text-2xl font-bold text-green-600">From {service.totalPrice || 1450} kr</span>
                           </div>
                         </div>
@@ -470,7 +470,7 @@ function StandardServicesPricesPage() {
                           {/* Official Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Official fee
+                              Official fee <span className="text-xs text-gray-400 font-normal">({['ud', 'embassy'].includes(service.code) ? '0% moms' : 'exkl. moms'})</span>
                             </label>
                             <div className="flex items-center">
                               <input
@@ -503,7 +503,7 @@ function StandardServicesPricesPage() {
                           {/* Service Fee */}
                           <div className="bg-gray-50 rounded-lg p-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Service fee
+                              Service fee <span className="text-xs text-gray-400 font-normal">(exkl. moms)</span>
                             </label>
                             <div className="flex items-center">
                               <input
@@ -537,7 +537,7 @@ function StandardServicesPricesPage() {
                         {/* Total Price */}
                         <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-lg font-semibold text-green-900">Total price:</span>
+                            <span className="text-lg font-semibold text-green-900">Total price <span className="text-sm font-normal text-green-700">(exkl. moms)</span>:</span>
                             <span className="text-2xl font-bold text-green-600">{service.totalPrice} kr</span>
                           </div>
                         </div>

@@ -17,6 +17,7 @@ import {
   VisaCategory,
   NationalityApplicability
 } from '@/firebase/visaRequirementsService';
+import { exportToJson, importFromJson } from '@/utils/adminExportImport';
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, { label: string; icon: string }> = {
   'passport': { label: 'Passport', icon: '🛂' },
@@ -94,7 +95,7 @@ function VisaDocumentRequirementsPage() {
     }
   };
 
-  const handleCopyFromCountry = (sourceCountryCode: string, sourceProductId: string) => {
+  const handleCopyFromCountry = (sourceCountryCode: string, sourceProductId: string, selectedDocIds?: string[], replaceAll?: boolean) => {
     const sourceCountry = requirements.find(r => r.countryCode === sourceCountryCode);
     const sourceProduct = sourceCountry?.visaProducts?.find(p => p.id === sourceProductId);
     
@@ -103,16 +104,45 @@ function VisaDocumentRequirementsPage() {
       return;
     }
 
-    // Deep copy and assign new order numbers
-    const copiedDocs: DocumentRequirement[] = sourceProduct.documentRequirements.map((doc, i) => ({
-      ...doc,
-      order: i + 1
-    }));
+    // Filter to selected docs or copy all
+    const sourceDocs = selectedDocIds && selectedDocIds.length > 0
+      ? sourceProduct.documentRequirements.filter(d => selectedDocIds.includes(d.id))
+      : sourceProduct.documentRequirements;
 
-    setDocumentRequirements(copiedDocs);
+    if (sourceDocs.length === 0) {
+      toast.error('No documents selected');
+      return;
+    }
+
+    if (replaceAll) {
+      // Replace all current documents
+      const copiedDocs: DocumentRequirement[] = sourceDocs.map((doc, i) => ({
+        ...doc,
+        order: i + 1
+      }));
+      setDocumentRequirements(copiedDocs);
+    } else {
+      // Add to existing documents
+      const existingIds = documentRequirements.map(d => d.id);
+      const maxOrder = Math.max(...documentRequirements.map(d => d.order), 0);
+      const newDocs: DocumentRequirement[] = sourceDocs
+        .filter(d => !existingIds.includes(d.id))
+        .map((doc, i) => ({
+          ...doc,
+          order: maxOrder + i + 1
+        }));
+      if (newDocs.length === 0) {
+        toast.error('All selected documents already exist');
+        return;
+      }
+      setDocumentRequirements(prev => [...prev, ...newDocs]);
+    }
+
     setShowCopyModal(false);
+    const sourceName = sourceCountry?.countryNameEn || sourceCountry?.countryName;
+    const productName = sourceProduct.nameEn || sourceProduct.name;
     toast.success(
-      `Copied ${copiedDocs.length} requirement(s) from ${sourceCountry?.countryNameEn || sourceCountry?.countryName} – ${sourceProduct.nameEn || sourceProduct.name}. Remember to save!`
+      `Copied ${sourceDocs.length} requirement(s) from ${sourceName} – ${productName}. Remember to save!`
     );
   };
 
@@ -202,12 +232,79 @@ function VisaDocumentRequirementsPage() {
                   Manage required documents for each visa product. These will be shown to customers after ordering.
                 </p>
               </div>
-              <a
-                href="/admin/visa-requirements"
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                ← Back to Visa Requirements
-              </a>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    // Export all document requirements across all countries/products
+                    const exportData = requirements.map(r => ({
+                      countryCode: r.countryCode,
+                      countryName: r.countryNameEn || r.countryName,
+                      products: (r.visaProducts || []).map(p => ({
+                        id: p.id,
+                        name: p.nameEn || p.name,
+                        visaType: p.visaType,
+                        category: p.category,
+                        documentRequirements: p.documentRequirements || []
+                      }))
+                    }));
+                    exportToJson(exportData, 'visa-document-requirements-backup');
+                    toast.success(`Exported document requirements for ${requirements.length} countries`);
+                  }}
+                  className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-1.5 text-sm"
+                  title="Export all document requirements as JSON backup"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export All
+                </button>
+                <button
+                  onClick={async () => {
+                    const data = await importFromJson<Array<{countryCode: string; products: Array<{id: string; documentRequirements: DocumentRequirement[]}>}>>();
+                    if (!data || !Array.isArray(data)) {
+                      toast.error('Invalid file. Expected JSON array from a previous export.');
+                      return;
+                    }
+                    const totalProducts = data.reduce((sum, c) => sum + (c.products?.length || 0), 0);
+                    if (!confirm(`Import document requirements for ${data.length} countries (${totalProducts} products)? This will overwrite existing document requirements.`)) return;
+                    setSaving(true);
+                    let success = 0;
+                    let errors = 0;
+                    for (const country of data) {
+                      for (const product of (country.products || [])) {
+                        if (product.documentRequirements?.length > 0) {
+                          try {
+                            await updateProductDocumentRequirements(
+                              country.countryCode,
+                              product.id,
+                              product.documentRequirements,
+                              currentUser?.email || 'admin'
+                            );
+                            success++;
+                          } catch { errors++; }
+                        }
+                      }
+                    }
+                    await loadRequirements();
+                    setSaving(false);
+                    toast.success(`Imported ${success} product requirements${errors > 0 ? `, ${errors} failed` : ''}`);
+                  }}
+                  disabled={saving}
+                  className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-1.5 text-sm disabled:opacity-50"
+                  title="Import document requirements from JSON backup"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Import All
+                </button>
+                <a
+                  href="/admin/visa-requirements"
+                  className="text-sm text-blue-600 hover:text-blue-800 ml-2"
+                >
+                  ← Back to Visa Requirements
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -528,12 +625,14 @@ function CopyFromCountryModal({
   requirements: VisaRequirement[];
   currentCountryCode: string;
   currentProductId: string;
-  onCopy: (countryCode: string, productId: string) => void;
+  onCopy: (countryCode: string, productId: string, selectedDocIds?: string[], replaceAll?: boolean) => void;
   onClose: () => void;
 }) {
   const [selectedSourceCountry, setSelectedSourceCountry] = useState('');
   const [selectedSourceProduct, setSelectedSourceProduct] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [replaceAll, setReplaceAll] = useState(true);
 
   // Filter countries that have at least one product with document requirements
   const countriesWithDocs = requirements.filter(r =>
@@ -553,6 +652,23 @@ function CopyFromCountryModal({
   ) || [];
 
   const selectedSourceProductData = sourceCountryData?.visaProducts?.find(p => p.id === selectedSourceProduct);
+  const sourceDocs = selectedSourceProductData?.documentRequirements?.sort((a, b) => a.order - b.order) || [];
+
+  const allSelected = sourceDocs.length > 0 && selectedDocIds.length === sourceDocs.length;
+
+  const toggleDoc = (docId: string) => {
+    setSelectedDocIds(prev =>
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
+    );
+  };
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedDocIds([]);
+    } else {
+      setSelectedDocIds(sourceDocs.map(d => d.id));
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -560,7 +676,7 @@ function CopyFromCountryModal({
         <div className="px-6 py-4 border-b">
           <h2 className="text-xl font-semibold">📋 Copy Requirements from Another Country</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Select a country and product to copy its document requirements. This will replace the current requirements.
+            Select a country and product, then choose which documents to copy.
           </p>
         </div>
 
@@ -606,6 +722,7 @@ function CopyFromCountryModal({
                             onClick={() => {
                               setSelectedSourceCountry(r.countryCode);
                               setSelectedSourceProduct('');
+                              setSelectedDocIds([]);
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors flex items-center justify-between"
                           >
@@ -621,7 +738,7 @@ function CopyFromCountryModal({
                     )}
                   </div>
                 </div>
-              ) : (
+              ) : !selectedSourceProduct ? (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <button
@@ -629,6 +746,7 @@ function CopyFromCountryModal({
                       onClick={() => {
                         setSelectedSourceCountry('');
                         setSelectedSourceProduct('');
+                        setSelectedDocIds([]);
                       }}
                       className="text-sm text-purple-600 hover:text-purple-800"
                     >
@@ -652,10 +770,13 @@ function CopyFromCountryModal({
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setSelectedSourceProduct(p.id)}
-                          className={`w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors flex items-center justify-between ${
-                            selectedSourceProduct === p.id ? 'bg-purple-50 ring-1 ring-purple-300' : ''
-                          }`}
+                          onClick={() => {
+                            setSelectedSourceProduct(p.id);
+                            // Auto-select all docs
+                            const allDocIds = p.documentRequirements?.map(d => d.id) || [];
+                            setSelectedDocIds(allDocIds);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors flex items-center justify-between"
                         >
                           <span className="font-medium text-gray-900">
                             {p.nameEn || p.name} <span className="text-gray-400 font-normal">({p.visaType})</span>
@@ -668,26 +789,111 @@ function CopyFromCountryModal({
                     )}
                   </div>
                 </div>
-              )}
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSourceProduct('');
+                        setSelectedDocIds([]);
+                      }}
+                      className="text-sm text-purple-600 hover:text-purple-800"
+                    >
+                      ← Back to products
+                    </button>
+                    <span className="text-sm text-gray-500">|</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      {sourceCountryData?.countryNameEn || sourceCountryData?.countryName} — {selectedSourceProductData?.nameEn || selectedSourceProductData?.name}
+                    </span>
+                  </div>
 
-              {/* Preview of what will be copied */}
-              {selectedSourceProduct && selectedSourceProductData?.documentRequirements && (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">
-                    Preview — {selectedSourceProductData.documentRequirements.length} requirement(s) will be copied:
-                  </h3>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {selectedSourceProductData.documentRequirements
-                      .sort((a, b) => a.order - b.order)
-                      .map((doc, i) => (
-                      <div key={doc.id} className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-400 w-5 text-right">{i + 1}.</span>
-                        <span>{DOCUMENT_TYPE_LABELS[doc.type]?.icon || '📄'}</span>
-                        <span className="text-gray-900">{doc.nameEn || doc.name}</span>
-                        {doc.required && <span className="text-xs text-red-600">(required)</span>}
-                        {!doc.isActive && <span className="text-xs text-gray-400">(inactive)</span>}
-                      </div>
-                    ))}
+                  {/* Document selection with checkboxes */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-gray-100 px-4 py-2 flex items-center justify-between border-b">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAll}
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          Select all ({sourceDocs.length})
+                        </span>
+                      </label>
+                      <span className="text-xs text-gray-500">
+                        {selectedDocIds.length} selected
+                      </span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto divide-y">
+                      {sourceDocs.map((doc) => {
+                        const isSelected = selectedDocIds.includes(doc.id);
+                        return (
+                          <label
+                            key={doc.id}
+                            className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                              isSelected ? 'bg-purple-50' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleDoc(doc.id)}
+                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="text-base">{DOCUMENT_TYPE_LABELS[doc.type]?.icon || '📄'}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {doc.nameEn || doc.name}
+                              </div>
+                              {doc.descriptionEn && (
+                                <div className="text-xs text-gray-500 truncate">{doc.descriptionEn}</div>
+                              )}
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              {doc.required && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700">Required</span>
+                              )}
+                              {!doc.isActive && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Inactive</span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Copy mode toggle */}
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs font-medium text-amber-800 mb-2">Copy mode:</p>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="copyMode"
+                          checked={replaceAll}
+                          onChange={() => setReplaceAll(true)}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-gray-700">
+                          <strong>Replace all</strong> — remove current docs and replace
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="copyMode"
+                          checked={!replaceAll}
+                          onChange={() => setReplaceAll(false)}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-gray-700">
+                          <strong>Add</strong> — append to existing docs
+                        </span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
@@ -704,11 +910,14 @@ function CopyFromCountryModal({
             </button>
             <button
               type="button"
-              onClick={() => onCopy(selectedSourceCountry, selectedSourceProduct)}
-              disabled={!selectedSourceCountry || !selectedSourceProduct}
+              onClick={() => onCopy(selectedSourceCountry, selectedSourceProduct, selectedDocIds, replaceAll)}
+              disabled={!selectedSourceCountry || !selectedSourceProduct || selectedDocIds.length === 0}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Copy Requirements
+              {selectedDocIds.length > 0
+                ? `Copy ${selectedDocIds.length} document${selectedDocIds.length !== 1 ? 's' : ''}`
+                : 'Copy Requirements'
+              }
             </button>
           </div>
         </div>

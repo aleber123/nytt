@@ -1315,8 +1315,8 @@
       "nonHagueDescription": "Detta land kräver ambassadlegalisering (ej Haagkonventionen)."
     },
     "step2": {
-      "title": "Vilken typ av dokument behöver du legalisera?",
-      "subtitle": "Välj den dokumenttyp som bäst matchar ditt behov.",
+      "title": "Vilken typ av dokument är det?",
+      "subtitle": "",
       "birthCertificate": "Födelsebevis",
       "marriageCertificate": "Vigselbevis",
       "certificateOfOrigin": "Ursprungscertifikat (COO)",

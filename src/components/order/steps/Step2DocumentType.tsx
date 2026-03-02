@@ -169,8 +169,8 @@ export const Step2DocumentType: React.FC<StepProps> = ({
 
   return (
     <StepContainer
-      title={t('orderFlow.step2.title', 'Välj dokumenttyp')}
-      subtitle={t('orderFlow.step2.subtitle', 'Vilken typ av dokument ska legaliseras?')}
+      title={t('orderFlow.step2.title', isEnglish ? 'What type of document is it?' : 'Vilken typ av dokument är det?')}
+      subtitle={t('orderFlow.step2.subtitle', '')}
       onBack={onBack}
       onNext={handleNext}
       showNext={false}

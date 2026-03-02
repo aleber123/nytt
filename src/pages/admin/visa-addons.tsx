@@ -16,6 +16,7 @@ import {
   ADDON_CATEGORY_LABELS,
 } from '@/firebase/visaAddonService';
 import { getAllVisaRequirements, VisaRequirement, VisaCategory } from '@/firebase/visaRequirementsService';
+import { exportToJson, importFromJson } from '@/utils/adminExportImport';
 
 const VISA_CATEGORY_OPTIONS: { value: VisaCategory; label: string }[] = [
   { value: 'tourist', label: 'Tourist' },
@@ -311,15 +312,60 @@ function AdminVisaAddonsPage() {
                 Manage add-on services offered alongside visa products (e.g., Svensklistan registration, photo services)
               </p>
             </div>
-            <button
-              onClick={() => {
-                setEditingAddon({ ...EMPTY_ADDON });
-                setIsCreating(true);
-              }}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
-            >
-              + Create Addon
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  exportToJson(addons, 'visa-addons-backup');
+                  toast.success(`Exported ${addons.length} add-ons as JSON backup`);
+                }}
+                className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-1.5 text-sm"
+                title="Export all add-ons as JSON backup"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export
+              </button>
+              <button
+                onClick={async () => {
+                  const data = await importFromJson<VisaAddon[]>();
+                  if (!data || !Array.isArray(data)) {
+                    toast.error('Invalid file. Expected JSON array of add-ons.');
+                    return;
+                  }
+                  if (!confirm(`Import ${data.length} add-ons? This will create/overwrite matching add-ons.`)) return;
+                  setSaving(true);
+                  let success = 0;
+                  let errors = 0;
+                  for (const addon of data) {
+                    try {
+                      await saveVisaAddon(addon, adminName);
+                      success++;
+                    } catch { errors++; }
+                  }
+                  await loadAddons();
+                  setSaving(false);
+                  toast.success(`Imported ${success} add-ons${errors > 0 ? `, ${errors} failed` : ''}`);
+                }}
+                disabled={saving}
+                className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-1.5 text-sm disabled:opacity-50"
+                title="Import add-ons from JSON backup"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Import
+              </button>
+              <button
+                onClick={() => {
+                  setEditingAddon({ ...EMPTY_ADDON });
+                  setIsCreating(true);
+                }}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+              >
+                + Create Addon
+              </button>
+            </div>
           </div>
 
           {/* Loading */}

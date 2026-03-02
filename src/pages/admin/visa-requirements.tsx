@@ -23,6 +23,7 @@ import {
   DocumentType
 } from '@/firebase/visaRequirementsService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import { exportToJson, importFromJson } from '@/utils/adminExportImport';
 
 const VISA_TYPE_LABELS: Record<VisaType, { label: string; color: string; description: string }> = {
   'e-visa': { label: 'E-Visa', color: 'bg-green-100 text-green-800', description: 'Electronic visa, no passport shipping needed' },
@@ -277,6 +278,50 @@ function VisaRequirementsAdminPage() {
     }
   };
 
+  const handleExport = () => {
+    exportToJson(requirements, 'visa-requirements-backup');
+    toast.success(`Exported ${requirements.length} countries as JSON backup`);
+  };
+
+  const handleImport = async () => {
+    const data = await importFromJson<VisaRequirement[]>();
+    if (!data || !Array.isArray(data)) {
+      toast.error('Invalid file format. Expected a JSON array of visa requirements.');
+      return;
+    }
+    
+    if (!confirm(`Import ${data.length} countries? This will overwrite existing data for matching country codes.`)) return;
+    
+    try {
+      setSaving(true);
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const req of data) {
+        try {
+          if (!req.countryCode || !req.countryName) {
+            errorCount++;
+            continue;
+          }
+          await setVisaRequirement({
+            ...req,
+            updatedBy: currentUser?.email || 'admin'
+          });
+          successCount++;
+        } catch {
+          errorCount++;
+        }
+      }
+      
+      await loadRequirements();
+      toast.success(`Imported ${successCount} countries${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
+    } catch (error) {
+      toast.error('Import failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const filteredRequirements = requirements.filter(req => {
     const matchesSearch = req.countryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       req.countryCode.toLowerCase().includes(searchTerm.toLowerCase());
@@ -389,6 +434,27 @@ function VisaRequirementsAdminPage() {
                 </select>
               </div>
               <div className="flex gap-2">
+                <button
+                  onClick={handleExport}
+                  className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2 text-sm"
+                  title="Download all visa requirements as JSON backup"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export
+                </button>
+                <button
+                  onClick={handleImport}
+                  disabled={saving}
+                  className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2 text-sm disabled:opacity-50"
+                  title="Import visa requirements from JSON backup"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Import
+                </button>
                 <button
                   onClick={() => setShowBulkNationalityModal(true)}
                   className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
@@ -557,6 +623,7 @@ function VisaRequirementsAdminPage() {
       {editingCountry && (
         <UnifiedEditModal
           requirement={editingCountry}
+          requirements={requirements}
           activeTab={editingTab}
           onTabChange={setEditingTab}
           onClose={() => setEditingCountry(null)}
@@ -724,6 +791,7 @@ function AddCountryModal({
 // Unified Edit Modal Component with Tabs
 function UnifiedEditModal({
   requirement,
+  requirements,
   activeTab,
   onTabChange,
   onClose,
@@ -736,6 +804,7 @@ function UnifiedEditModal({
   saving
 }: {
   requirement: VisaRequirement;
+  requirements: VisaRequirement[];
   activeTab: 'general' | 'products' | 'nationality';
   onTabChange: (tab: 'general' | 'products' | 'nationality') => void;
   onClose: () => void;
@@ -766,6 +835,8 @@ function UnifiedEditModal({
   const [rulePricingNote, setRulePricingNote] = useState('');
 
   // Products tab state
+  const [showCopyProductsFrom, setShowCopyProductsFrom] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [category, setCategory] = useState<VisaCategory>('tourist');
   const [productName, setProductName] = useState('');
@@ -792,6 +863,7 @@ function UnifiedEditModal({
 
   const handleEditProduct = (product: VisaProduct) => {
     setEditingProductId(product.id);
+    setShowProductModal(true);
     setCategory(product.category);
     setProductName(product.name);
     setProductNameEn(product.nameEn || '');
@@ -813,6 +885,7 @@ function UnifiedEditModal({
   };
 
   const resetProductForm = () => {
+    setShowProductModal(false);
     setEditingProductId(null);
     setCategory('tourist');
     setProductName('');
@@ -894,8 +967,14 @@ function UnifiedEditModal({
     if (productName && totalPrice > 0) {
       const productId = editingProductId || `${category}-${entryType}-${validityDays}-${Date.now()}`;
       
+      // When editing, preserve existing fields not managed by this form (e.g. documentRequirements, addOnServices)
+      const existingProduct = editingProductId
+        ? requirement.visaProducts?.find(p => p.id === editingProductId)
+        : null;
+
       // Build product data, only including fields with values (Firebase doesn't accept undefined)
       const productData: VisaProduct = {
+        ...(existingProduct || {}), // Preserve existing data (documentRequirements, addOnServices, etc.)
         id: productId,
         category,
         name: productName,
@@ -906,7 +985,7 @@ function UnifiedEditModal({
         serviceFee: parseInt(productServiceFee) || 0,
         embassyFee: parseInt(embassyFee) || 0,
         processingDays: parseInt(processingDays) || 5,
-        isActive: true
+        isActive: existingProduct?.isActive ?? true
       };
 
       // Add optional fields only if they have values
@@ -1108,6 +1187,68 @@ function UnifiedEditModal({
           {/* Products Tab */}
           {activeTab === 'products' && (
             <div className="space-y-6">
+              {/* Copy Products from Another Country */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <button
+                  onClick={() => setShowCopyProductsFrom(!showCopyProductsFrom)}
+                  className="flex items-center gap-2 text-sm font-medium text-purple-700 hover:text-purple-900"
+                >
+                  <span>📋</span>
+                  Copy products from another country
+                  <svg className={`w-4 h-4 transition-transform ${showCopyProductsFrom ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showCopyProductsFrom && (
+                  <div className="mt-3">
+                    <p className="text-xs text-purple-600 mb-2">
+                      Select a country to copy all its visa products (including document requirements) to {requirement.countryNameEn || requirement.countryName}.
+                      Existing products will NOT be removed.
+                    </p>
+                    <div className="flex gap-2 items-end">
+                      <select
+                        id="copyFromCountry"
+                        className="flex-1 px-3 py-2 border border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Select source country...</option>
+                        {requirements
+                          .filter(r => r.countryCode !== requirement.countryCode && r.visaProducts?.length > 0)
+                          .map(r => (
+                            <option key={r.countryCode} value={r.countryCode}>
+                              {r.countryNameEn || r.countryName} ({r.visaProducts?.length || 0} products)
+                            </option>
+                          ))
+                        }
+                      </select>
+                      <button
+                        onClick={() => {
+                          const select = document.getElementById('copyFromCountry') as HTMLSelectElement;
+                          const sourceCode = select?.value;
+                          if (!sourceCode) { toast.error('Select a source country first'); return; }
+                          const source = requirements.find(r => r.countryCode === sourceCode);
+                          if (!source?.visaProducts?.length) { toast.error('Source has no products'); return; }
+                          const sourceName = source.countryNameEn || source.countryName;
+                          if (!confirm(`Copy ${source.visaProducts.length} products from ${sourceName} to ${requirement.countryNameEn || requirement.countryName}?`)) return;
+                          // Copy products with new IDs to avoid conflicts
+                          const copiedProducts = source.visaProducts.map(p => ({
+                            ...p,
+                            id: `${p.id}-copy-${Date.now()}`
+                          }));
+                          const merged = [...(requirement.visaProducts || []), ...copiedProducts];
+                          onSave({ visaProducts: merged });
+                          setShowCopyProductsFrom(false);
+                          toast.success(`Copied ${copiedProducts.length} products from ${sourceName}!`);
+                        }}
+                        disabled={saving}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm disabled:opacity-50 whitespace-nowrap"
+                      >
+                        Copy Products
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Existing Products */}
               {requirement.visaProducts && requirement.visaProducts.length > 0 && (
                 <div>
@@ -1190,248 +1331,270 @@ function UnifiedEditModal({
                 </div>
               )}
 
-              {/* Add/Edit Product Form */}
+              {/* Add Product Button */}
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">
-                  {editingProductId ? 'Edit Visa Product' : 'Add Visa Product'}
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Category</label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as VisaCategory)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    >
-                      {Object.entries(VISA_CATEGORY_LABELS).map(([key, { label }]) => (
-                        <option key={key} value={key}>{label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Product Name (SV)</label>
-                    <input
-                      type="text"
-                      value={productName}
-                      onChange={(e) => setProductName(e.target.value)}
-                      placeholder="t.ex. Turistvisum 30 dagar"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Product Name (EN)</label>
-                    <input
-                      type="text"
-                      value={productNameEn}
-                      onChange={(e) => setProductNameEn(e.target.value)}
-                      placeholder="e.g. Tourist Visa 30 days"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Visa Type</label>
-                    <select
-                      value={productVisaType}
-                      onChange={(e) => setProductVisaType(e.target.value as VisaType)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value="e-visa">E-Visa</option>
-                      <option value="sticker">Sticker Visa</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Entry Type</label>
-                    <select
-                      value={entryType}
-                      onChange={(e) => setEntryType(e.target.value as 'single' | 'double' | 'multiple')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value="single">Single Entry</option>
-                      <option value="double">Double Entry</option>
-                      <option value="multiple">Multiple Entry</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Validity (days)</label>
-                    <input
-                      type="number"
-                      value={validityDays}
-                      onChange={(e) => setValidityDays(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Max Stay (days)</label>
-                    <input
-                      type="number"
-                      value={stayDays}
-                      onChange={(e) => setStayDays(e.target.value)}
-                      placeholder="e.g. 30 per entry"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">DOX Service Fee (kr)</label>
-                    <input
-                      type="number"
-                      value={productServiceFee}
-                      onChange={(e) => setProductServiceFee(e.target.value)}
-                      placeholder="500"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Embassy Fee (kr)</label>
-                    <input
-                      type="number"
-                      value={embassyFee}
-                      onChange={(e) => setEmbassyFee(e.target.value)}
-                      placeholder="1000"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  {totalPrice > 0 && (
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium text-green-600">Total: {totalPrice} kr</span>
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Processing (days)</label>
-                    <input
-                      type="number"
-                      value={processingDays}
-                      onChange={(e) => setProcessingDays(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Express Options */}
-                <div className="mt-4 p-3 bg-amber-50 rounded-lg">
-                  <label className="flex items-center gap-2 mb-3">
-                    <input
-                      type="checkbox"
-                      checked={expressAvailable}
-                      onChange={(e) => setExpressAvailable(e.target.checked)}
-                      className="rounded border-gray-300"
-                    />
-                    <span className="text-sm font-medium text-amber-800">Express processing available</span>
-                  </label>
-                  {expressAvailable && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Express Days</label>
-                        <input
-                          type="number"
-                          value={expressDays}
-                          onChange={(e) => setExpressDays(e.target.value)}
-                          placeholder="e.g. 2"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">Embassy Express Fee (kr) <span className="text-gray-400">0% VAT</span></label>
-                          <input
-                            type="number"
-                            value={expressEmbassyFee}
-                            onChange={(e) => setExpressEmbassyFee(e.target.value)}
-                            placeholder="e.g. 300"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">DOX Express Fee (kr) <span className="text-gray-400">25% VAT</span></label>
-                          <input
-                            type="number"
-                            value={expressDoxFee}
-                            onChange={(e) => setExpressDoxFee(e.target.value)}
-                            placeholder="e.g. 200"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                      </div>
-                      {totalExpressPrice > 0 && (
-                        <div className="text-sm text-amber-700 font-medium">
-                          Total Express: {totalExpressPrice} kr
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Urgent Options */}
-                <div className="mt-4 p-3 bg-red-50 rounded-lg">
-                  <label className="flex items-center gap-2 mb-3">
-                    <input
-                      type="checkbox"
-                      checked={urgentAvailable}
-                      onChange={(e) => setUrgentAvailable(e.target.checked)}
-                      className="rounded border-gray-300"
-                    />
-                    <span className="text-sm font-medium text-red-800">🚨 Urgent processing available</span>
-                  </label>
-                  {urgentAvailable && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Urgent Days</label>
-                        <input
-                          type="number"
-                          value={urgentDays}
-                          onChange={(e) => setUrgentDays(e.target.value)}
-                          placeholder="e.g. 1"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">Embassy Urgent Fee (kr) <span className="text-gray-400">0% VAT</span></label>
-                          <input
-                            type="number"
-                            value={urgentEmbassyFee}
-                            onChange={(e) => setUrgentEmbassyFee(e.target.value)}
-                            placeholder="e.g. 500"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">DOX Urgent Fee (kr) <span className="text-gray-400">25% VAT</span></label>
-                          <input
-                            type="number"
-                            value={urgentDoxFee}
-                            onChange={(e) => setUrgentDoxFee(e.target.value)}
-                            placeholder="e.g. 400"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                      </div>
-                      {totalUrgentPrice > 0 && (
-                        <div className="text-sm text-red-700 font-medium">
-                          Total Urgent: {totalUrgentPrice} kr
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={handleSaveVisaProduct}
-                    disabled={saving || !productName || totalPrice === 0}
-                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                  >
-                    {editingProductId ? 'Update Product' : 'Add Product'}
-                  </button>
-                  {editingProductId && (
-                    <button
-                      onClick={resetProductForm}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={() => { resetProductForm(); setShowProductModal(true); }}
+                  className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
+                >
+                  + Add Visa Product
+                </button>
               </div>
+
+              {/* Product Add/Edit Modal */}
+              {showProductModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <div className="px-6 py-4 border-b flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-xl">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {editingProductId ? 'Edit Visa Product' : 'Add Visa Product'}
+                      </h2>
+                      <button onClick={resetProductForm} className="text-gray-400 hover:text-gray-600">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="p-6">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Category</label>
+                          <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value as VisaCategory)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          >
+                            {Object.entries(VISA_CATEGORY_LABELS).map(([key, { label }]) => (
+                              <option key={key} value={key}>{label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Product Name (SV)</label>
+                          <input
+                            type="text"
+                            value={productName}
+                            onChange={(e) => setProductName(e.target.value)}
+                            placeholder="t.ex. Turistvisum 30 dagar"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Product Name (EN)</label>
+                          <input
+                            type="text"
+                            value={productNameEn}
+                            onChange={(e) => setProductNameEn(e.target.value)}
+                            placeholder="e.g. Tourist Visa 30 days"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Visa Type</label>
+                          <select
+                            value={productVisaType}
+                            onChange={(e) => setProductVisaType(e.target.value as VisaType)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="e-visa">E-Visa</option>
+                            <option value="sticker">Sticker Visa</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Entry Type</label>
+                          <select
+                            value={entryType}
+                            onChange={(e) => setEntryType(e.target.value as 'single' | 'double' | 'multiple')}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="single">Single Entry</option>
+                            <option value="double">Double Entry</option>
+                            <option value="multiple">Multiple Entry</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Validity (days)</label>
+                          <input
+                            type="number"
+                            value={validityDays}
+                            onChange={(e) => setValidityDays(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Max Stay (days)</label>
+                          <input
+                            type="number"
+                            value={stayDays}
+                            onChange={(e) => setStayDays(e.target.value)}
+                            placeholder="e.g. 30 per entry"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">DOX Service Fee (kr) <span className="text-gray-400">exkl. moms</span></label>
+                          <input
+                            type="number"
+                            value={productServiceFee}
+                            onChange={(e) => setProductServiceFee(e.target.value)}
+                            placeholder="500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Embassy Fee (kr) <span className="text-gray-400">0% VAT</span></label>
+                          <input
+                            type="number"
+                            value={embassyFee}
+                            onChange={(e) => setEmbassyFee(e.target.value)}
+                            placeholder="1000"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        {totalPrice > 0 && (
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium text-green-600">Total: {totalPrice} kr</span>
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Processing (days)</label>
+                          <input
+                            type="number"
+                            value={processingDays}
+                            onChange={(e) => setProcessingDays(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Express Options */}
+                      <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+                        <label className="flex items-center gap-2 mb-3">
+                          <input
+                            type="checkbox"
+                            checked={expressAvailable}
+                            onChange={(e) => setExpressAvailable(e.target.checked)}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium text-amber-800">Express processing available</span>
+                        </label>
+                        {expressAvailable && (
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Express Days</label>
+                              <input
+                                type="number"
+                                value={expressDays}
+                                onChange={(e) => setExpressDays(e.target.value)}
+                                placeholder="e.g. 2"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Embassy Express Fee (kr) <span className="text-gray-400">0% VAT</span></label>
+                                <input
+                                  type="number"
+                                  value={expressEmbassyFee}
+                                  onChange={(e) => setExpressEmbassyFee(e.target.value)}
+                                  placeholder="e.g. 300"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">DOX Express Fee (kr) <span className="text-gray-400">25% VAT</span></label>
+                                <input
+                                  type="number"
+                                  value={expressDoxFee}
+                                  onChange={(e) => setExpressDoxFee(e.target.value)}
+                                  placeholder="e.g. 200"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                />
+                              </div>
+                            </div>
+                            {totalExpressPrice > 0 && (
+                              <div className="text-sm text-amber-700 font-medium">
+                                Total Express: {totalExpressPrice} kr
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Urgent Options */}
+                      <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                        <label className="flex items-center gap-2 mb-3">
+                          <input
+                            type="checkbox"
+                            checked={urgentAvailable}
+                            onChange={(e) => setUrgentAvailable(e.target.checked)}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium text-red-800">🚨 Urgent processing available</span>
+                        </label>
+                        {urgentAvailable && (
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Urgent Days</label>
+                              <input
+                                type="number"
+                                value={urgentDays}
+                                onChange={(e) => setUrgentDays(e.target.value)}
+                                placeholder="e.g. 1"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">Embassy Urgent Fee (kr) <span className="text-gray-400">0% VAT</span></label>
+                                <input
+                                  type="number"
+                                  value={urgentEmbassyFee}
+                                  onChange={(e) => setUrgentEmbassyFee(e.target.value)}
+                                  placeholder="e.g. 500"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">DOX Urgent Fee (kr) <span className="text-gray-400">25% VAT</span></label>
+                                <input
+                                  type="number"
+                                  value={urgentDoxFee}
+                                  onChange={(e) => setUrgentDoxFee(e.target.value)}
+                                  placeholder="e.g. 400"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                />
+                              </div>
+                            </div>
+                            {totalUrgentPrice > 0 && (
+                              <div className="text-sm text-red-700 font-medium">
+                                Total Urgent: {totalUrgentPrice} kr
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="mt-6 flex gap-3 pt-4 border-t">
+                        <button
+                          onClick={handleSaveVisaProduct}
+                          disabled={saving || !productName || totalPrice === 0}
+                          className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium"
+                        >
+                          {editingProductId ? 'Update Product' : 'Add Product'}
+                        </button>
+                        <button
+                          onClick={resetProductForm}
+                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
