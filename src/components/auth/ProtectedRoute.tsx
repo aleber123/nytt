@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
+import dynamic from 'next/dynamic';
+
+const ReminderBell = dynamic(() => import('@/components/admin/ReminderBell'), { ssr: false });
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -29,5 +32,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <ReminderBell />
+      {children}
+    </>
+  );
 }

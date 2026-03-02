@@ -51,6 +51,11 @@ interface ExtendedOrder extends Order {
   returnAddressConfirmedAt?: string;
   returnAddressConfirmationSent?: boolean;
   returnAddressConfirmationSentAt?: string;
+  // Assignment fields
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedAt?: string;
+  assignedBy?: string;
   // Visa order specific fields
   orderType?: 'visa' | 'legalization';
   destinationCountry?: string;
@@ -1032,6 +1037,17 @@ function AdminOrderDetailPage() {
   const [embassyPriceInput, setEmbassyPriceInput] = useState<string>('');
   const [showEmbassyPriceWarningModal, setShowEmbassyPriceWarningModal] = useState(false);
 
+  // Assignment state
+  const [adminUsers, setAdminUsers] = useState<Array<{ id: string; email: string; displayName?: string; isActive: boolean }>>([]);
+  const [assigningOrder, setAssigningOrder] = useState(false);
+  // Reminder state
+  const [reminders, setReminders] = useState<Array<{ id: string; orderId: string; orderNumber?: string; assignedTo: string; assignedToName?: string; message: string; dueDate: any; createdAt: any; createdBy: string; status: 'active' | 'snoozed' | 'dismissed'; snoozedUntil?: any }>>([]);
+  const [showAddReminder, setShowAddReminder] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState('');
+  const [reminderDueDate, setReminderDueDate] = useState('');
+  const [reminderAssignee, setReminderAssignee] = useState('');
+  const [savingReminder, setSavingReminder] = useState(false);
+
   // Combined shipping (samskick) states - linked via tracking number
   const [linkedOrders, setLinkedOrders] = useState<string[]>([]);
   const [linkedOrdersDetails, setLinkedOrdersDetails] = useState<ExtendedOrder[]>([]);
@@ -1617,6 +1633,137 @@ function AdminOrderDetailPage() {
     };
     loadProfile();
   }, [currentUser]);
+
+  // Load admin users for assignment dropdown
+  useEffect(() => {
+    const loadAdminUsers = async () => {
+      try {
+        const { getAllAdminUsers } = await import('@/firebase/userService');
+        const users = await getAllAdminUsers();
+        setAdminUsers(users.filter(u => u.isActive).map(u => ({
+          id: u.id,
+          email: u.email,
+          displayName: u.displayName,
+          isActive: u.isActive
+        })));
+      } catch (e) {
+        // silently ignore
+      }
+    };
+    loadAdminUsers();
+  }, []);
+
+  // Handle order assignment
+  const handleAssignOrder = async (userId: string) => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    setAssigningOrder(true);
+    try {
+      const selectedUser = adminUsers.find(u => u.id === userId);
+      const actorName = (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string;
+      const updates: Record<string, any> = {
+        assignedTo: userId || '',
+        assignedToName: selectedUser ? (selectedUser.displayName || selectedUser.email) : '',
+        assignedAt: userId ? new Date().toISOString() : '',
+        assignedBy: userId ? actorName : '',
+      };
+      await adminUpdateOrder(orderId, updates);
+      setOrder({ ...order, ...updates });
+      if (userId) {
+        toast.success(`Assigned to ${selectedUser?.displayName || selectedUser?.email}`);
+      } else {
+        toast.success('Assignment removed');
+      }
+    } catch (err: any) {
+      toast.error(`Failed to update assignment: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setAssigningOrder(false);
+    }
+  };
+
+  // Load reminders for this order
+  useEffect(() => {
+    const loadReminders = async () => {
+      const orderId = router.query.id as string | undefined;
+      if (!orderId) return;
+      try {
+        const { getRemindersByOrder } = await import('@/firebase/reminderService');
+        const data = await getRemindersByOrder(orderId);
+        setReminders(data.filter(r => r.status !== 'dismissed') as any[]);
+      } catch (e) { /* ignore */ }
+    };
+    loadReminders();
+  }, [router.query.id]);
+
+  // Create a new reminder
+  const handleCreateReminder = async () => {
+    if (!reminderMessage.trim() || !reminderDueDate || !order) return;
+    setSavingReminder(true);
+    try {
+      const { createReminder } = await import('@/firebase/reminderService');
+      const assignee = reminderAssignee || currentUser?.uid || '';
+      const assigneeName = adminUsers.find(u => u.id === assignee)?.displayName || adminUsers.find(u => u.id === assignee)?.email || '';
+      const actorName = (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string;
+      const orderId = router.query.id as string;
+      const id = await createReminder({
+        orderId,
+        orderNumber: order.orderNumber || orderId,
+        assignedTo: assignee,
+        assignedToName: assigneeName,
+        message: reminderMessage.trim(),
+        dueDate: new Date(reminderDueDate).toISOString(),
+        createdAt: new Date().toISOString(),
+        createdBy: actorName,
+        status: 'active',
+      });
+      setReminders(prev => [...prev, {
+        id,
+        orderId,
+        orderNumber: order.orderNumber || orderId,
+        assignedTo: assignee,
+        assignedToName: assigneeName,
+        message: reminderMessage.trim(),
+        dueDate: new Date(reminderDueDate).toISOString(),
+        createdAt: new Date().toISOString(),
+        createdBy: actorName,
+        status: 'active' as const,
+      }]);
+      setReminderMessage('');
+      setReminderDueDate('');
+      setReminderAssignee('');
+      setShowAddReminder(false);
+      toast.success('Reminder created');
+    } catch (err) {
+      toast.error('Failed to create reminder');
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
+  // Snooze a reminder
+  const handleSnoozeReminder = async (reminderId: string, hours: number) => {
+    try {
+      const { snoozeReminder } = await import('@/firebase/reminderService');
+      const snoozedUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
+      await snoozeReminder(reminderId, snoozedUntil);
+      setReminders(prev => prev.map(r => r.id === reminderId ? { ...r, status: 'snoozed' as const, snoozedUntil: snoozedUntil.toISOString(), dueDate: snoozedUntil.toISOString() } : r));
+      toast.success(`Snoozed for ${hours}h`);
+    } catch (err) {
+      toast.error('Failed to snooze reminder');
+    }
+  };
+
+  // Dismiss a reminder
+  const handleDismissReminder = async (reminderId: string) => {
+    try {
+      const { dismissReminder } = await import('@/firebase/reminderService');
+      await dismissReminder(reminderId);
+      setReminders(prev => prev.filter(r => r.id !== reminderId));
+      toast.success('Reminder dismissed');
+    } catch (err) {
+      toast.error('Failed to dismiss reminder');
+    }
+  };
 
   // Load custom email templates from Firestore
   useEffect(() => {
@@ -6216,6 +6363,30 @@ function AdminOrderDetailPage() {
                        order.status === 'cancelled' ? 'Cancelled' : order.status}
                     </span>
                     <span className="text-lg font-semibold text-gray-900">{getComputedTotal()} kr</span>
+                    {/* Assignment badge */}
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="text-xs text-gray-500">Assigned to:</span>
+                      <select
+                        value={order.assignedTo || ''}
+                        onChange={(e) => handleAssignOrder(e.target.value)}
+                        disabled={assigningOrder}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm bg-white min-w-[140px]"
+                      >
+                        <option value="">Unassigned</option>
+                        {adminUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+                        ))}
+                      </select>
+                      {order.assignedTo !== currentUser?.uid && (
+                        <button
+                          onClick={() => handleAssignOrder(currentUser?.uid || '')}
+                          disabled={assigningOrder}
+                          className="px-2 py-1 text-xs border border-primary-300 text-primary-700 bg-primary-50 rounded hover:bg-primary-100 disabled:opacity-50 whitespace-nowrap"
+                        >
+                          Assign to me
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <select
@@ -6264,6 +6435,85 @@ function AdminOrderDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Reminders Section */}
+              {(reminders.length > 0 || showAddReminder) && (
+                <div className="px-4 py-3 border-b border-gray-200 bg-amber-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-amber-800 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                      Reminders ({reminders.length})
+                    </span>
+                    {!showAddReminder && (
+                      <button
+                        onClick={() => { setShowAddReminder(true); setReminderAssignee(currentUser?.uid || ''); }}
+                        className="text-xs text-amber-700 hover:text-amber-900 font-medium"
+                      >
+                        + Add reminder
+                      </button>
+                    )}
+                  </div>
+                  {reminders.map(r => {
+                    const due = r.dueDate?.toDate ? r.dueDate.toDate() : new Date(r.dueDate);
+                    const isOverdue = due < new Date();
+                    const isSnoozed = r.status === 'snoozed';
+                    return (
+                      <div key={r.id} className={`flex items-start gap-3 rounded-lg px-3 py-2 mb-1 text-sm ${isOverdue ? 'bg-red-100 border border-red-200' : isSnoozed ? 'bg-gray-100 border border-gray-200' : 'bg-white border border-amber-200'}`}>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium ${isOverdue ? 'text-red-800' : 'text-gray-800'}`}>{r.message}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Due: {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                            {r.assignedToName && <> &middot; For: {r.assignedToName}</>}
+                            {isOverdue && <span className="text-red-600 font-medium ml-1">OVERDUE</span>}
+                            {isSnoozed && <span className="text-gray-500 font-medium ml-1">SNOOZED</span>}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button onClick={() => handleSnoozeReminder(r.id, 1)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 1h">1h</button>
+                          <button onClick={() => handleSnoozeReminder(r.id, 24)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 24h">24h</button>
+                          <button onClick={() => handleDismissReminder(r.id)} className="px-2 py-0.5 text-xs rounded bg-red-100 hover:bg-red-200 text-red-700" title="Dismiss">Dismiss</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {showAddReminder && (
+                    <div className="flex flex-wrap items-end gap-2 mt-2 bg-white rounded-lg border border-amber-200 p-3">
+                      <div className="flex-1 min-w-[200px]">
+                        <label className="block text-xs text-gray-500 mb-1">Message</label>
+                        <input type="text" value={reminderMessage} onChange={(e) => setReminderMessage(e.target.value)} placeholder="e.g. Follow up with embassy" className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
+                      </div>
+                      <div className="w-44">
+                        <label className="block text-xs text-gray-500 mb-1">Due date</label>
+                        <input type="datetime-local" value={reminderDueDate} onChange={(e) => setReminderDueDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
+                      </div>
+                      <div className="w-40">
+                        <label className="block text-xs text-gray-500 mb-1">Assign to</label>
+                        <select value={reminderAssignee} onChange={(e) => setReminderAssignee(e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+                          {adminUsers.map(u => (
+                            <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button onClick={handleCreateReminder} disabled={savingReminder || !reminderMessage.trim() || !reminderDueDate} className="px-3 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 disabled:opacity-50">
+                        {savingReminder ? 'Saving...' : 'Save'}
+                      </button>
+                      <button onClick={() => setShowAddReminder(false)} className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Add Reminder button when no reminders exist */}
+              {reminders.length === 0 && !showAddReminder && (
+                <div className="px-4 py-2 border-b border-gray-200 bg-amber-50 flex justify-end">
+                  <button
+                    onClick={() => { setShowAddReminder(true); setReminderAssignee(currentUser?.uid || ''); }}
+                    className="px-3 py-1.5 text-sm font-medium text-amber-800 bg-amber-100 border border-amber-300 rounded-md hover:bg-amber-200 transition-colors flex items-center gap-1.5"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                    + Add Reminder
+                  </button>
+                </div>
+              )}
 
               {/* Tab Navigation */}
               <div className="p-4 border-b border-gray-200 bg-gray-50 overflow-x-auto">

@@ -96,6 +96,11 @@ export interface Order {
   pickupLabelFile?: any;
   // Linked orders for combined shipping
   linkedOrders?: string[]; // Array of order IDs that should be shipped together
+  // Assignment fields
+  assignedTo?: string; // AdminUser UID of the assigned handler
+  assignedToName?: string; // Display name (denormalized for fast display)
+  assignedAt?: Timestamp | string; // When assignment happened
+  assignedBy?: string; // Who assigned it
 }
 
 const ORDERS_COLLECTION = 'orders';

@@ -252,6 +252,11 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
 
+    // REMINDERS – order reminders for admin handlers
+    match /reminders/{reminderId} {
+      allow read, write: if isAdmin() || isDoxStaff();
+    }
+
     // ADMIN USERS – role-based access control for admin panel
     match /adminUsers/{userId} {
       // Allow authenticated users to read their own admin user document

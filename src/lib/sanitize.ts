@@ -136,6 +136,11 @@ const ALLOWED_ORDER_FIELDS = [
   'coverLetterNotaryData',
   'coverLetterEmbassyData',
   'coverLetterUdData',
+  // Assignment
+  'assignedTo',
+  'assignedToName',
+  'assignedAt',
+  'assignedBy',
 ];
 
 /**

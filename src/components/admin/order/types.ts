@@ -27,6 +27,11 @@ export interface ExtendedOrder extends Order {
   returnAddressConfirmedAt?: string;
   returnAddressConfirmationSent?: boolean;
   returnAddressConfirmationSentAt?: string;
+  // Assignment fields
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedAt?: string;
+  assignedBy?: string;
   orderType?: 'visa' | 'legalization';
   destinationCountry?: string;
   destinationCountryCode?: string;

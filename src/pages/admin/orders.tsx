@@ -61,6 +61,11 @@ interface Order {
   confirmReturnAddressLater?: boolean;
   returnAddressConfirmationRequired?: boolean;
   returnAddressConfirmed?: boolean;
+  // Assignment fields
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedAt?: string;
+  assignedBy?: string;
   // Visa-specific fields
   destinationCountry?: string;
   destinationCountryCode?: string;
@@ -95,9 +100,24 @@ function AdminOrdersPage() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState<Order['status'] | ''>('');
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'mine' | 'unassigned' | string>('all');
+  const [adminUsers, setAdminUsers] = useState<Array<{ id: string; email: string; displayName?: string }>>([]);
 
   useEffect(() => {
     fetchOrders();
+    // Load admin users for assignment filter
+    const loadAdminUsers = async () => {
+      try {
+        const { getAllAdminUsers } = await import('@/firebase/userService');
+        const users = await getAllAdminUsers();
+        setAdminUsers(users.filter(u => u.isActive).map(u => ({
+          id: u.id,
+          email: u.email,
+          displayName: u.displayName
+        })));
+      } catch (e) { /* ignore */ }
+    };
+    loadAdminUsers();
   }, []);
 
   useEffect(() => {
@@ -301,14 +321,21 @@ function AdminOrdersPage() {
     return t(`orderStatus.statuses.${status}`, status);
   };
 
-  // Filter orders based on status and search query
+  // Filter orders based on status, assignment, and search query
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const byStatus =
     selectedStatuses.length === 0
       ? orders
       : orders.filter((o) => selectedStatuses.includes(o.status));
+  const byAssignment = assignmentFilter === 'all'
+    ? byStatus
+    : assignmentFilter === 'mine'
+      ? byStatus.filter((o) => o.assignedTo === currentUser?.uid)
+      : assignmentFilter === 'unassigned'
+        ? byStatus.filter((o) => !o.assignedTo)
+        : byStatus.filter((o) => o.assignedTo === assignmentFilter);
   const filteredOrders = normalizedQuery
-    ? byStatus.filter((o) => {
+    ? byAssignment.filter((o) => {
         const fields = [
           o.orderNumber || o.id || '',
           `${o.customerInfo?.firstName || ''} ${o.customerInfo?.lastName || ''}`,
@@ -322,7 +349,7 @@ function AdminOrdersPage() {
         ].join(' ').toLowerCase();
         return fields.includes(normalizedQuery);
       })
-    : byStatus;
+    : byAssignment;
 
   return (
     <>
@@ -593,6 +620,23 @@ function AdminOrdersPage() {
                     </button>
                   </div>
 
+                  {/* Assignment filter */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 font-medium">Assigned:</span>
+                    <select
+                      value={assignmentFilter}
+                      onChange={(e) => setAssignmentFilter(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="all">All</option>
+                      <option value="mine">My orders ({orders.filter(o => o.assignedTo === currentUser?.uid).length})</option>
+                      <option value="unassigned">Unassigned ({orders.filter(o => !o.assignedTo).length})</option>
+                      {adminUsers.map(u => (
+                        <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <button
                     onClick={fetchOrders}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
@@ -725,6 +769,7 @@ function AdminOrdersPage() {
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.country', 'Country')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.contact', 'Contact')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.company', 'Company')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.actions', 'Actions')}</th>
                     </tr>
                   </thead>
@@ -849,6 +894,19 @@ function AdminOrdersPage() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
                           {order.customerInfo?.companyName || '—'}
+                        </td>
+                        <td className="px-4 py-2 text-sm whitespace-nowrap">
+                          {order.assignedToName ? (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              order.assignedTo === currentUser?.uid
+                                ? 'bg-primary-100 text-primary-800'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {order.assignedToName}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
                           <div className="inline-flex items-center gap-2">
