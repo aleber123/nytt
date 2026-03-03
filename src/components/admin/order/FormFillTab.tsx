@@ -12,7 +12,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getFormSubmissionsForOrder } from '@/firebase/visaFormService';
+import Link from 'next/link';
+import { getFormSubmissionsForOrder, getTemplateForProduct, DEFAULT_FIELD_GROUPS } from '@/firebase/visaFormService';
+import type { VisaFormTemplate, FormField as TemplateFormField } from '@/firebase/visaFormService';
 import { buildBrazilVisaDataFromOrder, generateBrazilAutoFillScript, generateBrazilSectionScripts } from '@/services/formAutomation/brazilVisaAutofill';
 import type { SectionScript } from '@/services/formAutomation/brazilVisaAutofill';
 import { toast } from 'react-hot-toast';
@@ -102,11 +104,74 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [ocrStatuses, setOcrStatuses] = useState<Record<string, OcrStatus>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [templateFieldGroups, setTemplateFieldGroups] = useState<FieldGroup[] | null>(null);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [matchedTemplateName, setMatchedTemplateName] = useState<string>('');
 
   const countryCode = order.destinationCountryCode || '';
   const countryConfig = COUNTRY_CONFIG[countryCode] || null;
   const travelers = order.travelers || [];
   const traveler = travelers[selectedTraveler];
+  const hasHardcodedFields = countryCode === 'BR';
+
+  // Dynamically load template fields for countries without hardcoded config
+  useEffect(() => {
+    if (hasHardcodedFields) return; // BR has hardcoded fields
+    const loadTemplate = async () => {
+      setLoadingTemplate(true);
+      try {
+        const visaCategory = order.visaProduct?.category || order.visaCategory || '';
+        const productId = order.visaProduct?.id || '';
+        const template = await getTemplateForProduct(countryCode || 'all', visaCategory, productId);
+        if (template && template.fields.length > 0) {
+          setMatchedTemplateName(template.nameEn || template.name);
+          // Convert template fields to FieldGroup[] format
+          const groupMap: Record<string, FieldGroup> = {};
+          const groupInfo = template.groups?.length > 0 ? template.groups : DEFAULT_FIELD_GROUPS;
+          template.fields
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+            .forEach((f) => {
+              const gid = f.group || 'other';
+              if (!groupMap[gid]) {
+                const gi = groupInfo.find(g => g.id === gid);
+                groupMap[gid] = {
+                  id: gid,
+                  label: gi?.labelEn || gi?.label || gid,
+                  icon: gi?.icon || '📝',
+                  fields: [],
+                };
+              }
+              groupMap[gid].fields.push({
+                id: f.id,
+                label: f.labelEn || f.label,
+                type: f.type === 'select' ? 'select' : f.type === 'date' ? 'date' : f.type === 'textarea' ? 'textarea' : f.type === 'number' ? 'number' : 'text',
+                required: f.required,
+                placeholder: f.placeholderEn || f.placeholder || '',
+                helpText: f.helpTextEn || f.helpText || '',
+                options: f.options?.map(o => ({ value: o.value, label: o.labelEn || o.label })),
+              });
+            });
+          // Sort groups by their original order
+          const sortedGroups = groupInfo
+            .filter(gi => groupMap[gi.id])
+            .map(gi => groupMap[gi.id]);
+          // Add any groups not in groupInfo
+          Object.keys(groupMap).forEach(gid => {
+            if (!sortedGroups.find(g => g.id === gid)) sortedGroups.push(groupMap[gid]);
+          });
+          setTemplateFieldGroups(sortedGroups);
+        } else {
+          setTemplateFieldGroups(null);
+          setMatchedTemplateName('');
+        }
+      } catch {
+        setTemplateFieldGroups(null);
+      } finally {
+        setLoadingTemplate(false);
+      }
+    };
+    loadTemplate();
+  }, [countryCode, hasHardcodedFields, order.visaProduct?.category, order.visaCategory, order.visaProduct?.id]);
 
   // Fetch existing form submission data
   useEffect(() => {
@@ -351,8 +416,8 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     return generateBrazilSectionScripts(data);
   };
 
-  // Field groups for the manual form
-  const fieldGroups = getFieldGroupsForCountry(countryCode);
+  // Field groups for the manual form: use template fields if loaded, otherwise hardcoded/generic
+  const fieldGroups = templateFieldGroups || getFieldGroupsForCountry(countryCode);
 
   return (
     <div className="space-y-6">
@@ -367,16 +432,45 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
             {order.visaProduct?.name && <span className="ml-1 font-medium">Product: {order.visaProduct.name}</span>}
           </p>
         </div>
-        {countryConfig?.websiteUrl && (
-          <a
-            href={countryConfig.websiteUrl}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/visa-form-templates"
             target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-${countryConfig.color}-100 text-${countryConfig.color}-700 hover:bg-${countryConfig.color}-200 transition-colors`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
           >
-            🌐 Open {countryConfig.websiteLabel}
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-          </a>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Edit Form Templates
+          </Link>
+          {countryConfig?.websiteUrl && (
+            <a
+              href={countryConfig.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-${countryConfig.color}-100 text-${countryConfig.color}-700 hover:bg-${countryConfig.color}-200 transition-colors`}
+            >
+              🌐 Open {countryConfig.websiteLabel}
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Order matching info — helps handler know what to set in template */}
+      <div className="flex flex-wrap items-center gap-2 text-xs bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+        <span className="text-gray-500 font-medium">Template matching:</span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border text-gray-700">
+          Country: <strong>{countryCode || '—'}</strong>
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border text-gray-700">
+          Category: <strong>{order.visaProduct?.category || order.visaCategory || '—'}</strong>
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border text-gray-700">
+          Product ID: <strong className="font-mono">{order.visaProduct?.id || '—'}</strong>
+        </span>
+        {matchedTemplateName && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-50 border border-purple-200 text-purple-700">
+            Matched: <strong>{matchedTemplateName}</strong>
+          </span>
         )}
       </div>
 
@@ -393,13 +487,30 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
       )}
 
       {/* Data source indicator */}
-      <div className="flex items-center gap-3 text-sm">
-        {loadingFormData ? (
-          <span className="text-gray-400">⏳ Loading form data...</span>
-        ) : formData ? (
-          <span className="text-green-600 font-medium">✅ Customer form data found — fields pre-filled</span>
-        ) : (
-          <span className="text-amber-600 font-medium">⚠️ No customer form data — fill in manually below</span>
+      <div className="flex flex-col gap-1 text-sm">
+        <div className="flex items-center gap-3">
+          {loadingFormData ? (
+            <span className="text-gray-400">⏳ Loading form data...</span>
+          ) : formData ? (
+            <span className="text-green-600 font-medium">✅ Customer form data found — fields pre-filled</span>
+          ) : (
+            <span className="text-amber-600 font-medium">⚠️ No customer form data — fill in manually below</span>
+          )}
+        </div>
+        {!hasHardcodedFields && (
+          <div className="flex items-center gap-2">
+            {loadingTemplate ? (
+              <span className="text-gray-400">⏳ Loading form template...</span>
+            ) : matchedTemplateName ? (
+              <span className="text-purple-600 font-medium">📋 Using template: {matchedTemplateName}</span>
+            ) : (
+              <span className="text-gray-500">📋 No matching template found — using generic fields.{' '}
+                <Link href="/admin/visa-form-templates" target="_blank" className="text-purple-600 hover:underline">
+                  Create one →
+                </Link>
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -424,20 +535,21 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
       )}
 
       {/* Documents & Uploads */}
-      {countryCode === 'BR' && (
-        <div className="bg-white rounded-xl shadow-sm border p-5">
+      <div className="bg-white rounded-xl shadow-sm border p-5">
           <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <span>\ud83d\udcce</span> Step 1: Upload & Scan Documents
+            <span>📎</span> Step 1: Upload & Scan Documents
           </h3>
           <p className="text-sm text-gray-500 mb-4">
-            Upload the customer\u2019s documents below. Passport, personbevis and criminal record will be <strong>automatically scanned</strong> to extract data and pre-fill the form fields.
+            Upload the customer's documents below. Passport will be <strong>automatically scanned</strong> (OCR) to extract data and pre-fill the form fields.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { id: 'passportCopy', label: 'Passport Copy (first page)', accept: '.jpg,.jpeg,.png,.pdf', icon: '\ud83d\udcd8', scannable: true },
-              { id: 'personbevis', label: 'Personbevis (Population Register)', accept: '.jpg,.jpeg,.png,.pdf', icon: '\ud83d\udccb', scannable: true },
-              { id: 'criminalRecord', label: 'Criminal Record Extract', accept: '.jpg,.jpeg,.png,.pdf', icon: '\ud83d\udcc4', scannable: true },
-              { id: 'passportPhoto', label: 'Passport Photo (biometric)', accept: '.jpg,.jpeg,.png', icon: '\ud83d\udcf7', scannable: false },
+              { id: 'passportCopy', label: 'Passport Copy (first page)', accept: '.jpg,.jpeg,.png,.pdf', icon: '📘', scannable: true },
+              ...(countryCode === 'BR' ? [
+                { id: 'personbevis', label: 'Personbevis (Population Register)', accept: '.jpg,.jpeg,.png,.pdf', icon: '📋', scannable: true },
+                { id: 'criminalRecord', label: 'Criminal Record Extract', accept: '.jpg,.jpeg,.png,.pdf', icon: '📄', scannable: true },
+              ] : []),
+              { id: 'passportPhoto', label: 'Passport Photo (biometric)', accept: '.jpg,.jpeg,.png', icon: '📷', scannable: false },
             ].map(docType => {
               const existing = uploadedDocs.find(d => d.id === `${docType.id}_${selectedTraveler}`);
               const isUploading = uploading === docType.id;
@@ -512,7 +624,6 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
             })}
           </div>
         </div>
-      )}
 
       {/* Generate Script Button */}
       {countryConfig?.hasAutoFill && (

@@ -414,63 +414,6 @@ export default function OverviewTab({
                               )}
                             </div>
 
-                            {/* Processing Steps Overview */}
-                            <div>
-                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Processing steps</h3>
-                              <div className="space-y-2">
-                                {processingSteps.map((step, index) => (
-                                  <div key={step.id} className={`flex items-center justify-between px-3 py-2 rounded-md ${getProcessingStepCardClasses(step.status)}`}>
-                                    <div className="flex items-center">
-                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${
-                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                                        'bg-red-100 text-red-800'
-                                      }`}>
-                                        {step.status === 'completed' ? '✓' :
-                                         step.status === 'in_progress' ? (
-                                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                                         ) :
-                                         step.status === 'pending' ? index + 1 : '✗'}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium text-sm">{stripFlagEmoji(step.name)}</span>
-                                        <div className="text-xs text-gray-500">{step.description}</div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className={`text-xs font-medium capitalize px-2 py-1 rounded ${
-                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                                        'bg-red-100 text-red-800'
-                                      }`}>
-                                        {step.status === 'completed' ? 'Completed' :
-                                         step.status === 'in_progress' ? 'In progress' :
-                                         step.status === 'pending' ? 'Pending' : 'Skipped'}
-                                      </span>
-                                      {step.status === 'completed' && step.completedAt && (
-                                        <span className="text-xs text-gray-500">
-                                          {formatDate(step.completedAt)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="mt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveTab('processing')}
-                                  className="text-primary-600 text-sm underline"
-                                >
-                                  Manage processing →
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Pricing Breakdown removed from Overview as requested */}
-
                             {/* Unified Activity Feed */}
                             <div>
                               <h3 className="text-lg font-medium mb-3">Notes & Activity</h3>
@@ -612,6 +555,61 @@ export default function OverviewTab({
                                     </div>
                                   ));
                                 })()}
+                              </div>
+                            </div>
+
+                            {/* Processing Steps Overview */}
+                            <div>
+                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Processing steps</h3>
+                              <div className="space-y-2">
+                                {processingSteps.map((step, index) => (
+                                  <div key={step.id} className={`flex items-center justify-between px-3 py-2 rounded-md ${getProcessingStepCardClasses(step.status)}`}>
+                                    <div className="flex items-center">
+                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${
+                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
+                                        'bg-red-100 text-red-800'
+                                      }`}>
+                                        {step.status === 'completed' ? '✓' :
+                                         step.status === 'in_progress' ? (
+                                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                                         ) :
+                                         step.status === 'pending' ? index + 1 : '✗'}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium text-sm">{stripFlagEmoji(step.name)}</span>
+                                        <div className="text-xs text-gray-500">{step.description}</div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className={`text-xs font-medium capitalize px-2 py-1 rounded ${
+                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
+                                        'bg-red-100 text-red-800'
+                                      }`}>
+                                        {step.status === 'completed' ? 'Completed' :
+                                         step.status === 'in_progress' ? 'In progress' :
+                                         step.status === 'pending' ? 'Pending' : 'Skipped'}
+                                      </span>
+                                      {step.status === 'completed' && step.completedAt && (
+                                        <span className="text-xs text-gray-500">
+                                          {formatDate(step.completedAt)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('processing')}
+                                  className="text-primary-600 text-sm underline"
+                                >
+                                  Manage processing →
+                                </button>
                               </div>
                             </div>
                           </div>

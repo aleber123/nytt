@@ -924,7 +924,7 @@ function AdminOrderDetailPage() {
   const [noteType, setNoteType] = useState<'general' | 'processing' | 'customer' | 'issue'>('general');
   const [internalNotes, setInternalNotes] = useState('');
   const [internalNoteText, setInternalNoteText] = useState('');
-  const [internalNotesList, setInternalNotesList] = useState<Array<{ id: string; content: string; createdAt?: any; createdBy?: string; readBy?: string[] }>>([]);
+  const [internalNotesList, setInternalNotesList] = useState<Array<{ id: string; content: string; createdAt?: any; createdBy?: string; createdByUid?: string; readBy?: string[] }>>([]);
   const [unreadNotesCount, setUnreadNotesCount] = useState(0);
   const [processingSteps, setProcessingSteps] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -1575,7 +1575,8 @@ function AdminOrderDetailPage() {
       if (currentUser?.uid) {
         const unread = notes.filter(note => {
           const readBy = note.readBy || [];
-          const createdByCurrentUser = note.createdBy === currentUser.uid || 
+          const createdByCurrentUser = note.createdByUid === currentUser.uid ||
+            note.createdBy === currentUser.uid || 
             note.createdBy === currentUser.email ||
             note.createdBy === currentUser.displayName;
           return !createdByCurrentUser && !readBy.includes(currentUser.uid);
@@ -5614,6 +5615,7 @@ function AdminOrderDetailPage() {
         content: text,
         createdAt: serverTimestamp(),
         createdBy: actor,
+        createdByUid: currentUser?.uid || null,
         readBy: currentUser?.uid ? [currentUser.uid] : [] // Mark as read by creator
       });
       setInternalNoteText('');
@@ -5632,7 +5634,8 @@ function AdminOrderDetailPage() {
 
     const unreadNotes = internalNotesList.filter(note => {
       const readBy = note.readBy || [];
-      const createdByCurrentUser = note.createdBy === currentUser.uid || 
+      const createdByCurrentUser = note.createdByUid === currentUser.uid ||
+        note.createdBy === currentUser.uid || 
         note.createdBy === currentUser.email ||
         note.createdBy === currentUser.displayName;
       return !createdByCurrentUser && !readBy.includes(currentUser.uid);
