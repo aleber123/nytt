@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  experimental: {
+    serverComponentsExternalPackages: [
+      'firebase-admin',
+      '@google-cloud/firestore',
+      '@google-cloud/storage',
+      '@opentelemetry/api',
+    ],
+  },
   i18n: {
     defaultLocale: 'sv',
     locales: ['sv', 'en'],
