@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Link from 'next/link';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
@@ -27,6 +28,10 @@ interface OverviewTabProps {
   onUnlinkOrder: (orderId: string) => Promise<void>;
   onLinkDuplicateOrder: (orderId: string) => Promise<void>;
   applyCustomerHistoryEntry: (entry: any) => void;
+  onConfirmReturnAddress?: () => Promise<void>;
+  internalNoteText: string;
+  setInternalNoteText: (text: string) => void;
+  addInternalNote: () => Promise<void>;
 }
 
 export default function OverviewTab({
@@ -36,7 +41,10 @@ export default function OverviewTab({
   creatingInvoice, onCreateInvoice, formatDate, getCountryInfo,
   getProcessingStepCardClasses, stripFlagEmoji, setActiveTab,
   onUnlinkOrder, onLinkDuplicateOrder, applyCustomerHistoryEntry,
+  onConfirmReturnAddress,
+  internalNoteText, setInternalNoteText, addInternalNote,
 }: OverviewTabProps) {
+  const [activityFilter, setActivityFilter] = useState<'all' | 'admin' | 'customer' | 'system'>('all');
   const quoteStatus = (order as any).quote?.status as string | undefined;
   const quoteSentAt = (order as any).quote?.sentAt as string | undefined;
   const quoteRespondedAt = (order as any).quote?.respondedAt as string | undefined;
@@ -94,6 +102,14 @@ export default function OverviewTab({
                               Customer chose to confirm return address later. Make sure to request the address before shipping documents back.
                             </p>
                           </div>
+                          {onConfirmReturnAddress && (
+                            <button
+                              onClick={onConfirmReturnAddress}
+                              className="px-3 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap"
+                            >
+                              Mark as confirmed
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -455,31 +471,147 @@ export default function OverviewTab({
 
                             {/* Pricing Breakdown removed from Overview as requested */}
 
-                            {/* Notes summary in Overview */}
+                            {/* Unified Activity Feed */}
                             <div>
-                              <h3 className="text-lg font-medium mb-4">Notes</h3>
-                              <div className="space-y-3">
-                                {internalNotesList.length === 0 && (
-                                  <div className="text-sm text-gray-500">No notes yet</div>
-                                )}
-                                {internalNotesList.slice(0, 5).map((n) => (
-                                  <div key={n.id} className="border border-gray-200 rounded p-3 bg-white">
-                                    <div className="whitespace-pre-wrap text-sm text-gray-800">{n.content}</div>
-                                    <div className="mt-2 text-xs text-gray-500">
-                                      Created {formatDate(n.createdAt)} by {n.createdBy || 'Unknown'}
-                                    </div>
-                                  </div>
-                                ))}
-                                {internalNotesList.length > 5 && (
-                                  <div className="text-sm text-gray-600">Showing the latest 5 notes</div>
-                                )}
+                              <h3 className="text-lg font-medium mb-3">Notes & Activity</h3>
+
+                              {/* Quick add note */}
+                              <div className="flex gap-2 mb-4">
+                                <input
+                                  type="text"
+                                  value={internalNoteText}
+                                  onChange={(e) => setInternalNoteText(e.target.value)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && internalNoteText.trim()) { e.preventDefault(); addInternalNote(); } }}
+                                  placeholder="Add a note..."
+                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                />
                                 <button
-                                  type="button"
-                                  onClick={() => setActiveTab('processing')}
-                                  className="text-primary-600 text-sm underline"
+                                  onClick={addInternalNote}
+                                  disabled={!internalNoteText.trim()}
+                                  className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                  View all notes →
+                                  Add
                                 </button>
+                              </div>
+
+                              {/* Filter buttons */}
+                              <div className="flex gap-1 mb-3">
+                                {([
+                                  { key: 'all', label: 'All' },
+                                  { key: 'admin', label: 'Admin' },
+                                  { key: 'customer', label: 'Customer' },
+                                  { key: 'system', label: 'System' },
+                                ] as const).map(f => (
+                                  <button
+                                    key={f.key}
+                                    onClick={() => setActivityFilter(f.key)}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                      activityFilter === f.key
+                                        ? 'bg-primary-100 text-primary-800 border border-primary-300'
+                                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                                    }`}
+                                  >
+                                    {f.label}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Activity items */}
+                              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                                {(() => {
+                                  // Build unified activity feed
+                                  type ActivityItem = { id: string; type: 'admin' | 'customer' | 'system'; content: string; createdAt: Date; createdBy: string; icon: string; color: string };
+                                  const items: ActivityItem[] = [];
+
+                                  // Customer notes from order (additionalNotes)
+                                  if (order.additionalNotes) {
+                                    items.push({
+                                      id: 'customer_additional_notes',
+                                      type: 'customer',
+                                      content: order.additionalNotes,
+                                      createdAt: order.createdAt ? (typeof order.createdAt === 'object' && 'toDate' in order.createdAt ? (order.createdAt as any).toDate() : new Date(order.createdAt as any)) : new Date(0),
+                                      createdBy: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer',
+                                      icon: '💬',
+                                      color: 'border-purple-200 bg-purple-50',
+                                    });
+                                  }
+
+                                  // Customer invoice reference
+                                  if (order.invoiceReference) {
+                                    items.push({
+                                      id: 'customer_invoice_ref',
+                                      type: 'customer',
+                                      content: `Invoice reference: ${order.invoiceReference}`,
+                                      createdAt: order.createdAt ? (typeof order.createdAt === 'object' && 'toDate' in order.createdAt ? (order.createdAt as any).toDate() : new Date(order.createdAt as any)) : new Date(0),
+                                      createdBy: `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'Customer',
+                                      icon: '🧾',
+                                      color: 'border-green-200 bg-green-50',
+                                    });
+                                  }
+
+                                  // Internal notes (admin handläggare notes)
+                                  internalNotesList.forEach((n) => {
+                                    const date = n.createdAt?.toDate ? n.createdAt.toDate() : (n.createdAt ? new Date(n.createdAt) : new Date(0));
+                                    items.push({
+                                      id: `note_${n.id}`,
+                                      type: 'admin',
+                                      content: n.content,
+                                      createdAt: date,
+                                      createdBy: n.createdBy || 'Admin',
+                                      icon: '📝',
+                                      color: 'border-blue-200 bg-blue-50',
+                                    });
+                                  });
+
+                                  // Processing step completions
+                                  processingSteps.forEach((step) => {
+                                    if (step.status === 'completed' && step.completedAt) {
+                                      const date = typeof step.completedAt === 'object' && 'toDate' in step.completedAt ? (step.completedAt as any).toDate() : new Date(step.completedAt as any);
+                                      items.push({
+                                        id: `step_${step.id}`,
+                                        type: 'system',
+                                        content: `${stripFlagEmoji(step.name)} — completed${step.notes ? `: ${step.notes}` : ''}`,
+                                        createdAt: date,
+                                        createdBy: step.completedBy || 'System',
+                                        icon: '✅',
+                                        color: 'border-green-200 bg-green-50',
+                                      });
+                                    }
+                                  });
+
+                                  // Sort by date descending (newest first)
+                                  items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+                                  // Apply filter
+                                  const filtered = activityFilter === 'all' ? items : items.filter(i => i.type === activityFilter);
+
+                                  if (filtered.length === 0) {
+                                    return <div className="text-sm text-gray-500 py-4 text-center">No activity yet</div>;
+                                  }
+
+                                  return filtered.map((item) => (
+                                    <div key={item.id} className={`border rounded-lg px-3 py-2.5 ${item.color}`}>
+                                      <div className="flex items-start gap-2">
+                                        <span className="text-sm flex-shrink-0 mt-0.5">{item.icon}</span>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="whitespace-pre-wrap text-sm text-gray-800">{item.content}</div>
+                                          <div className="mt-1 text-xs text-gray-500 flex items-center gap-2">
+                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                              item.type === 'customer' ? 'bg-purple-100 text-purple-700' :
+                                              item.type === 'admin' ? 'bg-blue-100 text-blue-700' :
+                                              'bg-gray-100 text-gray-600'
+                                            }`}>
+                                              {item.type === 'customer' ? 'Customer' : item.type === 'admin' ? 'Admin' : 'System'}
+                                            </span>
+                                            <span>{item.createdBy}</span>
+                                            <span>·</span>
+                                            <span>{formatDate(item.createdAt)}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ));
+                                })()}
                               </div>
                             </div>
                           </div>

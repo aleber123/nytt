@@ -17,18 +17,19 @@ interface CoverLettersTabProps {
   setEmbassyData: (data: EmbassyCoverLetterData | null) => void;
   udData: UDCoverLetterData | null;
   setUdData: (data: UDCoverLetterData | null) => void;
+  internalNotesList?: Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>;
 }
 
 export default function CoverLettersTab({
   order, orderId, onSave, notaryApostilleData, setNotaryApostilleData,
-  embassyData, setEmbassyData, udData, setUdData,
+  embassyData, setEmbassyData, udData, setUdData, internalNotesList,
 }: CoverLettersTabProps) {
   const [savingNotary, setSavingNotary] = useState(false);
   const [savingEmbassy, setSavingEmbassy] = useState(false);
   const [savingUd, setSavingUd] = useState(false);
   const handleDownloadCover = () => {
     try {
-      downloadCoverLetter(order);
+      downloadCoverLetter(order, internalNotesList);
       toast.success('Packing slip downloading');
     } catch (err) {
       toast.error('Could not create packing slip');
@@ -37,7 +38,7 @@ export default function CoverLettersTab({
 
   const handlePrintCover = () => {
     try {
-      printCoverLetter(order);
+      printCoverLetter(order, internalNotesList);
       toast.success('Printing started');
     } catch (err) {
       toast.error('Could not print packing slip');

@@ -360,7 +360,7 @@ function translateDescription(desc: string): string {
   return result;
 }
 
-export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: boolean }): Promise<jsPDF> {
+export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: boolean; internalNotesList?: Array<{ id: string; content: string; createdAt?: any; createdBy?: string }> }): Promise<jsPDF> {
   const doc = new jsPDF();
 
   // Brand palette - ink-saving version (no large dark fills)
@@ -582,15 +582,66 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
     y += 6;
   }
 
-  // Notes box
-  const notesBoxHeight = 30;
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
-  doc.roundedRect(16, y, 178, notesBoxHeight, 2, 2);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
-  doc.text('Internal notes:', 20, y + 6);
-  y += notesBoxHeight + 8;
+  // Customer notes section
+  if (order.additionalNotes) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(46, 45, 44);
+    doc.text('Customer notes:', 20, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(text[0], text[1], text[2]);
+    const custLines = doc.splitTextToSize(order.additionalNotes, 168);
+    custLines.forEach((line: string) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(line, 20, y);
+      y += 4;
+    });
+    y += 4;
+  }
+
+  // Internal notes box
+  const noteTexts: string[] = [];
+  if (opts?.internalNotesList && opts.internalNotesList.length > 0) {
+    opts.internalNotesList.forEach((n) => {
+      if (n.content && n.content.trim()) {
+        const by = n.createdBy || '';
+        noteTexts.push(`${by ? by + ': ' : ''}${n.content.trim()}`);
+      }
+    });
+  }
+
+  if (noteTexts.length > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(46, 45, 44);
+    doc.text('Internal notes:', 20, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(text[0], text[1], text[2]);
+    noteTexts.forEach((nt) => {
+      const lines = doc.splitTextToSize(nt, 168);
+      lines.forEach((line: string) => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.text(line, 20, y);
+        y += 4;
+      });
+      y += 2;
+    });
+    y += 4;
+  } else {
+    // Empty notes box for handwriting
+    const notesBoxHeight = 30;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+    doc.roundedRect(16, y, 178, notesBoxHeight, 2, 2);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.text('Internal notes:', 20, y + 6);
+    y += notesBoxHeight + 8;
+  }
 
   // Footer (match footer address)
   const footerY = 286;
@@ -615,15 +666,15 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   return doc;
 }
 
-export async function downloadCoverLetter(order: Order): Promise<void> {
-  const doc = await generateCoverLetterPDF(order);
+export async function downloadCoverLetter(order: Order, internalNotesList?: Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>): Promise<void> {
+  const doc = await generateCoverLetterPDF(order, { internalNotesList });
   const ord = order.orderNumber || order.id || '';
   const file = ord ? `Cover letter ${ord}.pdf` : 'Cover letter.pdf';
   doc.save(file);
 }
 
-export async function printCoverLetter(order: Order): Promise<void> {
-  const doc = await generateCoverLetterPDF(order, { autoPrint: true });
+export async function printCoverLetter(order: Order, internalNotesList?: Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>): Promise<void> {
+  const doc = await generateCoverLetterPDF(order, { autoPrint: true, internalNotesList });
   const blobUrl = doc.output('bloburl');
   const win = window.open(blobUrl);
   if (!win) {

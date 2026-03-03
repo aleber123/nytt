@@ -1689,7 +1689,7 @@ function AdminOrderDetailPage() {
       try {
         const { getRemindersByOrder } = await import('@/firebase/reminderService');
         const data = await getRemindersByOrder(orderId);
-        setReminders(data.filter(r => r.status !== 'dismissed') as any[]);
+        setReminders(data as any[]);
       } catch (e) { /* ignore */ }
     };
     loadReminders();
@@ -1758,8 +1758,8 @@ function AdminOrderDetailPage() {
     try {
       const { dismissReminder } = await import('@/firebase/reminderService');
       await dismissReminder(reminderId);
-      setReminders(prev => prev.filter(r => r.id !== reminderId));
-      toast.success('Reminder dismissed');
+      setReminders(prev => prev.map(r => r.id === reminderId ? { ...r, status: 'dismissed' as const } : r));
+      toast.success('Reminder completed');
     } catch (err) {
       toast.error('Failed to dismiss reminder');
     }
@@ -2386,7 +2386,7 @@ function AdminOrderDetailPage() {
   const handleDownloadCover = () => {
     if (!order) return;
     try {
-      downloadCoverLetter(order);
+      downloadCoverLetter(order, internalNotesList);
       toast.success('Packing slip downloading');
     } catch (err) {
       toast.error('Could not create packing slip');
@@ -2406,7 +2406,7 @@ function AdminOrderDetailPage() {
   const handlePrintCover = () => {
     if (!order) return;
     try {
-      printCoverLetter(order);
+      printCoverLetter(order, internalNotesList);
       toast.success('Printing started');
     } catch (err) {
       toast.error('Could not print packing slip');
@@ -5577,6 +5577,30 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Manually confirm return address (mark as confirmed by admin)
+  const handleConfirmReturnAddress = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    if (!orderId) return;
+
+    try {
+      await adminUpdateOrder(orderId, {
+        returnAddressConfirmed: true,
+        returnAddressConfirmedAt: new Date().toISOString(),
+      });
+
+      setOrder({
+        ...order,
+        returnAddressConfirmed: true,
+        returnAddressConfirmedAt: new Date().toISOString(),
+      } as ExtendedOrder);
+
+      toast.success('Return address marked as confirmed');
+    } catch (err) {
+      toast.error('Could not confirm return address');
+    }
+  };
+
   // Add a new internal note (append-only)
   const addInternalNote = async () => {
     const text = internalNoteText.trim();
@@ -6455,24 +6479,28 @@ function AdminOrderDetailPage() {
                   </div>
                   {reminders.map(r => {
                     const due = r.dueDate?.toDate ? r.dueDate.toDate() : new Date(r.dueDate);
-                    const isOverdue = due < new Date();
+                    const isDismissed = r.status === 'dismissed';
+                    const isOverdue = !isDismissed && due < new Date();
                     const isSnoozed = r.status === 'snoozed';
                     return (
-                      <div key={r.id} className={`flex items-start gap-3 rounded-lg px-3 py-2 mb-1 text-sm ${isOverdue ? 'bg-red-100 border border-red-200' : isSnoozed ? 'bg-gray-100 border border-gray-200' : 'bg-white border border-amber-200'}`}>
+                      <div key={r.id} className={`flex items-start gap-3 rounded-lg px-3 py-2 mb-1 text-sm ${isDismissed ? 'bg-green-50 border border-green-200 opacity-75' : isOverdue ? 'bg-red-100 border border-red-200' : isSnoozed ? 'bg-gray-100 border border-gray-200' : 'bg-white border border-amber-200'}`}>
                         <div className="flex-1 min-w-0">
-                          <p className={`font-medium ${isOverdue ? 'text-red-800' : 'text-gray-800'}`}>{r.message}</p>
+                          <p className={`font-medium ${isDismissed ? 'text-green-700 line-through' : isOverdue ? 'text-red-800' : 'text-gray-800'}`}>{r.message}</p>
                           <p className="text-xs text-gray-500 mt-0.5">
                             Due: {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
                             {r.assignedToName && <> &middot; For: {r.assignedToName}</>}
+                            {isDismissed && <span className="text-green-600 font-medium ml-1">COMPLETED</span>}
                             {isOverdue && <span className="text-red-600 font-medium ml-1">OVERDUE</span>}
                             {isSnoozed && <span className="text-gray-500 font-medium ml-1">SNOOZED</span>}
                           </p>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => handleSnoozeReminder(r.id, 1)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 1h">1h</button>
-                          <button onClick={() => handleSnoozeReminder(r.id, 24)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 24h">24h</button>
-                          <button onClick={() => handleDismissReminder(r.id)} className="px-2 py-0.5 text-xs rounded bg-red-100 hover:bg-red-200 text-red-700" title="Dismiss">Dismiss</button>
-                        </div>
+                        {!isDismissed && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button onClick={() => handleSnoozeReminder(r.id, 1)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 1h">1h</button>
+                            <button onClick={() => handleSnoozeReminder(r.id, 24)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 24h">24h</button>
+                            <button onClick={() => handleDismissReminder(r.id)} className="px-2 py-0.5 text-xs rounded bg-green-100 hover:bg-green-200 text-green-700" title="Mark as completed">Done</button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -6592,6 +6620,10 @@ function AdminOrderDetailPage() {
                     onUnlinkOrder={handleUnlinkOrder}
                     onLinkDuplicateOrder={handleLinkDuplicateOrder}
                     applyCustomerHistoryEntry={applyCustomerHistoryEntry}
+                    onConfirmReturnAddress={handleConfirmReturnAddress}
+                    internalNoteText={internalNoteText}
+                    setInternalNoteText={setInternalNoteText}
+                    addInternalNote={addInternalNote}
                   />
                 )}
 
@@ -6763,6 +6795,7 @@ function AdminOrderDetailPage() {
                     setEmbassyData={setEmbassyData}
                     udData={udData}
                     setUdData={setUdData}
+                    internalNotesList={internalNotesList}
                   />
                 )}
 
