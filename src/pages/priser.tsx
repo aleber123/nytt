@@ -275,10 +275,10 @@ const PricesPage: React.FC = () => {
             <div className="text-2xl font-bold text-primary-600">
               {isQuoted 
                 ? (isEn ? 'Quote' : 'Offert') 
-                : `${rule.basePrice.toLocaleString('sv-SE')} kr`}
+                : `${Math.round(rule.basePrice * 1.25).toLocaleString('sv-SE')} kr`}
             </div>
             {!isQuoted && (
-              <div className="text-xs text-gray-400">{isEn ? 'excl. VAT' : 'exkl. moms'}</div>
+              <div className="text-xs text-gray-400">{isEn ? 'incl. VAT' : 'inkl. moms'}</div>
             )}
           </div>
 
@@ -356,10 +356,10 @@ const PricesPage: React.FC = () => {
                       <div className="text-xl font-bold text-primary-600">
                         {rule.basePrice === 0 
                           ? (isEn ? 'Free' : 'Gratis') 
-                          : `${rule.basePrice.toLocaleString('sv-SE')} kr`}
+                          : `${Math.round(rule.basePrice * 1.25).toLocaleString('sv-SE')} kr`}
                       </div>
                       {rule.basePrice > 0 && (
-                        <div className="text-xs text-gray-400">{isEn ? 'excl. VAT' : 'exkl. moms'}</div>
+                        <div className="text-xs text-gray-400">{isEn ? 'incl. VAT' : 'inkl. moms'}</div>
                       )}
                     </div>
                   );
@@ -389,9 +389,9 @@ const PricesPage: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-xl font-bold text-primary-600">
-                        +{rule.basePrice.toLocaleString('sv-SE')} kr
+                        +{Math.round(rule.basePrice * 1.25).toLocaleString('sv-SE')} kr
                       </div>
-                      <div className="text-xs text-gray-400">{isEn ? 'excl. VAT' : 'exkl. moms'}</div>
+                      <div className="text-xs text-gray-400">{isEn ? 'incl. VAT' : 'inkl. moms'}</div>
                     </div>
                   );
                 })}

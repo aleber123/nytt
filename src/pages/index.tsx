@@ -120,12 +120,16 @@ export default function Home() {
           // If priceUnconfirmed is true, show "Offert" instead of actual price
           const showPrice = !rule.priceUnconfirmed && rule.basePrice > 0;
           
+          // Calculate price inkl. moms (25% VAT) for consumer display
+          // Required by Swedish Prisinformationslagen (2004:347)
+          const priceInclVat = Math.round(rule.basePrice * 1.25);
+          
           // Update timeframe for all services from Firebase data
           pricingData[fallbackIndex] = {
             ...pricingData[fallbackIndex],
             officialFee: showPrice ? `${rule.officialFee} kr` : '',
             serviceFee: showPrice ? `${rule.serviceFee} kr` : '',
-            totalPrice: showPrice ? `${rule.basePrice} kr` : '',
+            totalPrice: showPrice ? `${priceInclVat} kr` : '',
             timeframe: `${processingTime} arbetsdagar`,
             priceUnconfirmed: rule.priceUnconfirmed || false
           };
@@ -445,7 +449,7 @@ export default function Home() {
                       <div className="mb-4">
                         <p className="text-sm text-gray-500">{t('home.from')}</p>
                         <p className="text-lg font-bold text-custom-button">{service.price}</p>
-                        <p className="text-xs text-gray-400">{t('home.exclVat', 'exkl. moms')}</p>
+                        <p className="text-xs text-gray-400">{t('home.inclVat', 'inkl. moms')}</p>
                       </div>
                     ) : (
                       <div className="mb-4">
