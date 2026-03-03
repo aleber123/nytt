@@ -11,6 +11,8 @@ import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getStorage, Storage } from 'firebase-admin/storage';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Configuration
 const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'doxvl-51a30';
@@ -20,32 +22,51 @@ const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'doxvl-
 let app: App;
 
 if (getApps().length === 0) {
-  // Check if we're in a Google Cloud environment
-  const isGoogleCloud = process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+  // Check if we're in a Google Cloud / Cloud Run / Firebase environment
+  const isGoogleCloud = !!(
+    process.env.K_SERVICE ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT ||
+    process.env.FIREBASE_CONFIG ||
+    process.env.CLOUD_RUNTIME_ENV
+  );
   
-  if (isGoogleCloud) {
-    // In Cloud Run, use Application Default Credentials
+  let initialized = false;
+
+  // Try service account file (local development)
+  if (!isGoogleCloud) {
+    try {
+      // Try multiple possible paths for the service account file
+      const possiblePaths = [
+        path.resolve(process.cwd(), 'service-account.json'),
+        path.resolve(__dirname, '../../service-account.json'),
+        path.resolve(__dirname, '../../../service-account.json'),
+      ];
+      
+      for (const saPath of possiblePaths) {
+        if (fs.existsSync(saPath)) {
+          const serviceAccount = JSON.parse(fs.readFileSync(saPath, 'utf8'));
+          app = initializeApp({
+            credential: cert(serviceAccount),
+            projectId: serviceAccount.project_id,
+            storageBucket,
+          });
+          initialized = true;
+          break;
+        }
+      }
+    } catch (e) {
+      // Will fall through to default credentials
+      console.warn('[firebaseAdmin] Service account file not found or invalid, using default credentials');
+    }
+  }
+
+  // Fallback: Application Default Credentials (works in Cloud Run and GCP)
+  if (!initialized) {
     app = initializeApp({
       projectId,
       storageBucket,
     });
-  } else {
-    // Local development - try service account file
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const serviceAccount = require('../../service-account.json');
-      app = initializeApp({
-        credential: cert(serviceAccount),
-        projectId: serviceAccount.project_id,
-        storageBucket,
-      });
-    } catch (e) {
-      // Fallback to default credentials
-      app = initializeApp({
-        projectId,
-        storageBucket,
-      });
-    }
   }
 } else {
   app = getApps()[0];
