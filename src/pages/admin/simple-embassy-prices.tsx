@@ -797,7 +797,7 @@ function SimpleEmbassyPricesPage() {
                       onClick={() => handleSort('officialFee')}
                     >
                       <div className="flex items-center gap-1">
-                        Official fee <span className="text-[10px] text-gray-400 normal-case">(0% moms)</span>
+                        Official fee <span className="text-[10px] text-gray-400 normal-case">(0% VAT)</span>
                         {sortField === 'officialFee' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}
@@ -808,7 +808,7 @@ function SimpleEmbassyPricesPage() {
                       onClick={() => handleSort('serviceFee')}
                     >
                       <div className="flex items-center gap-1">
-                        Service fee <span className="text-[10px] text-gray-400 normal-case">(exkl. moms)</span>
+                        Service fee <span className="text-[10px] text-gray-400 normal-case">(excl. VAT)</span>
                         {sortField === 'serviceFee' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}
@@ -819,7 +819,7 @@ function SimpleEmbassyPricesPage() {
                       onClick={() => handleSort('totalPrice')}
                     >
                       <div className="flex items-center gap-1">
-                        Total price <span className="text-[10px] text-gray-400 normal-case">(exkl. moms)</span>
+                        Total price <span className="text-[10px] text-gray-400 normal-case">(excl. VAT)</span>
                         {sortField === 'totalPrice' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}

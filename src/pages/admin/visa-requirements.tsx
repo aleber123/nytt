@@ -1432,7 +1432,7 @@ function UnifiedEditModal({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">DOX Service Fee (kr) <span className="text-gray-400">exkl. moms</span></label>
+                          <label className="block text-xs text-gray-500 mb-1">DOX Service Fee (kr) <span className="text-gray-400">excl. VAT</span></label>
                           <input
                             type="number"
                             value={productServiceFee}

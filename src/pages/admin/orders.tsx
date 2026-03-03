@@ -400,255 +400,101 @@ function AdminOrdersPage() {
             </div>
           )}
 
-          {/* Summary Stats */}
+          {/* Summary Stats - clickable to filter */}
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-xl">⏳</span>
+            {([
+              { status: 'pending' as Order['status'], icon: '⏳', label: 'Pending', border: 'border-blue-200', bg: 'bg-blue-100', ring: 'ring-blue-400' },
+              { status: 'received' as Order['status'], icon: '📥', label: 'Received', border: 'border-purple-200', bg: 'bg-purple-100', ring: 'ring-purple-400' },
+              { status: 'processing' as Order['status'], icon: '⚙️', label: 'Processing', border: 'border-amber-200', bg: 'bg-amber-100', ring: 'ring-amber-400' },
+              { status: 'submitted' as Order['status'], icon: '📤', label: 'Submitted', border: 'border-indigo-200', bg: 'bg-indigo-100', ring: 'ring-indigo-400' },
+              { status: 'action-required' as Order['status'], icon: '⚠️', label: 'Action Required', border: 'border-orange-200', bg: 'bg-orange-100', ring: 'ring-orange-400' },
+              { status: 'ready-for-return' as Order['status'], icon: '📦', label: 'Ready for Return', border: 'border-teal-200', bg: 'bg-teal-100', ring: 'ring-teal-400' },
+            ]).map(card => {
+              const isActive = selectedStatuses.length === 1 && selectedStatuses[0] === card.status;
+              return (
+                <button
+                  key={card.status}
+                  type="button"
+                  onClick={() => setSelectedStatuses(isActive ? [] : [card.status])}
+                  className={`bg-white rounded-lg shadow-sm border ${card.border} p-4 text-left cursor-pointer hover:shadow-md transition-all ${isActive ? 'ring-2 ' + card.ring : ''}`}
+                >
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className={`h-8 w-8 rounded-full ${card.bg} flex items-center justify-center`}>
+                        <span className="text-xl">{card.icon}</span>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">{card.label}</p>
+                      <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === card.status).length}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Pending</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'pending').length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                    <span className="text-xl">📥</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Received</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'received').length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-amber-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
-                    <span className="text-xl">⚙️</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Processing</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'processing').length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-indigo-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                    <span className="text-xl">📤</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Submitted</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'submitted').length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-orange-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
-                    <span className="text-xl">⚠️</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Action Required</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'action-required').length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-teal-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center">
-                    <span className="text-xl">📦</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Ready for Return</p>
-                  <p className="text-2xl font-bold text-gray-900">{orders.filter(o => o.status === 'ready-for-return').length}</p>
-                </div>
-              </div>
-            </div>
+                </button>
+              );
+            })}
           </div>
 
           {/* Controls */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            {/* Row 1: Title, Search, Assignment, Refresh */}
             <div className="p-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h2 className="text-lg font-medium text-gray-800">{t('admin.orders.panelTitle', 'Order Management')}</h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {selectedStatuses.length === 0
-                      ? t('admin.orders.summaryAll', 'Showing all {{count}} orders', { count: filteredOrders.length })
-                      : t(
-                          'admin.orders.summaryWithStatus',
-                          'Showing {{count}} orders with status "{{statuses}}"',
-                          {
-                            count: filteredOrders.length,
-                            statuses: selectedStatuses
-                              .map((status: Order['status']) => getStatusLabel(status))
-                              .join(', ')
-                          }
-                        )}
-                  </p>
+              <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                <div className="flex-shrink-0">
+                  <h2 className="text-lg font-medium text-gray-800">Order Management</h2>
+                  <p className="text-xs text-gray-500">{filteredOrders.length} of {orders.length} orders</p>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-4 w-full justify-between">
-                  {/* Search */}
-                  <div className="flex items-center gap-2 flex-1 min-w-[220px]">
-                    <label htmlFor="order-search" className="sr-only">{t('admin.orders.searchLabel', 'Search')}</label>
-                    <div className="relative w-full max-w-sm">
-                      <input
-                        id="order-search"
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={t('admin.orders.searchPlaceholder', 'Search order number, customer, email, country or status...')}
-                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                      <svg className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-                      </svg>
-                    </div>
+                <div className="flex-1 min-w-0">
+                  <div className="relative max-w-md">
+                    <input id="order-search" type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search order, customer, email, country..." className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                    <svg className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" /></svg>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                    <span className="mr-2 text-sm text-gray-600 font-medium">
-                      {t('admin.orders.statusLabel', 'Status:')}
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedStatuses((prev: Order['status'][]) =>
-                            prev.includes('pending')
-                              ? prev.filter((s: Order['status']) => s !== 'pending')
-                              : [...prev, 'pending']
-                          )
-                        }
-                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                          selectedStatuses.includes('pending')
-                            ? 'bg-blue-100 text-blue-800 border-blue-200'
-                            : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                        }`}
-                      >
-                        {getStatusLabel('pending')}
-                      </button>
-                      {ALL_STATUSES.filter((status) => status !== 'pending').map((status: Order['status']) => {
-                        const isActive = selectedStatuses.includes(status);
-                        return (
-                          <button
-                            key={status}
-                            type="button"
-                            onClick={() =>
-                              setSelectedStatuses((prev: Order['status'][]) =>
-                                prev.includes(status)
-                                  ? prev.filter((s: Order['status']) => s !== status)
-                                  : [...prev, status]
-                              )
-                            }
-                            className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                              isActive
-                                ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                            }`}
-                          >
-                            {getStatusLabel(status)}
-                          </button>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStatuses([])}
-                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                          selectedStatuses.length === 0
-                            ? 'bg-blue-100 text-blue-800 border-blue-200'
-                            : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                        }`}
-                      >
-                        {t('admin.orders.filterAllLabel', 'All')}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600 font-medium">{t('admin.orders.quickFilterLabel', 'Quick filter:')}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStatuses([])}
-                      className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                        selectedStatuses.length === 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {t('admin.orders.quickFilterAll', 'All ({{count}})', { count: orders.length })}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStatuses(['pending'])}
-                      className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                        selectedStatuses.includes('pending') ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {t('admin.orders.quickFilterPending', 'Pending ({{count}})', { count: orders.filter(o => o.status === 'pending').length })}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // Filter for orders with files
-                        const fileOrders = orders.filter(o => o.uploadedFiles && o.uploadedFiles.length > 0);
-                        // For now, just show all - could implement custom filter
-                        setSelectedStatuses([]);
-                      }}
-                      className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
-                    >
-                      {t('admin.orders.quickFilterWithFiles', 'With files ({{count}})', { count: orders.filter(o => o.uploadedFiles && o.uploadedFiles.length > 0).length })}
-                    </button>
-                  </div>
-
-                  {/* Assignment filter */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600 font-medium">Assigned:</span>
-                    <select
-                      value={assignmentFilter}
-                      onChange={(e) => setAssignmentFilter(e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="all">All</option>
-                      <option value="mine">My orders ({orders.filter(o => o.assignedTo === currentUser?.uid).length})</option>
-                      <option value="unassigned">Unassigned ({orders.filter(o => !o.assignedTo).length})</option>
-                      {adminUsers.map(u => (
-                        <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={fetchOrders}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    {t('admin.orders.refreshButton', 'Refresh')}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <select value={assignmentFilter} onChange={(e) => setAssignmentFilter(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-500">
+                    <option value="all">All handlers</option>
+                    <option value="mine">My orders ({orders.filter(o => o.assignedTo === currentUser?.uid).length})</option>
+                    <option value="unassigned">Unassigned ({orders.filter(o => !o.assignedTo).length})</option>
+                    {adminUsers.map(u => (<option key={u.id} value={u.id}>{u.displayName || u.email}</option>))}
+                  </select>
+                  <button onClick={fetchOrders} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50" title="Refresh">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   </button>
                 </div>
               </div>
             </div>
+
+            {/* Row 2: Status filter pills - grouped */}
+            <div className="px-4 py-3 border-b border-gray-200">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {/* All */}
+                <button type="button" onClick={() => setSelectedStatuses([])} className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${selectedStatuses.length === 0 ? 'bg-primary-100 text-primary-800 border-primary-300' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                  All ({orders.length})
+                </button>
+                <span className="text-gray-300 mx-0.5">|</span>
+                {/* Active workflow statuses */}
+                {(['pending', 'received', 'waiting-for-documents', 'processing', 'submitted', 'action-required', 'ready-for-return'] as Order['status'][]).map(status => {
+                  const count = orders.filter(o => o.status === status).length;
+                  const isActive = selectedStatuses.includes(status);
+                  return (
+                    <button key={status} type="button" onClick={() => setSelectedStatuses((prev: Order['status'][]) => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status])} className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${isActive ? getStatusBadgeColor(status) + ' border-current font-medium' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                      {getStatusLabel(status)} {count > 0 && <span className="opacity-60">({count})</span>}
+                    </button>
+                  );
+                })}
+                <span className="text-gray-300 mx-0.5">|</span>
+                {/* Final + Visa statuses */}
+                {(['completed', 'cancelled', 'documents-required', 'submitted-to-embassy', 'approved', 'rejected'] as Order['status'][]).map(status => {
+                  const count = orders.filter(o => o.status === status).length;
+                  const isActive = selectedStatuses.includes(status);
+                  return (
+                    <button key={status} type="button" onClick={() => setSelectedStatuses((prev: Order['status'][]) => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status])} className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${isActive ? getStatusBadgeColor(status) + ' border-current font-medium' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
+                      {getStatusLabel(status)} {count > 0 && <span className="opacity-60">({count})</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
 
             {selectedOrderIds.length > 0 && (
               <div className="px-4 py-3 border-b border-gray-200 bg-yellow-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
