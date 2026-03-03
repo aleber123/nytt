@@ -73,9 +73,11 @@ export default async function handler(
     });
 
   } catch (error: any) {
+    console.error('[update-order] Error:', error.message, error.code, error.stack);
     return res.status(500).json({
       error: 'Failed to update order',
-      details: error.message
+      details: error.message,
+      code: error.code || null,
     });
   }
 }

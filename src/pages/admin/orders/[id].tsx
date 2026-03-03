@@ -130,7 +130,8 @@ const adminUpdateOrder = async (orderId: string, updates: Record<string, any>): 
   
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to update order');
+    console.error('[adminUpdateOrder] API error:', response.status, errorData);
+    throw new Error(errorData.details || errorData.error || 'Failed to update order');
   }
 };
 
