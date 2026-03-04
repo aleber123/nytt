@@ -117,8 +117,25 @@ export default async function handler(
         }, { merge: true });
 
         const orderSnap = await orderRef.get();
-        const orderLocale = orderSnap.data()?.locale || 'sv';
+        const orderData = orderSnap.data();
+        const orderLocale = orderData?.locale || 'sv';
         const isEnglish = orderLocale === 'en';
+
+        // Create reminder for the assigned handler (or all admins via a fallback)
+        const assignedTo = orderData?.assignedTo;
+        if (assignedTo) {
+          await db.collection('reminders').add({
+            orderId: quote.orderId,
+            orderNumber: quote.orderNumber,
+            assignedTo,
+            assignedToName: orderData?.assignedToName || '',
+            message: `Quote ACCEPTED by ${quote.customerName} (${quote.totalAmount.toLocaleString()} kr) — proceed with order`,
+            dueDate: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            createdBy: 'System',
+            status: 'active',
+          });
+        }
 
         return res.status(200).json({
           success: true,
@@ -151,8 +168,25 @@ export default async function handler(
         }, { merge: true });
 
         const orderSnap = await orderRef.get();
-        const orderLocale = orderSnap.data()?.locale || 'sv';
+        const orderData = orderSnap.data();
+        const orderLocale = orderData?.locale || 'sv';
         const isEnglish = orderLocale === 'en';
+
+        // Create reminder for the assigned handler
+        const assignedTo = orderData?.assignedTo;
+        if (assignedTo) {
+          await db.collection('reminders').add({
+            orderId: quote.orderId,
+            orderNumber: quote.orderNumber,
+            assignedTo,
+            assignedToName: orderData?.assignedToName || '',
+            message: `Quote DECLINED by ${quote.customerName}${declineReason ? ` — Reason: ${declineReason}` : ''} — follow up with customer`,
+            dueDate: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            createdBy: 'System',
+            status: 'active',
+          });
+        }
 
         return res.status(200).json({
           success: true,

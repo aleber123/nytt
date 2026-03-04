@@ -1046,7 +1046,7 @@ function AdminOrderDetailPage() {
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [reminderMessage, setReminderMessage] = useState('');
   const [reminderDueDate, setReminderDueDate] = useState('');
-  const [reminderAssignee, setReminderAssignee] = useState('');
+  const [reminderAssignees, setReminderAssignees] = useState<string[]>([]);
   const [savingReminder, setSavingReminder] = useState(false);
 
   // Combined shipping (samskick) states - linked via tracking number
@@ -1699,42 +1699,45 @@ function AdminOrderDetailPage() {
 
   // Create a new reminder
   const handleCreateReminder = async () => {
-    if (!reminderMessage.trim() || !reminderDueDate || !order) return;
+    if (!reminderMessage.trim() || !reminderDueDate || !order || reminderAssignees.length === 0) return;
     setSavingReminder(true);
     try {
       const { createReminder } = await import('@/firebase/reminderService');
-      const assignee = reminderAssignee || currentUser?.uid || '';
-      const assigneeName = adminUsers.find(u => u.id === assignee)?.displayName || adminUsers.find(u => u.id === assignee)?.email || '';
       const actorName = (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string;
       const orderId = router.query.id as string;
-      const id = await createReminder({
-        orderId,
-        orderNumber: order.orderNumber || orderId,
-        assignedTo: assignee,
-        assignedToName: assigneeName,
-        message: reminderMessage.trim(),
-        dueDate: new Date(reminderDueDate).toISOString(),
-        createdAt: new Date().toISOString(),
-        createdBy: actorName,
-        status: 'active',
-      });
-      setReminders(prev => [...prev, {
-        id,
-        orderId,
-        orderNumber: order.orderNumber || orderId,
-        assignedTo: assignee,
-        assignedToName: assigneeName,
-        message: reminderMessage.trim(),
-        dueDate: new Date(reminderDueDate).toISOString(),
-        createdAt: new Date().toISOString(),
-        createdBy: actorName,
-        status: 'active' as const,
-      }]);
+      const newReminders: any[] = [];
+      for (const assignee of reminderAssignees) {
+        const assigneeName = adminUsers.find(u => u.id === assignee)?.displayName || adminUsers.find(u => u.id === assignee)?.email || '';
+        const id = await createReminder({
+          orderId,
+          orderNumber: order.orderNumber || orderId,
+          assignedTo: assignee,
+          assignedToName: assigneeName,
+          message: reminderMessage.trim(),
+          dueDate: new Date(reminderDueDate).toISOString(),
+          createdAt: new Date().toISOString(),
+          createdBy: actorName,
+          status: 'active',
+        });
+        newReminders.push({
+          id,
+          orderId,
+          orderNumber: order.orderNumber || orderId,
+          assignedTo: assignee,
+          assignedToName: assigneeName,
+          message: reminderMessage.trim(),
+          dueDate: new Date(reminderDueDate).toISOString(),
+          createdAt: new Date().toISOString(),
+          createdBy: actorName,
+          status: 'active' as const,
+        });
+      }
+      setReminders(prev => [...prev, ...newReminders]);
       setReminderMessage('');
       setReminderDueDate('');
-      setReminderAssignee('');
+      setReminderAssignees([]);
       setShowAddReminder(false);
-      toast.success('Reminder created');
+      toast.success(reminderAssignees.length > 1 ? `Reminder created for ${reminderAssignees.length} people` : 'Reminder created');
     } catch (err) {
       toast.error('Failed to create reminder');
     } finally {
@@ -6487,7 +6490,7 @@ function AdminOrderDetailPage() {
                     </span>
                     {!showAddReminder && (
                       <button
-                        onClick={() => { setShowAddReminder(true); setReminderAssignee(currentUser?.uid || ''); }}
+                        onClick={() => { setShowAddReminder(true); setReminderAssignees(currentUser?.uid ? [currentUser.uid] : []); }}
                         className="text-xs text-amber-700 hover:text-amber-900 font-medium"
                       >
                         + Add reminder
@@ -6531,15 +6534,45 @@ function AdminOrderDetailPage() {
                         <label className="block text-xs text-gray-500 mb-1">Due date</label>
                         <input type="datetime-local" value={reminderDueDate} onChange={(e) => setReminderDueDate(e.target.value)} className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm" />
                       </div>
-                      <div className="w-40">
+                      <div className="w-48">
                         <label className="block text-xs text-gray-500 mb-1">Assign to</label>
-                        <select value={reminderAssignee} onChange={(e) => setReminderAssignee(e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+                        <div className="border border-gray-300 rounded p-1.5 max-h-28 overflow-y-auto space-y-0.5">
+                          <label className="flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-amber-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={reminderAssignees.length === adminUsers.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setReminderAssignees(adminUsers.map(u => u.id));
+                                } else {
+                                  setReminderAssignees([]);
+                                }
+                              }}
+                              className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                            />
+                            <span className="text-xs font-semibold text-gray-700">All</span>
+                          </label>
+                          <div className="border-t border-gray-200 my-0.5" />
                           {adminUsers.map(u => (
-                            <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+                            <label key={u.id} className="flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-amber-50 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={reminderAssignees.includes(u.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setReminderAssignees(prev => [...prev, u.id]);
+                                  } else {
+                                    setReminderAssignees(prev => prev.filter(id => id !== u.id));
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                              />
+                              <span className="text-xs text-gray-700">{u.displayName || u.email}</span>
+                            </label>
                           ))}
-                        </select>
+                        </div>
                       </div>
-                      <button onClick={handleCreateReminder} disabled={savingReminder || !reminderMessage.trim() || !reminderDueDate} className="px-3 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 disabled:opacity-50">
+                      <button onClick={handleCreateReminder} disabled={savingReminder || !reminderMessage.trim() || !reminderDueDate || reminderAssignees.length === 0} className="px-3 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 disabled:opacity-50">
                         {savingReminder ? 'Saving...' : 'Save'}
                       </button>
                       <button onClick={() => setShowAddReminder(false)} className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -6551,7 +6584,7 @@ function AdminOrderDetailPage() {
               {reminders.length === 0 && !showAddReminder && (
                 <div className="px-4 py-2 border-b border-gray-200 bg-amber-50 flex justify-end">
                   <button
-                    onClick={() => { setShowAddReminder(true); setReminderAssignee(currentUser?.uid || ''); }}
+                    onClick={() => { setShowAddReminder(true); setReminderAssignees(currentUser?.uid ? [currentUser.uid] : []); }}
                     className="px-3 py-1.5 text-sm font-medium text-amber-800 bg-amber-100 border border-amber-300 rounded-md hover:bg-amber-200 transition-colors flex items-center gap-1.5"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
