@@ -256,23 +256,19 @@ function AdminOrdersPage() {
 
   // Function to get service name
   const getServiceName = (serviceId: string) => {
-    switch (serviceId) {
-      case 'apostille':
-        return t('services.apostille.title');
-      case 'notarisering':
-        return t('services.notarization.title');
-      case 'ambassad':
-        return t('services.embassy.title');
-      case 'oversattning':
-        return t('services.translation.title');
-      case 'utrikesdepartementet':
-      case 'ud':
-        return t('services.ud.title');
-      case 'chamber':
-        return t('services.chamber.title');
-      default:
-        return serviceId;
-    }
+    const names: Record<string, string> = {
+      apostille: 'Apostille',
+      notarisering: 'Notarization',
+      notarization: 'Notarization',
+      ambassad: 'Embassy',
+      embassy: 'Embassy',
+      oversattning: 'Translation',
+      translation: 'Translation',
+      utrikesdepartementet: 'UD',
+      ud: 'UD',
+      chamber: 'Chamber',
+    };
+    return names[serviceId] || serviceId.charAt(0).toUpperCase() + serviceId.slice(1);
   };
 
   // Format date

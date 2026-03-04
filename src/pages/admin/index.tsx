@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Head from 'next/head';
@@ -6,52 +6,8 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface MyOrder {
-  id: string;
-  orderNumber?: string;
-  status?: string;
-  assignedToName?: string;
-  customerInfo?: { firstName?: string; lastName?: string; companyName?: string };
-  country?: string;
-  destinationCountry?: string;
-}
-
-interface MyReminder {
-  id: string;
-  orderId: string;
-  orderNumber?: string;
-  message: string;
-  dueDate: any;
-  status: 'active' | 'snoozed' | 'dismissed';
-}
-
 function AdminIndexPage() {
-  const { signOut, currentUser } = useAuth();
-  const [myOrders, setMyOrders] = useState<MyOrder[]>([]);
-  const [myReminders, setMyReminders] = useState<MyReminder[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(true);
-
-  useEffect(() => {
-    if (!currentUser?.uid) { setLoadingTasks(false); return; }
-    const load = async () => {
-      try {
-        // Fetch assigned orders
-        const { getAllOrders } = await import('@/services/hybridOrderService');
-        const allOrders = await getAllOrders();
-        const assigned = allOrders
-          .filter((o: any) => o.assignedTo === currentUser.uid && o.status !== 'completed' && o.status !== 'cancelled')
-          .map((o: any) => ({ id: o.id, orderNumber: o.orderNumber, status: o.status, assignedToName: o.assignedToName, customerInfo: o.customerInfo, country: o.country, destinationCountry: o.destinationCountry }));
-        setMyOrders(assigned);
-
-        // Fetch reminders
-        const { getRemindersByUser } = await import('@/firebase/reminderService');
-        const reminders = await getRemindersByUser(currentUser.uid);
-        setMyReminders(reminders.filter(r => r.status !== 'dismissed') as MyReminder[]);
-      } catch (e) { /* ignore */ }
-      setLoadingTasks(false);
-    };
-    load();
-  }, [currentUser?.uid]);
+  const { signOut } = useAuth();
   const renderIcon = (iconName: string) => {
     const iconClasses = "h-8 w-8 text-primary-600";
 
@@ -115,6 +71,15 @@ function AdminIndexPage() {
       href: '/admin/orders',
       color: 'bg-blue-600 hover:bg-blue-700',
       badge: 'All orders',
+      icon: 'clipboard-list',
+      category: 'orders'
+    },
+    {
+      title: 'My Tasks',
+      description: 'Your assigned orders, reminders and deadlines',
+      href: '/admin/my-tasks',
+      color: 'bg-primary-600 hover:bg-primary-700',
+      badge: 'Personal',
       icon: 'clipboard-list',
       category: 'orders'
     },
@@ -346,88 +311,6 @@ function AdminIndexPage() {
               <div className="text-sm text-gray-600">Possible price combinations</div>
             </div>
           </div>
-
-          {/* My Tasks Widget */}
-          {!loadingTasks && (myOrders.length > 0 || myReminders.length > 0) && (
-            <div className="mb-12">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                My Tasks
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* My Assigned Orders */}
-                <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700">My Assigned Orders</h3>
-                    <Link href="/admin/orders" className="text-xs text-primary-600 hover:text-primary-800 font-medium">View all →</Link>
-                  </div>
-                  {myOrders.length === 0 ? (
-                    <p className="text-sm text-gray-400">No orders assigned to you</p>
-                  ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {myOrders.slice(0, 10).map(o => (
-                        <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-gray-100">
-                          <div className="min-w-0">
-                            <span className="text-sm font-medium text-gray-900">{o.orderNumber || o.id?.slice(0, 8)}</span>
-                            <span className="text-xs text-gray-500 ml-2">
-                              {o.customerInfo?.firstName} {o.customerInfo?.lastName}
-                              {o.customerInfo?.companyName && ` · ${o.customerInfo.companyName}`}
-                            </span>
-                          </div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
-                            o.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            o.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                            o.status === 'action-required' ? 'bg-red-100 text-red-800' :
-                            o.status === 'submitted' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {o.status}
-                          </span>
-                        </Link>
-                      ))}
-                      {myOrders.length > 10 && (
-                        <p className="text-xs text-gray-400 text-center pt-1">+{myOrders.length - 10} more</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* My Reminders */}
-                <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700">My Reminders</h3>
-                    <span className="text-xs text-gray-400">{myReminders.length} active</span>
-                  </div>
-                  {myReminders.length === 0 ? (
-                    <p className="text-sm text-gray-400">No active reminders</p>
-                  ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {myReminders.slice(0, 10).map(r => {
-                        const due = r.dueDate?.toDate ? r.dueDate.toDate() : new Date(r.dueDate);
-                        const isOverdue = due < new Date();
-                        return (
-                          <Link key={r.id} href={`/admin/orders/${r.orderId}`} className={`block px-3 py-2 rounded-lg border transition-colors ${isOverdue ? 'bg-red-50 border-red-200 hover:bg-red-100' : 'bg-white border-gray-100 hover:bg-amber-50'}`}>
-                            <div className="flex items-start justify-between">
-                              <div className="min-w-0 flex-1">
-                                <p className={`text-sm font-medium ${isOverdue ? 'text-red-800' : 'text-gray-800'}`}>{r.message}</p>
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                  {r.orderNumber || r.orderId.slice(0, 8)} · Due: {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
-                                  {isOverdue && <span className="text-red-600 font-medium ml-1">OVERDUE</span>}
-                                </p>
-                              </div>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                      {myReminders.length > 10 && (
-                        <p className="text-xs text-gray-400 text-center pt-1">+{myReminders.length - 10} more</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Admin Pages Grid - Grouped by Category */}
           {categories.map((category) => (
