@@ -506,17 +506,32 @@ export default function OverviewTab({
                                     });
                                   });
 
-                                  // Processing step completions
+                                  // Processing step status changes
                                   processingSteps.forEach((step) => {
+                                    const s = step as any;
+                                    // In progress
+                                    if (s.startedAt) {
+                                      const date = typeof s.startedAt === 'object' && 'toDate' in s.startedAt ? s.startedAt.toDate() : new Date(s.startedAt);
+                                      items.push({
+                                        id: `step_started_${step.id}`,
+                                        type: 'system',
+                                        content: `${stripFlagEmoji(step.name)} → In progress`,
+                                        createdAt: date,
+                                        createdBy: s.startedBy || 'System',
+                                        icon: 'spinner',
+                                        color: 'border-blue-200 bg-blue-50',
+                                      });
+                                    }
+                                    // Completed
                                     if (step.status === 'completed' && step.completedAt) {
                                       const date = typeof step.completedAt === 'object' && 'toDate' in step.completedAt ? (step.completedAt as any).toDate() : new Date(step.completedAt as any);
                                       items.push({
                                         id: `step_${step.id}`,
                                         type: 'system',
-                                        content: `${stripFlagEmoji(step.name)} — completed${step.notes ? `: ${step.notes}` : ''}`,
+                                        content: `${stripFlagEmoji(step.name)} → Completed${step.notes ? `: ${step.notes}` : ''}`,
                                         createdAt: date,
                                         createdBy: step.completedBy || 'System',
-                                        icon: '✅',
+                                        icon: 'check',
                                         color: 'border-green-200 bg-green-50',
                                       });
                                     }
@@ -535,7 +550,11 @@ export default function OverviewTab({
                                   return filtered.map((item) => (
                                     <div key={item.id} className={`border rounded-lg px-3 py-2.5 ${item.color}`}>
                                       <div className="flex items-start gap-2">
-                                        <span className="text-sm flex-shrink-0 mt-0.5">{item.icon}</span>
+                                        <span className="text-sm flex-shrink-0 mt-0.5">{
+                                          item.icon === 'spinner' ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" /> :
+                                          item.icon === 'check' ? <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center"><svg className="w-3 h-3 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></div> :
+                                          item.icon
+                                        }</span>
                                         <div className="flex-1 min-w-0">
                                           <div className="whitespace-pre-wrap text-sm text-gray-800">{item.content}</div>
                                           <div className="mt-1 text-xs text-gray-500 flex items-center gap-2">
@@ -558,59 +577,15 @@ export default function OverviewTab({
                               </div>
                             </div>
 
-                            {/* Processing Steps Overview */}
+                            {/* Quick link to processing tab */}
                             <div>
-                              <h3 className="text-xs font-semibold uppercase tracking-wide mb-1 text-gray-700">Processing steps</h3>
-                              <div className="space-y-2">
-                                {processingSteps.map((step, index) => (
-                                  <div key={step.id} className={`flex items-center justify-between px-3 py-2 rounded-md ${getProcessingStepCardClasses(step.status)}`}>
-                                    <div className="flex items-center">
-                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium mr-3 ${
-                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                                        'bg-red-100 text-red-800'
-                                      }`}>
-                                        {step.status === 'completed' ? '✓' :
-                                         step.status === 'in_progress' ? (
-                                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                                         ) :
-                                         step.status === 'pending' ? index + 1 : '✗'}
-                                      </div>
-                                      <div>
-                                        <span className="font-medium text-sm">{stripFlagEmoji(step.name)}</span>
-                                        <div className="text-xs text-gray-500">{step.description}</div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className={`text-xs font-medium capitalize px-2 py-1 rounded ${
-                                        step.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        step.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                        step.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                                        'bg-red-100 text-red-800'
-                                      }`}>
-                                        {step.status === 'completed' ? 'Completed' :
-                                         step.status === 'in_progress' ? 'In progress' :
-                                         step.status === 'pending' ? 'Pending' : 'Skipped'}
-                                      </span>
-                                      {step.status === 'completed' && step.completedAt && (
-                                        <span className="text-xs text-gray-500">
-                                          {formatDate(step.completedAt)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="mt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveTab('processing')}
-                                  className="text-primary-600 text-sm underline"
-                                >
-                                  Manage processing →
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setActiveTab('processing')}
+                                className="text-primary-600 text-sm underline"
+                              >
+                                Manage processing steps →
+                              </button>
                             </div>
                           </div>
 

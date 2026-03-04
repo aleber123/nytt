@@ -2717,6 +2717,12 @@ function AdminOrderDetailPage() {
         if (step.expectedCompletionDate) {
           cleanStep.expectedCompletionDate = step.expectedCompletionDate;
         }
+        if ((step as any).startedAt) {
+          cleanStep.startedAt = (step as any).startedAt;
+        }
+        if ((step as any).startedBy) {
+          cleanStep.startedBy = (step as any).startedBy;
+        }
 
         // Apply any additional updates from updatedStep
         if (updatedStep) {
@@ -2733,6 +2739,13 @@ function AdminOrderDetailPage() {
           cleanStep.notifiedExpectedCompletionDate = nextNotifiedExpectedCompletionDate;
         } else if ((step as any).notifiedExpectedCompletionDate) {
           cleanStep.notifiedExpectedCompletionDate = (step as any).notifiedExpectedCompletionDate;
+        }
+
+        // Add startedAt and startedBy if status is in_progress
+        if (status === 'in_progress') {
+          const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Admin') as string;
+          cleanStep.startedAt = cleanStep.startedAt || new Date();
+          cleanStep.startedBy = cleanStep.startedBy || actor;
         }
 
         // Only add completedAt and completedBy if status is completed
