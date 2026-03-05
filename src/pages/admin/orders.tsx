@@ -332,6 +332,8 @@ function AdminOrdersPage() {
         : byStatus.filter((o) => o.assignedTo === assignmentFilter);
   const filteredOrders = normalizedQuery
     ? byAssignment.filter((o) => {
+        const countryName = o.country ? getCountryName(o.country) : '';
+        const destCountryName = (o as any).destinationCountryCode ? getCountryName((o as any).destinationCountryCode) : '';
         const fields = [
           o.orderNumber || o.id || '',
           `${o.customerInfo?.firstName || ''} ${o.customerInfo?.lastName || ''}`,
@@ -339,6 +341,10 @@ function AdminOrdersPage() {
           o.customerInfo?.email || '',
           o.customerInfo?.phone || '',
           o.country || '',
+          countryName,
+          (o as any).destinationCountry || '',
+          (o as any).destinationCountryCode || '',
+          destCountryName,
           o.status || '',
           o.invoiceReference || '',
           o.returnService || ''

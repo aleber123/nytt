@@ -1763,10 +1763,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
             <span class="detail-label">Selected services:</span>
             <span class="detail-value">${(() => { const SN: Record<string,string> = { apostille:'Apostille', notarization:'Notarization', embassy:'Embassy legalization', ud:'Ministry of Foreign Affairs legalization', translation:'Certified translation', chamber:'Chamber of Commerce legalization' }; return answers.services.map(s => SN[s] || s).join(', '); })()}</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Total amount:</span>
-            <span class="detail-value highlight">${pricingResult.totalPrice} SEK</span>
-          </div>
         </div>
       </div>
 
@@ -1954,10 +1950,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           <div class="detail-row">
             <span class="detail-label">Valda tjänster:</span>
             <span class="detail-value">${(() => { const SN: Record<string,string> = { apostille:'Apostille', notarization:'Notarisering', embassy:'Ambassadlegalisering', ud:'Utrikesdepartementets legalisering', translation:'Auktoriserad översättning', chamber:'Handelskammarens legalisering' }; return answers.services.map(s => SN[s] || s).join(', '); })()}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Totalbelopp:</span>
-            <span class="detail-value highlight">${pricingResult.totalPrice} kr</span>
           </div>
         </div>
       </div>
