@@ -47,7 +47,7 @@ const Seo: React.FC<SeoProps> = ({
     ? `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`
     : (pathWithoutLocale === '/' ? '' : pathWithoutLocale);
   const url = `${baseUrl}${canonicalPath}`;
-  const ogImage = image || `${baseUrl}/og-image.png`;
+  const ogImage = image || `${baseUrl}/og-image-v2.png`;
 
   // Create structured data for local business with AggregateRating
   const localBusinessData = {
