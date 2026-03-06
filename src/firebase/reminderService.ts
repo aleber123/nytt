@@ -98,6 +98,25 @@ export async function dismissReminder(reminderId: string): Promise<void> {
 }
 
 /**
+ * Update a reminder (edit message, dueDate, assignedTo, etc.)
+ */
+export async function updateReminder(reminderId: string, updates: Partial<Pick<OrderReminder, 'message' | 'dueDate' | 'assignedTo' | 'assignedToName'>>): Promise<void> {
+  if (!db) throw new Error('Database not initialized');
+  const docRef = doc(db, COLLECTION_NAME, reminderId);
+  const data: Record<string, any> = {};
+  if (updates.message !== undefined) data.message = updates.message;
+  if (updates.assignedTo !== undefined) data.assignedTo = updates.assignedTo;
+  if (updates.assignedToName !== undefined) data.assignedToName = updates.assignedToName;
+  if (updates.dueDate !== undefined) {
+    const d = typeof updates.dueDate === 'string' ? new Date(updates.dueDate) : updates.dueDate;
+    data.dueDate = d instanceof Date ? Timestamp.fromDate(d) : d;
+  }
+  if (Object.keys(data).length > 0) {
+    await updateDoc(docRef, data);
+  }
+}
+
+/**
  * Delete a reminder permanently
  */
 export async function deleteReminder(reminderId: string): Promise<void> {

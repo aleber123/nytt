@@ -10,14 +10,17 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, adminUser, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !currentUser) {
       router.push('/admin/login');
+    } else if (!loading && currentUser && adminUser === null) {
+      // User is authenticated but not an admin – redirect away
+      router.push('/');
     }
-  }, [currentUser, loading, router]);
+  }, [currentUser, adminUser, loading, router]);
 
   if (loading) {
     return (
@@ -28,7 +31,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!currentUser) {
+  if (!currentUser || !adminUser) {
     return null;
   }
 

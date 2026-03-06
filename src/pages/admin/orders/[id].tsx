@@ -1770,6 +1770,27 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Update a reminder (edit message/date)
+  const handleUpdateReminder = async (reminderId: string, updates: { message?: string; dueDate?: string }) => {
+    try {
+      const { updateReminder } = await import('@/firebase/reminderService');
+      await updateReminder(reminderId, updates);
+      setReminders(prev => prev.map(r => {
+        if (r.id !== reminderId) return r;
+        const updated = { ...r };
+        if (updates.message !== undefined) updated.message = updates.message;
+        if (updates.dueDate !== undefined) {
+          updated.dueDate = updates.dueDate;
+          updated.status = 'active' as const;
+        }
+        return updated;
+      }));
+      toast.success('Reminder updated');
+    } catch (err) {
+      toast.error('Failed to update reminder');
+    }
+  };
+
   // Load custom email templates from Firestore
   useEffect(() => {
     const loadCustomTemplates = async () => {
@@ -6515,11 +6536,13 @@ function AdminOrderDetailPage() {
                           </p>
                         </div>
                         {!isDismissed && (
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button onClick={() => handleSnoozeReminder(r.id, 1)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 1h">1h</button>
-                            <button onClick={() => handleSnoozeReminder(r.id, 24)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze 24h">24h</button>
-                            <button onClick={() => handleDismissReminder(r.id)} className="px-2 py-0.5 text-xs rounded bg-green-100 hover:bg-green-200 text-green-700" title="Mark as completed">Done</button>
-                          </div>
+                          <ReminderActions
+                            reminderId={r.id}
+                            reminder={r}
+                            onSnooze={handleSnoozeReminder}
+                            onDismiss={handleDismissReminder}
+                            onUpdate={handleUpdateReminder}
+                          />
                         )}
                       </div>
                     );
@@ -7422,6 +7445,111 @@ function AdminOrderDetailPage() {
         </div>
       )}
     </>
+  );
+}
+
+// ─── Snooze helpers ───
+function _getNextMorning(hour = 9): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+function _getNextMonday(hour = 9): Date {
+  const d = new Date();
+  const day = d.getDay();
+  const daysUntilMonday = day === 0 ? 1 : (8 - day);
+  d.setDate(d.getDate() + daysUntilMonday);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+
+// ─── Reminder Actions (snooze menu + edit + done) ───
+function ReminderActions({ reminderId, reminder, onSnooze, onDismiss, onUpdate }: {
+  reminderId: string;
+  reminder: any;
+  onSnooze: (id: string, hours: number) => void;
+  onDismiss: (id: string) => void;
+  onUpdate: (id: string, updates: { message?: string; dueDate?: string }) => void;
+}) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editMsg, setEditMsg] = useState(reminder.message || '');
+  const [editDate, setEditDate] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
+
+  const openEdit = () => {
+    setEditMsg(reminder.message || '');
+    const d = reminder.dueDate?.toDate ? reminder.dueDate.toDate() : new Date(reminder.dueDate);
+    setEditDate(d.toISOString().slice(0, 16));
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    const updates: { message?: string; dueDate?: string } = {};
+    if (editMsg.trim() && editMsg !== reminder.message) updates.message = editMsg.trim();
+    if (editDate) updates.dueDate = new Date(editDate).toISOString();
+    if (Object.keys(updates).length > 0) onUpdate(reminderId, updates);
+    setEditing(false);
+  };
+
+  const snoozeUntil = async (until: Date) => {
+    try {
+      const { snoozeReminder } = await import('@/firebase/reminderService');
+      await snoozeReminder(reminderId, until);
+      // Trigger a UI refresh via onSnooze with 0 hours (hacky but works since the DB is already updated)
+      window.location.reload();
+    } catch {
+      onSnooze(reminderId, 1);
+    }
+  };
+
+  const nextMon = _getNextMonday();
+  const monLabel = `Mon ${nextMon.getDate()}/${nextMon.getMonth() + 1}`;
+
+  return (
+    <div className="flex flex-col gap-1 flex-shrink-0">
+      <div className="flex items-center gap-1">
+        <div className="relative" ref={menuRef}>
+          <button onClick={() => setShowMenu(!showMenu)} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Snooze">💤</button>
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-20">
+              <button onClick={() => { onSnooze(reminderId, 1); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">⏰ 1 hour</button>
+              <button onClick={() => { onSnooze(reminderId, 4); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">⏰ 4 hours</button>
+              <button onClick={() => { snoozeUntil(_getNextMorning()); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">🌅 Tomorrow 09:00</button>
+              <button onClick={() => { snoozeUntil(_getNextMonday()); setShowMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">📅 {monLabel} 09:00</button>
+            </div>
+          )}
+        </div>
+        <button onClick={openEdit} className="px-2 py-0.5 text-xs rounded bg-gray-200 hover:bg-blue-200 text-gray-700" title="Edit">✏️</button>
+        <button onClick={() => onDismiss(reminderId)} className="px-2 py-0.5 text-xs rounded bg-green-100 hover:bg-green-200 text-green-700" title="Mark as completed">Done</button>
+      </div>
+      {editing && (
+        <div className="mt-1 p-2 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Message</label>
+            <input type="text" value={editMsg} onChange={e => setEditMsg(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded text-xs" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Due date</label>
+            <input type="datetime-local" value={editDate} onChange={e => setEditDate(e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded text-xs" />
+          </div>
+          <div className="flex gap-1 justify-end">
+            <button onClick={() => setEditing(false)} className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600 hover:bg-gray-200">Cancel</button>
+            <button onClick={saveEdit} className="px-2 py-0.5 text-xs rounded bg-primary-600 text-white hover:bg-primary-700">Save</button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

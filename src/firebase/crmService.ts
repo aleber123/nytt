@@ -41,6 +41,8 @@ export interface CrmLead {
   followUpDate?: string; // YYYY-MM-DD
   estimatedValue?: number; // SEK
   tags?: string[];
+  assignedTo?: string; // Admin user UID
+  assignedToName?: string; // Admin display name
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy?: string;

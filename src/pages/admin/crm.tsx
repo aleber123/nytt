@@ -68,6 +68,10 @@ function CrmPage() {
   const [editingLead, setEditingLead] = useState<Partial<CrmLead> | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Admin users for assignment
+  const [adminUsers, setAdminUsers] = useState<Array<{ id: string; email: string; displayName?: string; isActive: boolean }>>([]);
+  const [filterAssignee, setFilterAssignee] = useState<string>('all');
+
   // Detail / activity panel
   const [selectedLead, setSelectedLead] = useState<CrmLead | null>(null);
   const [activities, setActivities] = useState<CrmActivity[]>([]);
@@ -131,6 +135,20 @@ info@doxvl.se | doxvl.se`;
 
   useEffect(() => {
     loadLeads();
+    // Load admin users for assignment dropdown
+    const loadAdminUsers = async () => {
+      try {
+        const { getAllAdminUsers } = await import('@/firebase/userService');
+        const users = await getAllAdminUsers();
+        setAdminUsers(users.filter(u => u.isActive).map(u => ({
+          id: u.id,
+          email: u.email,
+          displayName: u.displayName,
+          isActive: u.isActive,
+        })));
+      } catch {}
+    };
+    loadAdminUsers();
   }, []);
 
   // ── FILTER & SORT ──
@@ -141,6 +159,13 @@ info@doxvl.se | doxvl.se`;
     }
     if (filterPriority !== 'all') {
       result = result.filter((l) => l.priority === filterPriority);
+    }
+    if (filterAssignee !== 'all') {
+      if (filterAssignee === 'unassigned') {
+        result = result.filter((l) => !l.assignedTo);
+      } else {
+        result = result.filter((l) => l.assignedTo === filterAssignee);
+      }
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -224,6 +249,7 @@ info@doxvl.se | doxvl.se`;
           tags: editingLead.tags || [],
           createdBy: adminName,
         };
+        if (editingLead.assignedTo) { newLead.assignedTo = editingLead.assignedTo; newLead.assignedToName = editingLead.assignedToName || ''; }
         if (editingLead.followUpDate) newLead.followUpDate = editingLead.followUpDate;
         if (editingLead.estimatedValue) newLead.estimatedValue = editingLead.estimatedValue;
         await createLead(newLead as any);
@@ -270,6 +296,20 @@ info@doxvl.se | doxvl.se`;
       if (selectedLead?.id === lead.id) setSelectedLead({ ...selectedLead, priority: newPriority } as CrmLead);
     } catch (e) {
       toast.error('Failed to update priority');
+    }
+  };
+
+  const handleAssignLead = async (lead: CrmLead, userId: string) => {
+    try {
+      const user = adminUsers.find(u => u.id === userId);
+      const assignedToName = user ? (user.displayName || user.email) : '';
+      const updates = userId ? { assignedTo: userId, assignedToName } : { assignedTo: '', assignedToName: '' };
+      await updateLead(lead.id!, updates);
+      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, ...updates } : l)));
+      if (selectedLead?.id === lead.id) setSelectedLead({ ...selectedLead, ...updates } as CrmLead);
+      toast.success(userId ? `Assigned to ${assignedToName}` : 'Unassigned');
+    } catch (e) {
+      toast.error('Failed to assign lead');
     }
   };
 
@@ -669,9 +709,20 @@ info@doxvl.se | doxvl.se`;
                 <option key={p.value} value={p.value}>{p.icon} {p.label}</option>
               ))}
             </select>
-            {(filterStatus !== 'all' || filterPriority !== 'all') && (
+            <select
+              value={filterAssignee}
+              onChange={(e) => setFilterAssignee(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+            >
+              <option value="all">All Assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {adminUsers.map((u) => (
+                <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+              ))}
+            </select>
+            {(filterStatus !== 'all' || filterPriority !== 'all' || filterAssignee !== 'all') && (
               <button
-                onClick={() => { setFilterStatus('all'); setFilterPriority('all'); }}
+                onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterAssignee('all'); }}
                 className="px-3 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 Clear filters ✕
@@ -701,6 +752,7 @@ info@doxvl.se | doxvl.se`;
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Follow-up</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                       </tr>
@@ -771,6 +823,21 @@ info@doxvl.se | doxvl.se`;
                               )}
                             </td>
                             <td className="px-4 py-3">
+                              <select
+                                value={lead.assignedTo || ''}
+                                onChange={(e) => { e.stopPropagation(); handleAssignLead(lead, e.target.value); }}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer ${
+                                  lead.assignedTo ? 'bg-indigo-100 text-indigo-700 font-medium' : 'bg-gray-50 text-gray-300'
+                                }`}
+                              >
+                                <option value="">—</option>
+                                {adminUsers.map((u) => (
+                                  <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-4 py-3">
                               <span className="text-xs text-gray-500">{SOURCE_OPTIONS.find((s) => s.value === lead.source)?.label || lead.source}</span>
                             </td>
                             <td className="px-4 py-3 text-right">
@@ -827,6 +894,21 @@ info@doxvl.se | doxvl.se`;
                   {selectedLead.estimatedValue != null && selectedLead.estimatedValue > 0 && (
                     <div><span className="text-gray-500">Est. value:</span> <span className="font-medium">{selectedLead.estimatedValue.toLocaleString()} SEK</span></div>
                   )}
+                  <div>
+                    <span className="text-gray-500">Assigned to:</span>{' '}
+                    <select
+                      value={selectedLead.assignedTo || ''}
+                      onChange={(e) => handleAssignLead(selectedLead, e.target.value)}
+                      className={`text-xs px-2 py-0.5 rounded border-0 cursor-pointer ml-1 ${
+                        selectedLead.assignedTo ? 'bg-indigo-100 text-indigo-700 font-medium' : 'bg-gray-50 text-gray-400'
+                      }`}
+                    >
+                      <option value="">Unassigned</option>
+                      {adminUsers.map((u) => (
+                        <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+                      ))}
+                    </select>
+                  </div>
                   {selectedLead.notes && (
                     <div className="bg-gray-50 rounded p-2 mt-2">
                       <span className="text-gray-500 text-xs block mb-1">Notes:</span>
@@ -1001,6 +1083,27 @@ info@doxvl.se | doxvl.se`;
                     ))}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
+                <select
+                  value={editingLead.assignedTo || ''}
+                  onChange={(e) => {
+                    const userId = e.target.value;
+                    const user = adminUsers.find(u => u.id === userId);
+                    setEditingLead({
+                      ...editingLead,
+                      assignedTo: userId || undefined,
+                      assignedToName: user ? (user.displayName || user.email) : undefined,
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                >
+                  <option value="">Unassigned</option>
+                  {adminUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.displayName || u.email}</option>
+                  ))}
+                </select>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>

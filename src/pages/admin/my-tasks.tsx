@@ -5,7 +5,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
-import { getRemindersByUser, snoozeReminder, dismissReminder, type OrderReminder } from '@/firebase/reminderService';
+import { getRemindersByUser, snoozeReminder, dismissReminder, updateReminder, type OrderReminder } from '@/firebase/reminderService';
 import toast from 'react-hot-toast';
 
 interface MyOrder {
@@ -83,6 +83,18 @@ function MyTasksPage() {
     setSnoozing(null);
   };
 
+  const handleSnoozeUntil = async (reminderId: string, until: Date) => {
+    setSnoozing(reminderId);
+    try {
+      await snoozeReminder(reminderId, until);
+      setMyReminders(prev => prev.map(r => r.id === reminderId ? { ...r, status: 'snoozed' as const, dueDate: until.toISOString() } : r));
+      toast.success(`Snoozed until ${until.toLocaleDateString('sv-SE')} ${until.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`);
+    } catch {
+      toast.error('Failed to snooze');
+    }
+    setSnoozing(null);
+  };
+
   const handleDismiss = async (reminderId: string) => {
     try {
       await dismissReminder(reminderId);
@@ -90,6 +102,25 @@ function MyTasksPage() {
       toast.success('Reminder dismissed');
     } catch {
       toast.error('Failed to dismiss');
+    }
+  };
+
+  const handleUpdate = async (reminderId: string, updates: { message?: string; dueDate?: string }) => {
+    try {
+      await updateReminder(reminderId, updates);
+      setMyReminders(prev => prev.map(r => {
+        if (r.id !== reminderId) return r;
+        const updated = { ...r };
+        if (updates.message !== undefined) updated.message = updates.message;
+        if (updates.dueDate !== undefined) {
+          updated.dueDate = updates.dueDate;
+          updated.status = 'active' as const;
+        }
+        return updated;
+      }));
+      toast.success('Reminder updated');
+    } catch {
+      toast.error('Failed to update');
     }
   };
 
@@ -235,7 +266,7 @@ function MyTasksPage() {
                       </h2>
                       <div className="space-y-2">
                         {overdueReminders.map(r => (
-                          <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onDismiss={handleDismiss} snoozing={snoozing} formatDateTime={formatDateTime} />
+                          <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onSnoozeUntil={handleSnoozeUntil} onDismiss={handleDismiss} onUpdate={handleUpdate} snoozing={snoozing} formatDateTime={formatDateTime} />
                         ))}
                       </div>
                     </div>
@@ -249,7 +280,7 @@ function MyTasksPage() {
                       </h2>
                       <div className="space-y-2">
                         {activeReminders.filter(r => !overdueReminders.includes(r)).map(r => (
-                          <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onDismiss={handleDismiss} snoozing={snoozing} formatDateTime={formatDateTime} />
+                          <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onSnoozeUntil={handleSnoozeUntil} onDismiss={handleDismiss} onUpdate={handleUpdate} snoozing={snoozing} formatDateTime={formatDateTime} />
                         ))}
                       </div>
                     </div>
@@ -399,7 +430,7 @@ function MyTasksPage() {
                           <h3 className="text-sm font-semibold text-red-700 uppercase tracking-wide mb-3">Overdue ({overdueReminders.length})</h3>
                           <div className="space-y-2">
                             {overdueReminders.map(r => (
-                              <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onDismiss={handleDismiss} snoozing={snoozing} formatDateTime={formatDateTime} />
+                              <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onSnoozeUntil={handleSnoozeUntil} onDismiss={handleDismiss} onUpdate={handleUpdate} snoozing={snoozing} formatDateTime={formatDateTime} />
                             ))}
                           </div>
                         </div>
@@ -409,7 +440,7 @@ function MyTasksPage() {
                           <h3 className="text-sm font-semibold text-amber-700 uppercase tracking-wide mb-3">Upcoming ({activeReminders.length - overdueReminders.length})</h3>
                           <div className="space-y-2">
                             {activeReminders.filter(r => !overdueReminders.includes(r)).map(r => (
-                              <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onDismiss={handleDismiss} snoozing={snoozing} formatDateTime={formatDateTime} />
+                              <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onSnoozeUntil={handleSnoozeUntil} onDismiss={handleDismiss} onUpdate={handleUpdate} snoozing={snoozing} formatDateTime={formatDateTime} />
                             ))}
                           </div>
                         </div>
@@ -419,7 +450,7 @@ function MyTasksPage() {
                           <h3 className="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-3">Snoozed ({snoozedReminders.length})</h3>
                           <div className="space-y-2">
                             {snoozedReminders.map(r => (
-                              <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onDismiss={handleDismiss} snoozing={snoozing} formatDateTime={formatDateTime} />
+                              <ReminderCard key={r.id} reminder={r} onSnooze={handleSnooze} onSnoozeUntil={handleSnoozeUntil} onDismiss={handleDismiss} onUpdate={handleUpdate} snoozing={snoozing} formatDateTime={formatDateTime} />
                             ))}
                           </div>
                         </div>
@@ -436,62 +467,154 @@ function MyTasksPage() {
   );
 }
 
+// ─── Snooze helpers ───
+function getNextMorning(hour = 9): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+function getNextMonday(hour = 9): Date {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun
+  const daysUntilMonday = day === 0 ? 1 : (8 - day);
+  d.setDate(d.getDate() + daysUntilMonday);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+
 // ─── Reminder Card Component ───
 function ReminderCard({
   reminder: r,
   onSnooze,
+  onSnoozeUntil,
   onDismiss,
+  onUpdate,
   snoozing,
   formatDateTime,
 }: {
   reminder: OrderReminder;
   onSnooze: (id: string, hours: number) => void;
+  onSnoozeUntil: (id: string, until: Date) => void;
   onDismiss: (id: string) => void;
+  onUpdate: (id: string, updates: { message?: string; dueDate?: string }) => void;
   snoozing: string | null;
   formatDateTime: (ts: any) => string;
 }) {
+  const [showSnoozeMenu, setShowSnoozeMenu] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [editMsg, setEditMsg] = React.useState(r.message);
+  const [editDate, setEditDate] = React.useState('');
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
   const due = r.dueDate && typeof r.dueDate === 'object' && 'toDate' in r.dueDate ? (r.dueDate as any).toDate() : new Date(r.dueDate as string);
   const isOverdue = due < new Date();
 
+  // Close menu on outside click
+  React.useEffect(() => {
+    if (!showSnoozeMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowSnoozeMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSnoozeMenu]);
+
+  const openEdit = () => {
+    setEditMsg(r.message);
+    const d = r.dueDate && typeof r.dueDate === 'object' && 'toDate' in r.dueDate ? (r.dueDate as any).toDate() : new Date(r.dueDate as string);
+    setEditDate(d.toISOString().slice(0, 16));
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    const updates: { message?: string; dueDate?: string } = {};
+    if (editMsg.trim() && editMsg !== r.message) updates.message = editMsg.trim();
+    if (editDate) updates.dueDate = new Date(editDate).toISOString();
+    if (Object.keys(updates).length > 0) onUpdate(r.id!, updates);
+    setEditing(false);
+  };
+
+  const nextMon = getNextMonday();
+  const monLabel = `Mon ${nextMon.getDate()}/${nextMon.getMonth() + 1}`;
+
   return (
-    <div className={`flex items-start justify-between gap-4 px-4 py-3 rounded-xl border transition-colors ${
+    <div className={`px-4 py-3 rounded-xl border transition-colors ${
       isOverdue ? 'bg-red-50 border-red-200' : r.status === 'snoozed' ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
     }`}>
-      <Link href={`/admin/orders/${r.orderId}`} className="flex-1 min-w-0 hover:opacity-80">
-        <p className={`text-sm font-medium ${isOverdue ? 'text-red-800' : 'text-gray-900'}`}>{r.message}</p>
-        <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-          <span className="font-medium">{r.orderNumber || r.orderId.slice(0, 8)}</span>
-          <span>·</span>
-          <span>Due: {formatDateTime(r.dueDate)}</span>
-          {isOverdue && <span className="text-red-600 font-semibold">OVERDUE</span>}
-          {r.status === 'snoozed' && <span className="text-purple-600 font-medium">SNOOZED</span>}
+      <div className="flex items-start justify-between gap-4">
+        <Link href={`/admin/orders/${r.orderId}`} className="flex-1 min-w-0 hover:opacity-80">
+          <p className={`text-sm font-medium ${isOverdue ? 'text-red-800' : 'text-gray-900'}`}>{r.message}</p>
+          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+            <span className="font-medium">{r.orderNumber || r.orderId.slice(0, 8)}</span>
+            <span>·</span>
+            <span>Due: {formatDateTime(r.dueDate)}</span>
+            {isOverdue && <span className="text-red-600 font-semibold">OVERDUE</span>}
+            {r.status === 'snoozed' && <span className="text-purple-600 font-medium">SNOOZED</span>}
+          </div>
+        </Link>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
+              disabled={snoozing === r.id}
+              className="px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
+              title="Snooze"
+            >
+              💤
+            </button>
+            {showSnoozeMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-20">
+                <button onClick={() => { onSnooze(r.id!, 1); setShowSnoozeMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">⏰ 1 hour</button>
+                <button onClick={() => { onSnooze(r.id!, 4); setShowSnoozeMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">⏰ 4 hours</button>
+                <button onClick={() => { onSnoozeUntil(r.id!, getNextMorning()); setShowSnoozeMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">🌅 Tomorrow 09:00</button>
+                <button onClick={() => { onSnoozeUntil(r.id!, getNextMonday()); setShowSnoozeMenu(false); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-700">📅 {monLabel} 09:00</button>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={openEdit}
+            className="px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700"
+            title="Edit reminder"
+          >
+            ✏️
+          </button>
+          <button
+            onClick={() => onDismiss(r.id!)}
+            className="px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600"
+            title="Dismiss"
+          >
+            ✕
+          </button>
         </div>
-      </Link>
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <button
-          onClick={() => onSnooze(r.id!, 1)}
-          disabled={snoozing === r.id}
-          className="px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
-          title="Snooze 1 hour"
-        >
-          1h
-        </button>
-        <button
-          onClick={() => onSnooze(r.id!, 24)}
-          disabled={snoozing === r.id}
-          className="px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
-          title="Snooze 24 hours"
-        >
-          24h
-        </button>
-        <button
-          onClick={() => onDismiss(r.id!)}
-          className="px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600"
-          title="Dismiss"
-        >
-          ✕
-        </button>
       </div>
+
+      {editing && (
+        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Message</label>
+            <input
+              type="text"
+              value={editMsg}
+              onChange={e => setEditMsg(e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Due date</label>
+            <input
+              type="datetime-local"
+              value={editDate}
+              onChange={e => setEditDate(e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setEditing(false)} className="px-3 py-1 text-xs rounded bg-gray-100 text-gray-600 hover:bg-gray-200">Cancel</button>
+            <button onClick={saveEdit} className="px-3 py-1 text-xs rounded bg-primary-600 text-white hover:bg-primary-700">Save</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

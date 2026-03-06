@@ -44,7 +44,7 @@ export default function OverviewTab({
   onConfirmReturnAddress,
   internalNoteText, setInternalNoteText, addInternalNote,
 }: OverviewTabProps) {
-  const [activityFilter, setActivityFilter] = useState<'all' | 'admin' | 'customer' | 'system'>('all');
+  const [activityFilter, setActivityFilter] = useState<Set<string>>(new Set(['admin', 'customer', 'system']));
   const quoteStatus = (order as any).quote?.status as string | undefined;
   const quoteSentAt = (order as any).quote?.sentAt as string | undefined;
   const quoteRespondedAt = (order as any).quote?.respondedAt as string | undefined;
@@ -437,26 +437,44 @@ export default function OverviewTab({
                                 </button>
                               </div>
 
-                              {/* Filter buttons */}
+                              {/* Filter buttons (multi-select) */}
                               <div className="flex gap-1 mb-3">
-                                {([
-                                  { key: 'all', label: 'All' },
-                                  { key: 'admin', label: 'Admin' },
-                                  { key: 'customer', label: 'Customer' },
-                                  { key: 'system', label: 'System' },
-                                ] as const).map(f => (
-                                  <button
-                                    key={f.key}
-                                    onClick={() => setActivityFilter(f.key)}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                                      activityFilter === f.key
-                                        ? 'bg-primary-100 text-primary-800 border border-primary-300'
-                                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                                    }`}
-                                  >
-                                    {f.label}
-                                  </button>
-                                ))}
+                                {(() => {
+                                  const allTypes = ['admin', 'customer', 'system'];
+                                  const isAll = allTypes.every(t => activityFilter.has(t));
+                                  const toggleFilter = (key: string) => {
+                                    if (key === 'all') {
+                                      setActivityFilter(new Set(allTypes));
+                                      return;
+                                    }
+                                    const next = new Set(activityFilter);
+                                    if (next.has(key)) {
+                                      next.delete(key);
+                                      if (next.size === 0) { setActivityFilter(new Set(allTypes)); return; }
+                                    } else {
+                                      next.add(key);
+                                    }
+                                    setActivityFilter(next);
+                                  };
+                                  return [
+                                    { key: 'all', label: 'All' },
+                                    { key: 'admin', label: 'Admin' },
+                                    { key: 'customer', label: 'Customer' },
+                                    { key: 'system', label: 'System' },
+                                  ].map(f => (
+                                    <button
+                                      key={f.key}
+                                      onClick={() => toggleFilter(f.key)}
+                                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                        (f.key === 'all' ? isAll : activityFilter.has(f.key))
+                                          ? 'bg-primary-100 text-primary-800 border border-primary-300'
+                                          : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                                      }`}
+                                    >
+                                      {f.label}
+                                    </button>
+                                  ));
+                                })()}
                               </div>
 
                               {/* Activity items */}
@@ -509,17 +527,18 @@ export default function OverviewTab({
                                   // Processing step status changes
                                   processingSteps.forEach((step) => {
                                     const s = step as any;
-                                    // In progress
+                                    // In progress — only show spinner if step is still in_progress
                                     if (s.startedAt) {
                                       const date = typeof s.startedAt === 'object' && 'toDate' in s.startedAt ? s.startedAt.toDate() : new Date(s.startedAt);
+                                      const isStillInProgress = step.status === 'in_progress';
                                       items.push({
                                         id: `step_started_${step.id}`,
                                         type: 'system',
-                                        content: `${stripFlagEmoji(step.name)} → In progress`,
+                                        content: `${stripFlagEmoji(step.name)} → ${isStillInProgress ? 'In progress' : 'Started'}`,
                                         createdAt: date,
                                         createdBy: s.startedBy || 'System',
-                                        icon: 'spinner',
-                                        color: 'border-blue-200 bg-blue-50',
+                                        icon: isStillInProgress ? 'spinner' : 'started',
+                                        color: isStillInProgress ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50',
                                       });
                                     }
                                     // Completed
@@ -541,7 +560,7 @@ export default function OverviewTab({
                                   items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
                                   // Apply filter
-                                  const filtered = activityFilter === 'all' ? items : items.filter(i => i.type === activityFilter);
+                                  const filtered = items.filter(i => activityFilter.has(i.type));
 
                                   if (filtered.length === 0) {
                                     return <div className="text-sm text-gray-500 py-4 text-center">No activity yet</div>;
@@ -553,6 +572,7 @@ export default function OverviewTab({
                                         <span className="text-sm flex-shrink-0 mt-0.5">{
                                           item.icon === 'spinner' ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" /> :
                                           item.icon === 'check' ? <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center"><svg className="w-3 h-3 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></div> :
+                                          item.icon === 'started' ? <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center"><svg className="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></div> :
                                           item.icon
                                         }</span>
                                         <div className="flex-1 min-w-0">
