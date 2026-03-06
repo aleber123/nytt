@@ -260,8 +260,8 @@ const Seo: React.FC<SeoProps> = ({
       <meta property="og:description" content={description} />
       <meta property="og:url" content={url} />
       <meta property="og:image" content={ogImage} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
+      <meta property="og:image:width" content="1280" />
+      <meta property="og:image:height" content="800" />
       <meta property="og:image:alt" content={title} />
       <meta property="og:locale" content="sv_SE" />
       <meta property="og:locale:alternate" content="en_GB" />
