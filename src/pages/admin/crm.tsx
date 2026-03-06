@@ -244,11 +244,11 @@ info@doxvl.se | doxvl.se`;
           website: editingLead.website || '',
           status: editingLead.status || 'new',
           source: editingLead.source || 'other',
-          priority: editingLead.priority || undefined,
           notes: editingLead.notes || '',
           tags: editingLead.tags || [],
           createdBy: adminName,
         };
+        if (editingLead.priority) newLead.priority = editingLead.priority;
         if (editingLead.assignedTo) { newLead.assignedTo = editingLead.assignedTo; newLead.assignedToName = editingLead.assignedToName || ''; }
         if (editingLead.followUpDate) newLead.followUpDate = editingLead.followUpDate;
         if (editingLead.estimatedValue) newLead.estimatedValue = editingLead.estimatedValue;

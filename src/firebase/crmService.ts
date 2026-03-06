@@ -87,8 +87,13 @@ export const createLead = async (lead: Omit<CrmLead, 'id' | 'createdAt' | 'updat
 export const updateLead = async (id: string, data: Partial<CrmLead>): Promise<void> => {
   if (!db) throw new Error('Firestore is not initialized');
   const { id: _id, ...rest } = data as any;
+  // Strip undefined values — Firestore does not accept them
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(rest)) {
+    if (v !== undefined) clean[k] = v;
+  }
   await updateDoc(doc(db, CRM_LEADS_COLLECTION, id), {
-    ...rest,
+    ...clean,
     updatedAt: Timestamp.now(),
   });
 };
