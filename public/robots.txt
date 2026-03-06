@@ -13,7 +13,6 @@ Disallow: /quote/
 Disallow: /upload-documents/
 Disallow: /shipping-label
 Disallow: /test-*
-Disallow: /_next/
 Disallow: /404
 Disallow: /500
 Disallow: /portal
@@ -80,12 +79,18 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
 # Host
 Host: https://doxvl.se
 
 # Sitemaps
 Sitemap: https://doxvl.se/sitemap.xml
 
-# LLM content files
-# https://doxvl.se/llms.txt
-# https://doxvl.se/llms-full.txt
+# LLM content files (llms.txt standard)
+Llms-Txt: https://doxvl.se/llms.txt
+Llms-Full-Txt: https://doxvl.se/llms-full.txt

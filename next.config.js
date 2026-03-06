@@ -74,6 +74,13 @@ const nextConfig = {
         ],
       },
       {
+        source: '/1a4523ead619b9de4719eeb9222e3da5.txt',
+        headers: [
+          { key: 'Content-Type', value: 'text/plain; charset=utf-8' },
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+        ],
+      },
+      {
         source: '/.well-known/ai-plugin.json',
         headers: [
           { key: 'Content-Type', value: 'application/json' },

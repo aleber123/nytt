@@ -47,7 +47,7 @@ const Seo: React.FC<SeoProps> = ({
     ? `/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`
     : (pathWithoutLocale === '/' ? '' : pathWithoutLocale);
   const url = `${baseUrl}${canonicalPath}`;
-  const ogImage = image || `${baseUrl}/dox-logo-new.png`;
+  const ogImage = image || `${baseUrl}/og-image.png`;
 
   // Create structured data for local business with AggregateRating
   const localBusinessData = {
@@ -212,6 +212,19 @@ const Seo: React.FC<SeoProps> = ({
     })
   } : null;
 
+  // Speakable schema for voice assistants (Google Assistant, Siri, Alexa)
+  const speakableSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": title,
+    "description": description,
+    "url": url,
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": ["h1", ".speakable", "[data-speakable]"]
+    }
+  };
+
   // Create BreadcrumbList schema
   const pathSegments = router.asPath.split('/').filter(Boolean);
   const breadcrumbSchema = pathSegments.length > 0 ? {
@@ -249,6 +262,7 @@ const Seo: React.FC<SeoProps> = ({
       <meta property="og:image" content={ogImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={title} />
       <meta property="og:locale" content="sv_SE" />
       <meta property="og:locale:alternate" content="en_GB" />
 
@@ -257,6 +271,7 @@ const Seo: React.FC<SeoProps> = ({
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
+      <meta name="twitter:image:alt" content={title} />
 
       {/* Additional SEO meta tags */}
       <meta name="author" content="DOX Visumpartner" />
@@ -308,6 +323,12 @@ const Seo: React.FC<SeoProps> = ({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
         />
       )}
+
+      {/* Structured Data - Speakable (voice search) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(speakableSchema) }}
+      />
     </Head>
   );
 };
