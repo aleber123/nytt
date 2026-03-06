@@ -30,6 +30,17 @@ class MyDocument extends Document {
           <link rel="dns-prefetch" href="//firebasestorage.googleapis.com" />
           <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
           
+          {/* Fallback Open Graph tags — ensures crawlers (LinkedIn etc.) see proper data */}
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="DOX Visumpartner AB" />
+          <meta property="og:title" content="DOX Visumpartner — Legalisering, Apostille & Visum" />
+          <meta property="og:description" content="Sveriges ledande byrå för dokumentlegalisering och visumtjänster. Apostille, UD-legalisering, ambassadlegalisering och visum. Snabb service i Stockholm." />
+          <meta property="og:url" content="https://doxvl.se" />
+          <meta property="og:image" content="https://doxvl.se/dox-logo-new.png" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta property="og:locale" content="sv_SE" />
+
           {/* Verification tags (add your IDs when available) */}
           {/* <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" /> */}
           {/* <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" /> */}
