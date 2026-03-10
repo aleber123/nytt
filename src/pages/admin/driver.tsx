@@ -786,9 +786,11 @@ function DriverDashboardPage() {
         // Get destination country info for embassy name
         const destCountry = ALL_COUNTRIES.find(c => 
           c.code === visaOrder.destinationCountryCode?.toUpperCase() ||
-          c.name.toLowerCase() === visaOrder.destinationCountry?.toLowerCase()
+          c.name.toLowerCase() === visaOrder.destinationCountry?.toLowerCase() ||
+          c.nameEn?.toLowerCase() === visaOrder.destinationCountry?.toLowerCase()
         );
-        const embassyName = destCountry?.nameEn || destCountry?.name || visaOrder.destinationCountry || 'Unknown';
+        // Try multiple fallbacks: country object, destinationCountry field, visaProduct name (often contains country)
+        const embassyName = destCountry?.nameEn || destCountry?.name || visaOrder.destinationCountry || visaOrder.visaProduct?.name?.split(' ')[0] || 'Unknown';
 
         processingSteps.forEach((step: ProcessingStep) => {
           let taskType: 'pickup' | 'delivery' | null = null;

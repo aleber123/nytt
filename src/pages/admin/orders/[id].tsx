@@ -100,6 +100,44 @@ interface AdminNote {
   type: 'general' | 'processing' | 'customer' | 'issue';
 }
 
+// Translate service labels for confirmed prices based on locale
+const translatePriceLabel = (label: string, locale: 'en' | 'sv'): string => {
+  const translations: Record<string, { en: string; sv: string }> = {
+    // Apostille
+    'apostille - officiell avgift': { en: 'Apostille - Official fee', sv: 'Apostille - Officiell avgift' },
+    'apostille - official fee': { en: 'Apostille - Official fee', sv: 'Apostille - Officiell avgift' },
+    'dox visumpartner serviceavgift (apostille)': { en: 'DOX Visumpartner service fee (Apostille)', sv: 'DOX Visumpartner serviceavgift (Apostille)' },
+    'dox visumpartner service fee (apostille)': { en: 'DOX Visumpartner service fee (Apostille)', sv: 'DOX Visumpartner serviceavgift (Apostille)' },
+    // Notarization
+    'notarisering - officiell avgift': { en: 'Notarization - Official fee', sv: 'Notarisering - Officiell avgift' },
+    'notarization - official fee': { en: 'Notarization - Official fee', sv: 'Notarisering - Officiell avgift' },
+    'dox visumpartner serviceavgift (notarisering)': { en: 'DOX Visumpartner service fee (Notarization)', sv: 'DOX Visumpartner serviceavgift (Notarisering)' },
+    'dox visumpartner service fee (notarization)': { en: 'DOX Visumpartner service fee (Notarization)', sv: 'DOX Visumpartner serviceavgift (Notarisering)' },
+    // Certified translation
+    'certified translation - official fee': { en: 'Certified translation - Official fee', sv: 'Auktoriserad översättning - Officiell avgift' },
+    'auktoriserad översättning - officiell avgift': { en: 'Certified translation - Official fee', sv: 'Auktoriserad översättning - Officiell avgift' },
+    'dox visumpartner serviceavgift (certified translation)': { en: 'DOX Visumpartner service fee (Certified translation)', sv: 'DOX Visumpartner serviceavgift (Auktoriserad översättning)' },
+    'dox visumpartner service fee (certified translation)': { en: 'DOX Visumpartner service fee (Certified translation)', sv: 'DOX Visumpartner serviceavgift (Auktoriserad översättning)' },
+    // Embassy
+    'embassy - official fee': { en: 'Embassy - Official fee', sv: 'Ambassad - Officiell avgift' },
+    'ambassad - officiell avgift': { en: 'Embassy - Official fee', sv: 'Ambassad - Officiell avgift' },
+    'dox visumpartner serviceavgift (embassy)': { en: 'DOX Visumpartner service fee (Embassy)', sv: 'DOX Visumpartner serviceavgift (Ambassad)' },
+    'dox visumpartner service fee (embassy)': { en: 'DOX Visumpartner service fee (Embassy)', sv: 'DOX Visumpartner serviceavgift (Ambassad)' },
+    // UD (Foreign Ministry)
+    'ud - officiell avgift': { en: 'Foreign Ministry - Official fee', sv: 'UD - Officiell avgift' },
+    'foreign ministry - official fee': { en: 'Foreign Ministry - Official fee', sv: 'UD - Officiell avgift' },
+    'dox visumpartner serviceavgift (ud)': { en: 'DOX Visumpartner service fee (Foreign Ministry)', sv: 'DOX Visumpartner serviceavgift (UD)' },
+    'dox visumpartner service fee (foreign ministry)': { en: 'DOX Visumpartner service fee (Foreign Ministry)', sv: 'DOX Visumpartner serviceavgift (UD)' },
+    // Generic service fee
+    'dox visumpartner serviceavgift': { en: 'DOX Visumpartner service fee', sv: 'DOX Visumpartner serviceavgift' },
+    'dox visumpartner service fee': { en: 'DOX Visumpartner service fee', sv: 'DOX Visumpartner serviceavgift' },
+  };
+  
+  const normalizedLabel = label.toLowerCase().trim();
+  const translation = translations[normalizedLabel];
+  return translation ? translation[locale] : label;
+};
+
 // Helper function to get friendly return service name
 const getReturnServiceName = (serviceCode: string | undefined): string => {
   if (!serviceCode) return 'return';
@@ -3358,7 +3396,7 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesOwn.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; color:#374151;">${translatePriceLabel(p.label || '', 'en')}</td>
                     <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
@@ -3374,7 +3412,7 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesOwn.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; color:#374151;">${translatePriceLabel(p.label || '', 'sv')}</td>
                     <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
@@ -3636,7 +3674,7 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesPickup.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; color:#374151;">${translatePriceLabel(p.label || '', 'en')}</td>
                     <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
@@ -3652,7 +3690,7 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPricesPickup.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; color:#374151;">${translatePriceLabel(p.label || '', 'sv')}</td>
                     <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
@@ -3928,7 +3966,7 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPrices.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; color:#374151;">${translatePriceLabel(p.label || '', 'en')}</td>
                     <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}
@@ -3944,7 +3982,7 @@ function AdminOrderDetailPage() {
                 <table style="width:100%; border-collapse:collapse;">
                   ${savedConfirmedPrices.map((p: {label: string; amount: string}) => `
                   <tr>
-                    <td style="padding:6px 0; color:#374151;">${p.label || ''}</td>
+                    <td style="padding:6px 0; color:#374151;">${translatePriceLabel(p.label || '', 'sv')}</td>
                     <td style="padding:6px 0; text-align:right; font-weight:600; color:#166534;">${p.amount || ''}</td>
                   </tr>
                   `).join('')}

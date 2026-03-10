@@ -263,19 +263,16 @@ function AdminIndexPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl font-bold text-gray-900">
               Admin Panel
             </h1>
-            <p className="text-xl text-gray-600">
-              Manage prices, orders and everything else for your legalization service
-            </p>
           </div>
 
           {/* Top actions (including Sign Out) */}
           <div className="flex justify-end mb-8">
             <button
               onClick={() => signOut()}
-              className="text-sm font-medium text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
             >
               Sign Out
             </button>
