@@ -118,6 +118,16 @@ info@doxvl.se | doxvl.se`;
   const [bulkTemplate, setBulkTemplate] = useState<EmailTemplate>('personal');
   const [sendingBulk, setSendingBulk] = useState(false);
 
+  // Reminder modal
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [reminderLeadId, setReminderLeadId] = useState('');
+  const [reminderLeadLabel, setReminderLeadLabel] = useState('');
+  const [reminderMessage, setReminderMessage] = useState('');
+  const [reminderDueDate, setReminderDueDate] = useState('');
+  const [reminderType, setReminderType] = useState<'call' | 'email' | 'meeting' | 'follow-up' | 'other'>('call');
+  const [reminderAssignees, setReminderAssignees] = useState<string[]>([]);
+  const [savingReminder, setSavingReminder] = useState(false);
+
   const adminName = currentUser?.displayName || currentUser?.email || 'Admin';
 
   // ── LOAD ──
@@ -556,6 +566,42 @@ info@doxvl.se | doxvl.se`;
     }
   };
 
+  const handleSaveReminder = async () => {
+    if (!reminderLeadId || !reminderMessage.trim() || !reminderDueDate || reminderAssignees.length === 0) return;
+    try {
+      setSavingReminder(true);
+      const { createCrmReminder } = await import('@/firebase/reminderService');
+      
+      // Create a reminder for each assignee
+      for (const assigneeId of reminderAssignees) {
+        const assignee = adminUsers.find(u => u.id === assigneeId);
+        const assigneeName = assignee?.displayName || assignee?.email || '';
+        await createCrmReminder({
+          leadId: reminderLeadId,
+          leadLabel: reminderLeadLabel,
+          assignedTo: assigneeId,
+          assignedToName: assigneeName,
+          message: reminderMessage.trim(),
+          dueDate: new Date(reminderDueDate),
+          reminderType: reminderType,
+          createdBy: adminName,
+        });
+      }
+      
+      toast.success(reminderAssignees.length > 1 
+        ? `Reminder set for ${reminderAssignees.length} people` 
+        : 'Reminder set!');
+      setReminderModalOpen(false);
+      setReminderMessage('');
+      setReminderDueDate('');
+      setReminderAssignees([]);
+    } catch (e) {
+      toast.error('Failed to create reminder');
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
   const handleAddActivity = async () => {
     if (!selectedLead?.id || !newActivityText.trim()) return;
     try {
@@ -930,6 +976,25 @@ info@doxvl.se | doxvl.se`;
                     className="flex-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100"
                   >
                     📧 Send Email
+                  </button>
+                </div>
+
+                {/* Reminders */}
+                <div className="border-t border-gray-200 pt-4 mb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">🔔 Reminders</h4>
+                  <button
+                    onClick={() => {
+                      setReminderLeadId(selectedLead.id || '');
+                      setReminderLeadLabel(selectedLead.companyName || selectedLead.contactName || '');
+                      setReminderMessage('');
+                      setReminderDueDate('');
+                      setReminderType('call');
+                      setReminderAssignees(currentUser?.uid ? [currentUser.uid] : []);
+                      setReminderModalOpen(true);
+                    }}
+                    className="w-full px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 flex items-center justify-center gap-2"
+                  >
+                    <span>⏰</span> Set Reminder
                   </button>
                 </div>
 
@@ -1506,6 +1571,119 @@ info@doxvl.se | doxvl.se`;
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── REMINDER MODAL ── */}
+      {reminderModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">⏰ Set Reminder</h2>
+              <button onClick={() => setReminderModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-blue-800">{reminderLeadLabel}</p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Reminder Type</label>
+                <select
+                  value={reminderType}
+                  onChange={(e) => setReminderType(e.target.value as typeof reminderType)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="call">📞 Call</option>
+                  <option value="email">✉️ Email</option>
+                  <option value="meeting">🤝 Meeting</option>
+                  <option value="follow-up">🔄 Follow-up</option>
+                  <option value="other">📋 Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Message</label>
+                <input
+                  type="text"
+                  value={reminderMessage}
+                  onChange={(e) => setReminderMessage(e.target.value)}
+                  placeholder="e.g. Call to discuss proposal"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Due Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={reminderDueDate}
+                  onChange={(e) => setReminderDueDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Assign to</label>
+                <div className="border border-gray-300 rounded-lg p-2 max-h-40 overflow-y-auto space-y-1">
+                  <label className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reminderAssignees.length === adminUsers.length && adminUsers.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setReminderAssignees(adminUsers.map(u => u.id));
+                        } else {
+                          setReminderAssignees([]);
+                        }
+                      }}
+                      className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-xs font-medium text-gray-700">Select all</span>
+                  </label>
+                  <div className="border-t border-gray-200 pt-1 mt-1">
+                    {adminUsers.map(u => (
+                      <label key={u.id} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={reminderAssignees.includes(u.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setReminderAssignees(prev => [...prev, u.id]);
+                            } else {
+                              setReminderAssignees(prev => prev.filter(id => id !== u.id));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-xs text-gray-700">{u.displayName || u.email}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {reminderAssignees.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {reminderAssignees.length} {reminderAssignees.length === 1 ? 'person' : 'people'} selected
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setReminderModalOpen(false)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveReminder}
+                disabled={savingReminder || !reminderMessage.trim() || !reminderDueDate || reminderAssignees.length === 0}
+                className="px-6 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+              >
+                {savingReminder ? 'Saving...' : reminderAssignees.length > 1 ? `Set for ${reminderAssignees.length} people` : 'Set Reminder'}
+              </button>
             </div>
           </div>
         </div>

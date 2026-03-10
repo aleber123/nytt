@@ -857,9 +857,31 @@ function UnifiedEditModal({
   const [urgentEmbassyFee, setUrgentEmbassyFee] = useState('');
   const [urgentDoxFee, setUrgentDoxFee] = useState('');
 
-  const totalPrice = (parseInt(productServiceFee) || 0) + (parseInt(embassyFee) || 0);
-  const totalExpressPrice = (parseInt(expressEmbassyFee) || 0) + (parseInt(expressDoxFee) || 0);
-  const totalUrgentPrice = (parseInt(urgentEmbassyFee) || 0) + (parseInt(urgentDoxFee) || 0);
+  // Calculate prices: serviceFee is ex VAT (add 25%), embassyFee is 0% VAT
+  const serviceFeeExVat = parseInt(productServiceFee) || 0;
+  const serviceFeeInkVat = Math.round(serviceFeeExVat * 1.25);
+  const embassyFeeVal = parseInt(embassyFee) || 0;
+  const totalPriceExVat = serviceFeeExVat + embassyFeeVal;
+  const totalPriceInkVat = serviceFeeInkVat + embassyFeeVal;
+  
+  // Express: DOX fee is ex VAT (add 25%), embassy fee is 0% VAT
+  const expressDoxFeeExVat = parseInt(expressDoxFee) || 0;
+  const expressDoxFeeInkVat = Math.round(expressDoxFeeExVat * 1.25);
+  const expressEmbassyFeeVal = parseInt(expressEmbassyFee) || 0;
+  const totalExpressPriceExVat = expressDoxFeeExVat + expressEmbassyFeeVal;
+  const totalExpressPriceInkVat = expressDoxFeeInkVat + expressEmbassyFeeVal;
+  
+  // Urgent: DOX fee is ex VAT (add 25%), embassy fee is 0% VAT
+  const urgentDoxFeeExVat = parseInt(urgentDoxFee) || 0;
+  const urgentDoxFeeInkVat = Math.round(urgentDoxFeeExVat * 1.25);
+  const urgentEmbassyFeeVal = parseInt(urgentEmbassyFee) || 0;
+  const totalUrgentPriceExVat = urgentDoxFeeExVat + urgentEmbassyFeeVal;
+  const totalUrgentPriceInkVat = urgentDoxFeeInkVat + urgentEmbassyFeeVal;
+  
+  // Keep old variable names for backwards compatibility in save logic
+  const totalPrice = totalPriceExVat;
+  const totalExpressPrice = totalExpressPriceExVat;
+  const totalUrgentPrice = totalUrgentPriceExVat;
 
   const handleEditProduct = (product: VisaProduct) => {
     setEditingProductId(product.id);
@@ -1451,9 +1473,10 @@ function UnifiedEditModal({
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                           />
                         </div>
-                        {totalPrice > 0 && (
-                          <div className="flex items-center">
-                            <span className="text-sm font-medium text-green-600">Total: {totalPrice} kr</span>
+                        {totalPriceExVat > 0 && (
+                          <div className="flex flex-col">
+                            <span className="text-xs text-gray-500">Total ex VAT: {totalPriceExVat} kr</span>
+                            <span className="text-sm font-medium text-green-600">Total inkl. moms: {totalPriceInkVat} kr</span>
                           </div>
                         )}
                         <div>
@@ -1512,9 +1535,10 @@ function UnifiedEditModal({
                                 />
                               </div>
                             </div>
-                            {totalExpressPrice > 0 && (
-                              <div className="text-sm text-amber-700 font-medium">
-                                Total Express: {totalExpressPrice} kr
+                            {totalExpressPriceExVat > 0 && (
+                              <div className="flex flex-col">
+                                <span className="text-xs text-gray-500">Express ex VAT: {totalExpressPriceExVat} kr</span>
+                                <span className="text-sm text-amber-700 font-medium">Express inkl. moms: {totalExpressPriceInkVat} kr</span>
                               </div>
                             )}
                           </div>
@@ -1566,9 +1590,10 @@ function UnifiedEditModal({
                                 />
                               </div>
                             </div>
-                            {totalUrgentPrice > 0 && (
-                              <div className="text-sm text-red-700 font-medium">
-                                Total Urgent: {totalUrgentPrice} kr
+                            {totalUrgentPriceExVat > 0 && (
+                              <div className="flex flex-col">
+                                <span className="text-xs text-gray-500">Urgent ex VAT: {totalUrgentPriceExVat} kr</span>
+                                <span className="text-sm text-red-700 font-medium">Urgent inkl. moms: {totalUrgentPriceInkVat} kr</span>
                               </div>
                             )}
                           </div>

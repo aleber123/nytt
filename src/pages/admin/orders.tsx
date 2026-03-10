@@ -334,6 +334,10 @@ function AdminOrdersPage() {
     ? byAssignment.filter((o) => {
         const countryName = o.country ? getCountryName(o.country) : '';
         const destCountryName = (o as any).destinationCountryCode ? getCountryName((o as any).destinationCountryCode) : '';
+        // Get traveler names from travelers array
+        const travelerNames = ((o as any).travelers || [])
+          .map((t: any) => `${t.firstName || ''} ${t.lastName || ''}`.trim())
+          .join(' ');
         const fields = [
           o.orderNumber || o.id || '',
           `${o.customerInfo?.firstName || ''} ${o.customerInfo?.lastName || ''}`,
@@ -347,7 +351,8 @@ function AdminOrdersPage() {
           destCountryName,
           o.status || '',
           o.invoiceReference || '',
-          o.returnService || ''
+          o.returnService || '',
+          travelerNames
         ].join(' ').toLowerCase();
         return fields.includes(normalizedQuery);
       })
@@ -611,6 +616,7 @@ function AdminOrdersPage() {
                           }}
                         />
                       </th>
+                      <th className="px-2 py-2 w-8"></th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.orderNumber', 'Order number')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.status', 'Status')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.services', 'Services')}</th>
@@ -652,6 +658,26 @@ function AdminOrdersPage() {
                             }}
                             onClick={(e) => e.stopPropagation()}
                           />
+                        </td>
+                        {/* Info icon column - travelers for visa, received docs for legalization */}
+                        <td className="px-2 py-2 whitespace-nowrap">
+                          {order.orderType === 'visa' ? (
+                            <span 
+                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 cursor-help text-xs"
+                              title={`Travelers: ${(order as any).travelers && (order as any).travelers.length > 0 
+                                ? (order as any).travelers.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ')
+                                : `${(order as any).travelerCount || 1} traveler(s)`}`}
+                            >
+                              ℹ️
+                            </span>
+                          ) : (
+                            <span 
+                              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 cursor-help text-xs"
+                              title={`Documents: ${(order as any).receivedDocumentsDescription || 'Waiting for documents'}`}
+                            >
+                              ℹ️
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-sm font-medium text-gray-900 whitespace-nowrap">
                           <span className="flex items-center gap-1">

@@ -1,6 +1,7 @@
 /**
  * Reminder Service
- * Manages order reminders for admin users (handläggare)
+ * Manages reminders for admin users (handläggare)
+ * Supports both orders and CRM leads
  */
 
 import { db } from './config';
@@ -17,10 +18,23 @@ import {
   Timestamp
 } from 'firebase/firestore';
 
-export interface OrderReminder {
+// Entity types that can have reminders
+export type ReminderEntityType = 'order' | 'crm_lead';
+
+// Reminder types (mainly for CRM)
+export type ReminderType = 'follow-up' | 'call' | 'email' | 'meeting' | 'task' | 'other';
+
+export interface Reminder {
   id?: string;
-  orderId: string;
-  orderNumber?: string; // Denormalized for fast display
+  // Generic entity reference (replaces orderId for flexibility)
+  entityType: ReminderEntityType;
+  entityId: string;
+  entityLabel?: string; // "Order #12345" or "Acme Corp" for display
+  
+  // Legacy field for backwards compatibility with existing order reminders
+  orderId?: string;
+  orderNumber?: string;
+  
   assignedTo: string; // AdminUser UID
   assignedToName?: string;
   message: string;
@@ -29,7 +43,13 @@ export interface OrderReminder {
   createdBy: string;
   status: 'active' | 'snoozed' | 'dismissed';
   snoozedUntil?: Timestamp | string | null;
+  
+  // CRM-specific fields
+  reminderType?: ReminderType;
 }
+
+// Backwards compatibility alias
+export type OrderReminder = Reminder;
 
 const COLLECTION_NAME = 'reminders';
 
@@ -123,4 +143,75 @@ export async function deleteReminder(reminderId: string): Promise<void> {
   if (!db) throw new Error('Database not initialized');
   const docRef = doc(db, COLLECTION_NAME, reminderId);
   await deleteDoc(docRef);
+}
+
+/**
+ * Get all reminders for a specific entity (order or CRM lead)
+ */
+export async function getRemindersByEntity(entityType: ReminderEntityType, entityId: string): Promise<Reminder[]> {
+  if (!db) return [];
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('entityType', '==', entityType),
+    where('entityId', '==', entityId),
+    orderBy('dueDate', 'asc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
+}
+
+/**
+ * Create a CRM reminder (convenience function)
+ */
+export async function createCrmReminder(params: {
+  leadId: string;
+  leadLabel: string; // Company name or contact name
+  assignedTo: string;
+  assignedToName?: string;
+  message: string;
+  dueDate: Date;
+  reminderType: ReminderType;
+  createdBy: string;
+}): Promise<string> {
+  return createReminder({
+    entityType: 'crm_lead',
+    entityId: params.leadId,
+    entityLabel: params.leadLabel,
+    assignedTo: params.assignedTo,
+    assignedToName: params.assignedToName,
+    message: params.message,
+    dueDate: Timestamp.fromDate(params.dueDate),
+    createdAt: Timestamp.now(),
+    createdBy: params.createdBy,
+    status: 'active',
+    reminderType: params.reminderType,
+  });
+}
+
+/**
+ * Create an order reminder (convenience function, maintains backwards compatibility)
+ */
+export async function createOrderReminder(params: {
+  orderId: string;
+  orderNumber?: string;
+  assignedTo: string;
+  assignedToName?: string;
+  message: string;
+  dueDate: Date;
+  createdBy: string;
+}): Promise<string> {
+  return createReminder({
+    entityType: 'order',
+    entityId: params.orderId,
+    entityLabel: params.orderNumber ? `Order #${params.orderNumber}` : undefined,
+    orderId: params.orderId, // Legacy field
+    orderNumber: params.orderNumber, // Legacy field
+    assignedTo: params.assignedTo,
+    assignedToName: params.assignedToName,
+    message: params.message,
+    dueDate: Timestamp.fromDate(params.dueDate),
+    createdAt: Timestamp.now(),
+    createdBy: params.createdBy,
+    status: 'active',
+  });
 }

@@ -4,12 +4,56 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface Reminder {
   id: string;
-  orderId: string;
+  // New generic fields
+  entityType?: 'order' | 'crm_lead';
+  entityId?: string;
+  entityLabel?: string;
+  reminderType?: string;
+  // Legacy fields for backwards compatibility
+  orderId?: string;
   orderNumber?: string;
   message: string;
   dueDate: any;
   status: 'active' | 'snoozed' | 'dismissed';
 }
+
+// Helper to get the link URL for a reminder
+const getReminderLink = (r: Reminder): string => {
+  // New entity-based reminders
+  if (r.entityType === 'crm_lead' && r.entityId) {
+    return `/admin/crm?lead=${r.entityId}`;
+  }
+  if (r.entityType === 'order' && r.entityId) {
+    return `/admin/orders/${r.entityId}`;
+  }
+  // Legacy order reminders
+  if (r.orderId) {
+    return `/admin/orders/${r.orderId}`;
+  }
+  return '/admin/my-tasks';
+};
+
+// Helper to get display label for a reminder
+const getReminderLabel = (r: Reminder): string => {
+  if (r.entityLabel) return r.entityLabel;
+  if (r.orderNumber) return r.orderNumber;
+  if (r.orderId) return r.orderId.slice(0, 8);
+  if (r.entityId) return r.entityId.slice(0, 8);
+  return '';
+};
+
+// Helper to get icon for reminder type
+const getReminderIcon = (r: Reminder): string => {
+  if (r.entityType === 'crm_lead') {
+    switch (r.reminderType) {
+      case 'call': return '📞';
+      case 'email': return '✉️';
+      case 'meeting': return '🤝';
+      default: return '👤';
+    }
+  }
+  return '📋'; // Order icon
+};
 
 export default function ReminderBell() {
   const { currentUser } = useAuth();
@@ -85,10 +129,13 @@ export default function ReminderBell() {
             {dueReminders.map(r => {
               const due = r.dueDate?.toDate ? r.dueDate.toDate() : new Date(r.dueDate);
               return (
-                <Link key={r.id} href={`/admin/orders/${r.orderId}`} onClick={() => setOpen(false)} className="block px-4 py-3 hover:bg-red-50 transition-colors">
-                  <p className="text-sm font-medium text-red-800">{r.message}</p>
+                <Link key={r.id} href={getReminderLink(r)} onClick={() => setOpen(false)} className="block px-4 py-3 hover:bg-red-50 transition-colors">
+                  <p className="text-sm font-medium text-red-800">
+                    <span className="mr-1">{getReminderIcon(r)}</span>
+                    {r.message}
+                  </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {r.orderNumber || r.orderId.slice(0, 8)} · {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                    {getReminderLabel(r)} · {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
                     <span className="text-red-600 font-medium ml-1">OVERDUE</span>
                   </p>
                 </Link>
@@ -97,10 +144,13 @@ export default function ReminderBell() {
             {upcomingReminders.map(r => {
               const due = r.dueDate?.toDate ? r.dueDate.toDate() : new Date(r.dueDate);
               return (
-                <Link key={r.id} href={`/admin/orders/${r.orderId}`} onClick={() => setOpen(false)} className="block px-4 py-3 hover:bg-amber-50 transition-colors">
-                  <p className="text-sm font-medium text-gray-800">{r.message}</p>
+                <Link key={r.id} href={getReminderLink(r)} onClick={() => setOpen(false)} className="block px-4 py-3 hover:bg-amber-50 transition-colors">
+                  <p className="text-sm font-medium text-gray-800">
+                    <span className="mr-1">{getReminderIcon(r)}</span>
+                    {r.message}
+                  </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {r.orderNumber || r.orderId.slice(0, 8)} · {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                    {getReminderLabel(r)} · {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </Link>
               );

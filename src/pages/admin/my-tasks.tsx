@@ -543,10 +543,12 @@ function ReminderCard({
       isOverdue ? 'bg-red-50 border-red-200' : r.status === 'snoozed' ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
     }`}>
       <div className="flex items-start justify-between gap-4">
-        <Link href={`/admin/orders/${r.orderId}`} className="flex-1 min-w-0 hover:opacity-80">
-          <p className={`text-sm font-medium ${isOverdue ? 'text-red-800' : 'text-gray-900'}`}>{r.message}</p>
+        <Link href={r.entityType === 'crm_lead' && r.entityId ? `/admin/crm?lead=${r.entityId}` : `/admin/orders/${r.entityId || r.orderId || ''}`} className="flex-1 min-w-0 hover:opacity-80">
+          <p className={`text-sm font-medium ${isOverdue ? 'text-red-800' : 'text-gray-900'}`}>
+            {r.entityType === 'crm_lead' ? '👤 ' : '📋 '}{r.message}
+          </p>
           <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-            <span className="font-medium">{r.orderNumber || r.orderId.slice(0, 8)}</span>
+            <span className="font-medium">{r.entityLabel || r.orderNumber || (r.orderId ? r.orderId.slice(0, 8) : (r.entityId ? r.entityId.slice(0, 8) : ''))}</span>
             <span>·</span>
             <span>Due: {formatDateTime(r.dueDate)}</span>
             {isOverdue && <span className="text-red-600 font-semibold">OVERDUE</span>}

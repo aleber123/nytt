@@ -1709,6 +1709,9 @@ function AdminOrderDetailPage() {
       for (const assignee of reminderAssignees) {
         const assigneeName = adminUsers.find(u => u.id === assignee)?.displayName || adminUsers.find(u => u.id === assignee)?.email || '';
         const id = await createReminder({
+          entityType: 'order',
+          entityId: orderId,
+          entityLabel: `Order #${order.orderNumber || orderId}`,
           orderId,
           orderNumber: order.orderNumber || orderId,
           assignedTo: assignee,
@@ -6518,35 +6521,57 @@ function AdminOrderDetailPage() {
                       </button>
                     )}
                   </div>
-                  {reminders.map(r => {
-                    const due = r.dueDate?.toDate ? r.dueDate.toDate() : new Date(r.dueDate);
-                    const isDismissed = r.status === 'dismissed';
-                    const isOverdue = !isDismissed && due < new Date();
-                    const isSnoozed = r.status === 'snoozed';
-                    return (
-                      <div key={r.id} className={`flex items-start gap-3 rounded-lg px-3 py-2 mb-1 text-sm ${isDismissed ? 'bg-green-50 border border-green-200 opacity-75' : isOverdue ? 'bg-red-100 border border-red-200' : isSnoozed ? 'bg-gray-100 border border-gray-200' : 'bg-white border border-amber-200'}`}>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-medium ${isDismissed ? 'text-green-700 line-through' : isOverdue ? 'text-red-800' : 'text-gray-800'}`}>{r.message}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            Due: {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
-                            {r.assignedToName && <> &middot; For: {r.assignedToName}</>}
-                            {isDismissed && <span className="text-green-600 font-medium ml-1">COMPLETED</span>}
-                            {isOverdue && <span className="text-red-600 font-medium ml-1">OVERDUE</span>}
-                            {isSnoozed && <span className="text-gray-500 font-medium ml-1">SNOOZED</span>}
-                          </p>
+                  {(() => {
+                    // Group reminders by message + dueDate to show multiple assignees together
+                    const grouped = reminders.reduce((acc, r) => {
+                      const dueStr = r.dueDate?.toDate ? r.dueDate.toDate().toISOString() : new Date(r.dueDate).toISOString();
+                      const key = `${r.message}|${dueStr}`;
+                      if (!acc[key]) {
+                        acc[key] = { reminders: [], message: r.message, dueDate: r.dueDate };
+                      }
+                      acc[key].reminders.push(r);
+                      return acc;
+                    }, {} as Record<string, { reminders: typeof reminders; message: string; dueDate: any }>);
+
+                    return Object.values(grouped).map((group, idx) => {
+                      const firstReminder = group.reminders[0];
+                      const due = firstReminder.dueDate?.toDate ? firstReminder.dueDate.toDate() : new Date(firstReminder.dueDate);
+                      const allDismissed = group.reminders.every(r => r.status === 'dismissed');
+                      const anyOverdue = !allDismissed && due < new Date();
+                      const anySnoozed = group.reminders.some(r => r.status === 'snoozed');
+                      const assigneeNames = group.reminders.map(r => r.assignedToName).filter(Boolean);
+                      
+                      return (
+                        <div key={idx} className={`flex items-start gap-3 rounded-lg px-3 py-2 mb-1 text-sm ${allDismissed ? 'bg-green-50 border border-green-200 opacity-75' : anyOverdue ? 'bg-red-100 border border-red-200' : anySnoozed ? 'bg-gray-100 border border-gray-200' : 'bg-white border border-amber-200'}`}>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium ${allDismissed ? 'text-green-700 line-through' : anyOverdue ? 'text-red-800' : 'text-gray-800'}`}>{group.message}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              Due: {due.toLocaleDateString('sv-SE')} {due.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                              {assigneeNames.length > 0 && <> &middot; For: {assigneeNames.join(', ')}</>}
+                              {allDismissed && <span className="text-green-600 font-medium ml-1">COMPLETED</span>}
+                              {anyOverdue && <span className="text-red-600 font-medium ml-1">OVERDUE</span>}
+                              {anySnoozed && <span className="text-gray-500 font-medium ml-1">SNOOZED</span>}
+                            </p>
+                          </div>
+                          {!allDismissed && (
+                            <ReminderActions
+                              reminderId={firstReminder.id}
+                              reminder={firstReminder}
+                              onSnooze={(id, hours) => {
+                                // Snooze all reminders in the group
+                                group.reminders.forEach(r => handleSnoozeReminder(r.id!, hours));
+                              }}
+                              onDismiss={(id) => {
+                                // Dismiss all reminders in the group
+                                group.reminders.forEach(r => handleDismissReminder(r.id!));
+                              }}
+                              onUpdate={handleUpdateReminder}
+                            />
+                          )}
                         </div>
-                        {!isDismissed && (
-                          <ReminderActions
-                            reminderId={r.id}
-                            reminder={r}
-                            onSnooze={handleSnoozeReminder}
-                            onDismiss={handleDismissReminder}
-                            onUpdate={handleUpdateReminder}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                   {showAddReminder && (
                     <div className="flex flex-wrap items-end gap-2 mt-2 bg-white rounded-lg border border-amber-200 p-3">
                       <div className="flex-1 min-w-[200px]">

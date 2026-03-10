@@ -41,6 +41,18 @@ const ENTRY_TYPE_LABELS: Record<string, { sv: string; en: string; icon: string; 
   double: { sv: 'Dubbel inresa', en: 'Double Entry', icon: '↔️', desc_sv: 'Gäller för två inresor', desc_en: 'Valid for two entries' },
 };
 
+// VAT calculation helpers
+// serviceFee is stored ex VAT (25% VAT applies)
+// embassyFee is stored as-is (0% VAT - government fee)
+const calculatePriceInkVat = (serviceFee: number, embassyFee: number): number => {
+  const serviceFeeInkVat = Math.round(serviceFee * 1.25);
+  return serviceFeeInkVat + embassyFee;
+};
+
+const calculateServiceFeeInkVat = (serviceFee: number): number => {
+  return Math.round(serviceFee * 1.25);
+};
+
 export default function VisaStep3SelectProduct({
   answers,
   onUpdate,
@@ -155,6 +167,22 @@ export default function VisaStep3SelectProduct({
   };
 
   const finalizeProductSelection = (product: VisaProduct, addOns: Set<string>) => {
+    // Calculate prices with VAT: serviceFee * 1.25 (25% VAT) + embassyFee (0% VAT)
+    const priceInkVat = useStandardPricing 
+      ? calculatePriceInkVat(product.serviceFee || 0, product.embassyFee || 0)
+      : 0;
+    const serviceFeeInkVat = calculateServiceFeeInkVat(product.serviceFee || 0);
+    
+    // Express price: expressDoxFee * 1.25 + expressEmbassyFee
+    const expressPriceInkVat = product.expressAvailable
+      ? calculatePriceInkVat(product.expressDoxFee || 0, product.expressEmbassyFee || 0)
+      : undefined;
+    
+    // Urgent price: urgentDoxFee * 1.25 + urgentEmbassyFee  
+    const urgentPriceInkVat = product.urgentAvailable
+      ? calculatePriceInkVat(product.urgentDoxFee || 0, product.urgentEmbassyFee || 0)
+      : undefined;
+
     const selectedProduct: SelectedVisaProduct = {
       id: product.id,
       name: product.name,
@@ -163,20 +191,20 @@ export default function VisaStep3SelectProduct({
       visaType: product.visaType as 'e-visa' | 'sticker',
       entryType: product.entryType as 'single' | 'double' | 'multiple',
       validityDays: product.validityDays,
-      price: useStandardPricing ? product.price : 0,
-      serviceFee: product.serviceFee,
-      embassyFee: useStandardPricing ? product.embassyFee : 0,
+      price: priceInkVat, // Total price inkl VAT
+      serviceFee: serviceFeeInkVat, // Service fee inkl VAT
+      embassyFee: useStandardPricing ? product.embassyFee : 0, // Embassy fee (0% VAT)
       processingDays: product.processingDays,
       expressAvailable: product.expressAvailable,
       expressDays: product.expressDays,
-      expressPrice: product.expressPrice,
-      expressEmbassyFee: product.expressEmbassyFee,
-      expressDoxFee: product.expressDoxFee,
+      expressPrice: expressPriceInkVat, // Express total inkl VAT
+      expressEmbassyFee: product.expressEmbassyFee, // Embassy express (0% VAT)
+      expressDoxFee: product.expressDoxFee ? calculateServiceFeeInkVat(product.expressDoxFee) : undefined, // DOX express inkl VAT
       urgentAvailable: product.urgentAvailable,
       urgentDays: product.urgentDays,
-      urgentPrice: product.urgentPrice,
-      urgentEmbassyFee: product.urgentEmbassyFee,
-      urgentDoxFee: product.urgentDoxFee,
+      urgentPrice: urgentPriceInkVat, // Urgent total inkl VAT
+      urgentEmbassyFee: product.urgentEmbassyFee, // Embassy urgent (0% VAT)
+      urgentDoxFee: product.urgentDoxFee ? calculateServiceFeeInkVat(product.urgentDoxFee) : undefined, // DOX urgent inkl VAT
       useStandardPricing,
       pricingNote,
     };
@@ -435,7 +463,7 @@ export default function VisaStep3SelectProduct({
                   {locale === 'en' && pendingProduct.nameEn ? pendingProduct.nameEn : pendingProduct.name}
                 </div>
                 <div className="text-sm text-blue-700">
-                  {useStandardPricing ? `${pendingProduct.price.toLocaleString()} kr` : (locale === 'en' ? 'Price TBC' : 'Pris TBC')}
+                  {useStandardPricing ? `${calculatePriceInkVat(pendingProduct.serviceFee || 0, pendingProduct.embassyFee || 0).toLocaleString()} kr ${locale === 'en' ? 'incl. VAT' : 'inkl. moms'}` : (locale === 'en' ? 'Price TBC' : 'Pris TBC')}
                 </div>
               </div>
               <button
@@ -507,15 +535,15 @@ export default function VisaStep3SelectProduct({
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <div className="flex justify-between text-sm text-gray-600 mb-1">
                 <span>{locale === 'en' ? 'Visa product' : 'Visumprodukt'}:</span>
-                <span>{pendingProduct.price.toLocaleString()} kr</span>
+                <span>{calculatePriceInkVat(pendingProduct.serviceFee || 0, pendingProduct.embassyFee || 0).toLocaleString()} kr</span>
               </div>
               <div className="flex justify-between text-sm text-gray-600 mb-2">
                 <span>{locale === 'en' ? 'Add-on services' : 'Tilläggstjänster'}:</span>
                 <span>+{addOnTotal.toLocaleString()} kr</span>
               </div>
               <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-200">
-                <span>{locale === 'en' ? 'Total' : 'Totalt'}:</span>
-                <span>{(pendingProduct.price + addOnTotal).toLocaleString()} kr</span>
+                <span>{locale === 'en' ? 'Total' : 'Totalt'} ({locale === 'en' ? 'incl. VAT' : 'inkl. moms'}):</span>
+                <span>{(calculatePriceInkVat(pendingProduct.serviceFee || 0, pendingProduct.embassyFee || 0) + addOnTotal).toLocaleString()} kr</span>
               </div>
             </div>
           )}
@@ -697,16 +725,17 @@ export default function VisaStep3SelectProduct({
                         <div className="text-right ml-4">
                           {useStandardPricing ? (
                             <>
+                              {/* Calculate price inkl moms: serviceFee * 1.25 + embassyFee */}
                               <div className="text-2xl font-bold text-gray-900">
-                                {product.price.toLocaleString()} kr
+                                {calculatePriceInkVat(product.serviceFee || 0, product.embassyFee || 0).toLocaleString()} kr
                               </div>
                               <div className="text-xs text-gray-500">
                                 {locale === 'en' ? 'incl. VAT' : 'inkl. moms'}
                               </div>
                               {(product.serviceFee || product.embassyFee) ? (
                                 <div className="text-xs text-gray-400 space-y-0.5 mt-1">
-                                  <div>{locale === 'en' ? 'Service' : 'Service'}: {(product.serviceFee || 0).toLocaleString()} kr</div>
-                                  <div>{locale === 'en' ? 'Embassy' : 'Ambassad'}: {(product.embassyFee || 0).toLocaleString()} kr</div>
+                                  <div>{locale === 'en' ? 'Service' : 'Service'}: {calculateServiceFeeInkVat(product.serviceFee || 0).toLocaleString()} kr</div>
+                                  <div>{locale === 'en' ? 'Embassy' : 'Ambassad'}: {(product.embassyFee || 0).toLocaleString()} kr <span className="text-gray-300">({locale === 'en' ? '0% VAT' : '0% moms'})</span></div>
                                 </div>
                               ) : (
                                 <div className="text-xs text-gray-500">
@@ -725,7 +754,7 @@ export default function VisaStep3SelectProduct({
                                   : 'Ambassadavgift bekräftas efter ansökan')}
                               </div>
                               <div className="text-xs text-gray-400 mt-1">
-                                {locale === 'en' ? 'Service' : 'Service'}: {(product.serviceFee || 0).toLocaleString()} kr
+                                {locale === 'en' ? 'Service' : 'Service'}: {calculateServiceFeeInkVat(product.serviceFee || 0).toLocaleString()} kr {locale === 'en' ? 'incl. VAT' : 'inkl. moms'}
                               </div>
                             </>
                           )}

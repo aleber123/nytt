@@ -301,6 +301,14 @@ export default function OverviewTab({
                                           <span className="font-medium text-gray-900">{new Date(order.returnDate).toLocaleDateString('en-GB')}</span>
                                         </div>
                                       )}
+                                      {(order as any).travelers && (order as any).travelers.length > 0 && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-500">Travelers:</span>
+                                          <span className="font-medium text-gray-900">
+                                            {(order as any).travelers.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ')}
+                                          </span>
+                                        </div>
+                                      )}
                                       {order.customerInfo?.companyName && (
                                         <div className="flex items-center justify-between">
                                           <span className="text-gray-500">Company:</span>
@@ -618,7 +626,15 @@ export default function OverviewTab({
                                 <div>
                                   <label className="block text-xs text-gray-500 mb-1">Name</label>
                                   <div className="font-medium text-gray-900">
-                                    {order.customerInfo?.firstName} {order.customerInfo?.lastName}
+                                    {order.orderType === 'visa' ? (
+                                      // For visa orders, show traveler names
+                                      (order as any).travelers && (order as any).travelers.length > 0
+                                        ? (order as any).travelers.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ')
+                                        : `${(order as any).travelerCount || 1} traveler(s)`
+                                    ) : (
+                                      // For legalization orders, show customer name
+                                      `${order.customerInfo?.firstName} ${order.customerInfo?.lastName}`
+                                    )}
                                   </div>
                                 </div>
                                 {order.customerInfo?.companyName && (
