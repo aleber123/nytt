@@ -1308,7 +1308,7 @@ function AdminOrderDetailPage() {
       case 'ud_pickup':
         return { sv: 'Utrikesdepartementet', en: 'the Ministry for Foreign Affairs' };
       case 'apostille_pickup':
-        return { sv: 'Utrikesdepartementet', en: 'the Ministry for Foreign Affairs' };
+        return { sv: 'Notarius Publicus', en: 'the notary public' };
       case 'embassy_pickup':
         return {
           sv: embassyName ? `${embassyName} ambassad` : 'ambassaden',
@@ -5681,6 +5681,114 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // State for requesting documents
+  const [requestingDocuments, setRequestingDocuments] = useState(false);
+
+  // Request documents from customer via email
+  const handleRequestDocuments = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    if (!orderId) return;
+
+    const customerEmail = order.customerInfo?.email;
+    if (!customerEmail) {
+      toast.error('No customer email found');
+      return;
+    }
+
+    try {
+      setRequestingDocuments(true);
+      const db = getFirebaseDb();
+      if (!db) throw new Error('Database not initialized');
+
+      const customerName = order.customerInfo?.firstName || 'Customer';
+      const orderNumber = orderId.startsWith('SWE') ? orderId : `SWE${orderId}`;
+
+      // Send email to customer requesting documents
+      await addDoc(collection(db, 'customerEmails'), {
+        name: customerName,
+        email: customerEmail,
+        subject: `Document Request - Order ${orderNumber}`,
+        message: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #F59E0B; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+    .content { background: #FEF3C7; padding: 20px; border: 1px solid #FCD34D; border-top: none; border-radius: 0 0 8px 8px; }
+    .button { display: inline-block; background: #D97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 15px; }
+    .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB; font-size: 12px; color: #6B7280; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2 style="margin: 0;">📄 Document Request</h2>
+    </div>
+    <div class="content">
+      <p>Hi ${customerName},</p>
+      <p>We are waiting for documents for your order <strong>${orderNumber}</strong>.</p>
+      <p>Please send your documents to <strong>info@doxvl.se</strong> as soon as possible so we can process your order.</p>
+      <p>If you have already sent the documents, please disregard this message.</p>
+      <p>Best regards,<br>DOX Visumpartner AB</p>
+    </div>
+    <div class="footer">
+      <p>DOX Visumpartner AB • info@doxvl.se • 08-40941900</p>
+    </div>
+  </div>
+</body>
+</html>
+        `.trim(),
+        createdAt: serverTimestamp(),
+        status: 'queued'
+      });
+
+      // Update order with request timestamp
+      await adminUpdateOrder(orderId, {
+        documentRequestedAt: new Date().toISOString(),
+      });
+
+      setOrder({
+        ...order,
+        documentRequestedAt: new Date().toISOString(),
+      } as ExtendedOrder);
+
+      toast.success('Document request sent to customer');
+    } catch (err) {
+      console.error('Error requesting documents:', err);
+      toast.error('Could not send document request');
+    } finally {
+      setRequestingDocuments(false);
+    }
+  };
+
+  // Mark documents as received
+  const handleMarkDocumentsReceived = async () => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    if (!orderId) return;
+
+    try {
+      await adminUpdateOrder(orderId, {
+        willSendMainDocsLater: false,
+        documentsReceivedAt: new Date().toISOString(),
+      });
+
+      setOrder({
+        ...order,
+        willSendMainDocsLater: false,
+        documentsReceivedAt: new Date().toISOString(),
+      } as ExtendedOrder);
+
+      toast.success('Documents marked as received');
+    } catch (err) {
+      toast.error('Could not update order');
+    }
+  };
+
   // Add a new internal note (append-only)
   const addInternalNote = async () => {
     const text = internalNoteText.trim();
@@ -6760,6 +6868,9 @@ function AdminOrderDetailPage() {
                     internalNoteText={internalNoteText}
                     setInternalNoteText={setInternalNoteText}
                     addInternalNote={addInternalNote}
+                    onRequestDocuments={handleRequestDocuments}
+                    onMarkDocumentsReceived={handleMarkDocumentsReceived}
+                    requestingDocuments={requestingDocuments}
                   />
                 )}
 

@@ -337,13 +337,6 @@ export const getDefaultVisaProcessingSteps = (
     });
 
     steps.push({
-      id: 'embassy_processing',
-      name: '⏳ Embassy processing',
-      description: `Application is being processed by the ${destinationCountry} embassy`,
-      status: 'pending'
-    });
-
-    steps.push({
       id: 'embassy_pickup',
       name: '📦 Embassy – pick up',
       description: `Pick up passport with visa from the ${destinationCountry} embassy`,

@@ -32,6 +32,9 @@ interface OverviewTabProps {
   internalNoteText: string;
   setInternalNoteText: (text: string) => void;
   addInternalNote: () => Promise<void>;
+  onRequestDocuments?: () => Promise<void>;
+  onMarkDocumentsReceived?: () => Promise<void>;
+  requestingDocuments?: boolean;
 }
 
 export default function OverviewTab({
@@ -43,6 +46,7 @@ export default function OverviewTab({
   onUnlinkOrder, onLinkDuplicateOrder, applyCustomerHistoryEntry,
   onConfirmReturnAddress,
   internalNoteText, setInternalNoteText, addInternalNote,
+  onRequestDocuments, onMarkDocumentsReceived, requestingDocuments,
 }: OverviewTabProps) {
   const [activityFilter, setActivityFilter] = useState<Set<string>>(new Set(['admin', 'customer', 'system']));
   const quoteStatus = (order as any).quote?.status as string | undefined;
@@ -83,6 +87,47 @@ export default function OverviewTab({
                             )}
                             {quoteStatus === 'accepted' && (
                               <p className="text-sm text-amber-700 mt-1 font-medium">⚠️ Prices should match the accepted quote. Only change if absolutely necessary.</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Awaiting Documents Banner */}
+                    {(order as any).willSendMainDocsLater && !((order as any).files?.length > 0) && (
+                      <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">⏳</span>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-amber-800">
+                              Awaiting documents via email
+                            </h4>
+                            <p className="text-sm text-amber-700 mt-0.5">
+                              Customer indicated they will send {order.quantity || 1} document{(order.quantity || 1) > 1 ? 's' : ''} to info@doxvl.se. Check inbox for incoming documents.
+                            </p>
+                            {(order as any).documentRequestedAt && (
+                              <p className="text-xs text-amber-600 mt-1">
+                                Last requested: {new Date((order as any).documentRequestedAt).toLocaleDateString('sv-SE')}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            {onRequestDocuments && (
+                              <button
+                                onClick={onRequestDocuments}
+                                disabled={requestingDocuments}
+                                className="px-3 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap disabled:opacity-50"
+                              >
+                                {requestingDocuments ? 'Sending...' : '📧 Request Documents'}
+                              </button>
+                            )}
+                            {onMarkDocumentsReceived && (
+                              <button
+                                onClick={onMarkDocumentsReceived}
+                                className="px-3 py-1.5 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+                              >
+                                ✅ Mark as Received
+                              </button>
                             )}
                           </div>
                         </div>
@@ -416,6 +461,25 @@ export default function OverviewTab({
                                           </span>
                                         </div>
                                       )}
+                                      {(order as any).notarizationDetails && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-500">
+                                            Notarization type:
+                                          </span>
+                                          <span className="font-medium text-gray-900">
+                                            {(() => {
+                                              const nd = (order as any).notarizationDetails;
+                                              const types: string[] = [];
+                                              if (nd.signature) types.push('Certify signature');
+                                              if (nd.signingAuthority) types.push('Verify signing authority');
+                                              if (nd.copy) types.push('Certify copy');
+                                              if (nd.other) types.push(nd.otherText || 'Other');
+                                              if (nd.unknown) types.push('Not sure');
+                                              return types.length > 0 ? types.join(', ') : '—';
+                                            })()}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                 })()
@@ -626,15 +690,8 @@ export default function OverviewTab({
                                 <div>
                                   <label className="block text-xs text-gray-500 mb-1">Name</label>
                                   <div className="font-medium text-gray-900">
-                                    {order.orderType === 'visa' ? (
-                                      // For visa orders, show traveler names
-                                      (order as any).travelers && (order as any).travelers.length > 0
-                                        ? (order as any).travelers.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ')
-                                        : `${(order as any).travelerCount || 1} traveler(s)`
-                                    ) : (
-                                      // For legalization orders, show customer name
-                                      `${order.customerInfo?.firstName} ${order.customerInfo?.lastName}`
-                                    )}
+                                    {/* Always show contact person from customerInfo, not travelers */}
+                                    {`${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || '—'}
                                   </div>
                                 </div>
                                 {order.customerInfo?.companyName && (

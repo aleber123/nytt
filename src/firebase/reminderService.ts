@@ -161,6 +161,20 @@ export async function getRemindersByEntity(entityType: ReminderEntityType, entit
 }
 
 /**
+ * Get all active CRM reminders (for syncing followUpDate to leads)
+ */
+export async function getActiveCrmReminders(): Promise<Reminder[]> {
+  if (!db) return [];
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('entityType', '==', 'crm_lead'),
+    where('status', '==', 'active')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
+}
+
+/**
  * Create a CRM reminder (convenience function)
  */
 export async function createCrmReminder(params: {

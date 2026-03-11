@@ -494,7 +494,7 @@ export default function VisaStep3SelectProduct({
                   } ${addOn.required ? 'opacity-80 cursor-default' : ''}`}
                 >
                   <span className="text-2xl mr-3 mt-0.5">{addOn.icon}</span>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-gray-900">
                         {locale === 'en' ? addOn.nameEn : addOn.name}
@@ -508,10 +508,33 @@ export default function VisaStep3SelectProduct({
                     <p className="text-sm text-gray-600 mt-1">
                       {locale === 'en' ? addOn.descriptionEn : addOn.description}
                     </p>
-                    <div className="text-sm font-semibold text-gray-900 mt-2">
-                      +{addOn.price.toLocaleString()} kr
+                  </div>
+                  {/* Price - right aligned */}
+                  <div className="flex-shrink-0 ml-4 text-right">
+                    {/* Price exkl. moms - primary (bold) */}
+                    <div className="flex items-baseline justify-end gap-1">
+                      <span className="text-lg font-bold text-gray-900">
+                        +{addOn.price.toLocaleString()}
+                      </span>
+                      <span className="text-sm text-gray-600">kr</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {locale === 'en' ? 'excl. VAT' : 'exkl. moms'}
+                    </div>
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 my-1"></div>
+                    {/* Price inkl. moms - secondary */}
+                    <div className="flex items-baseline justify-end gap-1">
+                      <span className="text-sm font-medium text-gray-500">
+                        +{Math.round(addOn.price * 1.25).toLocaleString()}
+                      </span>
+                      <span className="text-xs text-gray-400">kr</span>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {locale === 'en' ? 'incl. VAT' : 'inkl. moms'}
                     </div>
                   </div>
+                  {/* Checkbox */}
                   <div className="flex-shrink-0 ml-3 mt-1">
                     <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
                       isSelected
@@ -724,25 +747,34 @@ export default function VisaStep3SelectProduct({
                         {/* Price */}
                         <div className="text-right ml-4">
                           {useStandardPricing ? (
-                            <>
-                              {/* Calculate price inkl moms: serviceFee * 1.25 + embassyFee */}
-                              <div className="text-2xl font-bold text-gray-900">
-                                {calculatePriceInkVat(product.serviceFee || 0, product.embassyFee || 0).toLocaleString()} kr
+                            <div className="px-3 py-2">
+                              {/* "Från" label */}
+                              <div className="text-xs text-gray-500 text-right mb-1">
+                                {locale === 'en' ? 'from' : 'från'}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              {/* Price exkl. moms - primary (bold) */}
+                              <div className="flex items-baseline justify-end gap-1">
+                                <span className="text-xl font-bold text-gray-900">
+                                  {((product.serviceFee || 0) + (product.embassyFee || 0)).toLocaleString()}
+                                </span>
+                                <span className="text-sm text-gray-600">kr</span>
+                              </div>
+                              <div className="text-xs text-gray-500 text-right">
+                                {locale === 'en' ? 'excl. VAT' : 'exkl. moms'}
+                              </div>
+                              {/* Divider */}
+                              <div className="border-t border-gray-200 my-1.5"></div>
+                              {/* Price inkl. moms - secondary */}
+                              <div className="flex items-baseline justify-end gap-1">
+                                <span className="text-sm font-medium text-gray-600">
+                                  {calculatePriceInkVat(product.serviceFee || 0, product.embassyFee || 0).toLocaleString()}
+                                </span>
+                                <span className="text-xs text-gray-500">kr</span>
+                              </div>
+                              <div className="text-xs text-gray-400 text-right">
                                 {locale === 'en' ? 'incl. VAT' : 'inkl. moms'}
                               </div>
-                              {(product.serviceFee || product.embassyFee) ? (
-                                <div className="text-xs text-gray-400 space-y-0.5 mt-1">
-                                  <div>{locale === 'en' ? 'Service' : 'Service'}: {calculateServiceFeeInkVat(product.serviceFee || 0).toLocaleString()} kr</div>
-                                  <div>{locale === 'en' ? 'Embassy' : 'Ambassad'}: {(product.embassyFee || 0).toLocaleString()} kr <span className="text-gray-300">({locale === 'en' ? '0% VAT' : '0% moms'})</span></div>
-                                </div>
-                              ) : (
-                                <div className="text-xs text-gray-500">
-                                  {locale === 'en' ? 'incl. service fee' : 'inkl. serviceavgift'}
-                                </div>
-                              )}
-                            </>
+                            </div>
                           ) : (
                             <>
                               <div className="text-lg font-bold text-amber-600">

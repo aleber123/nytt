@@ -1073,7 +1073,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div class="row"><span class="label">Quantity</span><span class="value">${answers.quantity} pcs</span></div>
         <div class="row"><span class="label">Services</span><span class="value">${answers.services.map(s => getServiceNameForEmail(s, 'en')).join(', ')}</span></div>
         <div class="row"><span class="label">Total Amount</span><span class="value">${pricingResult.totalPrice} SEK</span></div>
-        <div class="row"><span class="label">Document Source</span><span class="value">${answers.willSendMainDocsLater ? 'Sent via email' : 'Uploaded files'}</span></div>
+        <div class="row"><span class="label">Document Source</span><span class="value" style="${answers.willSendMainDocsLater ? 'color:#D97706; font-weight:800;' : ''}">${answers.willSendMainDocsLater ? '⏳ AWAITING - Customer will send via email' : 'Uploaded files'}</span></div>
         <div class="row"><span class="label">Return Shipping</span><span class="value">${returfraktText}</span></div>
         ${premiumText ? `<div class="row"><span class="label">Premium</span><span class="value">${premiumText}</span></div>` : ''}
       </div>
@@ -1085,6 +1085,19 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div class="row"><span class="label">Address</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
         ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
       </div>
+
+      ${answers.willSendMainDocsLater ? `
+      <div class="section" style="background:#FEF3C7; border:2px solid #F59E0B;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <span style="font-size:24px;">⏳</span>
+          <h3 style="margin:0; color:#92400E; font-size:16px; font-weight:700;">AWAITING DOCUMENTS VIA EMAIL</h3>
+        </div>
+        <div style="background:#fff; border:1px solid #FCD34D; border-radius:6px; padding:12px; color:#78350F;">
+          <p style="margin:0 0 8px 0;"><strong>Customer will send ${answers.quantity} document${answers.quantity > 1 ? 's' : ''} to info@doxvl.se</strong></p>
+          <p style="margin:0; font-size:13px;">Check inbox for incoming documents before processing this order.</p>
+        </div>
+      </div>
+      ` : ''}
 
       ${answers.uploadedFiles && answers.uploadedFiles.length > 0 ? `
       <div class="section" style="background:#ECFDF5; border:2px solid #10B981;">
@@ -1109,10 +1122,11 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     `.trim();
 
                     // Send styled HTML email to handlers via customerEmails queue (same as original documents flow)
+                    const awaitingDocsPrefix = answers.willSendMainDocsLater ? '⏳ AWAITING DOCS - ' : '';
                     await addDoc(collection(db, 'customerEmails'), {
                       name: `Order #${orderId}`,
                       email: 'info@doxvl.se,info@visumpartner.se',
-                      subject: `New Order - ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
+                      subject: `${awaitingDocsPrefix}New Order - ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
                       message: internalHtml,
                       createdAt: Timestamp.now(),
                       status: 'queued'

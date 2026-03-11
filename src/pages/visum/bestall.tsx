@@ -530,12 +530,10 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
               })()} kr
             </span>
           </div>
-          {/* Show fee breakdown */}
+          {/* Show fee breakdown - DHL style: simple lines without VAT labels */}
           <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500 space-y-1">
             {(() => {
               const p = answers.selectedVisaProduct!;
-              const vatLabel0 = currentLocale === 'en' ? '0% VAT' : '0% moms';
-              const vatLabel25 = currentLocale === 'en' ? 'incl. 25% VAT' : 'inkl. 25% moms';
               const expressEmbassy = answers.expressRequired ? (p.expressEmbassyFee || 0) : 0;
               const expressDox = answers.expressRequired ? (p.expressDoxFee || 0) : 0;
               const expressFallback = answers.expressRequired && !p.expressEmbassyFee && !p.expressDoxFee ? (p.expressPrice || 0) : 0;
@@ -551,63 +549,51 @@ function VisaOrderSummary({ answers, currentLocale, t, isEVisa }: { answers: Vis
               return (
                 <>
                   <div className="flex justify-between">
-                    <span>{currentLocale === 'en' ? 'Service fee' : 'Serviceavgift'} ({vatLabel25}):</span>
+                    <span>{currentLocale === 'en' ? 'Service fee' : 'Serviceavgift'}</span>
                     <span>{(p.serviceFee || 0).toLocaleString()} kr</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{currentLocale === 'en' ? 'Embassy fee' : 'Ambassadavgift'} ({vatLabel0}):</span>
+                    <span>{currentLocale === 'en' ? 'Embassy fee' : 'Ambassadavgift'}</span>
                     <span>{(p.embassyFee || 0).toLocaleString()} kr</span>
                   </div>
                   {answers.expressRequired && (expressEmbassy > 0 || expressDox > 0) && (
-                    <>
-                      <div className="flex justify-between text-orange-600">
-                        <span>{currentLocale === 'en' ? 'Express – embassy' : 'Express – ambassad'} ({vatLabel0}):</span>
-                        <span>+{expressEmbassy.toLocaleString()} kr</span>
-                      </div>
-                      <div className="flex justify-between text-orange-600">
-                        <span>{currentLocale === 'en' ? 'Express – service' : 'Express – service'} ({vatLabel25}):</span>
-                        <span>+{expressDox.toLocaleString()} kr</span>
-                      </div>
-                    </>
+                    <div className="flex justify-between text-orange-600">
+                      <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}</span>
+                      <span>+{(expressEmbassy + expressDox).toLocaleString()} kr</span>
+                    </div>
                   )}
                   {answers.expressRequired && expressFallback > 0 && (
                     <div className="flex justify-between text-orange-600">
-                      <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}:</span>
+                      <span>{currentLocale === 'en' ? 'Express fee' : 'Expressavgift'}</span>
                       <span>+{expressFallback.toLocaleString()} kr</span>
                     </div>
                   )}
                   {answers.urgentRequired && (urgentEmbassy > 0 || urgentDox > 0) && (
-                    <>
-                      <div className="flex justify-between text-red-600">
-                        <span>{currentLocale === 'en' ? 'Urgent – embassy' : 'Bråds. – ambassad'} ({vatLabel0}):</span>
-                        <span>+{urgentEmbassy.toLocaleString()} kr</span>
-                      </div>
-                      <div className="flex justify-between text-red-600">
-                        <span>{currentLocale === 'en' ? 'Urgent – service' : 'Bråds. – service'} ({vatLabel25}):</span>
-                        <span>+{urgentDox.toLocaleString()} kr</span>
-                      </div>
-                    </>
+                    <div className="flex justify-between text-red-600">
+                      <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}</span>
+                      <span>+{(urgentEmbassy + urgentDox).toLocaleString()} kr</span>
+                    </div>
                   )}
                   {answers.urgentRequired && urgentFallback > 0 && (
                     <div className="flex justify-between text-red-600">
-                      <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}:</span>
+                      <span>{currentLocale === 'en' ? 'Urgent fee' : 'Brådskande avgift'}</span>
                       <span>+{urgentFallback.toLocaleString()} kr</span>
                     </div>
                   )}
                   {answers.selectedAddOnServices && answers.selectedAddOnServices.map(addon => (
                     <div key={addon.id} className="flex justify-between text-purple-600">
-                      <span>{currentLocale === 'en' ? addon.nameEn : addon.name} ({vatLabel25}):</span>
+                      <span>{currentLocale === 'en' ? addon.nameEn : addon.name}</span>
                       <span>+{addon.price.toLocaleString()} kr</span>
                     </div>
                   ))}
                   {tc > 1 && (
                     <div className="flex justify-between font-medium text-gray-700 pt-1 border-t border-gray-100">
-                      <span>{currentLocale === 'en' ? 'Travelers' : 'Resenärer'}:</span>
+                      <span>{currentLocale === 'en' ? 'Travelers' : 'Resenärer'}</span>
                       <span>× {tc}</span>
                     </div>
                   )}
-                  <div className="flex justify-between pt-1 border-t border-gray-100 text-gray-400">
-                    <span>{currentLocale === 'en' ? 'VAT (25%)' : 'Varav moms (25%)'}:</span>
+                  <div className="flex justify-between pt-1 border-t border-gray-100 text-gray-500">
+                    <span>{currentLocale === 'en' ? 'VAT/Tax' : 'Moms'}</span>
                     <span>{totalVat.toLocaleString()} kr</span>
                   </div>
                 </>

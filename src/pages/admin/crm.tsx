@@ -127,6 +127,9 @@ info@doxvl.se | doxvl.se`;
   const [reminderType, setReminderType] = useState<'call' | 'email' | 'meeting' | 'follow-up' | 'other'>('call');
   const [reminderAssignees, setReminderAssignees] = useState<string[]>([]);
   const [savingReminder, setSavingReminder] = useState(false);
+  
+  // Reminder dates per lead (from active reminders)
+  const [leadReminderDates, setLeadReminderDates] = useState<Record<string, string>>({});
 
   const adminName = currentUser?.displayName || currentUser?.email || 'Admin';
 
@@ -135,6 +138,32 @@ info@doxvl.se | doxvl.se`;
     try {
       setLoading(true);
       const data = await getAllLeads();
+      
+      // Load active reminders and map to leads
+      try {
+        const { getActiveCrmReminders } = await import('@/firebase/reminderService');
+        const reminders = await getActiveCrmReminders();
+        
+        // Group reminders by leadId and find earliest dueDate for each
+        const remindersByLead: Record<string, string> = {};
+        reminders.forEach(r => {
+          const dueDate = r.dueDate instanceof Object && 'toDate' in r.dueDate 
+            ? r.dueDate.toDate().toISOString().split('T')[0]
+            : typeof r.dueDate === 'string' ? r.dueDate.split('T')[0] : '';
+          
+          if (dueDate && r.entityId) {
+            // Keep the earliest date if multiple reminders exist
+            if (!remindersByLead[r.entityId] || dueDate < remindersByLead[r.entityId]) {
+              remindersByLead[r.entityId] = dueDate;
+            }
+          }
+        });
+        
+        setLeadReminderDates(remindersByLead);
+      } catch (syncError) {
+        console.warn('Could not load reminders:', syncError);
+      }
+      
       setLeads(data);
     } catch (e) {
       toast.error('Failed to load leads');
@@ -190,10 +219,12 @@ info@doxvl.se | doxvl.se`;
     // Sort
     result = [...result].sort((a, b) => {
       if (sortBy === 'followUp') {
-        if (!a.followUpDate && !b.followUpDate) return 0;
-        if (!a.followUpDate) return 1;
-        if (!b.followUpDate) return -1;
-        return a.followUpDate.localeCompare(b.followUpDate);
+        const aDate = leadReminderDates[a.id || ''];
+        const bDate = leadReminderDates[b.id || ''];
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        return aDate.localeCompare(bDate);
       }
       if (sortBy === 'company') return a.companyName.localeCompare(b.companyName);
       if (sortBy === 'status') {
@@ -210,7 +241,7 @@ info@doxvl.se | doxvl.se`;
       return bTime - aTime;
     });
     return result;
-  }, [leads, filterStatus, filterPriority, searchQuery, sortBy]);
+  }, [leads, filterStatus, filterPriority, searchQuery, sortBy, leadReminderDates]);
 
   // ── STATS ──
   const stats = useMemo(() => {
@@ -223,9 +254,10 @@ info@doxvl.se | doxvl.se`;
     let wonValue = 0;
     leads.forEach((l) => {
       byStatus[l.status] = (byStatus[l.status] || 0) + 1;
-      if (l.followUpDate) {
-        if (l.followUpDate <= today) followUpToday++;
-        else if (l.followUpDate <= weekFromNow) followUpWeek++;
+      const reminderDate = leadReminderDates[l.id || ''];
+      if (reminderDate) {
+        if (reminderDate <= today) followUpToday++;
+        else if (reminderDate <= weekFromNow) followUpWeek++;
       }
       if (l.estimatedValue && l.status !== 'lost' && l.status !== 'won') {
         pipelineValue += l.estimatedValue;
@@ -235,7 +267,7 @@ info@doxvl.se | doxvl.se`;
       }
     });
     return { byStatus, followUpToday, followUpWeek, total: leads.length, pipelineValue, wonValue };
-  }, [leads]);
+  }, [leads, leadReminderDates]);
 
   // ── SAVE LEAD ──
   const handleSaveLead = async () => {
@@ -588,6 +620,9 @@ info@doxvl.se | doxvl.se`;
         });
       }
       
+      // Update leadReminderDates state so it shows in the Follow-up column
+      setLeadReminderDates(prev => ({ ...prev, [reminderLeadId]: reminderDueDate }));
+      
       toast.success(reminderAssignees.length > 1 
         ? `Reminder set for ${reminderAssignees.length} people` 
         : 'Reminder set!');
@@ -806,7 +841,8 @@ info@doxvl.se | doxvl.se`;
                     <tbody className="divide-y divide-gray-100">
                       {filteredLeads.map((lead) => {
                         const statusStyle = getStatusStyle(lead.status);
-                        const isOverdue = lead.followUpDate && lead.followUpDate <= today && lead.status !== 'won' && lead.status !== 'lost';
+                        const reminderDate = leadReminderDates[lead.id || ''];
+                        const isOverdue = reminderDate && reminderDate <= today && lead.status !== 'won' && lead.status !== 'lost';
                         return (
                           <tr
                             key={lead.id}
@@ -860,9 +896,9 @@ info@doxvl.se | doxvl.se`;
                               )}
                             </td>
                             <td className="px-4 py-3">
-                              {lead.followUpDate ? (
+                              {reminderDate ? (
                                 <span className={`text-xs font-medium ${isOverdue ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                                  {isOverdue && '⚠ '}{lead.followUpDate}
+                                  {isOverdue && '⚠ '}{reminderDate}
                                 </span>
                               ) : (
                                 <span className="text-xs text-gray-300">—</span>
@@ -1170,7 +1206,7 @@ info@doxvl.se | doxvl.se`;
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Source</label>
                   <select
@@ -1182,15 +1218,6 @@ info@doxvl.se | doxvl.se`;
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Follow-up Date</label>
-                  <input
-                    type="date"
-                    value={editingLead.followUpDate || ''}
-                    onChange={(e) => setEditingLead({ ...editingLead, followUpDate: e.target.value || undefined })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Est. Value (SEK)</label>

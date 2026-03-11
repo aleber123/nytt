@@ -56,13 +56,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (orderType === 'visa') {
       const orderNumber = `VISA${Date.now().toString().slice(-6)}`;
-      collectionName = 'visaOrders';
+      collectionName = 'orders'; // Use same collection as visaOrderService
       const visaData = {
         ...baseData,
         orderType: 'visa',
         orderNumber,
       };
-      await db.collection('visaOrders').doc(orderNumber).set(visaData);
+      await db.collection('orders').doc(orderNumber).set(visaData);
       orderId = orderNumber;
     } else {
       const orderNumber = `SWE${Date.now().toString().slice(-6)}`;

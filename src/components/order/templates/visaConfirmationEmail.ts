@@ -256,8 +256,8 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
     ? order.visaProduct.nameEn 
     : translateVisaProductName(order.visaProduct?.name || '', isEnglish);
 
-  const customerName = order.customerInfo?.companyName 
-    || `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim()
+  // Use contact person's first name for greeting, not company name
+  const customerName = order.customerInfo?.firstName 
     || 'Customer';
 
   // Generate document requirements HTML section
@@ -403,7 +403,6 @@ export const generateVisaConfirmationEmail = (params: VisaEmailParams): string =
       <div style="display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #e0e7ff;">
         <span style="margin-right: 8px;">${a.icon || '📋'}</span>
         <span style="flex: 1; font-weight: 500; color: #1f2937;">${isEn ? (a.nameEn || a.name) : a.name}</span>
-        <span style="font-weight: 600; color: #4338ca;">${a.price?.toLocaleString()} kr</span>
       </div>
     `).join('');
     
@@ -677,8 +676,9 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
   const { order } = params;
   const date = new Date().toLocaleDateString('en-GB');
 
-  const customerName = order.customerInfo?.companyName 
-    || `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim()
+  // For business notification, show full name and company
+  const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim()
+    || order.customerInfo?.companyName
     || 'Customer';
 
   const styles = `

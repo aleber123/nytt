@@ -4,7 +4,7 @@
  * Split from Step 10 to simplify the order flow
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { StepProps } from '../types';
@@ -27,6 +27,7 @@ export const Step9CustomerInfo: React.FC<Step9CustomerInfoProps> = ({
   const router = useRouter();
   const locale = i18n.language || router.locale || currentLocale || 'sv';
   const addressInputRef = useRef<HTMLInputElement | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   const isEn = locale === 'en';
 
@@ -127,7 +128,7 @@ export const Step9CustomerInfo: React.FC<Step9CustomerInfoProps> = ({
             setAnswers={setAnswers}
             locale={locale}
             addressInputRef={addressInputRef}
-            showValidation={false}
+            showValidation={showValidation}
             hideReturnAddressOption={isEVisa}
           />
         </>
@@ -142,8 +143,13 @@ export const Step9CustomerInfo: React.FC<Step9CustomerInfoProps> = ({
           {isEn ? 'Back' : 'Tillbaka'}
         </button>
         <button
-          onClick={onNext}
-          disabled={!canProceed()}
+          onClick={() => {
+            if (canProceed()) {
+              onNext();
+            } else {
+              setShowValidation(true);
+            }
+          }}
           className={`w-full px-6 py-3 rounded-md font-medium sm:w-auto transition-colors ${
             canProceed()
               ? 'bg-custom-button text-white hover:bg-custom-button-hover'
