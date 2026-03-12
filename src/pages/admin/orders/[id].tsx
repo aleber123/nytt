@@ -986,6 +986,7 @@ function AdminOrderDetailPage() {
   // Confirmed prices for return shipment email
   const [confirmedPrices, setConfirmedPrices] = useState<Array<{ label: string; amount: string }>>([]);
   const [savingConfirmedPrices, setSavingConfirmedPrices] = useState(false);
+  const [pricesSaved, setPricesSaved] = useState(false); // Track if prices have been explicitly saved
   const [bookingDhlShipment, setBookingDhlShipment] = useState(false);
   const [bookingDhlPickup, setBookingDhlPickup] = useState(false);
   const [bookingPostNordShipment, setBookingPostNordShipment] = useState(false);
@@ -2179,6 +2180,7 @@ function AdminOrderDetailPage() {
         const savedConfirmedPrices = (extendedOrder as any).confirmedPrices;
         if (Array.isArray(savedConfirmedPrices) && savedConfirmedPrices.length > 0) {
           setConfirmedPrices(savedConfirmedPrices);
+          setPricesSaved(true); // Prices were previously saved to database
         } else {
           // Build default rows from pricing data: DOX fee first, then embassy/official fees, then others
           const defaultPrices: Array<{ label: string; amount: string }> = [];
@@ -3384,9 +3386,11 @@ function AdminOrderDetailPage() {
             const emailLocale = (order as any).locale === 'en' ? 'en' : 'sv';
             const trackingNumberText = trackingNumberForEmail || '';
 
-            // Get confirmed prices from React state (always current) with fallback to order object
-            const savedConfirmedPricesOwn = (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
-              .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim());
+            // Only include prices if they have been explicitly saved (not just pre-populated)
+            const savedConfirmedPricesOwn = pricesSaved 
+              ? (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
+                  .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim())
+              : [];
             const hasConfirmedPricesOwn = savedConfirmedPricesOwn.length > 0;
             
             const pricesHtmlEnOwn = hasConfirmedPricesOwn
@@ -3662,9 +3666,11 @@ function AdminOrderDetailPage() {
               ? 'Mon–Thu 09:00–16:00, Fri 09:00–15:00'
               : 'Mån–Tor 09:00–16:00, Fre 09:00–15:00';
 
-            // Get confirmed prices from React state (always current) with fallback to order object
-            const savedConfirmedPricesPickup = (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
-              .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim());
+            // Only include prices if they have been explicitly saved (not just pre-populated)
+            const savedConfirmedPricesPickup = pricesSaved
+              ? (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
+                  .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim())
+              : [];
             const hasConfirmedPricesPickup = savedConfirmedPricesPickup.length > 0;
             
             const pricesHtmlEnPickup = hasConfirmedPricesPickup
@@ -3954,9 +3960,11 @@ function AdminOrderDetailPage() {
               ? `<p>You can track your shipment here: <a href="${trackingUrlText}">${trackingUrlText}</a></p>`
               : '';
 
-            // Get confirmed prices from React state (always current) with fallback to order object
-            const savedConfirmedPrices = (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
-              .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim());
+            // Only include prices if they have been explicitly saved (not just pre-populated)
+            const savedConfirmedPrices = pricesSaved
+              ? (confirmedPrices.length > 0 ? confirmedPrices : ((order as any).confirmedPrices || []))
+                  .filter((p: any) => p && p.label && p.label.trim() && p.amount && p.amount.trim())
+              : [];
             const hasConfirmedPrices = savedConfirmedPrices.length > 0;
             
             const pricesHtmlEn = hasConfirmedPrices
@@ -5499,6 +5507,7 @@ function AdminOrderDetailPage() {
         confirmedPrices: validPrices
       });
       setOrder({ ...order, confirmedPrices: validPrices } as ExtendedOrder);
+      setPricesSaved(true); // Mark prices as explicitly saved
       toast.success('Confirmed prices saved');
     } catch (err) {
       toast.error('Could not save confirmed prices');
