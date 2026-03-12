@@ -21,7 +21,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
 import { Invoice } from '@/services/invoiceService';
-import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation, downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter, getNotaryApostilleDefaults, NotaryApostilleCoverLetterData, downloadEmbassyCoverLetter, printEmbassyCoverLetter, getEmbassyDefaults, EmbassyCoverLetterData, downloadUDCoverLetter, printUDCoverLetter, getUDDefaults, UDCoverLetterData } from '@/services/coverLetterService';
+import { downloadCoverLetter, printCoverLetter, downloadOrderConfirmation, downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter, getNotaryApostilleDefaults, NotaryApostilleCoverLetterData, downloadEmbassyCoverLetter, printEmbassyCoverLetter, getEmbassyDefaults, EmbassyCoverLetterData, downloadUDCoverLetter, printUDCoverLetter, getUDDefaults, UDCoverLetterData, VisaEmbassyCoverLetterData } from '@/services/coverLetterService';
 import { collection, addDoc, doc as fsDoc, getDoc, getDocs, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseApp } from '@/firebase/config';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -1021,6 +1021,7 @@ function AdminOrderDetailPage() {
   const [notaryApostilleData, setNotaryApostilleData] = useState<NotaryApostilleCoverLetterData | null>(null);
   const [embassyData, setEmbassyData] = useState<EmbassyCoverLetterData | null>(null);
   const [udData, setUdData] = useState<UDCoverLetterData | null>(null);
+  const [visaEmbassyData, setVisaEmbassyData] = useState<VisaEmbassyCoverLetterData | null>(null);
   const [editedCustomer, setEditedCustomer] = useState({
     firstName: '',
     lastName: '',
@@ -7051,6 +7052,8 @@ function AdminOrderDetailPage() {
                     setEmbassyData={setEmbassyData}
                     udData={udData}
                     setUdData={setUdData}
+                    visaEmbassyData={visaEmbassyData}
+                    setVisaEmbassyData={setVisaEmbassyData}
                     internalNotesList={internalNotesList}
                   />
                 )}

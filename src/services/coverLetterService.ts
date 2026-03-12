@@ -2060,3 +2060,363 @@ export async function printUDCoverLetter(order: Order, data: UDCoverLetterData):
     doc.save(file);
   }
 }
+
+// ============================================================================
+// VISA EMBASSY COVER LETTER - Elegant formal letter for visa applications
+// ============================================================================
+
+export interface VisaEmbassyCoverLetterData {
+  embassyName: string; // e.g. "Embassy of Algeria"
+  embassyAddress?: string;
+  visaType: string; // e.g. "Business Visa"
+  travelers: Array<{
+    firstName: string;
+    lastName: string;
+    passportNumber?: string;
+    nationality?: string;
+  }>;
+  departureDate?: string;
+  returnDate?: string;
+  purpose?: string; // e.g. "Business meetings"
+  invoiceReference: string;
+  paymentMethod: string;
+  returnMethod: string;
+  additionalNotes?: string;
+  isExpress?: boolean;
+}
+
+/**
+ * Get default data for Visa Embassy cover letter from visa order
+ */
+export function getVisaEmbassyDefaults(order: any): VisaEmbassyCoverLetterData {
+  const destinationCountry = translateSwedish(order.destinationCountry || '');
+  const visaProduct = order.visaProduct || {};
+  const visaTypeName = translateSwedish(visaProduct.name || 'Visa');
+  
+  // Get travelers from order
+  const travelers = Array.isArray(order.travelers) 
+    ? order.travelers.map((t: any) => ({
+        firstName: t.firstName || '',
+        lastName: t.lastName || '',
+        passportNumber: t.passportNumber || '',
+        nationality: translateSwedish(order.nationality || '')
+      }))
+    : [{
+        firstName: order.customerInfo?.firstName || '',
+        lastName: order.customerInfo?.lastName || '',
+        passportNumber: '',
+        nationality: translateSwedish(order.nationality || '')
+      }];
+
+  return {
+    embassyName: `Embassy of ${destinationCountry}`,
+    embassyAddress: '',
+    visaType: visaTypeName,
+    travelers,
+    departureDate: order.departureDate || '',
+    returnDate: order.returnDate || '',
+    purpose: visaProduct.visaType === 'business' ? 'Business purposes' : 'Tourism',
+    invoiceReference: order.orderNumber || '',
+    paymentMethod: order.paymentMethod || 'Invoice',
+    returnMethod: 'Collection by DOX Visumpartner AB',
+    additionalNotes: '',
+    isExpress: !!(order as any).expedited
+  };
+}
+
+/**
+ * Generate an elegant formal cover letter for Visa Embassy applications
+ */
+export async function generateVisaEmbassyCoverLetter(
+  order: any,
+  data: VisaEmbassyCoverLetterData,
+  opts?: { autoPrint?: boolean }
+): Promise<jsPDF> {
+  const doc = new jsPDF();
+
+  // Brand palette matching website
+  const primary: [number, number, number] = [46, 45, 44]; // #2E2D2C
+  const text: [number, number, number] = [32, 33, 36]; // gray-900
+  const grayText: [number, number, number] = [95, 99, 104]; // gray-700
+  const lineGray: [number, number, number] = [180, 180, 180];
+  const accentBlue: [number, number, number] = [37, 99, 235]; // blue-600
+
+  // Page dimensions
+  const pageWidth = 210;
+  const marginLeft = 20;
+  const marginRight = 20;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+
+  // ========== HEADER SECTION ==========
+  doc.setDrawColor(primary[0], primary[1], primary[2]);
+  doc.setLineWidth(1);
+  doc.line(marginLeft, 48, pageWidth - marginRight, 48);
+
+  // Logo
+  try {
+    const { dataUrl, width, height } = await loadImageToDataUrl('/dox-logo-new.png');
+    const targetH = 20;
+    const ratio = width / height || 1;
+    const targetW = targetH * ratio;
+    doc.addImage(dataUrl, 'PNG', marginLeft, 10, targetW, targetH);
+  } catch {}
+
+  // Company info (right aligned)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  const companyLines = [
+    'DOX Visumpartner AB',
+    'Box 38',
+    '121 25 Stockholm-Globen',
+    'Tel: 08-40941900',
+    'info@doxvl.se'
+  ];
+  let cy = 14;
+  companyLines.forEach((l) => {
+    doc.text(l, pageWidth - marginRight, cy, { align: 'right' });
+    cy += 3.5;
+  });
+
+  // Title: Visa Application Cover Letter
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Visa Application Cover Letter', marginLeft, 42);
+
+  // Express label
+  if (data.isExpress) {
+    doc.setTextColor(220, 38, 38);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('EXPRESS', pageWidth - marginRight, 42, { align: 'right' });
+  }
+
+  // ========== DATE AND REFERENCE ==========
+  let y = 58;
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', { 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text(dateStr, pageWidth - marginRight, y, { align: 'right' });
+  
+  if (data.invoiceReference) {
+    doc.text(`Ref: ${data.invoiceReference}`, pageWidth - marginRight, y + 5, { align: 'right' });
+  }
+
+  // ========== EMBASSY ADDRESS ==========
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text(data.embassyName, marginLeft, y);
+  
+  if (data.embassyAddress) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(text[0], text[1], text[2]);
+    const addressLines = data.embassyAddress.split('\n');
+    addressLines.forEach((line, i) => {
+      doc.text(line, marginLeft, y + 6 + (i * 5));
+    });
+    y += 6 + (addressLines.length * 5);
+  }
+
+  // ========== SUBJECT LINE ==========
+  y = Math.max(y + 15, 85);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text(`RE: Visa Application – ${data.visaType}`, marginLeft, y);
+  y += 12;
+
+  // ========== SALUTATION ==========
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  doc.text('Dear Sir/Madam,', marginLeft, y);
+  y += 10;
+
+  // ========== BODY TEXT ==========
+  const travelerCount = data.travelers.length;
+  const travelerText = travelerCount === 1 ? 'applicant' : `${travelerCount} applicants`;
+  const bodyText = `We respectfully submit this visa application on behalf of the following ${travelerText}. All required documents, including passport(s) and supporting materials, are enclosed for your review.`;
+  
+  const wrappedBody = doc.splitTextToSize(bodyText, contentWidth);
+  doc.text(wrappedBody, marginLeft, y);
+  y += wrappedBody.length * 5 + 10;
+
+  // ========== TRAVELER DETAILS SECTION ==========
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text('APPLICANT DETAILS', marginLeft, y);
+  y += 2;
+  
+  // Draw a subtle line under the header
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, y, marginLeft + 50, y);
+  y += 6;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  
+  // List each traveler
+  data.travelers.forEach((traveler, index) => {
+    const fullName = `${traveler.firstName} ${traveler.lastName}`.trim();
+    
+    if (data.travelers.length > 1) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${index + 1}. ${fullName}`, marginLeft + 4, y);
+    } else {
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Name: `, marginLeft + 4, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(fullName, marginLeft + 20, y);
+    }
+    y += 5;
+    
+    doc.setFont('helvetica', 'normal');
+    if (traveler.nationality) {
+      doc.text(`   Nationality: ${traveler.nationality}`, marginLeft + 4, y);
+      y += 5;
+    }
+    if (traveler.passportNumber) {
+      doc.text(`   Passport: ${traveler.passportNumber}`, marginLeft + 4, y);
+      y += 5;
+    }
+    y += 2;
+  });
+
+  y += 6;
+
+  // ========== TRAVEL DETAILS SECTION ==========
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text('TRAVEL DETAILS', marginLeft, y);
+  y += 2;
+  
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(marginLeft, y, marginLeft + 45, y);
+  y += 6;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(text[0], text[1], text[2]);
+  
+  doc.text(`Visa Type: ${data.visaType}`, marginLeft + 4, y);
+  y += 5;
+  
+  if (data.departureDate) {
+    const depDate = new Date(data.departureDate);
+    const depStr = depDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    doc.text(`Departure Date: ${depStr}`, marginLeft + 4, y);
+    y += 5;
+  }
+  
+  if (data.returnDate) {
+    const retDate = new Date(data.returnDate);
+    const retStr = retDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    doc.text(`Return Date: ${retStr}`, marginLeft + 4, y);
+    y += 5;
+  }
+  
+  if (data.purpose) {
+    doc.text(`Purpose of Travel: ${data.purpose}`, marginLeft + 4, y);
+    y += 5;
+  }
+
+  y += 8;
+
+  // ========== ADDITIONAL PARAGRAPH ==========
+  const additionalText = `We kindly request that the visa application(s) be processed at your earliest convenience. Upon completion, the passport(s) will be collected by our authorised representative.`;
+  
+  const wrappedAdditional = doc.splitTextToSize(additionalText, contentWidth);
+  doc.text(wrappedAdditional, marginLeft, y);
+  y += wrappedAdditional.length * 5 + 8;
+
+  // ========== REFERENCE INFO ==========
+  const orderNum = order.orderNumber || order.id || '';
+  if (orderNum) {
+    doc.text(`Order Number: ${orderNum}`, marginLeft, y);
+    y += 5;
+  }
+  if (data.invoiceReference && data.invoiceReference !== orderNum) {
+    doc.text(`Additional Reference: ${data.invoiceReference}`, marginLeft, y);
+    y += 5;
+  }
+  doc.text(`Payment Method: ${data.paymentMethod}`, marginLeft, y);
+  y += 5;
+  doc.text(`Collection: ${data.returnMethod}`, marginLeft, y);
+  y += 10;
+
+  // ========== CLOSING ==========
+  const closingText = 'We thank you for your kind assistance and remain at your disposal for any further information.';
+  const wrappedClosing = doc.splitTextToSize(closingText, contentWidth);
+  doc.text(wrappedClosing, marginLeft, y);
+  y += wrappedClosing.length * 5 + 8;
+  
+  doc.text('Yours faithfully,', marginLeft, y);
+  y += 12;
+  
+  // Signature area
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(primary[0], primary[1], primary[2]);
+  doc.text('DOX Visumpartner AB', marginLeft, y);
+  y += 5;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('Authorised Representative', marginLeft, y);
+
+  // ========== FOOTER (always at bottom of page) ==========
+  const footerY = 290;
+  doc.setDrawColor(lineGray[0], lineGray[1], lineGray[2]);
+  doc.line(marginLeft, footerY - 6, pageWidth - marginRight, footerY - 6);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text(
+    'DOX Visumpartner AB • Box 38, 121 25 Stockholm-Globen • Tel: 08-40941900 • info@doxvl.se',
+    pageWidth / 2,
+    footerY,
+    { align: 'center' }
+  );
+
+  if (opts?.autoPrint) {
+    try {
+      doc.autoPrint();
+    } catch {}
+  }
+
+  return doc;
+}
+
+export async function downloadVisaEmbassyCoverLetter(order: any, data: VisaEmbassyCoverLetterData): Promise<void> {
+  const doc = await generateVisaEmbassyCoverLetter(order, data);
+  const ord = order.orderNumber || order.id || '';
+  const file = ord ? `Visa Embassy Cover Letter ${ord}.pdf` : 'Visa Embassy Cover Letter.pdf';
+  doc.save(file);
+}
+
+export async function printVisaEmbassyCoverLetter(order: any, data: VisaEmbassyCoverLetterData): Promise<void> {
+  const doc = await generateVisaEmbassyCoverLetter(order, data, { autoPrint: true });
+  const blobUrl = doc.output('bloburl');
+  const win = window.open(blobUrl);
+  if (!win) {
+    const ord = order.orderNumber || order.id || '';
+    const file = ord ? `Visa Embassy Cover Letter ${ord}.pdf` : 'Visa Embassy Cover Letter.pdf';
+    doc.save(file);
+  }
+}

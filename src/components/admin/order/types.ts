@@ -6,7 +6,7 @@
 import type { Order } from '@/firebase/orderService';
 import type { Timestamp as FbTimestamp } from 'firebase/firestore';
 import type { Invoice } from '@/services/invoiceService';
-import type { NotaryApostilleCoverLetterData, EmbassyCoverLetterData, UDCoverLetterData } from '@/services/coverLetterService';
+import type { NotaryApostilleCoverLetterData, EmbassyCoverLetterData, UDCoverLetterData, VisaEmbassyCoverLetterData } from '@/services/coverLetterService';
 
 export interface ExtendedOrder extends Order {
   processingSteps?: ProcessingStep[];
@@ -75,4 +75,4 @@ export interface AdminNote {
   type: 'general' | 'processing' | 'customer' | 'issue';
 }
 
-export type { Invoice, NotaryApostilleCoverLetterData, EmbassyCoverLetterData, UDCoverLetterData };
+export type { Invoice, NotaryApostilleCoverLetterData, EmbassyCoverLetterData, UDCoverLetterData, VisaEmbassyCoverLetterData };

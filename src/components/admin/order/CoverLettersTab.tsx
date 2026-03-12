@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import type { ExtendedOrder, NotaryApostilleCoverLetterData, EmbassyCoverLetterData, UDCoverLetterData } from './types';
-import { getNotaryApostilleDefaults, getEmbassyDefaults, getUDDefaults,
+import type { ExtendedOrder, NotaryApostilleCoverLetterData, EmbassyCoverLetterData, UDCoverLetterData, VisaEmbassyCoverLetterData } from './types';
+import { getNotaryApostilleDefaults, getEmbassyDefaults, getUDDefaults, getVisaEmbassyDefaults,
   downloadNotaryApostilleCoverLetter, printNotaryApostilleCoverLetter,
   downloadEmbassyCoverLetter, printEmbassyCoverLetter,
   downloadUDCoverLetter, printUDCoverLetter,
+  downloadVisaEmbassyCoverLetter, printVisaEmbassyCoverLetter,
   downloadCoverLetter, printCoverLetter } from '@/services/coverLetterService';
 
 interface CoverLettersTabProps {
@@ -17,16 +18,19 @@ interface CoverLettersTabProps {
   setEmbassyData: (data: EmbassyCoverLetterData | null) => void;
   udData: UDCoverLetterData | null;
   setUdData: (data: UDCoverLetterData | null) => void;
+  visaEmbassyData: VisaEmbassyCoverLetterData | null;
+  setVisaEmbassyData: (data: VisaEmbassyCoverLetterData | null) => void;
   internalNotesList?: Array<{ id: string; content: string; createdAt?: any; createdBy?: string }>;
 }
 
 export default function CoverLettersTab({
   order, orderId, onSave, notaryApostilleData, setNotaryApostilleData,
-  embassyData, setEmbassyData, udData, setUdData, internalNotesList,
+  embassyData, setEmbassyData, udData, setUdData, visaEmbassyData, setVisaEmbassyData, internalNotesList,
 }: CoverLettersTabProps) {
   const [savingNotary, setSavingNotary] = useState(false);
   const [savingEmbassy, setSavingEmbassy] = useState(false);
   const [savingUd, setSavingUd] = useState(false);
+  const [savingVisaEmbassy, setSavingVisaEmbassy] = useState(false);
   const handleDownloadCover = () => {
     try {
       downloadCoverLetter(order, internalNotesList);
@@ -54,6 +58,7 @@ export default function CoverLettersTab({
 
                     {/* Determine which cover letters are needed based on services */}
                     {(() => {
+                      const isVisaOrder = order.orderType === 'visa';
                       const services = Array.isArray(order.services) ? order.services : [];
                       const hasNotarization = services.some(s => s === 'notarization' || s === 'notarisering');
                       const hasApostille = services.some(s => s === 'apostille');
@@ -66,6 +71,22 @@ export default function CoverLettersTab({
                       const needsNotaryApostille = hasNotarization || hasApostille;
 
                       const coverLetters = [];
+
+                      // Visa orders get a special visa embassy cover letter
+                      if (isVisaOrder) {
+                        const visaProduct = (order as any).visaProduct || {};
+                        const isEVisa = visaProduct.visaType === 'e-visa';
+                        // Only sticker visas need embassy cover letter (e-visas are processed online)
+                        if (!isEVisa) {
+                          coverLetters.push({
+                            id: 'visa-embassy',
+                            name: 'Visa Embassy Cover Letter',
+                            description: `Elegant cover letter for ${order.destinationCountry || ''} visa application`,
+                            icon: '🛂',
+                            services: ['Visa Application']
+                          });
+                        }
+                      }
 
                       if (needsNotaryApostille) {
                         coverLetters.push({
@@ -147,6 +168,12 @@ export default function CoverLettersTab({
                       if (!udData && coverLetters.some(l => l.id === 'ud')) {
                         const defaults = getUDDefaults(order);
                         setUdData(defaults);
+                      }
+
+                      // Initialize visa embassy data if not set
+                      if (!visaEmbassyData && coverLetters.some(l => l.id === 'visa-embassy')) {
+                        const defaults = getVisaEmbassyDefaults(order);
+                        setVisaEmbassyData(defaults);
                       }
 
                       return (
@@ -868,6 +895,302 @@ export default function CoverLettersTab({
                                         try {
                                           await printUDCoverLetter(order, udData);
                                           toast.success('Printing UD cover letter');
+                                        } catch (err) {
+                                          toast.error('Failed to print cover letter');
+                                        }
+                                      }}
+                                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                      </svg>
+                                      Print
+                                    </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            // Visa Embassy cover letter with editable form
+                            if (letter.id === 'visa-embassy' && visaEmbassyData) {
+                              return (
+                                <div 
+                                  key={letter.id}
+                                  className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-lg p-5"
+                                >
+                                  <div className="flex items-center space-x-3 mb-4">
+                                    <span className="text-2xl">🛂</span>
+                                    <div>
+                                      <h4 className="font-medium text-gray-900">{letter.name}</h4>
+                                      <p className="text-sm text-blue-700">Elegant formal letter for visa application</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Editable form */}
+                                  <div className="space-y-4 border-t border-blue-200 pt-4">
+                                    {/* Embassy name and address */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Embassy name
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={visaEmbassyData.embassyName}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            embassyName: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="e.g. Embassy of Algeria"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Embassy address (optional)
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={visaEmbassyData.embassyAddress || ''}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            embassyAddress: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="Street address, City"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Visa type and purpose */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Visa type
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={visaEmbassyData.visaType}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            visaType: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="e.g. Business Visa"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Purpose of travel
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={visaEmbassyData.purpose || ''}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            purpose: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                          placeholder="e.g. Business meetings"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Travelers section */}
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Travelers ({visaEmbassyData.travelers.length})
+                                      </label>
+                                      <div className="space-y-3">
+                                        {visaEmbassyData.travelers.map((traveler, idx) => (
+                                          <div key={idx} className="bg-white border border-gray-200 rounded-md p-3">
+                                            <div className="grid grid-cols-4 gap-2">
+                                              <input
+                                                type="text"
+                                                value={traveler.firstName}
+                                                onChange={(e) => {
+                                                  const newTravelers = [...visaEmbassyData.travelers];
+                                                  newTravelers[idx] = { ...newTravelers[idx], firstName: e.target.value };
+                                                  setVisaEmbassyData({ ...visaEmbassyData, travelers: newTravelers });
+                                                }}
+                                                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                                                placeholder="First name"
+                                              />
+                                              <input
+                                                type="text"
+                                                value={traveler.lastName}
+                                                onChange={(e) => {
+                                                  const newTravelers = [...visaEmbassyData.travelers];
+                                                  newTravelers[idx] = { ...newTravelers[idx], lastName: e.target.value };
+                                                  setVisaEmbassyData({ ...visaEmbassyData, travelers: newTravelers });
+                                                }}
+                                                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                                                placeholder="Last name"
+                                              />
+                                              <input
+                                                type="text"
+                                                value={traveler.passportNumber || ''}
+                                                onChange={(e) => {
+                                                  const newTravelers = [...visaEmbassyData.travelers];
+                                                  newTravelers[idx] = { ...newTravelers[idx], passportNumber: e.target.value };
+                                                  setVisaEmbassyData({ ...visaEmbassyData, travelers: newTravelers });
+                                                }}
+                                                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                                                placeholder="Passport #"
+                                              />
+                                              <input
+                                                type="text"
+                                                value={traveler.nationality || ''}
+                                                onChange={(e) => {
+                                                  const newTravelers = [...visaEmbassyData.travelers];
+                                                  newTravelers[idx] = { ...newTravelers[idx], nationality: e.target.value };
+                                                  setVisaEmbassyData({ ...visaEmbassyData, travelers: newTravelers });
+                                                }}
+                                                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                                                placeholder="Nationality"
+                                              />
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Travel dates */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Departure date
+                                        </label>
+                                        <input
+                                          type="date"
+                                          value={visaEmbassyData.departureDate || ''}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            departureDate: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Return date
+                                        </label>
+                                        <input
+                                          type="date"
+                                          value={visaEmbassyData.returnDate || ''}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            returnDate: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Payment and return */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Payment method
+                                        </label>
+                                        <div className="flex flex-wrap gap-3 mt-1">
+                                          {['Cash', 'Invoice', 'Bank', 'Swish', 'Card'].map((method) => (
+                                            <label key={method} className="flex items-center gap-1.5 cursor-pointer">
+                                              <input
+                                                type="radio"
+                                                name="visa-payment-method"
+                                                value={method}
+                                                checked={visaEmbassyData.paymentMethod === method}
+                                                onChange={() => setVisaEmbassyData({
+                                                  ...visaEmbassyData,
+                                                  paymentMethod: method
+                                                })}
+                                                className="text-blue-600 focus:ring-blue-500"
+                                              />
+                                              <span className="text-sm text-gray-700">{method}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Return method
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={visaEmbassyData.returnMethod}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            returnMethod: e.target.value
+                                          })}
+                                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Express checkbox + Reset */}
+                                    <div className="flex items-center justify-between">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={visaEmbassyData.isExpress || false}
+                                          onChange={(e) => setVisaEmbassyData({
+                                            ...visaEmbassyData,
+                                            isExpress: e.target.checked
+                                          })}
+                                          className="w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                        />
+                                        <span className="text-sm font-bold text-red-600">EXPRESS</span>
+                                      </label>
+                                      <button
+                                        onClick={() => setVisaEmbassyData(getVisaEmbassyDefaults(order))}
+                                        className="text-sm text-gray-500 hover:text-gray-700 underline"
+                                      >
+                                        Reset to defaults
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Action buttons */}
+                                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-blue-200">
+                                    <button
+                                      onClick={async () => {
+                                        setSavingVisaEmbassy(true);
+                                        try {
+                                          await onSave({ coverLetterVisaEmbassyData: visaEmbassyData });
+                                          toast.success('Visa cover letter data saved');
+                                        } catch { toast.error('Failed to save'); }
+                                        finally { setSavingVisaEmbassy(false); }
+                                      }}
+                                      disabled={savingVisaEmbassy}
+                                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                                      {savingVisaEmbassy ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await downloadVisaEmbassyCoverLetter(order, visaEmbassyData);
+                                          toast.success('Visa cover letter downloaded');
+                                        } catch (err) {
+                                          toast.error('Failed to generate cover letter');
+                                        }
+                                      }}
+                                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 flex items-center"
+                                    >
+                                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      Download PDF
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await printVisaEmbassyCoverLetter(order, visaEmbassyData);
+                                          toast.success('Printing visa cover letter');
                                         } catch (err) {
                                           toast.error('Failed to print cover letter');
                                         }
