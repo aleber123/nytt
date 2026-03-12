@@ -41,11 +41,43 @@ interface DriverTask {
   orderType: 'legalization' | 'visa'; // Track order type for linking
 }
 
+// Driver configuration - add new drivers here
+const DRIVERS = [
+  { id: 'default-driver', name: 'Bosse' },
+  { id: 'mats', name: 'Mats' },
+] as const;
+
 function DriverDashboardPage() {
   const [tasks, setTasks] = useState<DriverTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [filterType, setFilterType] = useState<'all' | 'pickup' | 'delivery'>('all');
+  
+  // Selected driver - stored in localStorage for persistence
+  const [selectedDriver, setSelectedDriver] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selectedDriverId') || 'default-driver';
+    }
+    return 'default-driver';
+  });
+  
+  // Get current driver name for display
+  const currentDriverName = DRIVERS.find(d => d.id === selectedDriver)?.name || 'Unknown';
+  
+  // Handle driver change
+  const handleDriverChange = (driverId: string) => {
+    setSelectedDriver(driverId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedDriverId', driverId);
+    }
+    // Reset form fields when switching driver
+    setHoursWorked('');
+    setParkingCosts(['']);
+    setEmbassyCosts(['']);
+    setOtherCosts(['']);
+    setDriverNotes('');
+    setSaveDailyMessage(null);
+  };
 
   // Simple daily report state for hours & expenses
   const [hoursWorked, setHoursWorked] = useState('');
@@ -139,7 +171,7 @@ function DriverDashboardPage() {
       setSaveDailyMessage(null);
 
       await saveDriverDailyReport({
-        driverId: 'default-driver',
+        driverId: selectedDriver,
         date: selectedDate,
         hoursWorked,
         parkingCost: totalParking.toString(),
@@ -165,7 +197,7 @@ function DriverDashboardPage() {
       setIsSavingEdit(true);
 
       await saveDriverDailyReport({
-        driverId: 'default-driver',
+        driverId: selectedDriver,
         date: editingReport.date,
         hoursWorked: editingReport.hoursWorked,
         parkingCost: editingReport.parkingCost,
@@ -209,7 +241,7 @@ function DriverDashboardPage() {
         return;
       }
 
-      const summary = await getDriverMonthlySummary('default-driver', year, month);
+      const summary = await getDriverMonthlySummary(selectedDriver, year, month);
       setMonthlySummary(summary);
     } catch (error) {
       setMonthlySummary(null);
@@ -220,9 +252,10 @@ function DriverDashboardPage() {
 
   const handleOpenReportEmail = () => {
     const to = 'info@doxvl.se,info@visumpartner.se';
-    const subject = `Driver Report ${selectedDate}`;
+    const subject = `Driver Report – ${currentDriverName} – ${selectedDate}`;
 
     const bodyLines = [
+      `Driver: ${currentDriverName}`,
       `Date: ${formatDate(selectedDate)} (${selectedDate})`,
       `Hours worked: ${hoursWorked || '-'}`,
       `Parking: ${totalParking} kr${parkingCosts.filter(c => c).length > 1 ? ` (${parkingCosts.filter(c => c).join(' + ')})` : ''}`,
@@ -256,7 +289,7 @@ function DriverDashboardPage() {
         return;
       }
 
-      const summary = await getDriverMonthlySummary('default-driver', year, month);
+      const summary = await getDriverMonthlySummary(selectedDriver, year, month);
 
       const monthFormatter = new Intl.DateTimeFormat('sv-SE', {
         year: 'numeric',
@@ -266,7 +299,7 @@ function DriverDashboardPage() {
       const monthLabel = monthFormatter.format(someDateInMonth);
 
       const to = 'info@doxvl.se,info@visumpartner.se';
-      const subject = `Monthly Driver Report – ${monthLabel}`;
+      const subject = `Monthly Driver Report – ${currentDriverName} – ${monthLabel}`;
 
       // Calculate total expenses
       const totalExpenses = summary.totalParking + summary.totalEmbassy + summary.totalOther;
@@ -278,7 +311,7 @@ function DriverDashboardPage() {
       const headerLines = [
         '═══════════════════════════════════════════',
         `       MONTHLY DRIVER REPORT`,
-        `       ${monthLabel.toUpperCase()}`,
+        `       ${currentDriverName.toUpperCase()} – ${monthLabel.toUpperCase()}`,
         '═══════════════════════════════════════════',
         '',
         '📊 SUMMARY',
@@ -933,7 +966,7 @@ function DriverDashboardPage() {
 
   useEffect(() => {
     loadMonthlySummaryForSelectedDate();
-  }, [reportMonth]);
+  }, [reportMonth, selectedDriver]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -1338,10 +1371,32 @@ function DriverDashboardPage() {
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Driver Selector - Prominent at top */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-4 mb-6">
+            <div className="text-center mb-3">
+              <p className="text-blue-100 text-sm font-medium">Välj chaufför</p>
+            </div>
+            <div className="flex justify-center gap-3">
+              {DRIVERS.map((driver) => (
+                <button
+                  key={driver.id}
+                  onClick={() => handleDriverChange(driver.id)}
+                  className={`flex-1 max-w-[160px] py-3 px-4 rounded-xl font-bold text-lg transition-all ${
+                    selectedDriver === driver.id
+                      ? 'bg-white text-blue-700 shadow-lg scale-105'
+                      : 'bg-blue-500 text-white hover:bg-blue-400'
+                  }`}
+                >
+                  {driver.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Header - Mobile optimized */}
           <div className="mb-6">
             <div className="text-center mb-4">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">🚗 Driver</h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">🚗 {currentDriverName}</h1>
               <p className="text-lg text-gray-600 mt-1">{formatDate(selectedDate)}</p>
             </div>
             <div className="flex justify-center gap-3">
