@@ -531,8 +531,13 @@ function DriverDashboardPage() {
     try {
       setLoading(true);
 
-      const orders = (await getAllOrders()).filter(
-        (order) => order.status === 'pending' || order.status === 'processing' || order.status === 'received' || order.status === 'submitted'
+      const allLegOrders = await getAllOrders();
+      
+      // Filter out visa orders (orderType === 'visa') - they are handled separately from visaOrders collection
+      const orders = allLegOrders.filter(
+        (order) => 
+          (order.status === 'pending' || order.status === 'processing' || order.status === 'received' || order.status === 'submitted') &&
+          (order as any).orderType !== 'visa' // Exclude visa orders - they're in visaOrders collection
       );
 
       const driverTasks: DriverTask[] = [];
@@ -775,8 +780,13 @@ function DriverDashboardPage() {
 
       // ========== VISA ORDERS ==========
       // Fetch visa orders and create driver tasks for embassy visits
-      const visaOrders = (await getAllVisaOrders()).filter(
-        (order) => order.status === 'pending' || order.status === 'received' || order.status === 'processing' || order.status === 'submitted-to-embassy'
+      const allVisaOrders = await getAllVisaOrders();
+      
+      const visaOrders = allVisaOrders.filter(
+        (order) => {
+          const status = order.status as string;
+          return status === 'pending' || status === 'received' || status === 'processing' || status === 'submitted-to-embassy' || status === 'submitted';
+        }
       );
 
       visaOrders.forEach((visaOrder: VisaOrder) => {
@@ -784,13 +794,33 @@ function DriverDashboardPage() {
         if (!processingSteps || !Array.isArray(processingSteps)) return;
 
         // Get destination country info for embassy name
+        const extVisa = visaOrder as any;
+        // Try to find country code from multiple sources
+        const countryCode = (
+          visaOrder.destinationCountryCode || 
+          extVisa.country || 
+          extVisa.visaProduct?.destinationCountryCode ||
+          extVisa.visaProduct?.countryCode ||
+          ''
+        ).toUpperCase();
+        
         const destCountry = ALL_COUNTRIES.find(c => 
-          c.code === visaOrder.destinationCountryCode?.toUpperCase() ||
+          c.code === countryCode ||
           c.name.toLowerCase() === visaOrder.destinationCountry?.toLowerCase() ||
-          c.nameEn?.toLowerCase() === visaOrder.destinationCountry?.toLowerCase()
+          c.nameEn?.toLowerCase() === visaOrder.destinationCountry?.toLowerCase() ||
+          c.name.toLowerCase() === extVisa.country?.toLowerCase() ||
+          c.nameEn?.toLowerCase() === extVisa.country?.toLowerCase()
         );
-        // Try multiple fallbacks: country object, destinationCountry field, visaProduct name (often contains country)
-        const embassyName = destCountry?.nameEn || destCountry?.name || visaOrder.destinationCountry || visaOrder.visaProduct?.name?.split(' ')[0] || 'Unknown';
+        
+        // Try multiple fallbacks: country object, destinationCountry field, country field, visaProduct name
+        // If we have a country code but no match, use the code itself (e.g., "AO" -> "AO Embassy")
+        const embassyName = destCountry?.nameEn || destCountry?.name || 
+          visaOrder.destinationCountry || extVisa.country || 
+          (countryCode ? countryCode : '') ||
+          visaOrder.visaProduct?.name?.split(' ')[0] || '';
+        
+        // Skip orders without a valid embassy/country - they shouldn't appear on driver list
+        if (!embassyName) return;
 
         processingSteps.forEach((step: ProcessingStep) => {
           let taskType: 'pickup' | 'delivery' | null = null;
@@ -817,19 +847,21 @@ function DriverDashboardPage() {
             address = [pickupAddr.street, pickupAddr.postalCode, pickupAddr.city].filter(Boolean).join(', ');
           }
 
-          // Only add tasks that have dates and are not completed
-          if (taskType && step.status !== 'completed' && step.status !== 'skipped') {
+          // Only add tasks that have actual dates and are not completed
+          // Skip tasks without dates - they should not appear on driver list
+          if (taskType && step.status !== 'completed' && step.status !== 'skipped' && 
+              (step.submittedAt || step.expectedCompletionDate)) {
             try {
-              // Use expectedCompletionDate or submittedAt if available, otherwise use today
-              let taskDate = selectedDate; // Default to selected date
+              // Use expectedCompletionDate or submittedAt
+              let taskDate = '';
               if (step.submittedAt) {
                 taskDate = new Date(step.submittedAt.toDate ? step.submittedAt.toDate() : step.submittedAt).toISOString().split('T')[0];
               } else if (step.expectedCompletionDate) {
                 taskDate = new Date(step.expectedCompletionDate.toDate ? step.expectedCompletionDate.toDate() : step.expectedCompletionDate).toISOString().split('T')[0];
               }
 
-              // Only show tasks for the selected date
-              if (taskDate === selectedDate) {
+              // Only show tasks for the selected date (must have a valid date)
+              if (taskDate && taskDate === selectedDate) {
                 // Get customer name from visa order
                 const extVisaOrder = visaOrder as any;
                 const travelerName = extVisaOrder.travelers?.[0] 
