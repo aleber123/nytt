@@ -177,15 +177,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
       }
     }
 
-    // Stockholm courier return requires a delivery date
-    if (answers.returnService === 'stockholm-city' && !answers.returnDeliveryDate) {
-      missing.push({
-        field: 'returnDeliveryDate',
-        label: isEn ? 'Delivery date (Stockholm courier)' : 'Leveransdatum (Stockholm courier)',
-        id: 'return-delivery-date'
-      });
-    }
-
     // Terms and conditions must be accepted
     const termsCheckbox = document.getElementById('terms-acceptance-upload') as HTMLInputElement || 
                           document.getElementById('terms-acceptance-original') as HTMLInputElement;
