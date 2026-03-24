@@ -1,14 +1,15 @@
 /**
  * Visa Step 1: Destination Country Selection
- * Uses dynamic popularity tracking like legalization countries
+ * Dynamically loads available countries from visaRequirements in Firestore
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { VisaOrderAnswers } from './types';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { trackVisaDestinationSelection, getPopularVisaDestinations, VisaDestinationPopularity } from '@/firebase/pricingService';
+import { getAllVisaRequirements } from '@/firebase/visaRequirementsService';
 
 interface Props {
   answers: VisaOrderAnswers;
@@ -23,95 +24,50 @@ interface VisaCountry {
   nameEn: string;
 }
 
-// All visa countries (comprehensive list)
-const ALL_VISA_COUNTRIES: VisaCountry[] = [
-  { code: 'AF', name: 'Afghanistan', nameEn: 'Afghanistan' },
-  { code: 'DZ', name: 'Algeriet', nameEn: 'Algeria' },
-  { code: 'AO', name: 'Angola', nameEn: 'Angola' },
-  { code: 'AU', name: 'Australien', nameEn: 'Australia' },
-  { code: 'AZ', name: 'Azerbajdzjan', nameEn: 'Azerbaijan' },
-  { code: 'BH', name: 'Bahrain', nameEn: 'Bahrain' },
-  { code: 'BD', name: 'Bangladesh', nameEn: 'Bangladesh' },
-  { code: 'BY', name: 'Belarus', nameEn: 'Belarus' },
-  { code: 'BJ', name: 'Benin', nameEn: 'Benin' },
-  { code: 'BT', name: 'Bhutan', nameEn: 'Bhutan' },
-  { code: 'BR', name: 'Brasilien', nameEn: 'Brazil' },
-  { code: 'DJ', name: 'Djibouti', nameEn: 'Djibouti' },
-  { code: 'EG', name: 'Egypten', nameEn: 'Egypt' },
-  { code: 'ER', name: 'Eritrea', nameEn: 'Eritrea' },
-  { code: 'ET', name: 'Etiopien', nameEn: 'Ethiopia' },
-  { code: 'AE', name: 'Förenade Arabemiraten', nameEn: 'United Arab Emirates' },
-  { code: 'GH', name: 'Ghana', nameEn: 'Ghana' },
-  { code: 'IN', name: 'Indien', nameEn: 'India' },
-  { code: 'ID', name: 'Indonesien', nameEn: 'Indonesia' },
-  { code: 'IR', name: 'Iran', nameEn: 'Iran' },
-  { code: 'IQ', name: 'Irak', nameEn: 'Iraq' },
-  { code: 'JP', name: 'Japan', nameEn: 'Japan' },
-  { code: 'YE', name: 'Jemen', nameEn: 'Yemen' },
-  { code: 'JO', name: 'Jordanien', nameEn: 'Jordan' },
-  { code: 'KH', name: 'Kambodja', nameEn: 'Cambodia' },
-  { code: 'CM', name: 'Kamerun', nameEn: 'Cameroon' },
-  { code: 'KZ', name: 'Kazakstan', nameEn: 'Kazakhstan' },
-  { code: 'KE', name: 'Kenya', nameEn: 'Kenya' },
-  { code: 'CN', name: 'Kina', nameEn: 'China' },
-  { code: 'CD', name: 'Kongo-Kinshasa', nameEn: 'Congo (Kinshasa)' },
-  { code: 'CG', name: 'Kongo-Brazzaville', nameEn: 'Congo (Brazzaville)' },
-  { code: 'CU', name: 'Kuba', nameEn: 'Cuba' },
-  { code: 'KW', name: 'Kuwait', nameEn: 'Kuwait' },
-  { code: 'LA', name: 'Laos', nameEn: 'Laos' },
-  { code: 'LY', name: 'Libyen', nameEn: 'Libya' },
-  { code: 'MG', name: 'Madagaskar', nameEn: 'Madagascar' },
-  { code: 'MY', name: 'Malaysia', nameEn: 'Malaysia' },
-  { code: 'MM', name: 'Myanmar', nameEn: 'Myanmar' },
-  { code: 'NP', name: 'Nepal', nameEn: 'Nepal' },
-  { code: 'NG', name: 'Nigeria', nameEn: 'Nigeria' },
-  { code: 'KP', name: 'Nordkorea', nameEn: 'North Korea' },
-  { code: 'OM', name: 'Oman', nameEn: 'Oman' },
-  { code: 'PK', name: 'Pakistan', nameEn: 'Pakistan' },
-  { code: 'QA', name: 'Qatar', nameEn: 'Qatar' },
-  { code: 'RU', name: 'Ryssland', nameEn: 'Russia' },
-  { code: 'SA', name: 'Saudiarabien', nameEn: 'Saudi Arabia' },
-  { code: 'SN', name: 'Senegal', nameEn: 'Senegal' },
-  { code: 'LK', name: 'Sri Lanka', nameEn: 'Sri Lanka' },
-  { code: 'SD', name: 'Sudan', nameEn: 'Sudan' },
-  { code: 'KR', name: 'Sydkorea', nameEn: 'South Korea' },
-  { code: 'SY', name: 'Syrien', nameEn: 'Syria' },
-  { code: 'TZ', name: 'Tanzania', nameEn: 'Tanzania' },
-  { code: 'TD', name: 'Tchad', nameEn: 'Chad' },
-  { code: 'TH', name: 'Thailand', nameEn: 'Thailand' },
-  { code: 'TR', name: 'Turkiet', nameEn: 'Turkey' },
-  { code: 'UG', name: 'Uganda', nameEn: 'Uganda' },
-  { code: 'UZ', name: 'Uzbekistan', nameEn: 'Uzbekistan' },
-  { code: 'VN', name: 'Vietnam', nameEn: 'Vietnam' },
-  { code: 'ZM', name: 'Zambia', nameEn: 'Zambia' },
-  { code: 'ZW', name: 'Zimbabwe', nameEn: 'Zimbabwe' },
-].sort((a, b) => a.name.localeCompare(b.name, 'sv'));
-
 const VisaStep1Destination: React.FC<Props> = ({ answers, onUpdate, onNext, onBack }) => {
   const { t, i18n } = useTranslation('common');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAllCountries, setShowAllCountries] = useState(false);
   const [popularCountries, setPopularCountries] = useState<VisaDestinationPopularity[]>([]);
-  const [loadingPopular, setLoadingPopular] = useState(true);
+  const [allVisaCountries, setAllVisaCountries] = useState<VisaCountry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const isSwedish = i18n.language === 'sv';
 
-  // Stable reference to onNext to avoid stale closures
-  const stableOnNext = useCallback(() => onNext(), [onNext]);
-
-  // Load dynamic popular countries on mount
+  // Load available visa countries from Firestore on mount
   useEffect(() => {
-    const loadPopularCountries = async () => {
+    const loadData = async () => {
       try {
-        const popular = await getPopularVisaDestinations(12);
+        // Load both popular destinations and all active visa requirements
+        const [popular, requirements] = await Promise.all([
+          getPopularVisaDestinations(12).catch(() => []),
+          getAllVisaRequirements().catch(() => [])
+        ]);
+        
+        console.log('Loaded visa requirements:', requirements.length, 'countries');
+        
         setPopularCountries(popular);
+        
+        // Convert visa requirements to VisaCountry format
+        // Only include active countries that have visa products
+        const countries: VisaCountry[] = requirements
+          .filter(r => r.isActive && r.visaProducts && r.visaProducts.length > 0)
+          .map(r => ({
+            code: r.countryCode,
+            name: r.countryName,
+            nameEn: r.countryNameEn || r.countryName
+          }))
+          .sort((a: VisaCountry, b: VisaCountry) => a.name.localeCompare(b.name, 'sv'));
+        
+        console.log('Filtered visa countries with products:', countries.length);
+        setAllVisaCountries(countries);
       } catch (error) {
-        // Fallback handled by getPopularVisaDestinations
+        console.error('Error loading visa countries:', error);
       } finally {
-        setLoadingPopular(false);
+        setLoading(false);
       }
     };
-    loadPopularCountries();
+    loadData();
   }, []);
 
   // Convert popularity data to VisaCountry format
@@ -126,12 +82,16 @@ const VisaStep1Destination: React.FC<Props> = ({ answers, onUpdate, onNext, onBa
   const filteredCountries = useMemo(() => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      return ALL_VISA_COUNTRIES.filter(
+      return allVisaCountries.filter(
         (c) => c.name.toLowerCase().includes(term) || c.nameEn.toLowerCase().includes(term)
       );
     }
-    return showAllCountries ? ALL_VISA_COUNTRIES : popularAsCountries;
-  }, [searchTerm, showAllCountries, popularAsCountries]);
+    // If no popular countries loaded yet, show all
+    if (showAllCountries || popularAsCountries.length === 0) {
+      return allVisaCountries;
+    }
+    return popularAsCountries;
+  }, [searchTerm, showAllCountries, popularAsCountries, allVisaCountries]);
 
   const handleSelect = (country: VisaCountry) => {
     onUpdate({
@@ -182,7 +142,7 @@ const VisaStep1Destination: React.FC<Props> = ({ answers, onUpdate, onNext, onBa
 
       {/* Country grid */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-        {loadingPopular && !showAllCountries && !searchTerm ? (
+        {loading && !showAllCountries && !searchTerm ? (
           // Show skeleton placeholders while loading
           Array.from({ length: 8 }).map((_, index) => (
             <div

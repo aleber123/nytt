@@ -151,18 +151,23 @@ export const getAllVisaRequirements = async (): Promise<VisaRequirement[]> => {
   try {
     if (!db) {
       // Firebase not initialized
+      console.warn('getAllVisaRequirements: Firebase not initialized');
       return [];
     }
 
     const requirementsRef = collection(db, 'visaRequirements');
-    const q = query(requirementsRef, orderBy('countryName', 'asc'));
-    const snapshot = await getDocs(q);
+    // Don't use orderBy to avoid index requirement - sort client-side instead
+    const snapshot = await getDocs(requirementsRef);
 
-    return snapshot.docs.map(doc => ({
+    const results = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     } as VisaRequirement));
+    
+    // Sort client-side
+    return results.sort((a, b) => (a.countryName || '').localeCompare(b.countryName || '', 'sv'));
   } catch (error) {
+    console.error('getAllVisaRequirements error:', error);
     return [];
   }
 };

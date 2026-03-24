@@ -17,10 +17,12 @@ import { getFormSubmissionsForOrder, getTemplateForProduct, DEFAULT_FIELD_GROUPS
 import type { VisaFormTemplate, FormField as TemplateFormField } from '@/firebase/visaFormService';
 import { buildBrazilVisaDataFromOrder, generateBrazilAutoFillScript, generateBrazilSectionScripts } from '@/services/formAutomation/brazilVisaAutofill';
 import type { SectionScript } from '@/services/formAutomation/brazilVisaAutofill';
+import { generateDS160CompleteScript, buildDS160DataFromOrder } from '@/services/formAutomation/usaDS160Autofill';
 import { toast } from 'react-hot-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateVisaOrder } from '@/firebase/visaOrderService';
 import { extractPassportData, extractPersonbevisData, extractCriminalRecordData, COUNTRY_CODE_MAP } from '@/services/passportOcrService';
+import SendVisaFormButton from './SendVisaFormButton';
 
 type OcrStatus = { progress: number | null; result: string | null };
 
@@ -84,6 +86,22 @@ const COUNTRY_CONFIG: Record<string, {
     instructions: [
       'Use the "Download PDF" button in the Processing tab to generate a filled PDF',
       'Print the PDF and submit to the embassy',
+    ],
+  },
+  US: {
+    label: 'USA',
+    flag: '🇺🇸',
+    websiteUrl: 'https://ceac.state.gov/genniv/',
+    websiteLabel: 'DS-160 Visa Application',
+    color: 'blue',
+    hasAutoFill: true,
+    instructions: [
+      'Collect customer data via the DS-160 form link sent to customer',
+      'Open the DS-160 website and start a new application',
+      'Copy the auto-fill script and paste in browser console (F12 → Console)',
+      'Run fillAll() on each page, or use specific functions like fillPersonal1()',
+      'Upload passport photo manually (must meet strict US requirements)',
+      'Save the application ID and confirmation page',
     ],
   },
 };
@@ -376,6 +394,17 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
       } catch {
         toast.error('Failed to copy to clipboard');
       }
+    } else if (countryCode === 'US') {
+      const mergedData = getMergedData();
+      const script = generateDS160CompleteScript(mergedData);
+      try {
+        await navigator.clipboard.writeText(script);
+        setScriptCopied(true);
+        toast.success('DS-160 auto-fill script copied! Paste in browser console on DS-160 site.');
+        setTimeout(() => setScriptCopied(false), 5000);
+      } catch {
+        toast.error('Failed to copy to clipboard');
+      }
     } else {
       toast.error(`Auto-fill script not yet available for ${countryCode}`);
     }
@@ -485,6 +514,9 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
           </ol>
         </div>
       )}
+
+      {/* Send Form to Customer */}
+      <SendVisaFormButton order={order} />
 
       {/* Data source indicator */}
       <div className="flex flex-col gap-1 text-sm">
