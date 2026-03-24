@@ -7,11 +7,14 @@
  */
 
 export interface DS160FormData {
+  // Personal Information
   surname?: string;
   givenName?: string;
   fullNameNative?: string;
   fullNameNativeNA?: boolean;
   hasOtherNames?: boolean;
+  otherSurname?: string;
+  otherGivenName?: string;
   sex?: 'M' | 'F';
   maritalStatus?: string;
   dateOfBirth?: string;
@@ -19,7 +22,10 @@ export interface DS160FormData {
   placeOfBirthState?: string;
   placeOfBirthCountry?: string;
   nationality?: string;
+  hasOtherNationality?: boolean;
+  otherNationality?: string;
   nationalIdNumber?: string;
+  // Address & Contact
   homeAddress?: string;
   homeCity?: string;
   homeState?: string;
@@ -27,41 +33,85 @@ export interface DS160FormData {
   homeCountry?: string;
   primaryPhone?: string;
   email?: string;
+  // Passport
+  passportType?: string;
   passportNumber?: string;
   passportIssuingCountry?: string;
+  passportIssuingCity?: string;
   passportIssueDate?: string;
   passportExpiryDate?: string;
+  hasLostPassport?: boolean;
+  // Travel
+  purposeOfTrip?: string;
   arrivalDate?: string;
   departureDate?: string;
+  stayLength?: string;
+  stayUnit?: string;
   usAddress?: string;
   usCity?: string;
   usState?: string;
   usZipCode?: string;
+  whoPaysTripCost?: string;
+  // US Contact
   usContactName?: string;
   usContactOrganization?: string;
+  usContactRelationship?: string;
   usContactAddress?: string;
   usContactCity?: string;
   usContactState?: string;
   usContactZipCode?: string;
   usContactPhone?: string;
   usContactEmail?: string;
+  // Family
   fatherSurname?: string;
   fatherGivenName?: string;
   fatherDateOfBirth?: string;
+  isFatherInUS?: boolean;
   motherSurname?: string;
   motherGivenName?: string;
   motherDateOfBirth?: string;
+  isMotherInUS?: boolean;
+  hasImmediateRelativesInUS?: boolean;
   spouseSurname?: string;
   spouseGivenName?: string;
+  spouseDateOfBirth?: string;
+  spouseNationality?: string;
+  // Work & Education
   primaryOccupation?: string;
   employerName?: string;
   employerAddress?: string;
   employerCity?: string;
+  employerCountry?: string;
   employerPhone?: string;
   jobTitle?: string;
+  employerStartDate?: string;
+  monthlyIncome?: string;
+  jobDuties?: string;
+  // Previous US Travel
   hasBeenToUS?: boolean;
+  lastUSVisitDate?: string;
+  lastUSVisitLength?: string;
+  hasUSDriversLicense?: boolean;
+  usDriversLicenseState?: string;
   hasHadUSVisa?: boolean;
+  previousVisaIssueDate?: string;
+  previousVisaNumber?: string;
+  isSameVisaType?: boolean;
   hasBeenRefused?: boolean;
+  hasImmigrantPetition?: boolean;
+  // Additional Info
+  hasAttendedEducation?: boolean;
+  educationInstitutionName?: string;
+  educationCity?: string;
+  educationCountry?: string;
+  educationCourseOfStudy?: string;
+  languagesSpoken?: string;
+  hasTraveledLast5Years?: boolean;
+  countriesVisitedLast5Years?: string;
+  belongsToOrganizations?: boolean;
+  organizationNames?: string;
+  hasServedInMilitary?: boolean;
+  militaryDetails?: string;
 }
 
 // Country code mapping
@@ -85,62 +135,113 @@ function formatDateForDS160(dateStr: string): string {
 
 export function convertFormDataToDS160(formData: Record<string, any>): DS160FormData {
   const getCountry = (c: string) => DS160_COUNTRY_CODES[c] || c;
+  const toBool = (v: any) => v === 'yes' || v === 'Yes' || v === true || v === 'true';
   return {
+    // Personal Information
     surname: formData.surname || formData.lastName || formData.familyNames || '',
     givenName: formData.givenName || formData.firstName || formData.givenNames || '',
     fullNameNative: formData.fullNameNative || '',
     fullNameNativeNA: formData.fullNameNativeNA === 'true' || formData.fullNameNativeNA === true,
-    hasOtherNames: formData.hasOtherNames === 'yes',
+    hasOtherNames: toBool(formData.hasOtherNames),
+    otherSurname: formData.otherSurname || '',
+    otherGivenName: formData.otherGivenName || '',
     sex: formData.sex === 'male' || formData.sex === 'M' ? 'M' : formData.sex === 'female' || formData.sex === 'F' ? 'F' : undefined,
-    maritalStatus: formData.maritalStatus?.charAt(0).toUpperCase(),
+    maritalStatus: formData.maritalStatus || '',
     dateOfBirth: formatDateForDS160(formData.dateOfBirth),
-    placeOfBirthCity: formData.placeOfBirthCity || formData.birthCity || '',
+    placeOfBirthCity: formData.cityOfBirth || formData.placeOfBirthCity || formData.birthCity || '',
     placeOfBirthState: formData.placeOfBirthState || '',
-    placeOfBirthCountry: getCountry(formData.placeOfBirthCountry || formData.birthCountry || ''),
+    placeOfBirthCountry: getCountry(formData.countryOfBirth || formData.placeOfBirthCountry || formData.birthCountry || ''),
     nationality: getCountry(formData.nationality || ''),
+    hasOtherNationality: toBool(formData.hasOtherNationality),
+    otherNationality: formData.otherNationality || '',
     nationalIdNumber: formData.nationalIdNumber || formData.personnummer || '',
-    homeAddress: formData.homeAddress || formData.permanentAddressStreet || formData.address || '',
+    // Address & Contact
+    homeAddress: formData.homeStreetAddress || formData.homeAddress || formData.permanentAddressStreet || formData.address || '',
     homeCity: formData.homeCity || formData.permanentAddressCity || formData.city || '',
     homeState: formData.homeState || formData.permanentAddressState || '',
     homePostalCode: formData.homePostalCode || formData.permanentAddressZip || formData.postalCode || '',
     homeCountry: getCountry(formData.homeCountry || 'Sweden'),
     primaryPhone: formData.primaryPhone || formData.phone || formData.mobilePhone || '',
     email: formData.email || '',
+    // Passport
+    passportType: formData.passportType || 'REGULAR',
     passportNumber: formData.passportNumber || '',
     passportIssuingCountry: getCountry(formData.passportIssuingCountry || formData.passportIssuedBy || 'Sweden'),
+    passportIssuingCity: formData.passportIssuingCity || '',
     passportIssueDate: formatDateForDS160(formData.passportIssueDate || formData.passportDateOfIssue),
     passportExpiryDate: formatDateForDS160(formData.passportExpiryDate || formData.passportDateOfExpiry),
-    arrivalDate: formatDateForDS160(formData.arrivalDate || formData.intendedArrivalDate),
+    hasLostPassport: toBool(formData.hasLostPassport),
+    // Travel
+    purposeOfTrip: formData.purposeOfTrip || '',
+    arrivalDate: formatDateForDS160(formData.intendedArrivalDate || formData.arrivalDate),
     departureDate: formatDateForDS160(formData.departureDate || formData.intendedDepartureDate),
-    usAddress: formData.usAddress || formData.usStayAddress || '',
+    stayLength: formData.intendedStayLength || '',
+    stayUnit: formData.intendedStayUnit || 'DAYS',
+    usAddress: formData.usStreetAddress || formData.usAddress || formData.usStayAddress || '',
     usCity: formData.usCity || formData.usStayCity || '',
     usState: formData.usState || formData.usStayState || '',
     usZipCode: formData.usZipCode || formData.usStayZipCode || '',
+    whoPaysTripCost: formData.whoPaysTripCost || 'SELF',
+    // US Contact
     usContactName: formData.usContactName || formData.usPointOfContactName || '',
     usContactOrganization: formData.usContactOrganization || '',
+    usContactRelationship: formData.usContactRelationship || '',
     usContactAddress: formData.usContactAddress || '',
     usContactCity: formData.usContactCity || '',
     usContactState: formData.usContactState || '',
     usContactZipCode: formData.usContactZipCode || '',
     usContactPhone: formData.usContactPhone || '',
     usContactEmail: formData.usContactEmail || '',
+    // Family
     fatherSurname: formData.fatherSurname || '',
     fatherGivenName: formData.fatherGivenName || '',
     fatherDateOfBirth: formatDateForDS160(formData.fatherDateOfBirth),
+    isFatherInUS: toBool(formData.isFatherInUS),
     motherSurname: formData.motherSurname || '',
     motherGivenName: formData.motherGivenName || '',
     motherDateOfBirth: formatDateForDS160(formData.motherDateOfBirth),
+    isMotherInUS: toBool(formData.isMotherInUS),
+    hasImmediateRelativesInUS: toBool(formData.hasImmediateRelativesInUS),
     spouseSurname: formData.spouseSurname || '',
     spouseGivenName: formData.spouseGivenName || '',
+    spouseDateOfBirth: formatDateForDS160(formData.spouseDateOfBirth),
+    spouseNationality: formData.spouseNationality || '',
+    // Work & Education
     primaryOccupation: formData.primaryOccupation || '',
     employerName: formData.employerName || '',
     employerAddress: formData.employerAddress || '',
     employerCity: formData.employerCity || '',
+    employerCountry: getCountry(formData.employerCountry || ''),
     employerPhone: formData.employerPhone || '',
     jobTitle: formData.jobTitle || '',
-    hasBeenToUS: formData.hasBeenToUS === 'yes',
-    hasHadUSVisa: formData.hasHadUSVisa === 'yes',
-    hasBeenRefused: formData.hasBeenRefusedVisa === 'yes',
+    employerStartDate: formatDateForDS160(formData.employerStartDate),
+    monthlyIncome: formData.monthlyIncome || '',
+    jobDuties: formData.jobDuties || '',
+    // Previous US Travel
+    hasBeenToUS: toBool(formData.hasBeenToUS),
+    lastUSVisitDate: formatDateForDS160(formData.lastUSVisitDate),
+    lastUSVisitLength: formData.lastUSVisitLength || '',
+    hasUSDriversLicense: toBool(formData.hasUSDriversLicense),
+    usDriversLicenseState: formData.usDriversLicenseState || '',
+    hasHadUSVisa: toBool(formData.hasHadUSVisa),
+    previousVisaIssueDate: formatDateForDS160(formData.previousVisaIssueDate),
+    previousVisaNumber: formData.previousVisaNumber || '',
+    isSameVisaType: toBool(formData.isSameVisaType),
+    hasBeenRefused: toBool(formData.hasBeenRefusedVisa),
+    hasImmigrantPetition: toBool(formData.hasImmigrantPetition),
+    // Additional Info
+    hasAttendedEducation: toBool(formData.hasAttendedEducation),
+    educationInstitutionName: formData.educationInstitutionName || '',
+    educationCity: formData.educationCity || '',
+    educationCountry: getCountry(formData.educationCountry || ''),
+    educationCourseOfStudy: formData.educationCourseOfStudy || '',
+    languagesSpoken: formData.languagesSpoken || '',
+    hasTraveledLast5Years: toBool(formData.hasTraveledLast5Years),
+    countriesVisitedLast5Years: formData.countriesVisitedLast5Years || '',
+    belongsToOrganizations: toBool(formData.belongsToOrganizations),
+    organizationNames: formData.organizationNames || '',
+    hasServedInMilitary: toBool(formData.hasServedInMilitary),
+    militaryDetails: formData.militaryDetails || '',
   };
 }
 
@@ -174,7 +275,8 @@ function fillPersonal1(){
 function fillPersonal2(){
   console.log('🔄 Filling Personal 2...');
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_NATL',D.nationality);
-  sr('ctl00$SiteContentPlaceHolder$FormView1$rblAPP_OTH_NATL_IND','N');
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblAPP_OTH_NATL_IND',D.hasOtherNationality?'Y':'N');
+  if(D.hasOtherNationality&&D.otherNationality)ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_OTH_NATL',D.otherNationality);
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblPermResOtherCntryInd','N');
   if(D.nationalIdNumber)sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_NATIONAL_ID',D.nationalIdNumber);
   else sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_NATIONAL_ID_NA',true);
@@ -231,12 +333,18 @@ function fillFamily(){
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxFATHER_SURNAME',D.fatherSurname);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxFATHER_GIVEN_NAME',D.fatherGivenName);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxFathersDOB',D.fatherDateOfBirth);
-  sr('ctl00$SiteContentPlaceHolder$FormView1$rblFATHER_LIVE_IN_US_IND','N');
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblFATHER_LIVE_IN_US_IND',D.isFatherInUS?'Y':'N');
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxMOTHER_SURNAME',D.motherSurname);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxMOTHER_GIVEN_NAME',D.motherGivenName);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxMothersDOB',D.motherDateOfBirth);
-  sr('ctl00$SiteContentPlaceHolder$FormView1$rblMOTHER_LIVE_IN_US_IND','N');
-  sr('ctl00$SiteContentPlaceHolder$FormView1$rblUS_IMMED_RELATIVE_IND','N');
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblMOTHER_LIVE_IN_US_IND',D.isMotherInUS?'Y':'N');
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblUS_IMMED_RELATIVE_IND',D.hasImmediateRelativesInUS?'Y':'N');
+  if(D.spouseSurname){
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxSPOUSE_SURNAME',D.spouseSurname);
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxSPOUSE_GIVEN_NAME',D.spouseGivenName);
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxDOBSPOUSE',D.spouseDateOfBirth);
+    ss('ctl00_SiteContentPlaceHolder_FormView1_ddlSPOUSE_NATL',D.spouseNationality);
+  }
   console.log('✅ Family done!');
 }
 
@@ -259,8 +367,22 @@ function fillSecurity(){
 function fillPreviousTravel(){
   console.log('🔄 Filling Previous Travel...');
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblPREV_US_TRAVEL_IND',D.hasBeenToUS?'Y':'N');
+  if(D.hasBeenToUS&&D.lastUSVisitDate){
+    sv('ctl00_SiteContentPlaceHolder_FormView1_dtlPREV_US_VISIT_dtlPREV_US_VISITRow0_tbxPREV_US_VISIT_DTD',D.lastUSVisitDate);
+    sv('ctl00_SiteContentPlaceHolder_FormView1_dtlPREV_US_VISIT_dtlPREV_US_VISITRow0_tbxPREV_US_VISIT_LOS',D.lastUSVisitLength);
+  }
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblPREV_US_DRIVER_LIC_IND',D.hasUSDriversLicense?'Y':'N');
+  if(D.hasUSDriversLicense&&D.usDriversLicenseState){
+    ss('ctl00_SiteContentPlaceHolder_FormView1_ddlPREV_US_DRIVER_LIC_STATE',D.usDriversLicenseState);
+  }
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblPREV_VISA_IND',D.hasHadUSVisa?'Y':'N');
+  if(D.hasHadUSVisa){
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxPREV_VISA_ISSUED',D.previousVisaIssueDate);
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxPREV_VISA_NUMBER',D.previousVisaNumber);
+    sr('ctl00$SiteContentPlaceHolder$FormView1$rblPREV_VISA_SAME_TYPE_IND',D.isSameVisaType?'Y':'N');
+  }
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblPREV_VISA_REFUSED_IND',D.hasBeenRefused?'Y':'N');
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblIV_PETITION_IND',D.hasImmigrantPetition?'Y':'N');
   console.log('✅ Previous Travel done!');
 }
 

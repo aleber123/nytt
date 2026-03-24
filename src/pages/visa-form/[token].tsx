@@ -552,7 +552,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     .map(f => f.id);
 
   // Conditional visibility rules (same as in render)
-  const conditionRules: Record<string, { parent: string; showWhen: string }> = {
+  const conditionRules: Record<string, { parent: string; showWhen: string | string[] }> = {
     previousName: { parent: 'haveYouChangedName', showWhen: 'Yes' },
     otherPassportCountry: { parent: 'anyOtherPassport', showWhen: 'Yes' },
     otherPassportNumber: { parent: 'anyOtherPassport', showWhen: 'Yes' },
@@ -568,12 +568,58 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     // Angola-specific conditional rules
     dateOfLastEntryInAngola: { parent: 'everTravelledToAngola', showWhen: 'Yes' },
     borderUsed: { parent: 'everTravelledToAngola', showWhen: 'Yes' },
+    // DS-160 (USA) conditional rules - Personal
+    otherSurname: { parent: 'hasOtherNames', showWhen: 'yes' },
+    otherGivenName: { parent: 'hasOtherNames', showWhen: 'yes' },
+    otherNationality: { parent: 'hasOtherNationality', showWhen: 'yes' },
+    lostPassportExplanation: { parent: 'hasLostPassport', showWhen: 'yes' },
+    // DS-160 - Travel
+    payerName: { parent: 'whoPaysTripCost', showWhen: ['OTHER_PERSON', 'COMPANY'] },
+    payerRelationship: { parent: 'whoPaysTripCost', showWhen: ['OTHER_PERSON', 'COMPANY'] },
+    intendedArrivalDate: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
+    intendedStayLength: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
+    intendedStayUnit: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
+    usStreetAddress: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
+    usCity: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
+    usState: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
+    usZipCode: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
+    // DS-160 - Previous US Travel
+    lastUSVisitDate: { parent: 'hasBeenToUS', showWhen: 'yes' },
+    lastUSVisitLength: { parent: 'hasBeenToUS', showWhen: 'yes' },
+    usDriversLicenseState: { parent: 'hasUSDriversLicense', showWhen: 'yes' },
+    previousVisaIssueDate: { parent: 'hasHadUSVisa', showWhen: 'yes' },
+    previousVisaNumber: { parent: 'hasHadUSVisa', showWhen: 'yes' },
+    isSameVisaType: { parent: 'hasHadUSVisa', showWhen: 'yes' },
+    hasVisaBeenLostStolen: { parent: 'hasHadUSVisa', showWhen: 'yes' },
+    visaRefusalExplanation: { parent: 'hasBeenRefusedVisa', showWhen: 'yes' },
+    // DS-160 - Family
+    immediateRelativeDetails: { parent: 'hasImmediateRelativesInUS', showWhen: 'yes' },
+    spouseSurname: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+    spouseGivenName: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+    spouseDateOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
+    // spouseNationality already defined above for India form
+    // DS-160 - Additional Information
+    educationInstitutionName: { parent: 'hasAttendedEducation', showWhen: 'yes' },
+    educationCity: { parent: 'hasAttendedEducation', showWhen: 'yes' },
+    educationCountry: { parent: 'hasAttendedEducation', showWhen: 'yes' },
+    educationCourseOfStudy: { parent: 'hasAttendedEducation', showWhen: 'yes' },
+    educationDateFrom: { parent: 'hasAttendedEducation', showWhen: 'yes' },
+    educationDateTo: { parent: 'hasAttendedEducation', showWhen: 'yes' },
+    countriesVisitedLast5Years: { parent: 'hasTraveledLast5Years', showWhen: 'yes' },
+    organizationNames: { parent: 'belongsToOrganizations', showWhen: 'yes' },
+    militaryDetails: { parent: 'hasServedInMilitary', showWhen: 'yes' },
+    // DS-160 - Security
+    securityExplanation: { parent: 'securityDisease', showWhen: 'yes' },
   };
 
   const isFieldVisible = (fieldId: string) => {
     const cond = conditionRules[fieldId];
     if (!cond) return true;
-    return (formData[cond.parent] || '') === cond.showWhen;
+    const parentValue = formData[cond.parent] || '';
+    if (Array.isArray(cond.showWhen)) {
+      return cond.showWhen.includes(parentValue);
+    }
+    return parentValue === cond.showWhen;
   };
 
   const missingRequiredFields = fields
