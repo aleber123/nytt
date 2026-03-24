@@ -249,11 +249,109 @@ export function generateDS160CompleteScript(formData: Record<string, any>): stri
   const data = convertFormDataToDS160(formData);
   return `
 // DS-160 Auto-fill Script - DOX Visumpartner
+// Version 2.0 - Improved field detection and event handling
 const D=${JSON.stringify(data)};
-function sv(id,v){const e=document.getElementById(id);if(e&&v){e.value=v;e.dispatchEvent(new Event('change',{bubbles:true}));console.log('✓',id.split('_').pop(),'=',v);}}
-function ss(id,v){const e=document.getElementById(id);if(e&&v){for(let i=0;i<e.options.length;i++){if(e.options[i].value===v||e.options[i].text.toUpperCase().includes(v.toUpperCase())){e.selectedIndex=i;e.dispatchEvent(new Event('change',{bubbles:true}));console.log('✓',id.split('_').pop(),'=',e.options[i].text);return;}}}}
-function sr(n,v){document.querySelectorAll('input[name="'+n+'"]').forEach(r=>{if(r.value===v){r.checked=true;r.dispatchEvent(new Event('change',{bubbles:true}));r.dispatchEvent(new Event('click',{bubbles:true}));}});}
-function sc(id,c){const e=document.getElementById(id);if(e&&e.checked!==c){e.checked=c;e.dispatchEvent(new Event('click',{bubbles:true}));}}
+
+// Helper: Find element by partial ID match
+function findEl(partialId){
+  let el = document.getElementById(partialId);
+  if(el) return el;
+  // Try to find by partial match
+  const all = document.querySelectorAll('[id*="'+partialId.split('_').pop()+'"]');
+  if(all.length === 1) return all[0];
+  return null;
+}
+
+// Set text value with proper events
+function sv(id,v){
+  const e = findEl(id);
+  if(!e){console.warn('⚠️ Field not found:',id.split('_').pop());return;}
+  if(!v){console.log('⏭️ Skipping empty:',id.split('_').pop());return;}
+  e.value = v;
+  e.dispatchEvent(new Event('input',{bubbles:true}));
+  e.dispatchEvent(new Event('change',{bubbles:true}));
+  e.dispatchEvent(new Event('blur',{bubbles:true}));
+  console.log('✓',id.split('_').pop(),'=',v);
+}
+
+// Set select/dropdown value
+function ss(id,v){
+  const e = findEl(id);
+  if(!e){console.warn('⚠️ Dropdown not found:',id.split('_').pop());return;}
+  if(!v){console.log('⏭️ Skipping empty:',id.split('_').pop());return;}
+  const vUp = String(v).toUpperCase();
+  for(let i=0;i<e.options.length;i++){
+    const opt = e.options[i];
+    const optVal = opt.value.toUpperCase();
+    const optTxt = opt.text.toUpperCase();
+    if(optVal===vUp || optTxt===vUp || optTxt.includes(vUp) || optVal.includes(vUp)){
+      e.selectedIndex = i;
+      e.dispatchEvent(new Event('change',{bubbles:true}));
+      console.log('✓',id.split('_').pop(),'=',opt.text);
+      return;
+    }
+  }
+  console.warn('⚠️ No match for',id.split('_').pop(),'with value',v);
+}
+
+// Set radio button - handles Y/N, 1/0, Yes/No
+function sr(name,yesNo){
+  const radios = document.querySelectorAll('input[name="'+name+'"]');
+  if(radios.length===0){
+    // Try partial match
+    const partial = name.split('$').pop();
+    const found = document.querySelectorAll('input[name*="'+partial+'"]');
+    if(found.length>0){
+      found.forEach(r=>{
+        const isYes = yesNo===true||yesNo==='Y'||yesNo==='Yes'||yesNo==='yes';
+        const targetVal = isYes ? ['Y','1','Yes','TRUE'] : ['N','0','No','FALSE'];
+        if(targetVal.includes(r.value)){
+          r.checked=true;
+          r.dispatchEvent(new Event('click',{bubbles:true}));
+          r.dispatchEvent(new Event('change',{bubbles:true}));
+          console.log('✓ Radio',partial,'=',r.value);
+        }
+      });
+      return;
+    }
+    console.warn('⚠️ Radio not found:',name.split('$').pop());
+    return;
+  }
+  const isYes = yesNo===true||yesNo==='Y'||yesNo==='Yes'||yesNo==='yes';
+  const targetVals = isYes ? ['Y','1','Yes','TRUE'] : ['N','0','No','FALSE'];
+  radios.forEach(r=>{
+    if(targetVals.includes(r.value)){
+      r.checked=true;
+      r.dispatchEvent(new Event('click',{bubbles:true}));
+      r.dispatchEvent(new Event('change',{bubbles:true}));
+      console.log('✓ Radio',name.split('$').pop(),'=',r.value);
+    }
+  });
+}
+
+// Set checkbox
+function sc(id,checked){
+  const e = findEl(id);
+  if(!e){console.warn('⚠️ Checkbox not found:',id.split('_').pop());return;}
+  if(e.checked !== checked){
+    e.checked = checked;
+    e.dispatchEvent(new Event('click',{bubbles:true}));
+    e.dispatchEvent(new Event('change',{bubbles:true}));
+    console.log('✓ Checkbox',id.split('_').pop(),'=',checked);
+  }
+}
+
+// Debug: List all form fields on page
+function listFields(){
+  console.log('📋 Text inputs:');
+  document.querySelectorAll('input[type="text"]').forEach(e=>console.log('  ',e.id||e.name));
+  console.log('📋 Selects:');
+  document.querySelectorAll('select').forEach(e=>console.log('  ',e.id||e.name));
+  console.log('📋 Radio groups:');
+  const radioNames = new Set();
+  document.querySelectorAll('input[type="radio"]').forEach(e=>radioNames.add(e.name));
+  radioNames.forEach(n=>console.log('  ',n));
+}
 
 function fillPersonal1(){
   console.log('🔄 Filling Personal 1...');
@@ -400,10 +498,14 @@ function fillAll(){
   else console.log('Unknown page. Use: fillPersonal1(), fillAddress(), etc.');
 }
 
-console.log('📋 DS-160 Script loaded! Commands:');
-console.log('  fillAll() - Auto-detect page');
+console.log('📋 DS-160 Script v2.0 loaded! Commands:');
+console.log('  fillAll() - Auto-detect page and fill');
 console.log('  fillPersonal1/2(), fillAddress(), fillPassport()');
 console.log('  fillUSContact(), fillFamily(), fillWork(), fillSecurity()');
+console.log('  listFields() - Debug: show all form fields on page');
+console.log('');
+console.log('🔍 Current page:', document.title);
+fillAll();
 `;
 }
 
