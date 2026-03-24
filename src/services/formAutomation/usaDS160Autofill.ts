@@ -390,6 +390,69 @@ function setField(patterns, value){
   return false;
 }
 
+// Set date field - handles both single field and Day/Month/Year dropdowns
+function setDate(baseId, dateStr){
+  if(!dateStr) return;
+  // Parse date string (format: DD-MMM-YYYY)
+  const parts = dateStr.split('-');
+  if(parts.length !== 3) {
+    console.warn('⚠️ Invalid date format:', dateStr);
+    return;
+  }
+  const day = parts[0];
+  const month = parts[1];
+  const year = parts[2];
+  
+  // Try single field first
+  const singleField = findEl(baseId);
+  if(singleField && singleField.tagName === 'INPUT'){
+    singleField.value = dateStr;
+    singleField.dispatchEvent(new Event('change',{bubbles:true}));
+    singleField.dispatchEvent(new Event('blur',{bubbles:true}));
+    console.log('✓ Date',baseId.split('_').pop(),'=',dateStr);
+    return;
+  }
+  
+  // Try Day/Month/Year dropdowns
+  const dayEl = document.querySelector('[id*="DOBDay"],[id*="_Day"],[id$="Day"]');
+  const monthEl = document.querySelector('[id*="DOBMonth"],[id*="_Month"],[id$="Month"]');
+  const yearEl = document.querySelector('[id*="DOBYear"],[id*="_Year"],[id$="Year"]');
+  
+  if(dayEl){
+    for(let i=0;i<dayEl.options.length;i++){
+      if(dayEl.options[i].value===day || dayEl.options[i].text===day){
+        dayEl.selectedIndex=i;
+        dayEl.dispatchEvent(new Event('change',{bubbles:true}));
+        console.log('✓ Day =',day);
+        break;
+      }
+    }
+  }
+  if(monthEl){
+    for(let i=0;i<monthEl.options.length;i++){
+      if(monthEl.options[i].value.toUpperCase()===month || monthEl.options[i].text.toUpperCase().includes(month)){
+        monthEl.selectedIndex=i;
+        monthEl.dispatchEvent(new Event('change',{bubbles:true}));
+        console.log('✓ Month =',month);
+        break;
+      }
+    }
+  }
+  if(yearEl){
+    for(let i=0;i<yearEl.options.length;i++){
+      if(yearEl.options[i].value===year || yearEl.options[i].text===year){
+        yearEl.selectedIndex=i;
+        yearEl.dispatchEvent(new Event('change',{bubbles:true}));
+        console.log('✓ Year =',year);
+        break;
+      }
+    }
+  }
+  if(!dayEl && !monthEl && !yearEl){
+    console.warn('⚠️ No date fields found for',baseId.split('_').pop());
+  }
+}
+
 function fillPersonal1(){
   console.log('🔄 Filling Personal 1...');
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_SURNAME',D.surname);
@@ -400,14 +463,8 @@ function fillPersonal1(){
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblTelecodeQuestion','N');
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_GENDER',D.sex);
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_MARITAL_STATUS',D.maritalStatus);
-  // DOB - try multiple patterns since DS-160 changes field IDs
-  setField([
-    '[id*="tbxAPP_DOB"]',
-    '[id*="DOBDay"]',
-    '[id$="DOB"]',
-    'input[id*="DateOfBirth"]',
-    'input[id*="APP_DOB"]'
-  ], D.dateOfBirth) || sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_DOB',D.dateOfBirth);
+  // DOB - use setDate which handles both single field and Day/Month/Year dropdowns
+  setDate('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_DOB', D.dateOfBirth);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_POB_CITY',D.placeOfBirthCity);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_POB_ST_PROVINCE',D.placeOfBirthState);
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_POB_CNTRY',D.placeOfBirthCountry);
