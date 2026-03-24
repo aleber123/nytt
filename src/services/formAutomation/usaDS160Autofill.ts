@@ -256,9 +256,28 @@ const D=${JSON.stringify(data)};
 function findEl(partialId){
   let el = document.getElementById(partialId);
   if(el) return el;
-  // Try to find by partial match
-  const all = document.querySelectorAll('[id*="'+partialId.split('_').pop()+'"]');
+  // Try to find by partial match on last part of ID
+  const lastPart = partialId.split('_').pop();
+  const all = document.querySelectorAll('[id*="'+lastPart+'"]');
   if(all.length === 1) return all[0];
+  // Try multiple partial matches
+  const parts = partialId.split('_').filter(p=>p.length>2);
+  for(let i=parts.length-1;i>=0;i--){
+    const search = parts.slice(i).join('_');
+    const found = document.querySelectorAll('[id$="'+search+'"]');
+    if(found.length === 1) return found[0];
+  }
+  // Special case for date fields - DS-160 uses different patterns
+  if(lastPart.includes('DOB') || lastPart.includes('DTD')){
+    const dateFields = document.querySelectorAll('input[id*="DOB"],input[id*="Date"],input[id*="DTD"]');
+    for(const f of dateFields){
+      if(f.id.toUpperCase().includes(lastPart.toUpperCase().replace('_',''))){
+        return f;
+      }
+    }
+    // Return first date-like field if only one exists
+    if(dateFields.length === 1) return dateFields[0];
+  }
   return null;
 }
 
@@ -353,6 +372,24 @@ function listFields(){
   radioNames.forEach(n=>console.log('  ',n));
 }
 
+// Smart field setter - tries multiple ID patterns
+function setField(patterns, value){
+  if(!value) return;
+  for(const p of patterns){
+    const el = document.querySelector(p);
+    if(el){
+      el.value = value;
+      el.dispatchEvent(new Event('input',{bubbles:true}));
+      el.dispatchEvent(new Event('change',{bubbles:true}));
+      el.dispatchEvent(new Event('blur',{bubbles:true}));
+      console.log('✓',el.id.split('_').pop(),'=',value);
+      return true;
+    }
+  }
+  console.warn('⚠️ No field found for patterns');
+  return false;
+}
+
 function fillPersonal1(){
   console.log('🔄 Filling Personal 1...');
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_SURNAME',D.surname);
@@ -363,7 +400,14 @@ function fillPersonal1(){
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblTelecodeQuestion','N');
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_GENDER',D.sex);
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_MARITAL_STATUS',D.maritalStatus);
-  sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_DOB',D.dateOfBirth);
+  // DOB - try multiple patterns since DS-160 changes field IDs
+  setField([
+    '[id*="tbxAPP_DOB"]',
+    '[id*="DOBDay"]',
+    '[id$="DOB"]',
+    'input[id*="DateOfBirth"]',
+    'input[id*="APP_DOB"]'
+  ], D.dateOfBirth) || sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_DOB',D.dateOfBirth);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_POB_CITY',D.placeOfBirthCity);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_POB_ST_PROVINCE',D.placeOfBirthState);
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_POB_CNTRY',D.placeOfBirthCountry);
