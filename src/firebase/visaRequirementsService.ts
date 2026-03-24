@@ -402,7 +402,18 @@ export const updateVisaRequirement = async (
     if (updates.defaultVisaType !== undefined) cleanUpdates.defaultVisaType = updates.defaultVisaType;
     if (updates.isSupported !== undefined) cleanUpdates.isSupported = updates.isSupported;
     if (updates.nationalityRules !== undefined) cleanUpdates.nationalityRules = updates.nationalityRules;
-    if (updates.visaProducts !== undefined) cleanUpdates.visaProducts = updates.visaProducts;
+    if (updates.visaProducts !== undefined) {
+      // Clean undefined values from each product to avoid Firestore errors
+      cleanUpdates.visaProducts = updates.visaProducts.map(product => {
+        const cleanProduct: Record<string, any> = {};
+        Object.entries(product).forEach(([key, value]) => {
+          if (value !== undefined) {
+            cleanProduct[key] = value;
+          }
+        });
+        return cleanProduct;
+      });
+    }
     if (updates.serviceFee !== undefined) cleanUpdates.serviceFee = updates.serviceFee;
     if (updates.updatedBy !== undefined) cleanUpdates.updatedBy = updates.updatedBy;
     if (updates.isActive !== undefined) cleanUpdates.isActive = updates.isActive;

@@ -146,6 +146,26 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
           // Convert template fields to FieldGroup[] format
           const groupMap: Record<string, FieldGroup> = {};
           const groupInfo = template.groups?.length > 0 ? template.groups : DEFAULT_FIELD_GROUPS;
+          
+          // Map icon names to emojis
+          const iconMap: Record<string, string> = {
+            'user': '👤',
+            'id-card': '📘',
+            'plane': '✈️',
+            'phone': '📞',
+            'map-pin': '📍',
+            'users': '👨‍👩‍👧',
+            'briefcase': '💼',
+            'history': '🕐',
+            'shield': '🛡️',
+            'home': '🏠',
+            'globe': '🌍',
+            'calendar': '📅',
+            'mail': '📧',
+            'flag': '🏳️',
+          };
+          const getIcon = (iconName: string) => iconMap[iconName] || iconName;
+          
           template.fields
             .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
             .forEach((f) => {
@@ -155,7 +175,7 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
                 groupMap[gid] = {
                   id: gid,
                   label: gi?.labelEn || gi?.label || gid,
-                  icon: gi?.icon || '📝',
+                  icon: getIcon(gi?.icon || '📝'),
                   fields: [],
                 };
               }

@@ -122,18 +122,38 @@ export default function VisaOrderPage() {
       );
 
       const fromText = currentLocale === 'en' ? 'From' : 'Från';
+      const localText = currentLocale === 'en' ? 'Local' : 'Lokal';
       const servicesFromFirebase = shippingRules.map(rule => ({
         id: rule.serviceType,
         name: getShippingServiceName(rule.serviceType),
         description: getShippingServiceDescription(rule.serviceType),
         price: `${fromText} ${rule.basePrice} kr`,
         priceValue: rule.basePrice,
-        provider: rule.serviceType.includes('dhl') ? 'DHL' : rule.serviceType.includes('postnord') ? 'PostNord' : 'Lokal',
+        provider: rule.serviceType.includes('dhl') ? 'DHL' : rule.serviceType.includes('postnord') ? 'PostNord' : localText,
         estimatedDelivery: getShippingServiceDescription(rule.serviceType),
         available: true
       }));
 
-      setReturnServices(servicesFromFirebase.length > 0 ? servicesFromFirebase : getDefaultReturnServices());
+      // Default services with all options (same as legalization flow)
+      const defaultReturnServices = [
+        { id: 'postnord-rek', name: 'PostNord REK', description: getShippingServiceDescription('postnord-rek'), price: `${fromText} 85 kr`, priceValue: 85, provider: 'PostNord', estimatedDelivery: getShippingServiceDescription('postnord-rek'), available: true },
+        { id: 'dhl-sweden', name: 'DHL Sweden', description: getShippingServiceDescription('dhl-sweden'), price: `${fromText} 180 kr`, priceValue: 180, provider: 'DHL', estimatedDelivery: getShippingServiceDescription('dhl-sweden'), available: true },
+        { id: 'dhl-europe', name: 'DHL Europe', description: getShippingServiceDescription('dhl-europe'), price: `${fromText} 250 kr`, priceValue: 250, provider: 'DHL', estimatedDelivery: getShippingServiceDescription('dhl-europe'), available: true },
+        { id: 'dhl-worldwide', name: 'DHL Worldwide', description: getShippingServiceDescription('dhl-worldwide'), price: `${fromText} 450 kr`, priceValue: 450, provider: 'DHL', estimatedDelivery: getShippingServiceDescription('dhl-worldwide'), available: true },
+        { id: 'dhl-pre-12', name: 'DHL Pre 12', description: getShippingServiceDescription('dhl-pre-12'), price: `${fromText} 350 kr`, priceValue: 350, provider: 'DHL', estimatedDelivery: getShippingServiceDescription('dhl-pre-12'), available: true },
+        { id: 'dhl-pre-9', name: 'DHL Pre 9', description: getShippingServiceDescription('dhl-pre-9'), price: `${fromText} 450 kr`, priceValue: 450, provider: 'DHL', estimatedDelivery: getShippingServiceDescription('dhl-pre-9'), available: true },
+        { id: 'stockholm-city', name: currentLocale === 'en' ? 'Stockholm City Courier' : 'Stockholm City Bud', description: getShippingServiceDescription('stockholm-city'), price: `${fromText} 120 kr`, priceValue: 120, provider: localText, estimatedDelivery: getShippingServiceDescription('stockholm-city'), available: true },
+        { id: 'stockholm-express', name: 'Stockholm Express', description: getShippingServiceDescription('stockholm-express'), price: `${fromText} 180 kr`, priceValue: 180, provider: localText, estimatedDelivery: getShippingServiceDescription('stockholm-express'), available: true },
+        { id: 'stockholm-sameday', name: currentLocale === 'en' ? 'Stockholm Same Day' : 'Stockholm Samma Dag', description: getShippingServiceDescription('stockholm-sameday'), price: `${fromText} 250 kr`, priceValue: 250, provider: localText, estimatedDelivery: getShippingServiceDescription('stockholm-sameday'), available: true },
+      ];
+
+      // Merge Firebase services with defaults, Firebase takes precedence
+      const mergedServices = defaultReturnServices.map(defaultService => {
+        const existingRule = servicesFromFirebase.find(rule => rule.id === defaultService.id);
+        return existingRule || defaultService;
+      });
+
+      setReturnServices(mergedServices);
     } catch (error) {
       setReturnServices(getDefaultReturnServices());
     } finally {
@@ -150,18 +170,35 @@ export default function VisaOrderPage() {
       );
 
       const fromText = currentLocale === 'en' ? 'From' : 'Från';
+      const localText = currentLocale === 'en' ? 'Local' : 'Lokal';
       const servicesFromFirebase = pickupRules.map(rule => ({
         id: rule.serviceType,
         name: getShippingServiceName(rule.serviceType),
         description: getShippingServiceDescription(rule.serviceType),
         price: `${fromText} ${rule.basePrice} kr`,
         priceValue: rule.basePrice,
-        provider: rule.serviceType.includes('dhl') ? 'DHL' : 'Lokal',
+        provider: rule.serviceType.includes('dhl') ? 'DHL' : localText,
         estimatedPickup: getShippingServiceDescription(rule.serviceType),
         available: true
       }));
 
-      setPickupServices(servicesFromFirebase.length > 0 ? servicesFromFirebase : getDefaultPickupServices());
+      // Default pickup services with all options
+      const defaultPickupServices = [
+        { id: 'dhl-sweden', name: 'DHL Sweden', description: getShippingServiceDescription('dhl-sweden'), price: `${fromText} 180 kr`, priceValue: 180, provider: 'DHL', estimatedPickup: getShippingServiceDescription('dhl-sweden'), available: true },
+        { id: 'dhl-europe', name: 'DHL Europe', description: getShippingServiceDescription('dhl-europe'), price: `${fromText} 250 kr`, priceValue: 250, provider: 'DHL', estimatedPickup: getShippingServiceDescription('dhl-europe'), available: true },
+        { id: 'dhl-worldwide', name: 'DHL Worldwide', description: getShippingServiceDescription('dhl-worldwide'), price: `${fromText} 450 kr`, priceValue: 450, provider: 'DHL', estimatedPickup: getShippingServiceDescription('dhl-worldwide'), available: true },
+        { id: 'stockholm-city', name: currentLocale === 'en' ? 'Stockholm City Courier' : 'Stockholm City Bud', description: getShippingServiceDescription('stockholm-city'), price: `${fromText} 120 kr`, priceValue: 120, provider: localText, estimatedPickup: getShippingServiceDescription('stockholm-city'), available: true },
+        { id: 'stockholm-express', name: 'Stockholm Express', description: getShippingServiceDescription('stockholm-express'), price: `${fromText} 180 kr`, priceValue: 180, provider: localText, estimatedPickup: getShippingServiceDescription('stockholm-express'), available: true },
+        { id: 'stockholm-sameday', name: currentLocale === 'en' ? 'Stockholm Same Day' : 'Stockholm Samma Dag', description: getShippingServiceDescription('stockholm-sameday'), price: `${fromText} 250 kr`, priceValue: 250, provider: localText, estimatedPickup: getShippingServiceDescription('stockholm-sameday'), available: true },
+      ];
+
+      // Merge Firebase services with defaults
+      const mergedServices = defaultPickupServices.map(defaultService => {
+        const existingRule = servicesFromFirebase.find(rule => rule.id === defaultService.id);
+        return existingRule || defaultService;
+      });
+
+      setPickupServices(mergedServices);
     } catch (error) {
       setPickupServices(getDefaultPickupServices());
     } finally {
@@ -171,16 +208,22 @@ export default function VisaOrderPage() {
 
   const getDefaultReturnServices = () => {
     const fromText = currentLocale === 'en' ? 'From' : 'Från';
+    const localText = currentLocale === 'en' ? 'Local' : 'Lokal';
     return [
       { id: 'postnord-rek', name: 'PostNord REK', description: getShippingServiceDescription('postnord-rek'), price: `${fromText} 85 kr`, priceValue: 85, provider: 'PostNord', available: true },
       { id: 'dhl-sweden', name: 'DHL Sweden', description: getShippingServiceDescription('dhl-sweden'), price: `${fromText} 180 kr`, priceValue: 180, provider: 'DHL', available: true },
+      { id: 'dhl-europe', name: 'DHL Europe', description: getShippingServiceDescription('dhl-europe'), price: `${fromText} 250 kr`, priceValue: 250, provider: 'DHL', available: true },
+      { id: 'dhl-worldwide', name: 'DHL Worldwide', description: getShippingServiceDescription('dhl-worldwide'), price: `${fromText} 450 kr`, priceValue: 450, provider: 'DHL', available: true },
+      { id: 'stockholm-city', name: currentLocale === 'en' ? 'Stockholm City Courier' : 'Stockholm City Bud', description: getShippingServiceDescription('stockholm-city'), price: `${fromText} 120 kr`, priceValue: 120, provider: localText, available: true },
     ];
   };
 
   const getDefaultPickupServices = () => {
     const fromText = currentLocale === 'en' ? 'From' : 'Från';
+    const localText = currentLocale === 'en' ? 'Local' : 'Lokal';
     return [
       { id: 'dhl-sweden', name: 'DHL Sweden', description: getShippingServiceDescription('dhl-sweden'), price: `${fromText} 180 kr`, priceValue: 180, provider: 'DHL', available: true },
+      { id: 'stockholm-city', name: currentLocale === 'en' ? 'Stockholm City Courier' : 'Stockholm City Bud', description: getShippingServiceDescription('stockholm-city'), price: `${fromText} 120 kr`, priceValue: 120, provider: localText, available: true },
     ];
   };
 

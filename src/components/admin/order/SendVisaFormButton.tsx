@@ -144,7 +144,7 @@ export default function SendVisaFormButton({ order }: SendVisaFormButtonProps) {
         onClick={() => setShowPanel(!showPanel)}
         className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-200 text-sm font-medium transition-all"
       >
-        📋 {showPanel ? 'Hide' : 'Data Collection Form'}
+        � {showPanel ? 'Hide' : 'Send Form to Customer'}
         {existingSubmissions.length > 0 && (
           <span className="bg-purple-600 text-white text-xs px-1.5 py-0.5 rounded-full">
             {existingSubmissions.length}

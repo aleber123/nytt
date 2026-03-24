@@ -56,6 +56,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description: 'För chefer och ledande befattningshavare som överförs inom företaget',
         descriptionEn: 'For managers and executives transferring within the company',
         category: 'work',
+        visaType: 'sticker',
+        entryType: 'multiple',
+        validityDays: 1095,
+        processingDays: 14,
         price: 4995,
         currency: 'SEK',
         processingTime: '2-4 veckor efter I-129 godkännande',
@@ -76,6 +80,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description: 'För anställda med specialiserad kunskap som överförs inom företaget',
         descriptionEn: 'For employees with specialized knowledge transferring within the company',
         category: 'work',
+        visaType: 'sticker',
+        entryType: 'multiple',
+        validityDays: 1095,
+        processingDays: 14,
         price: 4995,
         currency: 'SEK',
         processingTime: '2-4 veckor efter I-129 godkännande',
@@ -96,6 +104,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description: 'För företag med godkänd blanket petition - snabbare process',
         descriptionEn: 'For companies with approved blanket petition - faster process',
         category: 'work',
+        visaType: 'sticker',
+        entryType: 'multiple',
+        validityDays: 1095,
+        processingDays: 7,
         price: 5495,
         currency: 'SEK',
         processingTime: '1-2 veckor',
@@ -482,10 +494,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       existingProducts = usaDoc.data()?.visaProducts || [];
     }
 
-    // Add L-1 products if they don't exist
+    // Add or update L-1 products
     for (const product of l1Products) {
-      const exists = existingProducts.some((p: any) => p.id === product.id);
-      if (!exists) {
+      const existingIndex = existingProducts.findIndex((p: any) => p.id === product.id);
+      if (existingIndex >= 0) {
+        // Update existing product with new data
+        existingProducts[existingIndex] = { ...existingProducts[existingIndex], ...product };
+      } else {
+        // Add new product
         existingProducts.push(product);
       }
     }

@@ -132,6 +132,25 @@ interface VisaFormPageProps {
   token: string;
 }
 
+// Map icon names to emojis
+const ICON_MAP: Record<string, string> = {
+  'user': '👤',
+  'id-card': '📘',
+  'plane': '✈️',
+  'phone': '📞',
+  'map-pin': '📍',
+  'users': '👨‍👩‍👧',
+  'briefcase': '💼',
+  'history': '🕐',
+  'shield': '🛡️',
+  'home': '🏠',
+  'globe': '🌍',
+  'calendar': '📅',
+  'mail': '📧',
+  'flag': '🏳️',
+};
+const getIcon = (iconName: string) => ICON_MAP[iconName] || iconName;
+
 export default function VisaFormPage({ token }: VisaFormPageProps) {
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState<VisaFormSubmission | null>(null);
@@ -741,7 +760,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
             return (
               <div key={group.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6 mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <span>{group.icon}</span>
+                  <span>{getIcon(group.icon)}</span>
                   {isEn ? group.labelEn : group.label}
                   {(() => {
                     const gRequired = groupFields.filter(f => f.required && isFieldVisible(f.id));
