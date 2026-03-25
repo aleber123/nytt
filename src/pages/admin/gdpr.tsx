@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { adminFetch } from '@/lib/adminFetch';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GdprStats {
   ordersToAnonymize: number;
@@ -27,7 +29,8 @@ interface GdprPreview {
   toDeleteFiles: OrderPreview[];
 }
 
-export default function GdprAdminPage() {
+function GdprAdminPageContent() {
+  const { currentUser } = useAuth();
   const [stats, setStats] = useState<GdprStats | null>(null);
   const [preview, setPreview] = useState<GdprPreview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,8 +48,10 @@ export default function GdprAdminPage() {
   const [deleteFilesDays, setDeleteFilesDays] = useState(90);
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    if (currentUser) {
+      loadStats();
+    }
+  }, [currentUser]);
 
   const loadStats = async () => {
     setLoading(true);
@@ -496,5 +501,13 @@ export default function GdprAdminPage() {
         </main>
       </div>
     </>
+  );
+}
+
+export default function GdprAdminPage() {
+  return (
+    <ProtectedRoute>
+      <GdprAdminPageContent />
+    </ProtectedRoute>
   );
 }

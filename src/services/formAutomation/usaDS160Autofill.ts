@@ -390,7 +390,7 @@ function setField(patterns, value){
   return false;
 }
 
-// Set date field - handles both single field and Day/Month/Year dropdowns
+// Set date field - DS-160 uses: Day dropdown, Month dropdown, Year text input
 function setDate(baseId, dateStr){
   if(!dateStr) return;
   // Parse date string (format: DD-MMM-YYYY)
@@ -399,66 +399,99 @@ function setDate(baseId, dateStr){
     console.warn('⚠️ Invalid date format:', dateStr);
     return;
   }
-  const day = parts[0];
-  const month = parts[1];
-  const year = parts[2];
+  const day = parts[0];    // "18"
+  const month = parts[1];  // "JUN"
+  const year = parts[2];   // "1988"
   
-  // Try single field first
-  const singleField = findEl(baseId);
-  if(singleField && singleField.tagName === 'INPUT'){
-    singleField.value = dateStr;
-    singleField.dispatchEvent(new Event('change',{bubbles:true}));
-    singleField.dispatchEvent(new Event('blur',{bubbles:true}));
-    console.log('✓ Date',baseId.split('_').pop(),'=',dateStr);
+  console.log('🔍 Setting date:', day, month, year);
+  
+  // Find the date container - look for elements near each other with DOB in ID
+  const allElements = document.querySelectorAll('[id*="DOB"],[id*="Date"]');
+  const selects = [];
+  const inputs = [];
+  
+  allElements.forEach(el => {
+    if(el.tagName === 'SELECT') selects.push(el);
+    if(el.tagName === 'INPUT') inputs.push(el);
+  });
+  
+  console.log('🔍 Found', selects.length, 'selects and', inputs.length, 'inputs with DOB/Date');
+  
+  // Sort by position (left to right)
+  const sortByPosition = (a,b) => {
+    const aRect = a.getBoundingClientRect();
+    const bRect = b.getBoundingClientRect();
+    if(Math.abs(aRect.top - bRect.top) < 20) return aRect.left - bRect.left;
+    return aRect.top - bRect.top;
+  };
+  
+  selects.sort(sortByPosition);
+  inputs.sort(sortByPosition);
+  
+  // DS-160 pattern: 2 dropdowns (day, month) + 1 text input (year)
+  if(selects.length >= 2 && inputs.length >= 1){
+    // First dropdown = Day (01-31)
+    const daySelect = selects[0];
+    for(let i=0;i<daySelect.options.length;i++){
+      const val = daySelect.options[i].value;
+      const txt = daySelect.options[i].text;
+      // Match "18" or "18" in text
+      if(val === day || txt === day || val === day.replace(/^0/,'') || txt === day.replace(/^0/,'')){
+        daySelect.selectedIndex = i;
+        daySelect.dispatchEvent(new Event('change',{bubbles:true}));
+        console.log('✓ Day dropdown =', txt);
+        break;
+      }
+    }
+    
+    // Second dropdown = Month (JAN-DEC)
+    const monthSelect = selects[1];
+    for(let i=0;i<monthSelect.options.length;i++){
+      const val = monthSelect.options[i].value.toUpperCase();
+      const txt = monthSelect.options[i].text.toUpperCase();
+      if(val === month || txt === month || val.includes(month) || txt.includes(month)){
+        monthSelect.selectedIndex = i;
+        monthSelect.dispatchEvent(new Event('change',{bubbles:true}));
+        console.log('✓ Month dropdown =', monthSelect.options[i].text);
+        break;
+      }
+    }
+    
+    // Text input = Year (YYYY)
+    const yearInput = inputs[0];
+    yearInput.value = year;
+    yearInput.dispatchEvent(new Event('input',{bubbles:true}));
+    yearInput.dispatchEvent(new Event('change',{bubbles:true}));
+    yearInput.dispatchEvent(new Event('blur',{bubbles:true}));
+    console.log('✓ Year input =', year);
     return;
   }
   
-  // Try Day/Month/Year dropdowns
-  const dayEl = document.querySelector('[id*="DOBDay"],[id*="_Day"],[id$="Day"]');
-  const monthEl = document.querySelector('[id*="DOBMonth"],[id*="_Month"],[id$="Month"]');
-  const yearEl = document.querySelector('[id*="DOBYear"],[id*="_Year"],[id$="Year"]');
+  // Fallback: try single field
+  const singleField = findEl(baseId);
+  if(singleField){
+    singleField.value = dateStr;
+    singleField.dispatchEvent(new Event('input',{bubbles:true}));
+    singleField.dispatchEvent(new Event('change',{bubbles:true}));
+    singleField.dispatchEvent(new Event('blur',{bubbles:true}));
+    console.log('✓ Date =',dateStr);
+    return;
+  }
   
-  if(dayEl){
-    for(let i=0;i<dayEl.options.length;i++){
-      if(dayEl.options[i].value===day || dayEl.options[i].text===day){
-        dayEl.selectedIndex=i;
-        dayEl.dispatchEvent(new Event('change',{bubbles:true}));
-        console.log('✓ Day =',day);
-        break;
-      }
-    }
-  }
-  if(monthEl){
-    for(let i=0;i<monthEl.options.length;i++){
-      if(monthEl.options[i].value.toUpperCase()===month || monthEl.options[i].text.toUpperCase().includes(month)){
-        monthEl.selectedIndex=i;
-        monthEl.dispatchEvent(new Event('change',{bubbles:true}));
-        console.log('✓ Month =',month);
-        break;
-      }
-    }
-  }
-  if(yearEl){
-    for(let i=0;i<yearEl.options.length;i++){
-      if(yearEl.options[i].value===year || yearEl.options[i].text===year){
-        yearEl.selectedIndex=i;
-        yearEl.dispatchEvent(new Event('change',{bubbles:true}));
-        console.log('✓ Year =',year);
-        break;
-      }
-    }
-  }
-  if(!dayEl && !monthEl && !yearEl){
-    console.warn('⚠️ No date fields found for',baseId.split('_').pop());
-  }
+  console.warn('⚠️ No date fields found');
 }
 
 function fillPersonal1(){
   console.log('🔄 Filling Personal 1...');
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_SURNAME',D.surname);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_GIVEN_NAME',D.givenName);
-  if(D.fullNameNativeNA)sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_FULL_NAME_NATIVE_NA',true);
-  else sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_FULL_NAME_NATIVE',D.fullNameNative);
+  // Full Name in Native Alphabet - check "Does Not Apply" if empty
+  if(D.fullNameNative && !D.fullNameNativeNA){
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_FULL_NAME_NATIVE',D.fullNameNative);
+  } else {
+    sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_FULL_NAME_NATIVE_NA',true);
+    console.log('✓ Full Name Native = Does Not Apply');
+  }
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblOtherNames',D.hasOtherNames?'Y':'N');
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblTelecodeQuestion','N');
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_GENDER',D.sex);
@@ -466,21 +499,64 @@ function fillPersonal1(){
   // DOB - use setDate which handles both single field and Day/Month/Year dropdowns
   setDate('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_DOB', D.dateOfBirth);
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_POB_CITY',D.placeOfBirthCity);
-  sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_POB_ST_PROVINCE',D.placeOfBirthState);
+  // State/Province - check "Does Not Apply" if empty
+  if(D.placeOfBirthState){
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_POB_ST_PROVINCE',D.placeOfBirthState);
+  } else {
+    // Check the "Does Not Apply" checkbox for State/Province
+    sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_POB_ST_PROVINCE_NA',true);
+    console.log('✓ State/Province = Does Not Apply');
+  }
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_POB_CNTRY',D.placeOfBirthCountry);
   console.log('✅ Personal 1 done!');
 }
 
 function fillPersonal2(){
   console.log('🔄 Filling Personal 2...');
-  ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_NATL',D.nationality);
+  
+  // Country/Region of Origin (Nationality) - find dropdown with NATL in ID
+  const natlDropdown = document.querySelector('select[id*="NATL"]:not([id*="OTH"])');
+  if(natlDropdown && D.nationality){
+    const sel = natlDropdown;
+    for(let i=0;i<sel.options.length;i++){
+      const val = sel.options[i].value.toUpperCase();
+      const txt = sel.options[i].text.toUpperCase();
+      if(val.includes(D.nationality) || txt.includes(D.nationality) || val===D.nationality || txt.includes('SWED')){
+        sel.selectedIndex = i;
+        sel.dispatchEvent(new Event('change',{bubbles:true}));
+        console.log('✓ Nationality =', sel.options[i].text);
+        break;
+      }
+    }
+  } else {
+    ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_NATL',D.nationality);
+  }
+  
+  // Other nationality - No
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblAPP_OTH_NATL_IND',D.hasOtherNationality?'Y':'N');
-  if(D.hasOtherNationality&&D.otherNationality)ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_OTH_NATL',D.otherNationality);
+  if(D.hasOtherNationality&&D.otherNationality){
+    ss('ctl00_SiteContentPlaceHolder_FormView1_ddlAPP_OTH_NATL',D.otherNationality);
+  }
+  
+  // Permanent resident of other country - No
   sr('ctl00$SiteContentPlaceHolder$FormView1$rblPermResOtherCntryInd','N');
-  if(D.nationalIdNumber)sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_NATIONAL_ID',D.nationalIdNumber);
-  else sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_NATIONAL_ID_NA',true);
+  
+  // National ID Number - fill or check "Does Not Apply"
+  if(D.nationalIdNumber){
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxAPP_NATIONAL_ID',D.nationalIdNumber);
+  } else {
+    sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_NATIONAL_ID_NA',true);
+    console.log('✓ National ID = Does Not Apply');
+  }
+  
+  // SSN - Does Not Apply
   sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_SSN_NA',true);
+  console.log('✓ SSN = Does Not Apply');
+  
+  // Tax ID - Does Not Apply
   sc('ctl00_SiteContentPlaceHolder_FormView1_cbexAPP_TAX_ID_NA',true);
+  console.log('✓ Tax ID = Does Not Apply');
+  
   console.log('✅ Personal 2 done!');
 }
 
@@ -499,16 +575,48 @@ function fillAddress(){
   console.log('✅ Address done!');
 }
 
+function fillTravel(){
+  console.log('🔄 Filling Travel...');
+  // Purpose of trip
+  if(D.purposeOfTrip){
+    ss('ctl00_SiteContentPlaceHolder_FormView1_ddlPurposeOfTrip',D.purposeOfTrip);
+  }
+  // Specific travel plans
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblSpecificTravel',D.arrivalDate?'Y':'N');
+  if(D.arrivalDate){
+    // Use setDate for arrival date
+    setDate('ctl00_SiteContentPlaceHolder_FormView1_tbxArrivDate',D.arrivalDate);
+    setDate('ctl00_SiteContentPlaceHolder_FormView1_tbxDepartDate',D.departureDate);
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxStreetAddress1',D.usAddress);
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxCity',D.usCity);
+    ss('ctl00_SiteContentPlaceHolder_FormView1_ddlTravelState',D.usState);
+    sv('ctl00_SiteContentPlaceHolder_FormView1_tbxZipCode',D.usZipCode);
+  }
+  // Who is paying
+  if(D.whoPaysTripCost){
+    ss('ctl00_SiteContentPlaceHolder_FormView1_ddlWhoPaying',D.whoPaysTripCost);
+  }
+  console.log('✅ Travel done!');
+}
+
 function fillPassport(){
   console.log('🔄 Filling Passport...');
+  // Passport type - Regular
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlPPT_TYPE','R');
   sv('ctl00_SiteContentPlaceHolder_FormView1_tbxPPT_NUM',D.passportNumber);
+  // Book number - Does Not Apply
   sc('ctl00_SiteContentPlaceHolder_FormView1_cbexPPT_BOOK_NUM_NA',true);
+  console.log('✓ Passport Book Number = Does Not Apply');
+  // Issuing country
   ss('ctl00_SiteContentPlaceHolder_FormView1_ddlPPT_ISSUED_CNTRY',D.passportIssuingCountry);
+  // Issuing city/state - Does Not Apply (for most countries)
   sc('ctl00_SiteContentPlaceHolder_FormView1_cbexPPT_ISSUED_IN_STATE_NA',true);
-  sv('ctl00_SiteContentPlaceHolder_FormView1_tbxPPT_ISSUED_DTD',D.passportIssueDate);
-  sv('ctl00_SiteContentPlaceHolder_FormView1_tbxPPT_EXPIRE_DTD',D.passportExpiryDate);
-  sr('ctl00$SiteContentPlaceHolder$FormView1$rblLOST_PPT_IND','N');
+  console.log('✓ Passport Issued In = Does Not Apply');
+  // Issue and expiry dates - use setDate for proper handling
+  setDate('ctl00_SiteContentPlaceHolder_FormView1_tbxPPT_ISSUED_DTD',D.passportIssueDate);
+  setDate('ctl00_SiteContentPlaceHolder_FormView1_tbxPPT_EXPIRE_DTD',D.passportExpiryDate);
+  // Lost passport - No
+  sr('ctl00$SiteContentPlaceHolder$FormView1$rblLOST_PPT_IND',D.hasLostPassport?'Y':'N');
   console.log('✅ Passport done!');
 }
 
@@ -586,17 +694,19 @@ function fillPreviousTravel(){
 }
 
 function fillAll(){
-  const t=document.title;
-  if(t.includes('Personal Information 1')||t.includes('Personal 1'))fillPersonal1();
-  else if(t.includes('Personal 2'))fillPersonal2();
-  else if(t.includes('Address'))fillAddress();
-  else if(t.includes('Passport'))fillPassport();
-  else if(t.includes('U.S. Contact'))fillUSContact();
-  else if(t.includes('Family'))fillFamily();
-  else if(t.includes('Work')||t.includes('Education'))fillWork();
-  else if(t.includes('Security'))fillSecurity();
-  else if(t.includes('Previous'))fillPreviousTravel();
-  else console.log('Unknown page. Use: fillPersonal1(), fillAddress(), etc.');
+  const t=document.title.toLowerCase();
+  console.log('🔍 Detecting page from title:', t);
+  if(t.includes('personal') && t.includes('1'))fillPersonal1();
+  else if(t.includes('personal') && t.includes('2'))fillPersonal2();
+  else if(t.includes('address') && t.includes('phone'))fillAddress();
+  else if(t.includes('passport'))fillPassport();
+  else if(t.includes('travel') && !t.includes('previous'))fillTravel();
+  else if(t.includes('u.s. contact') || t.includes('point of contact'))fillUSContact();
+  else if(t.includes('family'))fillFamily();
+  else if(t.includes('work') || t.includes('education') || t.includes('occupation'))fillWork();
+  else if(t.includes('security'))fillSecurity();
+  else if(t.includes('previous'))fillPreviousTravel();
+  else console.log('Unknown page:', t, '\\nUse: fillPersonal1(), fillPersonal2(), fillTravel(), fillAddress(), fillPassport(), fillUSContact(), fillFamily(), fillWork(), fillSecurity(), fillPreviousTravel()');
 }
 
 console.log('📋 DS-160 Script v2.0 loaded! Commands:');
