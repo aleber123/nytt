@@ -49,9 +49,8 @@ class MyDocument extends Document {
           <meta name="twitter:image" content="https://doxvl.se/og-image-v2.png" />
           <meta name="twitter:image:alt" content="DOX Visumpartner — Dokumentlegalisering och visumtjänster i Sverige" />
 
-          {/* Verification tags (add your IDs when available) */}
-          {/* <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" /> */}
-          {/* <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" /> */}
+          {/* Google Search Console verification */}
+          <meta name="google-site-verification" content="7OSyvk6IivZWVTe4j94YGTyQopmMkCiQbmR2NhljTHw" />
         </Head>
         <body>
           <Main />

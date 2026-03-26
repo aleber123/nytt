@@ -6,28 +6,39 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { CheckCircleIcon, DocumentTextIcon, BuildingLibraryIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
+import { LEGALISERING_COUNTRIES } from '@/data/legaliseringCountries';
 
 const countries = [
-  // Populära destinationer
+  // Populära destinationer (static pages)
   { code: 'qatar', countryCode: 'QA', name: 'Qatar', nameEn: 'Qatar', popular: true },
   { code: 'kuwait', countryCode: 'KW', name: 'Kuwait', nameEn: 'Kuwait', popular: true },
   { code: 'spanien', countryCode: 'ES', name: 'Spanien (NIE)', nameEn: 'Spain (NIE)', popular: true },
   { code: 'thailand', countryCode: 'TH', name: 'Thailand', nameEn: 'Thailand', popular: true },
-  // Mellanöstern
+  { code: 'saudiarabien', countryCode: 'SA', name: 'Saudiarabien', nameEn: 'Saudi Arabia', popular: true },
+  { code: 'uae', countryCode: 'AE', name: 'Förenade Arabemiraten', nameEn: 'UAE', popular: true },
+  // Dynamic popular countries
+  ...LEGALISERING_COUNTRIES.filter(c => c.popular).map(c => ({
+    code: c.slug, countryCode: c.countryCode, name: c.name, nameEn: c.nameEn, popular: true,
+  })),
+  // Static pages (non-popular)
   { code: 'egypten', countryCode: 'EG', name: 'Egypten', nameEn: 'Egypt', popular: false },
   { code: 'irak', countryCode: 'IQ', name: 'Irak', nameEn: 'Iraq', popular: false },
   { code: 'libanon', countryCode: 'LB', name: 'Libanon', nameEn: 'Lebanon', popular: false },
   { code: 'libyen', countryCode: 'LY', name: 'Libyen', nameEn: 'Libya', popular: false },
   { code: 'palestina', countryCode: 'PS', name: 'Palestina', nameEn: 'Palestine', popular: false },
   { code: 'syrien', countryCode: 'SY', name: 'Syrien', nameEn: 'Syria', popular: false },
-  // Afrika
   { code: 'angola', countryCode: 'AO', name: 'Angola', nameEn: 'Angola', popular: false },
   { code: 'etiopien', countryCode: 'ET', name: 'Etiopien', nameEn: 'Ethiopia', popular: false },
   { code: 'mocambique', countryCode: 'MZ', name: 'Moçambique', nameEn: 'Mozambique', popular: false },
   { code: 'nigeria', countryCode: 'NG', name: 'Nigeria', nameEn: 'Nigeria', popular: false },
-  // Asien
   { code: 'sri-lanka', countryCode: 'LK', name: 'Sri Lanka', nameEn: 'Sri Lanka', popular: false },
   { code: 'taiwan', countryCode: 'TW', name: 'Taiwan', nameEn: 'Taiwan', popular: false },
+  { code: 'indien', countryCode: 'IN', name: 'Indien', nameEn: 'India', popular: false },
+  { code: 'vietnam', countryCode: 'VN', name: 'Vietnam', nameEn: 'Vietnam', popular: false },
+  // All dynamic countries (non-popular)
+  ...LEGALISERING_COUNTRIES.filter(c => !c.popular).map(c => ({
+    code: c.slug, countryCode: c.countryCode, name: c.name, nameEn: c.nameEn, popular: false,
+  })),
 ];
 
 export default function LegaliseringIndexPage() {

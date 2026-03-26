@@ -532,6 +532,141 @@ export default function Home() {
           </div>
         </section>
 
+        {/* SEO Content Section — keyword-rich text for Google */}
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto prose prose-lg prose-gray">
+              <h2 className="text-3xl font-heading font-bold text-gray-900 mb-6 text-center">
+                {router.locale === 'en'
+                  ? 'Document Legalization in Sweden — Your Complete Guide'
+                  : 'Legalisering av dokument i Sverige — Din kompletta guide'}
+              </h2>
+
+              {router.locale === 'en' ? (
+                <>
+                  <p className="text-gray-700 leading-relaxed">
+                    DOX Visumpartner is Sweden's leading agency for <strong>document legalization</strong>, <strong>apostille</strong>, and <strong>visa services</strong>.
+                    Based in Stockholm, we help private individuals and businesses legalize documents for use abroad. Whether you need an
+                    <strong> apostille for the Hague Convention</strong>, <strong>embassy legalization</strong>, or <strong>notarization by a Notary Public</strong>,
+                    we handle the entire process for you — from submission to delivery.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">What is document legalization?</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Document legalization is the process of certifying a document so that it is recognized as authentic in another country.
+                    Swedish documents — such as diplomas, birth certificates, marriage certificates, corporate documents, and powers of attorney —
+                    must often be legalized before they can be used abroad. The process typically involves several steps:
+                    <strong> notarization</strong> by a Notary Public, verification by the <strong>Swedish Ministry for Foreign Affairs (UD)</strong>,
+                    and final legalization at the destination country's <strong>embassy or consulate</strong> in Stockholm.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Apostille vs. embassy legalization</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Countries that are members of the <strong>Hague Apostille Convention</strong> (such as the USA, UK, Turkey, Japan, South Korea, and Brazil)
+                    accept a simplified legalization called <strong>apostille</strong>. An apostille stamp from the Swedish Ministry for Foreign Affairs
+                    is sufficient — no embassy visit is needed. For countries outside the convention (such as Qatar, Kuwait, UAE, Saudi Arabia, and Egypt),
+                    full <strong>embassy legalization</strong> is required, which involves an additional step at the country's embassy in Stockholm.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Our services</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    We offer a comprehensive range of legalization services: <strong>Apostille</strong> for Hague Convention countries,
+                    <strong> Notarization</strong> via Notary Public, <strong>Ministry for Foreign Affairs (UD) legalization</strong>,
+                    <strong> Embassy legalization</strong> for non-Hague countries, <strong>Chamber of Commerce certification</strong> for trade documents,
+                    <strong> Certified translation</strong> by authorized translators, <strong>Visa services</strong> for all countries,
+                    and <strong>Certificates of Origin (COO)</strong> for export. We also handle <strong>NIE numbers for Spain</strong>
+                    and specialized legalization for the Middle East, Africa, and Asia.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Why choose DOX Visumpartner?</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    With years of experience in document legalization, we know the requirements of every embassy and authority.
+                    We offer <strong>fixed prices</strong> with no hidden fees, <strong>fast handling</strong> with express options,
+                    <strong> personal service</strong> with a dedicated case handler, and <strong>nationwide delivery</strong> via DHL.
+                    Our office is located in Stockholm, but we serve customers throughout Sweden, Norway, Denmark, and Finland.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Countries we handle</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    We legalize documents for over 50 countries, including <strong>Qatar, Kuwait, Saudi Arabia, UAE, Egypt, China, Turkey,
+                    USA, India, Pakistan, Morocco, South Africa, Japan, Brazil</strong>, and many more. Each country has unique requirements —
+                    visit our <a href="/legalisering" className="text-custom-button hover:underline">country-specific legalization pages</a> for
+                    detailed information about the process, processing times, and prices for your destination.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-700 leading-relaxed">
+                    DOX Visumpartner är Sveriges ledande byrå för <strong>legalisering av dokument</strong>, <strong>apostille</strong> och <strong>visumtjänster</strong>.
+                    Med kontor i Stockholm hjälper vi privatpersoner och företag att legalisera dokument för användning utomlands. Oavsett om du behöver
+                    <strong> apostille för Haagkonventionen</strong>, <strong>ambassadlegalisering</strong> eller <strong>notarisering hos Notarius Publicus</strong>,
+                    hanterar vi hela processen åt dig — från inlämning till leverans.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Vad är dokumentlegalisering?</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Dokumentlegalisering är processen att intyga ett dokument så att det erkänns som äkta i ett annat land.
+                    Svenska dokument — som examensbevis, födelsebevis, vigselbevis, bolagshandlingar och fullmakter —
+                    måste ofta legaliseras innan de kan användas utomlands. Processen inkluderar vanligtvis flera steg:
+                    <strong> notarisering</strong> hos Notarius Publicus, verifiering hos <strong>Utrikesdepartementet (UD)</strong>,
+                    och slutlig legalisering vid destinationslandets <strong>ambassad eller konsulat</strong> i Stockholm.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Apostille vs. ambassadlegalisering</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Länder som är medlemmar i <strong>Haagkonventionen om apostille</strong> (som USA, Storbritannien, Turkiet, Japan, Sydkorea och Brasilien)
+                    accepterar en förenklad legalisering kallad <strong>apostille</strong>. En apostillestämpel från Utrikesdepartementet räcker —
+                    inget ambassadbesök behövs. För länder utanför konventionen (som Qatar, Kuwait, Förenade Arabemiraten, Saudiarabien och Egypten)
+                    krävs full <strong>ambassadlegalisering</strong>, vilket innebär ett extra steg vid landets ambassad i Stockholm.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Våra tjänster</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Vi erbjuder ett komplett utbud av legaliseringstjänster: <strong>Apostille</strong> för Haagkonventionsländer,
+                    <strong> Notarisering</strong> via Notarius Publicus, <strong>UD-legalisering</strong> via Utrikesdepartementet,
+                    <strong> Ambassadlegalisering</strong> för länder utanför Haag, <strong>Handelskammarens legalisering</strong> för handelsdokument,
+                    <strong> Auktoriserad översättning</strong> av certifierade översättare, <strong>Visumtjänster</strong> för alla länder,
+                    och <strong>Ursprungsintyg (COO)</strong> för export. Vi hanterar även <strong>NIE-nummer för Spanien</strong>
+                    och specialiserad legalisering för Mellanöstern, Afrika och Asien.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Varför välja DOX Visumpartner?</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Med mångårig erfarenhet av dokumentlegalisering känner vi till kraven hos varje ambassad och myndighet.
+                    Vi erbjuder <strong>fasta priser</strong> utan dolda avgifter, <strong>snabb hantering</strong> med expresstjänst,
+                    <strong> personlig service</strong> med en dedikerad handläggare, och <strong>rikstäckande leverans</strong> via DHL.
+                    Vårt kontor ligger i Stockholm, men vi betjänar kunder i hela Sverige, Norge, Danmark och Finland.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Länder vi hanterar</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Vi legaliserar dokument för över 50 länder, inklusive <strong>Qatar, Kuwait, Saudiarabien, Förenade Arabemiraten, Egypten, Kina, Turkiet,
+                    USA, Indien, Pakistan, Marocko, Sydafrika, Japan, Brasilien</strong> och många fler. Varje land har unika krav —
+                    besök våra <a href="/legalisering" className="text-custom-button hover:underline">landsspecifika legaliseringssidor</a> för
+                    detaljerad information om processen, handläggningstider och priser för din destination.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Legalisering i Stockholm</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Som Stockholmsbaserat företag har vi nära till alla ambassader, Utrikesdepartementet och Notarius Publicus.
+                    Det betyder snabbare handläggningstider och lägre kostnader för dig. Vi hämtar och lämnar dokument dagligen
+                    vid ambassader i Stockholm. Behöver du legalisera dokument från <strong>Malmö, Göteborg, Uppsala</strong> eller
+                    någon annanstans i Sverige? Skicka dina dokument till oss så hanterar vi resten.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mt-8">Visum och resedokument</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    Utöver legalisering erbjuder vi <strong>visumtjänster</strong> för länder som kräver visum för svenska medborgare.
+                    Vi hjälper med <strong>e-visum</strong>, <strong>sticker-visum</strong> och <strong>visum vid ankomst</strong> för
+                    destinationer som <strong>Indien, Kenya, Tanzania, Vietnam, Turkiet, Egypten</strong> och fler.
+                    Besök vår <a href="/visum" className="text-custom-button hover:underline">visumsida</a> för att se alla länder vi hanterar.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
         <FAQSection />
 
         <section className="py-16 bg-white">

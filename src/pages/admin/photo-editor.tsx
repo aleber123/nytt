@@ -81,6 +81,9 @@ function PhotoEditorPage() {
   const [selectedPaper, setSelectedPaper] = useState<PaperSize>(PAPER_SIZES[0]); // Canon Selphy
   const [photoCount, setPhotoCount] = useState(1);
 
+  // Print queue — saved photos (different people) for combined printing
+  const [printQueue, setPrintQueue] = useState<{ id: string; dataUrl: string; label: string }[]>([]);
+
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -403,8 +406,29 @@ function PhotoEditorPage() {
     img.src = currentImage;
   };
 
-  const generatePrintLayout = () => {
+  const addToPrintQueue = () => {
     if (!currentImage) return;
+    const wPx = mmToPixels(selectedTemplate.widthMm);
+    const hPx = mmToPixels(selectedTemplate.heightMm);
+    const img = new Image();
+    img.onload = () => {
+      const c = renderPhotoToCanvas(img, wPx, hPx);
+      const dataUrl = c.toDataURL('image/jpeg', 0.95);
+      setPrintQueue(prev => [...prev, {
+        id: `q-${Date.now()}`,
+        dataUrl,
+        label: `Photo ${prev.length + 1}`,
+      }]);
+      toast.success(`Photo added to print queue (${printQueue.length + 1})`);
+    };
+    img.src = currentImage;
+  };
+
+  const generatePrintLayout = () => {
+    // Use print queue if it has items, otherwise use current photo
+    const useQueue = printQueue.length > 0;
+    if (!useQueue && !currentImage) return;
+
     const paper = selectedPaper;
     const paperWPx = mmToPixels(paper.widthMm);
     const paperHPx = mmToPixels(paper.heightMm);
@@ -413,7 +437,6 @@ function PhotoEditorPage() {
     const gutterPx = mmToPixels(2);
     const marginPx = mmToPixels(3);
     const grid = calculatePhotoGrid(paper.widthMm, paper.heightMm, selectedTemplate.widthMm, selectedTemplate.heightMm);
-    const count = Math.min(photoCount, grid.total);
 
     const canvas = document.createElement('canvas');
     canvas.width = paperWPx;
@@ -422,34 +445,70 @@ function PhotoEditorPage() {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, paperWPx, paperHPx);
 
-    const img = new Image();
-    img.onload = () => {
-      const single = renderPhotoToCanvas(img, photoWPx, photoHPx);
-
-      // Draw photos with a black border around each one
-      let placed = 0;
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = mmToPixels(0.3);
-      for (let row = 0; row < grid.rows && placed < count; row++) {
-        for (let col = 0; col < grid.cols && placed < count; col++) {
-          const x = marginPx + col * (photoWPx + gutterPx);
-          const y = marginPx + row * (photoHPx + gutterPx);
-          ctx.drawImage(single, x, y);
-          ctx.strokeRect(x, y, photoWPx, photoHPx);
-          placed++;
+    if (useQueue) {
+      // Load all queue images, then draw them in grid slots
+      const count = Math.min(printQueue.length, grid.total);
+      let loaded = 0;
+      const images: HTMLImageElement[] = [];
+      printQueue.slice(0, count).forEach((item, i) => {
+        const img = new Image();
+        img.onload = () => {
+          images[i] = img;
+          loaded++;
+          if (loaded === count) {
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = mmToPixels(0.3);
+            let placed = 0;
+            for (let row = 0; row < grid.rows && placed < count; row++) {
+              for (let col = 0; col < grid.cols && placed < count; col++) {
+                const x = marginPx + col * (photoWPx + gutterPx);
+                const y = marginPx + row * (photoHPx + gutterPx);
+                ctx.drawImage(images[placed], x, y, photoWPx, photoHPx);
+                ctx.strokeRect(x, y, photoWPx, photoHPx);
+                placed++;
+              }
+            }
+            canvas.toBlob(blob => {
+              if (!blob) return;
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = `print_${paper.id}_${count}pcs.jpg`;
+              a.click();
+              toast.success(`Print layout with ${count} photos exported!`);
+            }, 'image/jpeg', 0.95);
+          }
+        };
+        img.src = item.dataUrl;
+      });
+    } else {
+      // Single photo repeated
+      const count = Math.min(photoCount, grid.total);
+      const img = new Image();
+      img.onload = () => {
+        const single = renderPhotoToCanvas(img, photoWPx, photoHPx);
+        let placed = 0;
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = mmToPixels(0.3);
+        for (let row = 0; row < grid.rows && placed < count; row++) {
+          for (let col = 0; col < grid.cols && placed < count; col++) {
+            const x = marginPx + col * (photoWPx + gutterPx);
+            const y = marginPx + row * (photoHPx + gutterPx);
+            ctx.drawImage(single, x, y);
+            ctx.strokeRect(x, y, photoWPx, photoHPx);
+            placed++;
+          }
         }
-      }
-
-      canvas.toBlob(blob => {
-        if (!blob) return;
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `print_${paper.id}_${count}pcs.jpg`;
-        a.click();
-        toast.success(`Print layout with ${count} photos exported!`);
-      }, 'image/jpeg', 0.95);
-    };
-    img.src = currentImage;
+        canvas.toBlob(blob => {
+          if (!blob) return;
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `print_${paper.id}_${count}pcs.jpg`;
+          a.click();
+          toast.success(`Print layout with ${count} photos exported!`);
+        }, 'image/jpeg', 0.95);
+      };
+      img.src = currentImage!;
+    }
   };
 
   const grid = calculatePhotoGrid(selectedPaper.widthMm, selectedPaper.heightMm, selectedTemplate.widthMm, selectedTemplate.heightMm);
@@ -474,6 +533,9 @@ function PhotoEditorPage() {
             </div>
             {currentImage && (
               <div className="flex items-center gap-2">
+                <button onClick={addToPrintQueue} className="px-4 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600">
+                  Add to print {printQueue.length > 0 && `(${printQueue.length})`}
+                </button>
                 <button onClick={exportPhoto} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
                   Export photo
                 </button>
@@ -744,8 +806,40 @@ function PhotoEditorPage() {
                 )}
               </div>
 
+              {/* Print queue */}
+              {printQueue.length > 0 && (
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">Print queue ({printQueue.length})</h3>
+                    <button
+                      onClick={() => { setPrintQueue([]); toast.success('Print queue cleared'); }}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {printQueue.map((item, i) => (
+                      <div key={item.id} className="relative group">
+                        <img src={item.dataUrl} alt={item.label} className="w-full rounded border border-gray-200" />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5 rounded-b">
+                          {item.label}
+                        </div>
+                        <button
+                          onClick={() => setPrintQueue(prev => prev.filter((_, j) => j !== i))}
+                          className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] leading-none opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Print settings */}
-              {currentImage && (
+              {(currentImage || printQueue.length > 0) && (
                 <div className="bg-white rounded-lg shadow p-4">
                   <h3 className="font-semibold text-gray-900 mb-3">Print settings</h3>
 
@@ -762,13 +856,23 @@ function PhotoEditorPage() {
                     Fits {grid.total} photos per sheet ({grid.cols} × {grid.rows})
                   </div>
 
-                  <label className="block text-xs text-gray-600 mb-1">Number of photos</label>
-                  <input
-                    type="number" min={1} max={grid.total}
-                    value={photoCount}
-                    onChange={e => setPhotoCount(Math.min(grid.total, Math.max(1, Number(e.target.value))))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3"
-                  />
+                  {printQueue.length === 0 && (
+                    <>
+                      <label className="block text-xs text-gray-600 mb-1">Number of photos</label>
+                      <input
+                        type="number" min={1} max={grid.total}
+                        value={photoCount}
+                        onChange={e => setPhotoCount(Math.min(grid.total, Math.max(1, Number(e.target.value))))}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3"
+                      />
+                    </>
+                  )}
+
+                  {printQueue.length > 0 && (
+                    <p className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1.5 mb-3">
+                      Print queue mode: {printQueue.length} photo{printQueue.length !== 1 ? 's' : ''} will be placed on the sheet.
+                    </p>
+                  )}
 
                   <button
                     onClick={generatePrintLayout}
@@ -777,7 +881,10 @@ function PhotoEditorPage() {
                     Download print layout
                   </button>
                   <p className="text-xs text-gray-400 mt-2">
-                    Generates a {selectedPaper.name} image with {Math.min(photoCount, grid.total)} photos and cut marks at {PRINT_DPI} DPI.
+                    {printQueue.length > 0
+                      ? `Generates a ${selectedPaper.name} layout with ${Math.min(printQueue.length, grid.total)} different photos at ${PRINT_DPI} DPI.`
+                      : `Generates a ${selectedPaper.name} image with ${Math.min(photoCount, grid.total)} photos and cut marks at ${PRINT_DPI} DPI.`
+                    }
                   </p>
                 </div>
               )}

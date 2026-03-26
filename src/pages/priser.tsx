@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import Seo from '@/components/Seo';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { getAllActivePricingRules, PricingRule } from '@/firebase/pricingService';
+import { getAdminDb } from '@/lib/firebaseAdmin';
 import { DocumentTextIcon, TruckIcon, BuildingOfficeIcon, GlobeAltIcon, ClockIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 // Service name translations
@@ -115,16 +115,20 @@ const getServiceIcon = (serviceType: string) => {
   return DocumentTextIcon;
 };
 
-const PricesPage: React.FC = () => {
-  const { t } = useTranslation('common');
+interface PricesPageProps {
+  ssrPricingRules: PricingRule[];
+}
+
+const PricesPage: React.FC<PricesPageProps> = ({ ssrPricingRules }) => {
   const { locale } = useRouter();
   const isEn = locale === 'en';
-  const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pricingRules, setPricingRules] = useState<PricingRule[]>(ssrPricingRules || []);
+  const [loading, setLoading] = useState(!ssrPricingRules?.length);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch pricing data from Firebase
+  // Client-side fallback — only fetches if SSG returned no data
   useEffect(() => {
+    if (ssrPricingRules?.length) return;
     const fetchPricingData = async () => {
       try {
         setLoading(true);
@@ -138,9 +142,8 @@ const PricesPage: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchPricingData();
-  }, [isEn]);
+  }, [isEn, ssrPricingRules]);
 
   // Categorize and process pricing data
   const getCategorizedPricing = () => {
@@ -453,11 +456,34 @@ const PricesPage: React.FC = () => {
   );
 };
 
-export const getStaticProps: GetStaticProps = async ({ locale }) => {
+export const getStaticProps: GetStaticProps<PricesPageProps> = async ({ locale }) => {
+  let ssrPricingRules: PricingRule[] = [];
+
+  try {
+    const db = getAdminDb();
+    const snap = await db.collection('pricing').where('isActive', '==', true).get();
+    ssrPricingRules = snap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        // Convert Firestore Timestamp to serializable string
+        lastUpdated: data.lastUpdated?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
+      } as unknown as PricingRule;
+    }).sort((a, b) => {
+      const c = a.countryName.localeCompare(b.countryName);
+      return c !== 0 ? c : a.serviceType.localeCompare(b.serviceType);
+    });
+  } catch (err) {
+    // SSG fallback — page will fetch client-side instead
+  }
+
   return {
     props: {
+      ssrPricingRules,
       ...(await serverSideTranslations(locale || 'sv', ['common'])),
     },
+    revalidate: 3600, // ISR: regenerate every hour
   };
 };
 
