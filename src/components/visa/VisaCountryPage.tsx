@@ -178,7 +178,7 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
     const fetchRequirements = async () => {
       try {
         const requirement = await getVisaRequirement(country.countryCode);
-        if (requirement?.visaProducts && requirement.visaProducts.length > 0) {
+        if (requirement?.isActive && requirement?.isSupported && requirement?.visaProducts && requirement.visaProducts.length > 0) {
           const activeProducts = requirement.visaProducts.filter((p: VisaProduct) => p.isActive);
           setVisaProducts(activeProducts);
           if (activeProducts.length > 0) {
