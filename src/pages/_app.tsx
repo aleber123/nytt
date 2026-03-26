@@ -3,7 +3,7 @@ import type { AppProps } from 'next/app';
 import { appWithTranslation } from 'next-i18next';
 import type { UserConfig } from 'next-i18next';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
 
@@ -28,19 +28,18 @@ const i18nConfig: UserConfig = {
   },
 };
 
-// Create React Query client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime in v4)
-      refetchOnWindowFocus: false,
-      retry: 2,
-    },
-  },
-});
-
 function MyApp({ Component, pageProps }: AppProps) {
+  // QueryClient inside component to avoid shared state across SSR requests
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime in v4)
+        refetchOnWindowFocus: false,
+        retry: 2,
+      },
+    },
+  }));
   const router = useRouter();
 
   // Track page views with GA4

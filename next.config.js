@@ -26,9 +26,13 @@ const nextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '195927020517',
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:195927020517:web:5374b3346dbaec293ed50c',
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-3DBGQCJPTF',
+    NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID || 'G-0LMELBW76W',
   },
   images: {
-    domains: ['localhost', 'firebasestorage.googleapis.com'],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
+    ],
   },
   webpack(config) {
     config.module.rules.push({

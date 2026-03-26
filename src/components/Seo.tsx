@@ -225,8 +225,10 @@ const Seo: React.FC<SeoProps> = ({
     }
   };
 
-  // Create BreadcrumbList schema
-  const pathSegments = router.asPath.split('/').filter(Boolean);
+  // Create BreadcrumbList schema — strip locale prefix and use readable names
+  const isEn = router.locale === 'en';
+  const rawSegments = router.asPath.split('?')[0].split('/').filter(Boolean);
+  const pathSegments = rawSegments.filter(s => s !== 'en' && s !== 'sv');
   const breadcrumbSchema = pathSegments.length > 0 ? {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -234,13 +236,13 @@ const Seo: React.FC<SeoProps> = ({
       {
         "@type": "ListItem",
         "position": 1,
-        "name": "Hem",
+        "name": isEn ? "Home" : "Hem",
         "item": baseUrl
       },
       ...pathSegments.map((segment, index) => ({
         "@type": "ListItem",
         "position": index + 2,
-        "name": segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' '),
+        "name": decodeURIComponent(segment).charAt(0).toUpperCase() + decodeURIComponent(segment).slice(1).replace(/-/g, ' '),
         "item": `${baseUrl}/${pathSegments.slice(0, index + 1).join('/')}`
       }))
     ]
