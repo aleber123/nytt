@@ -6,7 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
-import Head from 'next/head';
+
 import dynamic from 'next/dynamic';
 import * as gtag from '../../lib/analytics';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -65,23 +65,9 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID;
 
-  // Build canonical and hreflang URLs
-  const siteUrl = 'https://doxvl.se';
-  const pathWithoutLocale = router.asPath.split('?')[0].split('#')[0];
-  const svUrl = `${siteUrl}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
-  const enUrl = `${siteUrl}/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`;
-  const canonicalUrl = router.locale === 'en'
-    ? `${siteUrl}/en${pathWithoutLocale === '/' ? '' : pathWithoutLocale}`
-    : svUrl;
-
   return (
     <>
-    <Head>
-      <link rel="canonical" href={canonicalUrl} />
-      <link rel="alternate" hrefLang="sv" href={svUrl} />
-      <link rel="alternate" hrefLang="en" href={enUrl} />
-      <link rel="alternate" hrefLang="x-default" href={svUrl} />
-    </Head>
+    {/* canonical + hreflang are handled in Layout.tsx with proper key props */}
     <GoogleReCaptchaProvider
       reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
       scriptProps={{

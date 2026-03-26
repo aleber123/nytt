@@ -7,6 +7,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/adminAuth';
 import { rateLimiters, getClientIp } from '@/lib/rateLimit';
 
 interface SendOrderUpdateBody {
@@ -27,12 +28,16 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Admin authentication
+  const admin = await verifyAdmin(req, res);
+  if (!admin) return; // verifyAdmin sends 401/403 response
+
   // Rate limiting
   const clientIp = getClientIp(req);
   const rateLimit = rateLimiters.addressConfirmation(clientIp);
-  
+
   if (!rateLimit.success) {
-    return res.status(429).json({ 
+    return res.status(429).json({
       error: 'Too many requests',
       retryAfter: rateLimit.resetIn
     });
