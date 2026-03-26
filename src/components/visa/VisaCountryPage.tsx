@@ -196,6 +196,7 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
 
   const selectedProduct = visaProducts.find(p => p.id === selectedProductId);
   const documentRequirements = selectedProduct?.documentRequirements?.filter((d: DocumentRequirement) => d.isActive) || [];
+  const hasActiveProducts = !loading && visaProducts.length > 0;
 
   const getCategoryLabel = (category: string) => {
     switch (category) {
@@ -343,13 +344,23 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
               {heroDescription}
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link
-                href={`/visum/bestall?destination=${c.countryCode}`}
-                className="bg-white hover:bg-gray-100 font-semibold px-8 py-4 rounded-lg transition-colors"
-                style={{ color: c.accentColor }}
-              >
-                {t.bestallVisum} {countryName}
-              </Link>
+              {hasActiveProducts ? (
+                <Link
+                  href={`/visum/bestall?destination=${c.countryCode}`}
+                  className="bg-white hover:bg-gray-100 font-semibold px-8 py-4 rounded-lg transition-colors"
+                  style={{ color: c.accentColor }}
+                >
+                  {t.bestallVisum} {countryName}
+                </Link>
+              ) : !loading ? (
+                <Link
+                  href="/kontakt"
+                  className="bg-white hover:bg-gray-100 font-semibold px-8 py-4 rounded-lg transition-colors"
+                  style={{ color: c.accentColor }}
+                >
+                  {t.kontaktOss}
+                </Link>
+              ) : null}
               <Link
                 href="/kontakt"
                 className={`border-2 border-white hover:bg-white text-white font-semibold px-8 py-4 rounded-lg transition-colors`}
@@ -552,15 +563,39 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
               </div>
             ) : (
               /* Fallback to static visa types if Firebase has no products */
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {visumTypes.map((visum) => (
-                  <div key={visum.name} className="bg-gray-50 p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                    <h3 className="font-semibold text-lg mb-2" style={{ color: c.accentColor }}>{visum.name}</h3>
-                    <p className="text-sm text-gray-500 mb-2">{visum.duration}</p>
-                    <p className="text-gray-700">{visum.description}</p>
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h3 className="font-semibold text-amber-900 mb-1">
+                        {lang === 'en' ? 'Online ordering not yet available' : lang === 'nb' ? 'Online-bestilling er ikke tilgjengelig ennå' : 'Onlinebeställning ej tillgänglig ännu'}
+                      </h3>
+                      <p className="text-amber-800 text-sm">
+                        {lang === 'en'
+                          ? `We do not yet offer online ordering for visa to ${countryName}. Contact us and we will help you with your application.`
+                          : lang === 'nb'
+                          ? `Vi tilbyr foreløpig ikke online-bestilling for visum til ${countryName}. Kontakt oss så hjelper vi deg med søknaden.`
+                          : `Vi erbjuder ännu inte onlinebeställning för visum till ${countryName}. Kontakta oss så hjälper vi dig med din ansökan.`}
+                      </p>
+                      <Link href="/kontakt" className="inline-block mt-3 text-sm font-semibold px-4 py-2 rounded-lg text-white transition-colors hover:opacity-90" style={{ backgroundColor: c.accentColor }}>
+                        {t.kontakta} &rarr;
+                      </Link>
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {visumTypes.map((visum) => (
+                    <div key={visum.name} className="bg-gray-50 p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                      <h3 className="font-semibold text-lg mb-2" style={{ color: c.accentColor }}>{visum.name}</h3>
+                      <p className="text-sm text-gray-500 mb-2">{visum.duration}</p>
+                      <p className="text-gray-700">{visum.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </section>
@@ -753,11 +788,11 @@ export default function VisaCountryPage({ country, children }: VisaCountryPagePr
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
-                href={`/visum/bestall?destination=${c.countryCode}`}
+                href={hasActiveProducts ? `/visum/bestall?destination=${c.countryCode}` : '/kontakt'}
                 className="bg-white hover:bg-gray-100 font-semibold px-8 py-4 rounded-lg transition-colors"
                 style={{ color: c.accentColor }}
               >
-                {t.bestallVisumNu}
+                {hasActiveProducts ? t.bestallVisumNu : t.kontaktOss}
               </Link>
               <Link
                 href="/kontakt"
