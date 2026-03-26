@@ -673,7 +673,7 @@ info@doxvl.se | doxvl.se`;
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageCustomers">
       <Head>
         <title>CRM - Sales - DOX Admin</title>
       </Head>

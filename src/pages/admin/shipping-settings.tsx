@@ -232,7 +232,7 @@ function ShippingSettingsContent() {
 // Wrap with ProtectedRoute for admin authentication
 export default function ShippingSettingsPage() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageShipping">
       <ShippingSettingsContent />
     </ProtectedRoute>
   );

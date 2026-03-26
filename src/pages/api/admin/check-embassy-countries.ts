@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { verifyAdmin, requirePermission } from '@/lib/adminAuth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,6 +13,7 @@ export default async function handler(
 
   const admin = await verifyAdmin(req, res);
   if (!admin) return;
+  if (!requirePermission(admin, res, 'canManagePricing')) return;
 
   try {
     const db = getAdminDb();

@@ -210,7 +210,7 @@ function EmbassyPricesAdminPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManagePricing">
       <Head>
         <title>Embassy Prices - Admin</title>
       </Head>

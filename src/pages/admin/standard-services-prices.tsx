@@ -245,7 +245,7 @@ function StandardServicesPricesPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManagePricing">
       <Head>
         <title>Standard Services - Sweden - Admin</title>
       </Head>

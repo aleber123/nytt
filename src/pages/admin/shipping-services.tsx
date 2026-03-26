@@ -219,7 +219,7 @@ function ShippingServicesPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageShipping">
       <Head>
         <title>Shipping/Transport Services - Admin</title>
       </Head>

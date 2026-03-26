@@ -7,7 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 
 function AdminIndexPage() {
-  const { signOut } = useAuth();
+  const { signOut, hasPermission } = useAuth();
   const renderIcon = (iconName: string) => {
     const iconClasses = "h-8 w-8 text-primary-600";
 
@@ -63,7 +63,7 @@ function AdminIndexPage() {
     }
   };
 
-  const adminPages = [
+  const allAdminPages = [
     // Orders section - unified for both legalization and visa
     {
       title: 'All Orders',
@@ -72,7 +72,8 @@ function AdminIndexPage() {
       color: 'bg-blue-600 hover:bg-blue-700',
       badge: 'All orders',
       icon: 'clipboard-list',
-      category: 'orders'
+      category: 'orders',
+      permission: null, // visible to all roles (viewers get read-only)
     },
     {
       title: 'My Tasks',
@@ -81,7 +82,8 @@ function AdminIndexPage() {
       color: 'bg-primary-600 hover:bg-primary-700',
       badge: 'Personal',
       icon: 'clipboard-list',
-      category: 'orders'
+      category: 'orders',
+      permission: null, // visible to all roles
     },
     // Legalization section
     {
@@ -91,7 +93,8 @@ function AdminIndexPage() {
       color: 'bg-orange-500 hover:bg-orange-600',
       icon: 'building',
       badge: '10+ countries',
-      category: 'legalization'
+      category: 'legalization',
+      permission: 'canManagePricing' as const,
     },
     {
       title: 'Standard Prices',
@@ -100,7 +103,8 @@ function AdminIndexPage() {
       color: 'bg-orange-400 hover:bg-orange-500',
       icon: 'calculator',
       badge: '6 services',
-      category: 'legalization'
+      category: 'legalization',
+      permission: 'canManagePricing' as const,
     },
     // Visa section
     {
@@ -110,7 +114,8 @@ function AdminIndexPage() {
       color: 'bg-emerald-500 hover:bg-emerald-600',
       icon: 'building',
       badge: 'Products',
-      category: 'visa'
+      category: 'visa',
+      permission: 'canManageVisaRequirements' as const,
     },
     {
       title: 'Document Requirements',
@@ -119,7 +124,8 @@ function AdminIndexPage() {
       color: 'bg-emerald-400 hover:bg-emerald-500',
       icon: 'clipboard-list',
       badge: 'Checklist',
-      category: 'visa'
+      category: 'visa',
+      permission: 'canManageVisaRequirements' as const,
     },
     {
       title: 'Add-on Services',
@@ -128,7 +134,8 @@ function AdminIndexPage() {
       color: 'bg-emerald-300 hover:bg-emerald-400',
       icon: 'receipt',
       badge: 'Addons',
-      category: 'visa'
+      category: 'visa',
+      permission: 'canManageVisaRequirements' as const,
     },
     {
       title: 'Form Templates',
@@ -137,7 +144,18 @@ function AdminIndexPage() {
       color: 'bg-purple-400 hover:bg-purple-500',
       icon: 'clipboard-list',
       badge: 'Forms',
-      category: 'visa'
+      category: 'visa',
+      permission: 'canManageVisaRequirements' as const,
+    },
+    {
+      title: 'Photo Editor',
+      description: 'Edit passport/visa photos — remove background, resize and print',
+      href: '/admin/photo-editor',
+      color: 'bg-pink-500 hover:bg-pink-600',
+      icon: 'receipt',
+      badge: 'Photos',
+      category: 'visa',
+      permission: 'canManageOrders' as const,
     },
     // Customers & Sales
     {
@@ -147,7 +165,8 @@ function AdminIndexPage() {
       color: 'bg-emerald-600 hover:bg-emerald-700',
       badge: 'Sales',
       icon: 'chart',
-      category: 'customers'
+      category: 'customers',
+      permission: 'canManageCustomers' as const,
     },
     {
       title: 'Customer Registry',
@@ -156,7 +175,8 @@ function AdminIndexPage() {
       color: 'bg-teal-600 hover:bg-teal-700',
       badge: 'CRM',
       icon: 'users',
-      category: 'customers'
+      category: 'customers',
+      permission: 'canManageCustomers' as const,
     },
     {
       title: 'Portal Customers',
@@ -165,7 +185,8 @@ function AdminIndexPage() {
       color: 'bg-cyan-600 hover:bg-cyan-700',
       badge: 'Portal',
       icon: 'users',
-      category: 'customers'
+      category: 'customers',
+      permission: 'canManageCustomers' as const,
     },
     // Operations
     {
@@ -175,7 +196,8 @@ function AdminIndexPage() {
       color: 'bg-indigo-600 hover:bg-indigo-700',
       icon: 'car',
       badge: 'Daily tasks',
-      category: 'operations'
+      category: 'operations',
+      permission: 'canManageOrders' as const,
     },
     {
       title: 'Shipping & Delivery',
@@ -184,7 +206,8 @@ function AdminIndexPage() {
       color: 'bg-green-600 hover:bg-green-700',
       icon: 'truck',
       badge: '3 providers',
-      category: 'operations'
+      category: 'operations',
+      permission: 'canManageShipping' as const,
     },
     {
       title: 'Shipping Settings',
@@ -193,7 +216,8 @@ function AdminIndexPage() {
       color: 'bg-yellow-600 hover:bg-yellow-700',
       badge: 'DHL',
       icon: 'truck',
-      category: 'operations'
+      category: 'operations',
+      permission: 'canManageShipping' as const,
     },
     {
       title: 'Profile',
@@ -202,7 +226,8 @@ function AdminIndexPage() {
       color: 'bg-gray-700 hover:bg-gray-800',
       badge: 'Account',
       icon: 'clipboard-list',
-      category: 'operations'
+      category: 'operations',
+      permission: null, // visible to all roles
     },
     {
       title: 'GDPR Management',
@@ -211,7 +236,8 @@ function AdminIndexPage() {
       color: 'bg-slate-600 hover:bg-slate-700',
       badge: 'Privacy',
       icon: 'clipboard-list',
-      category: 'operations'
+      category: 'operations',
+      permission: 'canManageGdpr' as const,
     },
     {
       title: 'User Management',
@@ -220,7 +246,8 @@ function AdminIndexPage() {
       color: 'bg-violet-600 hover:bg-violet-700',
       badge: 'Access',
       icon: 'users',
-      category: 'operations'
+      category: 'operations',
+      permission: 'canManageUsers' as const,
     },
     // Billing
     {
@@ -230,7 +257,8 @@ function AdminIndexPage() {
       color: 'bg-purple-600 hover:bg-purple-700',
       badge: 'All invoices',
       icon: 'receipt',
-      category: 'billing'
+      category: 'billing',
+      permission: 'canViewReports' as const,
     },
     {
       title: 'Statistics',
@@ -239,9 +267,15 @@ function AdminIndexPage() {
       color: 'bg-red-600 hover:bg-red-700',
       badge: 'Analytics',
       icon: 'calculator',
-      category: 'analytics'
+      category: 'analytics',
+      permission: 'canViewReports' as const,
     }
   ];
+
+  // Filter pages based on user permissions
+  const adminPages = allAdminPages.filter(
+    page => page.permission === null || hasPermission(page.permission)
+  );
 
   // Group pages by category
   const categories = [

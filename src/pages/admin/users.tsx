@@ -130,7 +130,7 @@ function AdminUsersPage() {
   };
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageUsers">
       <Head>
         <title>User Management | Admin</title>
       </Head>

@@ -7,7 +7,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb, getAdminAuth } from '@/lib/firebaseAdmin';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { verifyAdmin, requirePermission } from '@/lib/adminAuth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -19,6 +19,7 @@ export default async function handler(
 
   const admin = await verifyAdmin(req, res, 'adminEmail');
   if (!admin) return;
+  if (!requirePermission(admin, res, 'canManageCustomers')) return;
 
   try {
     const db = getAdminDb();

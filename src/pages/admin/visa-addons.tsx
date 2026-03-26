@@ -914,7 +914,7 @@ function AdminVisaAddonsPage() {
 
 export default function ProtectedAdminVisaAddonsPage() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageVisaRequirements">
       <AdminVisaAddonsPage />
     </ProtectedRoute>
   );

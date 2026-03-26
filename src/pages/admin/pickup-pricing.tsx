@@ -91,7 +91,7 @@ function PickupPricingPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManagePricing">
       <div className="min-h-screen bg-gray-50 py-8">
         <Head>
           <title>Pickup Pricing - Admin</title>

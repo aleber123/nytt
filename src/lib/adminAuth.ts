@@ -8,6 +8,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminAuth, getAdminDb } from './firebaseAdmin';
 import { getClientIp, rateLimiters } from './rateLimit';
+import { ROLE_PERMISSIONS, type UserRole, type Permission } from '@/firebase/userService';
 
 export interface AdminAuthResult {
   uid: string;
@@ -86,4 +87,57 @@ export async function verifyAdmin(
     }
     return null;
   }
+}
+
+/**
+ * Check if an admin has a specific permission based on their role.
+ * Returns true if permitted, or sends a 403 response and returns false.
+ *
+ * Usage in API routes:
+ *   const admin = await verifyAdmin(req, res);
+ *   if (!admin) return;
+ *   if (!requirePermission(admin, res, 'canManagePricing')) return;
+ */
+export function requirePermission(
+  admin: AdminAuthResult,
+  res: NextApiResponse,
+  permission: Permission
+): boolean {
+  const role = admin.role as UserRole;
+  const perms = ROLE_PERMISSIONS[role];
+
+  if (!perms || !perms[permission]) {
+    res.status(403).json({
+      error: 'Insufficient permissions',
+      required: permission,
+      role: admin.role,
+    });
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Check if an admin has ANY of the specified permissions.
+ * Useful for read endpoints where multiple roles should have access.
+ */
+export function requireAnyPermission(
+  admin: AdminAuthResult,
+  res: NextApiResponse,
+  permissions: Permission[]
+): boolean {
+  const role = admin.role as UserRole;
+  const perms = ROLE_PERMISSIONS[role];
+
+  if (!perms || !permissions.some(p => perms[p])) {
+    res.status(403).json({
+      error: 'Insufficient permissions',
+      required: permissions,
+      role: admin.role,
+    });
+    return false;
+  }
+
+  return true;
 }

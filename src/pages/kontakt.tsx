@@ -15,6 +15,7 @@ interface ContactFormData {
   phone: string;
   subject: string;
   message: string;
+  privacyConsent: boolean;
 }
 
 const ContactPage: React.FC = () => {
@@ -46,6 +47,8 @@ const ContactPage: React.FC = () => {
       // Save contact message to Firestore
       const contactMessage = {
         ...data,
+        privacyConsent: true,
+        privacyConsentAt: new Date().toISOString(),
         recaptchaToken,
         createdAt: Timestamp.now(),
         status: 'unread'
@@ -326,20 +329,30 @@ const ContactPage: React.FC = () => {
                   <div className="flex items-start">
                     <div className="flex items-center h-5">
                       <input
-                        id="privacy"
-                        name="privacy"
+                        id="privacyConsent"
                         type="checkbox"
-                        className="h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded"
-                        required
+                        className={`h-4 w-4 text-custom-button focus:ring-custom-button border-gray-300 rounded ${
+                          errors.privacyConsent ? 'border-red-500' : ''
+                        }`}
+                        {...register('privacyConsent', {
+                          required: t('contact.form.privacyRequired') || 'Du måste godkänna integritetspolicyn'
+                        })}
+                        aria-invalid={errors.privacyConsent ? 'true' : 'false'}
+                        aria-describedby={errors.privacyConsent ? 'privacy-error' : undefined}
                       />
                     </div>
                     <div className="ml-3 text-sm">
-                      <label htmlFor="privacy" className="font-medium text-gray-700">
+                      <label htmlFor="privacyConsent" className="font-medium text-gray-700">
                         {t('contact.form.privacyConsent') || 'Jag godkänner att mina uppgifter behandlas enligt'}{' '}
                         <a href="/integritetspolicy" className="text-custom-button hover:text-custom-button/80">
                           {t('contact.form.privacyPolicy') || 'integritetspolicyn'}
                         </a>
                       </label>
+                      {errors.privacyConsent && (
+                        <p className="mt-1 text-sm text-red-600" id="privacy-error">
+                          {t('contact.form.privacyRequired') || 'Du måste godkänna integritetspolicyn'}
+                        </p>
+                      )}
                     </div>
                   </div>
 

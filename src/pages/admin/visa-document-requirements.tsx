@@ -216,7 +216,7 @@ function VisaDocumentRequirementsPage() {
   const selectedProductData = selectedCountryData?.visaProducts?.find(p => p.id === selectedProduct);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageVisaRequirements">
       <Head>
         <title>Visa Document Requirements | Admin</title>
       </Head>

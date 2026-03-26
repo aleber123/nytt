@@ -949,7 +949,8 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
 function AdminOrderDetailPage() {
   const { t } = useTranslation('common');
   const router = useRouter();
-  const { signOut, currentUser } = useAuth();
+  const { signOut, currentUser, hasPermission } = useAuth();
+  const canEdit = hasPermission('canManageOrders');
   const [adminProfile, setAdminProfile] = useState<{ name?: string; phone?: string; email?: string } | null>(null);
   const [order, setOrder] = useState<ExtendedOrder | null>(null);
   const orderRef = useRef<ExtendedOrder | null>(null);
@@ -6613,6 +6614,8 @@ function AdminOrderDetailPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    {canEdit ? (
+                    <>
                     <select
                       value={editedStatus}
                       onChange={(e) => setEditedStatus(e.target.value as Order['status'])}
@@ -6636,6 +6639,10 @@ function AdminOrderDetailPage() {
                     >
                       {isUpdating ? 'Updating...' : 'Update status'}
                     </button>
+                    </>
+                    ) : (
+                      <span className="px-3 py-2 text-sm text-gray-500 bg-gray-100 rounded">{order.status}</span>
+                    )}
                     <button
                       onClick={handleDownloadCover}
                       className="px-3 py-1 border border-gray-300 rounded text-sm bg-white text-gray-700 hover:bg-gray-50 flex items-center"

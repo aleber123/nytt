@@ -89,7 +89,8 @@ const getCountryName = (countryCode: string): string => {
 
 function AdminOrdersPage() {
   const { t } = useTranslation('common');
-  const { currentUser, signOut } = useAuth();
+  const { currentUser, signOut, hasPermission } = useAuth();
+  const canEdit = hasPermission('canManageOrders');
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -503,7 +504,7 @@ function AdminOrdersPage() {
             </div>
 
 
-            {selectedOrderIds.length > 0 && (
+            {canEdit && selectedOrderIds.length > 0 && (
               <div className="px-4 py-3 border-b border-gray-200 bg-yellow-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="text-sm text-gray-700">
                   {t('admin.orders.bulkSelected', '{{count}} orders selected', { count: selectedOrderIds.length })}
@@ -595,6 +596,7 @@ function AdminOrdersPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      {canEdit && (
                       <th className="px-4 py-2 w-10">
                         <input
                           type="checkbox"
@@ -616,6 +618,7 @@ function AdminOrdersPage() {
                           }}
                         />
                       </th>
+                      )}
                       <th className="px-2 py-2 w-8"></th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.orderNumber', 'Order number')}</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.orders.table.status', 'Status')}</th>
@@ -641,6 +644,7 @@ function AdminOrdersPage() {
                           }
                         }}
                       >
+                        {canEdit && (
                         <td className="px-4 py-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
@@ -659,6 +663,7 @@ function AdminOrdersPage() {
                             onClick={(e) => e.stopPropagation()}
                           />
                         </td>
+                        )}
                         {/* Info icon column - travelers for visa, received docs for legalization */}
                         <td className="px-2 py-2 whitespace-nowrap">
                           {order.orderType === 'visa' ? (

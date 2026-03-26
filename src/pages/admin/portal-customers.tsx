@@ -160,7 +160,7 @@ function PortalCustomersPage() {
   };
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageCustomers">
       <Head>
         <title>Kundportal – Hantera kunder | Admin</title>
         <meta name="robots" content="noindex, nofollow" />

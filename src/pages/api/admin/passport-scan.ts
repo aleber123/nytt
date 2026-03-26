@@ -11,7 +11,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { verifyAdmin, requirePermission } from '@/lib/adminAuth';
 import { parsePassportFromText, extractMRZFromText, parseMRZ } from '@/services/passportService';
 import type { PassportData } from '@/services/passportService';
 
@@ -123,6 +123,7 @@ export default async function handler(
 
   const admin = await verifyAdmin(req, res, 'admin');
   if (!admin) return;
+  if (!requirePermission(admin, res, 'canManageOrders')) return;
 
   try {
     const { image, orderId, travelerIndex } = req.body as {

@@ -10,7 +10,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { verifyAdmin, requirePermission } from '@/lib/adminAuth';
 
 export const config = {
   api: {
@@ -259,6 +259,7 @@ export default async function handler(
 
   const admin = await verifyAdmin(req, res, 'admin');
   if (!admin) return;
+  if (!requirePermission(admin, res, 'canManageCustomers')) return;
 
   try {
     const { image } = req.body as { image: string };

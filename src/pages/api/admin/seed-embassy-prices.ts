@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb } from '@/lib/firebaseAdmin';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import { FieldValue } from 'firebase-admin/firestore';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { verifyAdmin, requirePermission } from '@/lib/adminAuth';
 
 const DEFAULT_SERVICE_FEE = 1200; // Standard service fee in SEK
 const DEFAULT_OFFICIAL_FEE = 0; // Will be set to 0, marked as unconfirmed
@@ -17,11 +17,7 @@ export default async function handler(
 
   const admin = await verifyAdmin(req, res);
   if (!admin) return;
-
-  // Only super_admin can seed data
-  if (admin.role !== 'super_admin') {
-    return res.status(403).json({ error: 'Only super admins can seed data' });
-  }
+  if (!requirePermission(admin, res, 'canManagePricing')) return;
 
   try {
     const db = getAdminDb();

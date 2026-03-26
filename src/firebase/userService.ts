@@ -21,17 +21,22 @@ import {
 // User roles
 export type UserRole = 'super_admin' | 'admin' | 'editor' | 'viewer';
 
+// Permission type for type-safe permission checks
+export type Permission =
+  | 'canManageUsers'
+  | 'canManageOrders'
+  | 'canManageCustomers'
+  | 'canManagePricing'
+  | 'canManageVisaRequirements'
+  | 'canManageGdpr'
+  | 'canManageShipping'
+  | 'canViewReports';
+
 // Role permissions
 export const ROLE_PERMISSIONS: Record<UserRole, {
   label: string;
   description: string;
-  canManageUsers: boolean;
-  canManageOrders: boolean;
-  canManageCustomers: boolean;
-  canManagePricing: boolean;
-  canManageVisaRequirements: boolean;
-  canViewReports: boolean;
-}> = {
+} & Record<Permission, boolean>> = {
   super_admin: {
     label: 'Super Admin',
     description: 'Full access to all features including user management',
@@ -40,6 +45,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageCustomers: true,
     canManagePricing: true,
     canManageVisaRequirements: true,
+    canManageGdpr: true,
+    canManageShipping: true,
     canViewReports: true
   },
   admin: {
@@ -50,6 +57,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageCustomers: true,
     canManagePricing: true,
     canManageVisaRequirements: true,
+    canManageGdpr: false,
+    canManageShipping: true,
     canViewReports: true
   },
   editor: {
@@ -60,6 +69,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageCustomers: true,
     canManagePricing: false,
     canManageVisaRequirements: false,
+    canManageGdpr: false,
+    canManageShipping: false,
     canViewReports: true
   },
   viewer: {
@@ -70,6 +81,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageCustomers: false,
     canManagePricing: false,
     canManageVisaRequirements: false,
+    canManageGdpr: false,
+    canManageShipping: false,
     canViewReports: true
   }
 };

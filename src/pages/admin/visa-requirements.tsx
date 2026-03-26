@@ -338,7 +338,7 @@ function VisaRequirementsAdminPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageVisaRequirements">
       <Head>
         <title>Visa Requirements - Admin</title>
       </Head>

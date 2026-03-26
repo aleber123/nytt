@@ -7,7 +7,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminDb, getAdminStorage } from '@/lib/firebaseAdmin';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { verifyAdmin, requirePermission } from '@/lib/adminAuth';
 import { isValidDocId, sanitizeString, validateFileUpload } from '@/lib/sanitize';
 
 export const config = {
@@ -46,6 +46,7 @@ export default async function handler(
 
   const admin = await verifyAdmin(req, res, 'adminUpload');
   if (!admin) return;
+  if (!requirePermission(admin, res, 'canManageOrders')) return;
 
   try {
     const db = getAdminDb();

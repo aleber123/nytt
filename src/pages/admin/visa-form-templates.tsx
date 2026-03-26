@@ -84,7 +84,7 @@ export default function VisaFormTemplatesPage() {
   };
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManageVisaRequirements">
       <Head>
         <title>Visa Form Templates - Admin</title>
       </Head>

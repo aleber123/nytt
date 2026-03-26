@@ -61,7 +61,7 @@ export default function SeedEmbassyPage() {
   };
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredPermission="canManagePricing">
       <Head>
         <title>Seed Embassy Prices | Admin</title>
       </Head>
