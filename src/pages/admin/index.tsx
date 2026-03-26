@@ -230,6 +230,16 @@ function AdminIndexPage() {
       permission: null, // visible to all roles
     },
     {
+      title: 'Security',
+      description: 'Manage two-factor authentication (TOTP) for your account',
+      href: '/admin/security',
+      color: 'bg-gray-600 hover:bg-gray-700',
+      badge: 'MFA',
+      icon: 'clipboard-list',
+      category: 'operations',
+      permission: null, // visible to all roles
+    },
+    {
       title: 'GDPR Management',
       description: 'Manage data retention, anonymization and customer data requests',
       href: '/admin/gdpr',
