@@ -32,7 +32,7 @@ const HeroCarousel: React.FC = () => {
       subtitleKey: 'hero.subtitle',
       ctaTextKey: 'hero.cta',
       ctaLink: '/bestall',
-      backgroundImage: '/images/AdobeStock_343503546.jpeg',
+      backgroundImage: '/images/hero-bg.jpg',
     },
     {
       id: 'visa',
@@ -40,7 +40,7 @@ const HeroCarousel: React.FC = () => {
       subtitleKey: 'heroCarousel.visa.subtitle',
       ctaTextKey: 'heroCarousel.visa.cta',
       ctaLink: '/visum/bestall',
-      backgroundImage: '/images/AdobeStock_343503546.jpeg',
+      backgroundImage: '/images/hero-bg.jpg',
     },
   ];
 

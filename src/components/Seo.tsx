@@ -263,8 +263,8 @@ const Seo: React.FC<SeoProps> = ({
       <meta property="og:image:width" content="1280" />
       <meta property="og:image:height" content="800" />
       <meta property="og:image:alt" content={title} />
-      <meta property="og:locale" content="sv_SE" />
-      <meta property="og:locale:alternate" content="en_GB" />
+      <meta property="og:locale" content={router.locale === 'en' ? 'en_GB' : 'sv_SE'} />
+      <meta property="og:locale:alternate" content={router.locale === 'en' ? 'sv_SE' : 'en_GB'} />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />

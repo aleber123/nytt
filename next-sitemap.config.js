@@ -1,3 +1,6 @@
+// Build date used as lastmod only for dynamic/frequently updated pages
+const BUILD_DATE = new Date().toISOString();
+
 module.exports = {
   siteUrl: process.env.SITE_URL || 'https://doxvl.se',
   generateRobotsTxt: false, // We manage robots.txt manually
@@ -39,17 +42,17 @@ module.exports = {
   ],
   // Custom priority and changefreq per page
   transform: async (config, path) => {
-    // Homepage – highest priority
+    // Homepage – highest priority, updates frequently
     if (path === '' || path === '/' || path === '/en') {
       return {
         loc: path,
         changefreq: 'daily',
         priority: 1.0,
-        lastmod: new Date().toISOString(),
+        lastmod: BUILD_DATE,
       };
     }
 
-    // Core service pages – very high priority
+    // Core service pages – very high priority, update with builds
     const highPriorityPages = [
       '/legalisering',
       '/visum',
@@ -63,30 +66,28 @@ module.exports = {
         loc: path,
         changefreq: 'weekly',
         priority: 0.9,
-        lastmod: new Date().toISOString(),
+        lastmod: BUILD_DATE,
       };
     }
 
-    // Individual service pages – high priority
+    // Individual service pages – high priority, stable content
     if (path.startsWith('/tjanster/') || path.startsWith('/en/tjanster/')) {
       return {
         loc: path,
-        changefreq: 'weekly',
+        changefreq: 'monthly',
         priority: 0.85,
-        lastmod: new Date().toISOString(),
       };
     }
 
-    // Country-specific legalization and visa pages – high priority (long-tail SEO)
+    // Country-specific legalization and visa pages – high priority (long-tail SEO), stable
     if (
       path.startsWith('/legalisering/') || path.startsWith('/en/legalisering/') ||
       path.startsWith('/visum/') || path.startsWith('/en/visum/')
     ) {
       return {
         loc: path,
-        changefreq: 'weekly',
+        changefreq: 'monthly',
         priority: 0.8,
-        lastmod: new Date().toISOString(),
       };
     }
 
@@ -97,17 +98,16 @@ module.exports = {
         loc: path,
         changefreq: 'monthly',
         priority: 0.75,
-        lastmod: new Date().toISOString(),
       };
     }
 
-    // Blog and articles
+    // Blog and articles – update when new content is published
     if (path.startsWith('/blogg') || path.startsWith('/artiklar') || path.startsWith('/en/blogg') || path.startsWith('/en/artiklar')) {
       return {
         loc: path,
         changefreq: 'weekly',
         priority: 0.6,
-        lastmod: new Date().toISOString(),
+        lastmod: BUILD_DATE,
       };
     }
 
@@ -117,16 +117,14 @@ module.exports = {
         loc: path,
         changefreq: 'monthly',
         priority: 0.7,
-        lastmod: new Date().toISOString(),
       };
     }
 
-    // Default
+    // Default – stable pages, no lastmod (omit = Google uses crawl date)
     return {
       loc: path,
       changefreq: config.changefreq,
       priority: 0.5,
-      lastmod: new Date().toISOString(),
     };
   },
   // Additional paths not auto-discovered

@@ -12,7 +12,7 @@ interface HeroSectionProps {
 const HeroSection: React.FC<HeroSectionProps> = ({ title, subtitle, ctaText, ctaLink }) => {
   const { t } = useTranslation('common');
   return (
-    <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/AdobeStock_343503546.jpeg)' }}>
+    <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/hero-bg.jpg)' }}>
       {/* Mörkt overlay för bättre textläsbarhet */}
       <div className="absolute inset-0 bg-black bg-opacity-50"></div>
       

@@ -24,6 +24,9 @@ class MyDocument extends Document {
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />
           <meta name="apple-mobile-web-app-title" content="DOX Visumpartner" />
           
+          {/* Preload LCP hero image */}
+          <link rel="preload" as="image" href="/images/hero-bg.jpg" />
+
           {/* DNS Prefetch for performance */}
           <link rel="dns-prefetch" href="//www.googletagmanager.com" />
           <link rel="dns-prefetch" href="//www.google-analytics.com" />
@@ -40,7 +43,7 @@ class MyDocument extends Document {
           <meta property="og:image:width" content="1280" />
           <meta property="og:image:height" content="800" />
           <meta property="og:image:alt" content="DOX Visumpartner — Dokumentlegalisering och visumtjänster i Sverige" />
-          <meta property="og:locale" content="sv_SE" />
+          <meta property="og:locale" content={locale === 'en' ? 'en_GB' : 'sv_SE'} />
 
           {/* Twitter / X card fallback */}
           <meta name="twitter:card" content="summary_large_image" />

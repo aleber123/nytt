@@ -76,7 +76,7 @@ export default function VisumPage() {
 
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/AdobeStock_343503546.jpeg)' }}>
+        <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/images/hero-bg.jpg)' }}>
           <div className="absolute inset-0 bg-black bg-opacity-50"></div>
           
           <div className="container mx-auto px-4 py-16 md:py-24 lg:py-32 relative z-10">

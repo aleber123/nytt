@@ -76,7 +76,7 @@ const AboutPage: React.FC = () => {
               <div className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
                 <div className="aspect-square relative overflow-hidden">
                   <Image
-                    src="/images/staff-goran.png"
+                    src="/images/staff-goran-opt.jpg"
                     alt="Göran Andersson – VD & Partner"
                     width={600}
                     height={600}
@@ -99,7 +99,7 @@ const AboutPage: React.FC = () => {
               <div className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
                 <div className="aspect-square relative overflow-hidden">
                   <Image
-                    src="/images/staff-saema.png"
+                    src="/images/staff-saema-opt.jpg"
                     alt="Saema Jafar – Operations Manager Sverige/Danmark"
                     width={600}
                     height={600}
