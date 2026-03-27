@@ -82,6 +82,7 @@ export interface Order {
   filesUploadedAt?: Timestamp;
   uploadError?: string;
   // Additional order fields
+  customerNumber?: string;
   invoiceReference?: string;
   additionalNotes?: string;
   // Admin management fields

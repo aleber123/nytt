@@ -124,6 +124,7 @@ export interface VisaOrder {
   };
   
   // Order details
+  customerNumber?: string;
   invoiceReference?: string;
   additionalNotes?: string;
   

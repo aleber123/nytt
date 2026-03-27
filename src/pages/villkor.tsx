@@ -26,7 +26,7 @@ const TermsAndConditionsPage: React.FC = () => {
               <div className="mb-6 p-4 border border-yellow-300 bg-yellow-50 rounded-lg">
                 <p className="text-sm text-yellow-900">{t('termsPage.legalNotice')}</p>
               </div>
-              <p className="text-gray-600 mb-6"><em>{t('termsPage.lastUpdated', { date: formattedDate })}</em></p>
+              <p className="text-gray-600 mb-6" suppressHydrationWarning><em>{t('termsPage.lastUpdated', { date: formattedDate })}</em></p>
 
               <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">1. {t('termsPage.sections.general.title')}</h2>
               <p className="text-gray-700 mb-6">{t('termsPage.sections.general.text')}</p>

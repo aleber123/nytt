@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { GetStaticProps } from 'next';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '@/contexts/AuthContext';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import {
   Customer,
   CustomerInput,
   CustomerContact,
   CustomerAddress,
   CustomerPricing,
+  SavedAddress,
   getCustomers,
   createCustomer,
   updateCustomer,
@@ -91,7 +95,8 @@ const defaultFormData: Omit<CustomerInput, 'createdBy'> = {
   isActive: true,
   customPricing: undefined,
   vatExempt: false,
-  emailDomains: []
+  emailDomains: [],
+  savedAddresses: []
 };
 
 export default function CustomersPage() {
@@ -192,7 +197,8 @@ export default function CustomersPage() {
         isActive: customer.isActive,
         customPricing: customer.customPricing || undefined,
         vatExempt: customer.vatExempt || false,
-        emailDomains: customer.emailDomains || []
+        emailDomains: customer.emailDomains || [],
+        savedAddresses: customer.savedAddresses || []
       });
       setSameAsVisiting(!customer.visitingAddress);
     } else {
@@ -286,6 +292,52 @@ export default function CustomersPage() {
     }));
   };
 
+  // Saved addresses helpers
+  const addSavedAddress = () => {
+    const newAddr: SavedAddress = {
+      id: `addr_${Date.now()}`,
+      label: '',
+      type: 'return',
+      contactName: '',
+      companyName: '',
+      street: '',
+      addressLine2: '',
+      postalCode: '',
+      city: '',
+      country: 'Sweden',
+      countryCode: 'SE',
+      phone: '',
+      email: '',
+      isDefault: false
+    };
+    setFormData(prev => ({
+      ...prev,
+      savedAddresses: [...(prev.savedAddresses || []), newAddr]
+    }));
+  };
+
+  const removeSavedAddress = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      savedAddresses: (prev.savedAddresses || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateSavedAddress = (index: number, field: keyof SavedAddress, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      savedAddresses: (prev.savedAddresses || []).map((a, i) => {
+        if (i === index) return { ...a, [field]: value };
+        // If setting isDefault, clear others of same type
+        if (field === 'isDefault' && value === true) {
+          const targetType = (prev.savedAddresses || [])[index]?.type;
+          if (a.type === targetType) return { ...a, isDefault: false };
+        }
+        return a;
+      })
+    }));
+  };
+
   // Format date
   const formatDate = (timestamp: Timestamp) => {
     if (!timestamp) return '-';
@@ -311,7 +363,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <>
+    <ProtectedRoute requiredPermission="canManageCustomers">
       <Head>
         <title>Customer Registry | Admin</title>
       </Head>
@@ -870,6 +922,181 @@ export default function CustomersPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Saved Addresses */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Saved Addresses</h3>
+                    <p className="text-sm text-gray-500">Return, pickup, and delivery addresses the customer can use when ordering</p>
+                  </div>
+                  {modalMode !== 'view' && (
+                    <button
+                      type="button"
+                      onClick={addSavedAddress}
+                      className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Address
+                    </button>
+                  )}
+                </div>
+
+                {(!formData.savedAddresses || formData.savedAddresses.length === 0) ? (
+                  <p className="text-sm text-gray-400 italic">No saved addresses yet.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {formData.savedAddresses.map((addr, index) => (
+                      <div key={addr.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-3">
+                            <select
+                              disabled={modalMode === 'view'}
+                              value={addr.type}
+                              onChange={(e) => updateSavedAddress(index, 'type', e.target.value)}
+                              className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            >
+                              <option value="return">Return / Retur</option>
+                              <option value="pickup">Pickup / Upphämtning</option>
+                              <option value="delivery">Delivery / Leverans</option>
+                              <option value="other">Other / Övrigt</option>
+                            </select>
+                            <label className="flex items-center gap-1 cursor-pointer text-sm text-gray-600">
+                              <input
+                                type="checkbox"
+                                disabled={modalMode === 'view'}
+                                checked={addr.isDefault || false}
+                                onChange={(e) => updateSavedAddress(index, 'isDefault', e.target.checked)}
+                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                              />
+                              Default
+                            </label>
+                          </div>
+                          {modalMode !== 'view' && (
+                            <button
+                              type="button"
+                              onClick={() => removeSavedAddress(index)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Label / Etikett *</label>
+                            <input
+                              type="text"
+                              disabled={modalMode === 'view'}
+                              value={addr.label}
+                              onChange={(e) => updateSavedAddress(index, 'label', e.target.value)}
+                              placeholder="e.g. Huvudkontor, Lager Göteborg"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Contact Name</label>
+                            <input
+                              type="text"
+                              disabled={modalMode === 'view'}
+                              value={addr.contactName || ''}
+                              onChange={(e) => updateSavedAddress(index, 'contactName', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Company Name (if different)</label>
+                            <input
+                              type="text"
+                              disabled={modalMode === 'view'}
+                              value={addr.companyName || ''}
+                              onChange={(e) => updateSavedAddress(index, 'companyName', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Street *</label>
+                            <input
+                              type="text"
+                              disabled={modalMode === 'view'}
+                              value={addr.street}
+                              onChange={(e) => updateSavedAddress(index, 'street', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Address Line 2 (c/o, floor, etc.)</label>
+                            <input
+                              type="text"
+                              disabled={modalMode === 'view'}
+                              value={addr.addressLine2 || ''}
+                              onChange={(e) => updateSavedAddress(index, 'addressLine2', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Postal Code *</label>
+                              <input
+                                type="text"
+                                disabled={modalMode === 'view'}
+                                value={addr.postalCode}
+                                onChange={(e) => updateSavedAddress(index, 'postalCode', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">City *</label>
+                              <input
+                                type="text"
+                                disabled={modalMode === 'view'}
+                                value={addr.city}
+                                onChange={(e) => updateSavedAddress(index, 'city', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Country</label>
+                            <input
+                              type="text"
+                              disabled={modalMode === 'view'}
+                              value={addr.country}
+                              onChange={(e) => updateSavedAddress(index, 'country', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                            <input
+                              type="email"
+                              disabled={modalMode === 'view'}
+                              value={addr.email || ''}
+                              onChange={(e) => updateSavedAddress(index, 'email', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
+                            <input
+                              type="tel"
+                              disabled={modalMode === 'view'}
+                              value={addr.phone || ''}
+                              onChange={(e) => updateSavedAddress(index, 'phone', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Business terms */}
@@ -1613,6 +1840,17 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
-    </>
+    </ProtectedRoute>
   );
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  const i18nConfig = {
+    i18n: { defaultLocale: 'sv', locales: ['sv', 'en'], localeDetection: false as const },
+  };
+  return {
+    props: {
+      ...(await serverSideTranslations('en', ['common'], i18nConfig)),
+    },
+  };
 }

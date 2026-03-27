@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
     return value === key ? fallback : value;
   };
   
-  const currentYear = new Date().getFullYear();
+  const currentYear = 2026;
   
   const footerNavigation = {
     services: [

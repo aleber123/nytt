@@ -170,6 +170,7 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         billingInfo: answers.billingInfo,
         
         // Additional info
+        customerNumber: answers.customerNumber || undefined,
         invoiceReference: answers.invoiceReference,
         additionalNotes: answers.additionalNotes,
         
@@ -610,10 +611,12 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       title: locale === 'en' ? 'Contact Information' : 'Kontaktuppgifter',
       step: 9,
       items: [
+        ...(answers.customerNumber ? [{ label: locale === 'en' ? 'Customer Number' : 'Kundnummer', value: answers.customerNumber }] : []),
         { label: locale === 'en' ? 'Name' : 'Namn', value: customerName },
         { label: locale === 'en' ? 'Email' : 'E-post', value: customerEmail },
         { label: locale === 'en' ? 'Phone' : 'Telefon', value: customerPhone },
         ...(answers.billingInfo?.street ? [{ label: locale === 'en' ? 'Address' : 'Adress', value: `${answers.billingInfo.street}, ${answers.billingInfo.postalCode} ${answers.billingInfo.city}` }] : []),
+        ...(answers.invoiceReference ? [{ label: locale === 'en' ? 'Invoice Reference' : 'Fakturareferens', value: answers.invoiceReference }] : []),
       ],
     });
   }

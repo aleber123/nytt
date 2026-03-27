@@ -804,6 +804,12 @@ function EditVisaOrderInfoSection({ order, onUpdate }: EditVisaOrderInfoSectionP
                 </div>
               </div>
             )}
+            {(order as any).customerNumber && (
+              <div>
+                <span className="text-gray-500">Customer #:</span>
+                <span className="ml-2 font-medium text-indigo-700">{(order as any).customerNumber}</span>
+              </div>
+            )}
             <div>
               <span className="text-gray-500">Customer Ref:</span>
               <span className="ml-2 font-medium">{(order as any).invoiceReference || '—'}</span>

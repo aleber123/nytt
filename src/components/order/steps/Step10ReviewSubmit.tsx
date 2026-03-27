@@ -969,6 +969,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     paymentMethod: 'invoice',
                     totalPrice: pricingResult.totalPrice,
                     pricingBreakdown: pricingResult.breakdown,
+                    customerNumber: answers.customerNumber || undefined,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
                     translationDetails: answers.translationDetails,
@@ -1074,6 +1075,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
         <div class="row"><span class="label">Email</span><span class="value">${answers.customerInfo.email}</span></div>
         <div class="row"><span class="label">Phone</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
         <div class="row"><span class="label">Address</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
+        ${answers.customerNumber ? `<div class="row"><span class="label">Customer Number</span><span class="value">${answers.customerNumber}</span></div>` : ''}
         ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
       </div>
 
@@ -1439,6 +1441,7 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     paymentMethod: 'invoice',
                     totalPrice: pricingResult.totalPrice,
                     pricingBreakdown: pricingResult.breakdown,
+                    customerNumber: answers.customerNumber || undefined,
                     invoiceReference: answers.invoiceReference,
                     additionalNotes: answers.additionalNotes,
                     translationDetails: answers.translationDetails,
@@ -1616,7 +1619,8 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
           <div class="row"><span class="label">Email</span><span class="value">${answers.customerInfo.email}</span></div>
           <div class="row"><span class="label">Phone</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
           <div class="row"><span class="label">Address</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
-          ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
+          ${answers.customerNumber ? `<div class="row"><span class="label">Customer Number</span><span class="value">${answers.customerNumber}</span></div>` : ''}
+        ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
         </div>
 
         ${answers.documentSource === 'original' && !hasPickup ? `

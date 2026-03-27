@@ -15,6 +15,37 @@ import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 import { OrderAnswers } from './types';
 import { useSavedCustomerInfo } from '@/hooks/useSavedCustomerInfo';
 
+// Saved address from customer database
+interface CustomerSavedAddress {
+  id: string;
+  label: string;
+  type: 'return' | 'pickup' | 'delivery' | 'other';
+  contactName: string;
+  companyName: string;
+  street: string;
+  addressLine2: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  countryCode: string;
+  phone: string;
+  email: string;
+  isDefault: boolean;
+}
+
+// Customer lookup result from API
+interface CustomerLookupResult {
+  companyName: string;
+  organizationNumber: string;
+  customerType: 'private' | 'company';
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  billingAddress: { street: string; postalCode: string; city: string; country: string } | null;
+  invoiceReference: string;
+  savedAddresses: CustomerSavedAddress[];
+}
+
 interface CustomerInfoFormProps {
   answers: OrderAnswers;
   setAnswers: React.Dispatch<React.SetStateAction<OrderAnswers>>;
@@ -39,6 +70,141 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
   const { savedInfo, saveCustomerInfo, clearSavedInfo, hasSavedInfo } = useSavedCustomerInfo();
   const [saveAddressChecked, setSaveAddressChecked] = useState(true);
   const [showSavedInfoBanner, setShowSavedInfoBanner] = useState(false);
+
+  // Customer number lookup state
+  const [customerNumberInput, setCustomerNumberInput] = useState(answers.customerNumber || '');
+  const [customerLookupLoading, setCustomerLookupLoading] = useState(false);
+  const [customerLookupResult, setCustomerLookupResult] = useState<'found' | 'not-found' | null>(null);
+  const [customerLookupName, setCustomerLookupName] = useState('');
+  const [customerSavedAddresses, setCustomerSavedAddresses] = useState<CustomerSavedAddress[]>([]);
+  const customerLookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Lookup customer by number
+  const lookupCustomer = useCallback(async (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) {
+      setCustomerLookupResult(null);
+      setCustomerLookupName('');
+      return;
+    }
+
+    setCustomerLookupLoading(true);
+    try {
+      const res = await fetch('/api/customer-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerNumber: trimmed }),
+      });
+      const data = await res.json();
+
+      if (data.found && data.customer) {
+        const c = data.customer as CustomerLookupResult;
+        setCustomerLookupResult('found');
+        setCustomerLookupName(c.companyName || c.contactName || '');
+        setCustomerSavedAddresses(c.savedAddresses || []);
+
+        // Auto-fill form fields
+        setAnswers(prev => {
+          // Resolve country name to country code using the countries list
+          const resolveCountryCode = (countryName?: string): string => {
+            if (!countryName) return prev.billingInfo.countryCode || 'SE';
+            const lower = countryName.toLowerCase();
+            const match = ALL_COUNTRIES.find(
+              c => c.name.toLowerCase() === lower
+                || (c.nameEn && c.nameEn.toLowerCase() === lower)
+                || c.code.toLowerCase() === lower
+            );
+            return match?.code || prev.billingInfo.countryCode || 'SE';
+          };
+
+          const billingCountryCode = resolveCountryCode(c.billingAddress?.country);
+          const billingCountryObj = ALL_COUNTRIES.find(co => co.code === billingCountryCode);
+
+          const updates: any = {
+            ...prev,
+            customerNumber: data.customerNumber,
+            customerType: c.customerType,
+            billingInfo: {
+              ...prev.billingInfo,
+              sameAsReturn: false,
+              companyName: c.companyName || prev.billingInfo.companyName,
+              organizationNumber: c.organizationNumber || prev.billingInfo.organizationNumber,
+              contactPerson: c.contactName || prev.billingInfo.contactPerson,
+              firstName: c.customerType === 'private' ? (c.contactName.split(' ')[0] || '') : prev.billingInfo.firstName,
+              lastName: c.customerType === 'private' ? (c.contactName.split(' ').slice(1).join(' ') || '') : prev.billingInfo.lastName,
+              street: c.billingAddress?.street || prev.billingInfo.street,
+              postalCode: c.billingAddress?.postalCode || prev.billingInfo.postalCode,
+              city: c.billingAddress?.city || prev.billingInfo.city,
+              country: billingCountryObj?.name || c.billingAddress?.country || prev.billingInfo.country,
+              countryCode: billingCountryCode,
+              email: c.contactEmail || prev.billingInfo.email,
+              phone: c.contactPhone || prev.billingInfo.phone,
+            },
+            invoiceReference: c.invoiceReference || prev.invoiceReference,
+          };
+
+          // Auto-fill default return address if available
+          const defaultReturn = c.savedAddresses?.find(a => a.type === 'return' && a.isDefault);
+          if (defaultReturn) {
+            updates.returnAddress = {
+              ...prev.returnAddress,
+              sameAsPickup: false,
+              firstName: defaultReturn.contactName?.split(' ')[0] || prev.returnAddress.firstName,
+              lastName: defaultReturn.contactName?.split(' ').slice(1).join(' ') || prev.returnAddress.lastName,
+              companyName: defaultReturn.companyName || c.companyName || prev.returnAddress.companyName,
+              street: defaultReturn.street,
+              addressLine2: defaultReturn.addressLine2 || '',
+              postalCode: defaultReturn.postalCode,
+              city: defaultReturn.city,
+              country: defaultReturn.country,
+              countryCode: defaultReturn.countryCode || 'SE',
+              phone: defaultReturn.phone || c.contactPhone || prev.returnAddress.phone,
+              email: defaultReturn.email || c.contactEmail || prev.returnAddress.email,
+            };
+          }
+
+          return updates;
+        });
+      } else {
+        setCustomerLookupResult('not-found');
+        setCustomerLookupName('');
+        setCustomerSavedAddresses([]);
+      }
+    } catch {
+      setCustomerLookupResult('not-found');
+      setCustomerLookupName('');
+    } finally {
+      setCustomerLookupLoading(false);
+    }
+  }, [setAnswers]);
+
+  // Debounced lookup on input change
+  const handleCustomerNumberChange = (value: string) => {
+    setCustomerNumberInput(value);
+    setCustomerLookupResult(null);
+    setCustomerLookupName('');
+
+    // Clear customer number from answers if input is cleared
+    if (!value.trim()) {
+      setAnswers(prev => ({ ...prev, customerNumber: '' }));
+      setCustomerSavedAddresses([]);
+      return;
+    }
+
+    // Debounce the API call
+    if (customerLookupTimerRef.current) clearTimeout(customerLookupTimerRef.current);
+    customerLookupTimerRef.current = setTimeout(() => lookupCustomer(value), 600);
+  };
+
+  // Auto-lookup customer number if already set from a previous step (e.g. return address)
+  const hasAutoLookedRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoLookedRef.current) return;
+    if (answers.customerNumber && !customerLookupResult) {
+      hasAutoLookedRef.current = true;
+      lookupCustomer(answers.customerNumber);
+    }
+  }, [answers.customerNumber, customerLookupResult, lookupCustomer]);
 
   // Check if we have saved info to offer on mount
   useEffect(() => {
@@ -301,6 +467,126 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
           </div>
         </div>
       )}
+
+      {/* ===== SECTION: Customer Number Lookup ===== */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+        <SectionHeader
+          icon="🔍"
+          title={isEn ? 'Returning Customer?' : 'Återkommande kund?'}
+          subtitle={isEn ? 'Enter your customer number to auto-fill your information' : 'Ange ditt kundnummer för att fylla i dina uppgifter automatiskt'}
+        />
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <input
+              type="text"
+              value={customerNumberInput}
+              onChange={(e) => handleCustomerNumberChange(e.target.value.toUpperCase())}
+              className="w-full px-3 py-2 border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              placeholder={isEn ? 'Customer number' : 'Kundnummer'}
+            />
+          </div>
+          {customerLookupLoading && (
+            <div className="flex items-center text-indigo-600">
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          )}
+        </div>
+        {customerLookupResult === 'found' && (
+          <div className="mt-3">
+            <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+              <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm font-medium">
+                {isEn ? `Found: ${customerLookupName}` : `Hittad: ${customerLookupName}`}
+                {' — '}
+                {isEn ? 'information filled in below' : 'uppgifter ifyllda nedan'}
+              </span>
+            </div>
+
+            {/* Saved addresses selection */}
+            {customerSavedAddresses.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-medium text-indigo-800 mb-2">
+                  {isEn ? 'Use a saved address:' : 'Välj en sparad adress:'}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {customerSavedAddresses.map((addr) => {
+                    const typeLabel = addr.type === 'return'
+                      ? (isEn ? 'Return' : 'Retur')
+                      : addr.type === 'pickup'
+                        ? (isEn ? 'Pickup' : 'Upphämtning')
+                        : addr.type === 'delivery'
+                          ? (isEn ? 'Delivery' : 'Leverans')
+                          : (isEn ? 'Other' : 'Övrigt');
+
+                    return (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => {
+                          // Fill return address with this saved address
+                          setAnswers(prev => ({
+                            ...prev,
+                            returnAddress: {
+                              ...prev.returnAddress,
+                              sameAsPickup: false,
+                              firstName: addr.contactName?.split(' ')[0] || prev.returnAddress.firstName,
+                              lastName: addr.contactName?.split(' ').slice(1).join(' ') || prev.returnAddress.lastName,
+                              companyName: addr.companyName || prev.returnAddress.companyName,
+                              street: addr.street,
+                              addressLine2: addr.addressLine2 || '',
+                              postalCode: addr.postalCode,
+                              city: addr.city,
+                              country: addr.country,
+                              countryCode: addr.countryCode || 'SE',
+                              phone: addr.phone || prev.returnAddress.phone,
+                              email: addr.email || prev.returnAddress.email,
+                            },
+                          }));
+                        }}
+                        className="text-left p-3 border border-indigo-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-400 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
+                            {typeLabel}
+                          </span>
+                          {addr.isDefault && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                              {isEn ? 'Default' : 'Standard'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">{addr.label}</p>
+                        <p className="text-xs text-gray-600">{addr.street}, {addr.postalCode} {addr.city}</p>
+                        {addr.contactName && <p className="text-xs text-gray-500">{addr.contactName}</p>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {customerLookupResult === 'not-found' && (
+          <div className="mt-3 flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-amber-700">
+              {isEn ? 'No customer found with that number. Fill in your details below.' : 'Inget kundnummer hittades. Fyll i dina uppgifter nedan.'}
+            </span>
+          </div>
+        )}
+        <p className="text-xs text-indigo-600 mt-2">
+          {isEn
+            ? 'Your customer number can be found on your invoice or by contacting us.'
+            : 'Ditt kundnummer hittar du på din faktura eller genom att kontakta oss.'}
+        </p>
+      </div>
 
       {/* ===== SECTION: Billing Information ===== */}
       {/* Note: Customer Type selection has been moved to the top of Step10 */}

@@ -207,7 +207,7 @@ const Seo: React.FC<SeoProps> = ({
         "price": servicePrice,
         "priceCurrency": serviceCurrency,
         "availability": "https://schema.org/InStock",
-        "priceValidUntil": new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+        "priceValidUntil": "2027-12-31"
       }
     })
   } : null;

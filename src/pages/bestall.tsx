@@ -139,6 +139,7 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       country: '',
       countryCode: ''
     },
+    customerNumber: '',
     invoiceReference: '',
     additionalNotes: '',
     paymentMethod: ''

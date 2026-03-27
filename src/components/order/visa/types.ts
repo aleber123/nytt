@@ -181,6 +181,7 @@ export const initialVisaOrderAnswers: VisaOrderAnswers = {
     country: '',
     countryCode: '',
   },
+  customerNumber: '',
   invoiceReference: '',
   additionalNotes: '',
   paymentMethod: '',

@@ -115,6 +115,7 @@ export interface OrderAnswers {
     country: string;
     countryCode: string;
   };
+  customerNumber: string; // K-XXXX customer number for auto-fill from customer database
   invoiceReference: string;
   additionalNotes: string;
   paymentMethod: string;

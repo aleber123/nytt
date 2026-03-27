@@ -4,13 +4,30 @@
  * Similar to Step 7 pickup address form
  */
 
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps } from '../types';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
+
+interface SavedAddressOption {
+  id: string;
+  label: string;
+  type: string;
+  contactName: string;
+  companyName: string;
+  street: string;
+  addressLine2: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  countryCode: string;
+  phone: string;
+  email: string;
+  isDefault: boolean;
+}
 
 interface Step9bProps extends Omit<StepProps, 'currentLocale'> {
   onSkip: () => void;
@@ -32,6 +49,93 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
 
   // State for showing validation errors
   const [showValidation, setShowValidation] = React.useState(false);
+
+  // Customer number lookup state for saved addresses
+  const [custNumInput, setCustNumInput] = useState(answers.customerNumber || '');
+  const [custLookupLoading, setCustLookupLoading] = useState(false);
+  const [custLookupStatus, setCustLookupStatus] = useState<'found' | 'not-found' | null>(null);
+  const [custName, setCustName] = useState('');
+  const [custAddresses, setCustAddresses] = useState<SavedAddressOption[]>([]);
+  const custTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasAutoLooked = useRef(false);
+
+  const lookupCustomer = useCallback(async (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) { setCustLookupStatus(null); setCustAddresses([]); return; }
+    setCustLookupLoading(true);
+    try {
+      const res = await fetch('/api/customer-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerNumber: trimmed }),
+      });
+      const data = await res.json();
+      if (data.found && data.customer) {
+        const addrs = data.customer.savedAddresses || [];
+        setCustLookupStatus(addrs.length > 0 ? 'found' : null);
+        setCustName(data.customer.companyName || data.customer.contactName || '');
+        setCustAddresses(addrs);
+        setAnswers(prev => ({ ...prev, customerNumber: data.customerNumber }));
+      } else {
+        setCustLookupStatus('not-found');
+        setCustName('');
+        setCustAddresses([]);
+      }
+    } catch {
+      setCustLookupStatus('not-found');
+      setCustAddresses([]);
+    } finally {
+      setCustLookupLoading(false);
+    }
+  }, [setAnswers]);
+
+  // Auto-lookup if customerNumber already set (from a previous step)
+  React.useEffect(() => {
+    if (answers.customerNumber && !hasAutoLooked.current) {
+      hasAutoLooked.current = true;
+      lookupCustomer(answers.customerNumber);
+    }
+  }, [answers.customerNumber, lookupCustomer]);
+
+  const handleCustNumChange = (value: string) => {
+    setCustNumInput(value);
+    setCustLookupStatus(null);
+    setCustAddresses([]);
+    if (!value.trim()) {
+      setAnswers(prev => ({ ...prev, customerNumber: '' }));
+      return;
+    }
+    if (custTimerRef.current) clearTimeout(custTimerRef.current);
+    custTimerRef.current = setTimeout(() => lookupCustomer(value), 600);
+  };
+
+  const applyAddress = (addr: SavedAddressOption) => {
+    const countryMatch = ALL_COUNTRIES.find(
+      c => c.code.toLowerCase() === (addr.countryCode || '').toLowerCase()
+        || c.name.toLowerCase() === (addr.country || '').toLowerCase()
+        || (c.nameEn && c.nameEn.toLowerCase() === (addr.country || '').toLowerCase())
+    );
+    setAnswers(prev => ({
+      ...prev,
+      confirmReturnAddressLater: false,
+      deliveryAddressType: addr.companyName ? 'business' : prev.deliveryAddressType,
+      returnAddress: {
+        ...prev.returnAddress,
+        sameAsPickup: false,
+        firstName: addr.contactName?.split(' ')[0] || prev.returnAddress.firstName,
+        lastName: addr.contactName?.split(' ').slice(1).join(' ') || prev.returnAddress.lastName,
+        companyName: addr.companyName || prev.returnAddress.companyName,
+        street: addr.street,
+        addressLine2: addr.addressLine2 || '',
+        postalCode: addr.postalCode,
+        city: addr.city,
+        country: countryMatch?.name || addr.country || prev.returnAddress.country,
+        countryCode: countryMatch?.code || addr.countryCode || prev.returnAddress.countryCode,
+        phone: addr.phone || prev.returnAddress.phone,
+        email: addr.email || prev.returnAddress.email,
+      },
+    }));
+  };
 
   // Check if this step should be shown
   const requiresReturnAddress = !!answers.returnService && 
@@ -163,6 +267,86 @@ export const Step9bReturnAddress: React.FC<Step9bProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Customer number lookup for saved addresses */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
+        <div className="flex items-start space-x-3 mb-3">
+          <span className="text-xl">🔍</span>
+          <div>
+            <h4 className="font-medium text-indigo-900">
+              {isEn ? 'Have a customer number?' : 'Har du ett kundnummer?'}
+            </h4>
+            <p className="text-sm text-indigo-700">
+              {isEn ? 'Enter it to use your saved addresses' : 'Ange det för att använda dina sparade adresser'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            value={custNumInput}
+            onChange={(e) => handleCustNumChange(e.target.value.toUpperCase())}
+            className="flex-1 px-3 py-2 border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            placeholder={isEn ? 'Customer number' : 'Kundnummer'}
+          />
+          {custLookupLoading && (
+            <svg className="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          )}
+        </div>
+        {custLookupStatus === 'found' && (
+          <p className="mt-2 text-sm text-green-700 font-medium">
+            ✓ {custName}
+          </p>
+        )}
+        {custLookupStatus === 'not-found' && (
+          <p className="mt-2 text-sm text-amber-700">
+            {isEn ? 'No customer found.' : 'Inget kundnummer hittades.'}
+          </p>
+        )}
+
+        {/* Saved address cards */}
+        {custAddresses.length > 0 && (
+          <div className="mt-3">
+            <p className="text-sm font-medium text-indigo-800 mb-2">
+              {isEn ? 'Choose a saved address:' : 'Välj en sparad adress:'}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {custAddresses.map((addr) => {
+                const typeLabel = addr.type === 'return'
+                  ? (isEn ? 'Return' : 'Retur')
+                  : addr.type === 'pickup'
+                    ? (isEn ? 'Pickup' : 'Upphämtning')
+                    : addr.type === 'delivery'
+                      ? (isEn ? 'Delivery' : 'Leverans')
+                      : (isEn ? 'Other' : 'Övrigt');
+                return (
+                  <button
+                    key={addr.id}
+                    type="button"
+                    onClick={() => applyAddress(addr)}
+                    className="text-left p-3 border border-indigo-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-400 transition-colors bg-white"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">{typeLabel}</span>
+                      {addr.isDefault && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                          {isEn ? 'Default' : 'Standard'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-gray-900">{addr.label}</p>
+                    <p className="text-xs text-gray-600">{addr.street}, {addr.postalCode} {addr.city}</p>
+                    {addr.contactName && <p className="text-xs text-gray-500">{addr.contactName}</p>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Address type selector with 3 options */}

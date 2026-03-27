@@ -30,7 +30,7 @@ const TermsAndConditionsPage: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="text-gray-700">
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-6" suppressHydrationWarning>
                 <em>Last updated: {new Date().toLocaleDateString('en-US')}</em>
               </p>
 

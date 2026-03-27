@@ -2,7 +2,7 @@ import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Seo from '@/components/Seo';
 import { VisaOrderAnswers, initialVisaOrderAnswers, VISA_TOTAL_STEPS } from '@/components/order/visa/types';
@@ -52,6 +52,34 @@ export default function VisaOrderPage() {
       setHighestStepReached(currentStep);
     }
   }, [currentStep, highestStepReached]);
+
+  // Listen for saveCustomerInfo event at page level (CustomerInfoForm may be unmounted on review step)
+  const answersRef = useRef(answers);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => {
+    const handleSave = () => {
+      try {
+        const info = answersRef.current.billingInfo;
+        if (info.firstName && info.email && info.street) {
+          const data = {
+            firstName: info.firstName,
+            lastName: info.lastName,
+            companyName: info.companyName,
+            street: info.street,
+            postalCode: info.postalCode,
+            city: info.city,
+            countryCode: info.countryCode,
+            email: info.email,
+            phone: info.phone,
+            savedAt: Date.now(),
+          };
+          localStorage.setItem('doxvl_saved_customer_info', JSON.stringify(data));
+        }
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('saveCustomerInfo', handleSave);
+    return () => window.removeEventListener('saveCustomerInfo', handleSave);
+  }, []);
 
   // Load return and pickup services from Firebase (only if needed)
   useEffect(() => {

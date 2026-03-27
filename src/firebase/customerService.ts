@@ -32,6 +32,24 @@ export interface CustomerAddress {
   country: string;
 }
 
+// Named/saved address for a customer (return, pickup, delivery, etc.)
+export interface SavedAddress {
+  id: string;           // Unique ID (generated)
+  label: string;        // e.g. "Huvudkontor", "Lager Göteborg"
+  type: 'return' | 'pickup' | 'delivery' | 'other';
+  contactName?: string; // Contact person at this address
+  companyName?: string; // Company name if different from main
+  street: string;
+  addressLine2?: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  countryCode: string;
+  phone?: string;
+  email?: string;
+  isDefault?: boolean;  // Default address for this type
+}
+
 // Custom pricing overrides for specific customers
 export interface CustomerPricing {
   // Service fees (DOX handling fees)
@@ -92,6 +110,7 @@ export interface Customer {
   // Addresses
   billingAddress: CustomerAddress;
   visitingAddress?: CustomerAddress;
+  savedAddresses?: SavedAddress[];
   
   // Contact
   phone?: string;

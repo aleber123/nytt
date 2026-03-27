@@ -6,11 +6,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { GetStaticProps } from 'next';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { adminFetch } from '@/lib/adminFetch';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 
 interface ShippingSettings {
   dhlMaxPrice: number;
@@ -236,4 +238,15 @@ export default function ShippingSettingsPage() {
       <ShippingSettingsContent />
     </ProtectedRoute>
   );
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  const i18nConfig = {
+    i18n: { defaultLocale: 'sv', locales: ['sv', 'en'], localeDetection: false as const },
+  };
+  return {
+    props: {
+      ...(await serverSideTranslations('en', ['common'], i18nConfig)),
+    },
+  };
 }

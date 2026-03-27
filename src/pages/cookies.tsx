@@ -58,7 +58,7 @@ const CookiesPage: React.FC = () => {
               <p className="text-gray-700">{t('cookiesPage.contact.text')} <a className="underline" href="mailto:info@doxvl.se">info@doxvl.se</a>.</p>
             </section>
 
-            <p className="text-xs text-gray-500 mt-6">{t('cookiesPage.lastUpdated', { date: formattedDate })}</p>
+            <p className="text-xs text-gray-500 mt-6" suppressHydrationWarning>{t('cookiesPage.lastUpdated', { date: formattedDate })}</p>
           </div>
         </div>
       </div>

@@ -52,6 +52,7 @@ interface Order {
   paymentMethod: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   totalPrice: number;
+  customerNumber?: string;
   invoiceReference?: string;
   additionalNotes?: string;
   uploadedFiles?: any[];
@@ -306,6 +307,11 @@ export function ConfirmationPage() {
                         <p className="text-gray-700 break-words">
                           <span className="font-medium">{order.customerInfo.phone}</span>
                         </p>
+                        {order.customerNumber && (
+                          <p className="text-gray-700 break-words">
+                            <span className="font-medium">Kundnummer:</span> {order.customerNumber}
+                          </p>
+                        )}
                         {order.invoiceReference && (
                           <p className="text-gray-700 break-words">
                             <span className="font-medium">Fakturareferens:</span> {order.invoiceReference}
