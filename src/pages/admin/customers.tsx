@@ -19,6 +19,7 @@ import {
   reactivateCustomer
 } from '@/firebase/customerService';
 import { Timestamp } from 'firebase/firestore';
+import { adminFetch } from '@/lib/adminFetch';
 
 type ModalMode = 'create' | 'edit' | 'view' | null;
 
@@ -119,6 +120,10 @@ export default function CustomersPage() {
   // Same visiting address checkbox
   const [sameAsVisiting, setSameAsVisiting] = useState(true);
 
+  // Migration state
+  const [migrating, setMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<{ customersUpdated: number; ordersUpdated: number; visaOrdersUpdated: number } | null>(null);
+
   // Auth check
   useEffect(() => {
     if (!authLoading && !currentUser) {
@@ -142,6 +147,26 @@ export default function CustomersPage() {
       setError('Could not load customers');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runMigration = async () => {
+    if (!confirm('This will replace ALL customer numbers with new random ones. Old numbers will stop working. Continue?')) return;
+    setMigrating(true);
+    setMigrationResult(null);
+    try {
+      const res = await adminFetch('/api/admin/migrate-customer-numbers', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setMigrationResult({ customersUpdated: data.customersUpdated, ordersUpdated: data.ordersUpdated, visaOrdersUpdated: data.visaOrdersUpdated });
+        loadCustomers();
+      } else {
+        setError(data.error || 'Migration failed');
+      }
+    } catch (e: any) {
+      setError(e.message || 'Migration failed');
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -375,16 +400,35 @@ export default function CustomersPage() {
             <h1 className="text-2xl font-bold text-gray-900">Customer Registry</h1>
             <p className="text-gray-600 mt-1">Manage business customers and contacts</p>
           </div>
-          <button
-            onClick={() => openModal('create')}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Customer
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={runMigration}
+              disabled={migrating}
+              className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition flex items-center gap-2 disabled:opacity-50 text-sm"
+              title="Replace all sequential customer numbers with random ones"
+            >
+              {migrating ? 'Migrating...' : 'Migrate Customer Numbers'}
+            </button>
+            <button
+              onClick={() => openModal('create')}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Customer
+            </button>
+          </div>
         </div>
+
+        {migrationResult && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <p className="text-green-800 font-medium">Migration complete!</p>
+            <p className="text-green-700 text-sm">
+              {migrationResult.customersUpdated} customers, {migrationResult.ordersUpdated} orders, {migrationResult.visaOrdersUpdated} visa orders updated with new numbers.
+            </p>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">

@@ -143,34 +143,29 @@ export type CustomerInput = Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'c
 
 const COLLECTION_NAME = 'customers';
 
-// Generate next customer number (K-0001, K-0002, etc.)
+// Generate a unique, non-guessable customer number (K-XXXXXX, alphanumeric)
 async function generateCustomerNumber(): Promise<string> {
-  try {
-    const customersRef = collection(db, COLLECTION_NAME);
-    const snapshot = await getDocs(customersRef);
-    
-    if (snapshot.empty) {
-      return 'K-0001';
-    }
-    
-    // Find highest customer number
-    let maxNumber = 0;
-    snapshot.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.customerNumber) {
-        const num = parseInt(data.customerNumber.replace('K-', ''), 10);
-        if (!isNaN(num) && num > maxNumber) {
-          maxNumber = num;
-        }
-      }
-    });
-    
-    return `K-${(maxNumber + 1).toString().padStart(4, '0')}`;
-  } catch (error) {
-    // Fallback: generate based on timestamp
-    const timestamp = Date.now().toString().slice(-6);
-    return `K-${timestamp}`;
+  const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 to avoid confusion
+  const LENGTH = 6;
+
+  const generate = (): string => {
+    const bytes = crypto.getRandomValues(new Uint8Array(LENGTH));
+    return 'K-' + Array.from(bytes, b => CHARS[b % CHARS.length]).join('');
+  };
+
+  // Ensure uniqueness against existing customer numbers
+  const customersRef = collection(db, COLLECTION_NAME);
+  const snapshot = await getDocs(customersRef);
+  const existing = new Set(snapshot.docs.map(d => d.data().customerNumber).filter(Boolean));
+
+  let candidate = generate();
+  let attempts = 0;
+  while (existing.has(candidate) && attempts < 20) {
+    candidate = generate();
+    attempts++;
   }
+
+  return candidate;
 }
 
 // Helper to remove undefined values from object (Firestore doesn't accept undefined)

@@ -1,7 +1,7 @@
 /**
  * Customer Lookup API
  *
- * Looks up a customer by their customer number (K-XXXX) and returns
+ * Looks up a customer by their customer number (K-XXXXXX) and returns
  * contact info, billing address, etc. for auto-filling order forms.
  * Uses Firebase Admin SDK since order forms are used by unauthenticated visitors.
  */
@@ -30,13 +30,13 @@ export default async function handler(
     return res.status(400).json({ error: 'Customer number is required' });
   }
 
-  // Normalize: accept "K-0042", "k-0042", "K0042", "0042", "42"
-  const normalized = customerNumber.trim().toUpperCase().replace(/^K-?/, '');
-  const num = parseInt(normalized, 10);
-  if (isNaN(num) || num <= 0) {
+  // Normalize: accept "K-ABC123", "k-abc123", "KABC123", "ABC123" etc.
+  const raw = customerNumber.trim().toUpperCase().replace(/^K-?/, '');
+  if (!raw || raw.length < 4 || raw.length > 8 || !/^[A-Z0-9]+$/.test(raw)) {
     return res.status(400).json({ error: 'Invalid customer number format' });
   }
-  const formattedNumber = `K-${num.toString().padStart(4, '0')}`;
+  // Support both old sequential (K-0042) and new alphanumeric (K-7A3X9M) formats
+  const formattedNumber = `K-${raw}`;
 
   try {
     const db = getAdminDb();
