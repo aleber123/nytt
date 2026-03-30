@@ -141,6 +141,9 @@ const ALLOWED_ORDER_FIELDS = [
   'assignedToName',
   'assignedAt',
   'assignedBy',
+  // Document checklist
+  'documentChecklist',
+  'documentInstructionsSentAt',
 ];
 
 /**

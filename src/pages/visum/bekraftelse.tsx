@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { getVisaOrderConfirmationByToken } from '@/firebase/visaOrderService';
-import { getDocumentRequirementsForProduct, filterDocumentsByNationality, DocumentRequirement } from '@/firebase/visaRequirementsService';
+
 
 // Order confirmation data from orderConfirmations collection
 interface OrderConfirmation {
@@ -282,7 +282,6 @@ export default function VisaConfirmationPage() {
   const [order, setOrder] = useState<OrderConfirmation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [documentRequirements, setDocumentRequirements] = useState<DocumentRequirement[]>([]);
   const locale = router.locale || 'sv';
 
   useEffect(() => {
@@ -308,21 +307,6 @@ export default function VisaConfirmationPage() {
           setOrder(orderData as OrderConfirmation);
           setError(null);
           
-          // Fetch document requirements for this visa product
-          if (orderData.destinationCountryCode && orderData.visaProduct?.id) {
-            try {
-              const allDocs = await getDocumentRequirementsForProduct(
-                orderData.destinationCountryCode,
-                orderData.visaProduct.id
-              );
-              // Filter documents based on customer's nationality
-              const nationalityCode = orderData.nationalityCode || 'SE';
-              const filteredDocs = filterDocumentsByNationality(allDocs, nationalityCode);
-              setDocumentRequirements(filteredDocs);
-            } catch {
-              // Silent fail - document requirements are optional
-            }
-          }
         } else {
           setOrder(null);
           setError(locale === 'en' ? 'Order not found' : 'Beställningen hittades inte');
@@ -630,74 +614,20 @@ export default function VisaConfirmationPage() {
                     </ol>
                   </div>
 
-                  {/* Document Requirements Section */}
-                  {documentRequirements.length > 0 && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
-                      <div className="flex items-center mb-4">
-                        <span className="text-2xl mr-3">📋</span>
-                        <h3 className="text-lg font-semibold text-amber-800">
-                          {locale === 'en' ? 'Required Documents' : 'Dokument som krävs'}
-                        </h3>
-                      </div>
-                      <p className="text-amber-700 text-sm mb-4">
-                        {locale === 'en' 
-                          ? 'Please prepare the following documents for your visa application:'
-                          : 'Vänligen förbered följande dokument för din visumansökan:'}
-                      </p>
-                      <div className="space-y-3">
-                        {documentRequirements.map((doc, index) => (
-                          <div key={doc.id} className="flex items-start gap-3 bg-white rounded-lg p-3 border border-amber-100">
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 ${
-                              doc.required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900">
-                                  {locale === 'en' ? doc.nameEn : doc.name}
-                                </span>
-                                {doc.required && (
-                                  <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded">
-                                    {locale === 'en' ? 'Required' : 'Obligatoriskt'}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600 mt-0.5">
-                                {locale === 'en' ? doc.descriptionEn : doc.description}
-                              </p>
-                              {doc.templateUrl && (
-                                <a 
-                                  href={doc.templateUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center gap-1"
-                                >
-                                  📎 {locale === 'en' ? 'Download form/template' : 'Ladda ner formulär/mall'}
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* Upload button if there are uploadable documents */}
-                      {documentRequirements.some(d => d.uploadable) && (
-                        <div className="mt-6 pt-4 border-t border-amber-200">
-                          <Link
-                            href={`/visum/dokument?token=${router.query.token}`}
-                            className="inline-flex items-center justify-center w-full px-6 py-3 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors"
-                          >
-                            📤 {locale === 'en' ? 'Upload Documents Now' : 'Ladda upp dokument nu'}
-                          </Link>
-                          <p className="text-xs text-amber-600 mt-2 text-center">
-                            {locale === 'en' 
-                              ? 'You can upload your documents directly through our secure portal.'
-                              : 'Du kan ladda upp dina dokument direkt via vår säkra portal.'}
-                          </p>
-                        </div>
-                      )}
+                  {/* Document info — instructions will be sent by case handler after review */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                    <div className="flex items-center mb-3">
+                      <span className="text-2xl mr-3">📋</span>
+                      <h3 className="text-lg font-semibold text-blue-800">
+                        {locale === 'en' ? 'Documents' : 'Dokument'}
+                      </h3>
                     </div>
-                  )}
+                    <p className="text-blue-700 text-sm">
+                      {locale === 'en'
+                        ? 'We will review the requirements for your visa and send you a complete list of documents needed. You will receive an email with detailed instructions shortly.'
+                        : 'Vi granskar kraven för ditt visum och skickar dig en komplett lista över dokument som behövs. Du kommer att få ett mail med detaljerade instruktioner inom kort.'}
+                    </p>
+                  </div>
 
                   <div className="text-center">
                     <Link 
