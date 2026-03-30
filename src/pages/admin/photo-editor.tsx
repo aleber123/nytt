@@ -77,6 +77,53 @@ function PhotoEditorPage() {
   // Crop/zoom state
   const [crop, setCrop] = useState<CropState>({ x: 0, y: 0, scale: 1 });
 
+  // Image adjustments
+  const defaultAdjustments = { brightness: 100, contrast: 100, saturation: 100, temperature: 0, sharpness: 0 };
+  const [adjustments, setAdjustments] = useState(defaultAdjustments);
+
+  const getFilterString = (adj: typeof defaultAdjustments) => {
+    // Temperature: approximate via sepia + hue-rotate. Positive = warm, negative = cool.
+    const temp = adj.temperature;
+    const sepiaAmount = Math.abs(temp) / 200; // 0 to 0.5
+    const hueRotate = temp > 0 ? -10 : temp < 0 ? 10 : 0;
+
+    let filter = `brightness(${adj.brightness}%) contrast(${adj.contrast}%) saturate(${adj.saturation}%)`;
+    if (temp !== 0) {
+      filter += ` sepia(${sepiaAmount}) hue-rotate(${hueRotate}deg)`;
+    }
+    return filter;
+  };
+
+  const applySharpness = (ctx: CanvasRenderingContext2D, w: number, h: number, amount: number) => {
+    if (amount <= 0) return;
+    // Simple unsharp mask via convolution
+    const factor = amount / 100;
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+    const copy = new Uint8ClampedArray(data);
+    const stride = w * 4;
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = (y * w + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          const center = copy[i + c] * 5;
+          const neighbors = copy[i - 4 + c] + copy[i + 4 + c] + copy[i - stride + c] + copy[i + stride + c];
+          const sharpened = center - neighbors;
+          data[i + c] = Math.min(255, Math.max(0, copy[i + c] + (sharpened - copy[i + c]) * factor));
+        }
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+  };
+
+  const autoEnhance = () => {
+    setAdjustments({ brightness: 105, contrast: 110, saturation: 105, temperature: 0, sharpness: 30 });
+  };
+
+  const resetAdjustments = () => {
+    setAdjustments(defaultAdjustments);
+  };
+
   // Print state
   const [selectedPaper, setSelectedPaper] = useState<PaperSize>(PAPER_SIZES[0]); // Canon Selphy
   const [photoCount, setPhotoCount] = useState(1);
@@ -242,7 +289,10 @@ function PhotoEditorPage() {
     ctx.fillStyle = BG_COLORS[selectedTemplate.backgroundColor];
     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    // Image — draw synchronously from cached element
+    // Image — draw with filters applied
+    const filterStr = getFilterString(adjustments);
+    ctx.filter = filterStr;
+
     const imgAspect = img.width / img.height;
     let drawW: number, drawH: number;
     if (imgAspect > templateAspect) {
@@ -255,6 +305,13 @@ function PhotoEditorPage() {
     const drawX = (canvasW - drawW) / 2 + crop.x;
     const drawY = (canvasH - drawH) / 2 + crop.y;
     ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+    ctx.filter = 'none';
+
+    // Apply sharpness after drawing
+    if (adjustments.sharpness > 0) {
+      applySharpness(ctx, canvasW * 2, canvasH * 2, adjustments.sharpness);
+    }
 
     // Center crosshair
     ctx.setLineDash([4, 4]);
@@ -272,7 +329,7 @@ function PhotoEditorPage() {
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
     ctx.lineWidth = 1;
     ctx.strokeRect(0.5, 0.5, canvasW - 1, canvasH - 1);
-  }, [crop, selectedTemplate]);
+  }, [crop, selectedTemplate, adjustments]);
 
   useEffect(() => { drawCanvas(); }, [drawCanvas]);
 
@@ -375,6 +432,9 @@ function PhotoEditorPage() {
     ctx.fillStyle = BG_COLORS[selectedTemplate.backgroundColor];
     ctx.fillRect(0, 0, widthPx, heightPx);
 
+    // Apply image adjustments
+    ctx.filter = getFilterString(adjustments);
+
     let dw: number, dh: number;
     if (iAspect > tAspect) { dh = heightPx * crop.scale; dw = dh * iAspect; }
     else { dw = widthPx * crop.scale; dh = dw / iAspect; }
@@ -384,6 +444,11 @@ function PhotoEditorPage() {
     const dx = (widthPx - dw) / 2 + (crop.x / canvasDisplayW) * widthPx;
     const dy = (heightPx - dh) / 2 + (crop.y / canvasDisplayH) * heightPx;
     ctx.drawImage(img, dx, dy, dw, dh);
+
+    ctx.filter = 'none';
+    if (adjustments.sharpness > 0) {
+      applySharpness(ctx, widthPx, heightPx, adjustments.sharpness);
+    }
     return c;
   };
 
@@ -736,7 +801,7 @@ function PhotoEditorPage() {
                     </button>
 
                     <button
-                      onClick={() => { setOriginalImage(null); setProcessedImage(null); setBgRemoved(false); setCrop({ x: 0, y: 0, scale: 1 }); }}
+                      onClick={() => { setOriginalImage(null); setProcessedImage(null); setBgRemoved(false); setCrop({ x: 0, y: 0, scale: 1 }); resetAdjustments(); }}
                       className="px-3 py-1.5 border border-red-300 text-red-600 text-sm rounded-lg hover:bg-red-50"
                     >
                       New photo
@@ -775,6 +840,63 @@ function PhotoEditorPage() {
                   <p className="text-xs text-gray-400 mt-2 text-center">
                     Drag to position. Scroll or use the slider to zoom.
                   </p>
+
+                  {/* Image adjustments */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900">Adjustments</h3>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={autoEnhance}
+                          className="px-2.5 py-1 text-xs bg-amber-50 text-amber-700 rounded hover:bg-amber-100 font-medium"
+                        >
+                          ✨ Auto-enhance
+                        </button>
+                        <button
+                          onClick={resetAdjustments}
+                          className="px-2.5 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {([
+                        { key: 'brightness', label: 'Brightness', icon: '☀️', min: 50, max: 150, step: 1 },
+                        { key: 'contrast', label: 'Contrast', icon: '◐', min: 50, max: 150, step: 1 },
+                        { key: 'saturation', label: 'Saturation', icon: '🎨', min: 0, max: 200, step: 1 },
+                        { key: 'temperature', label: 'Temperature', icon: '🌡️', min: -100, max: 100, step: 1 },
+                        { key: 'sharpness', label: 'Sharpness', icon: '🔍', min: 0, max: 100, step: 1 },
+                      ] as const).map(({ key, label, icon, min, max, step }) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-sm w-5 text-center">{icon}</span>
+                          <span className="text-xs text-gray-600 w-20">{label}</span>
+                          <input
+                            type="range"
+                            min={min}
+                            max={max}
+                            step={step}
+                            value={adjustments[key]}
+                            onChange={(e) => setAdjustments(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                            className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                          />
+                          <span className="text-xs font-mono text-gray-500 w-10 text-right">
+                            {key === 'temperature' ? (adjustments[key] > 0 ? `+${adjustments[key]}` : adjustments[key]) : adjustments[key]}
+                            {key !== 'temperature' && key !== 'sharpness' ? '%' : ''}
+                          </span>
+                          {adjustments[key] !== defaultAdjustments[key] && (
+                            <button
+                              onClick={() => setAdjustments(prev => ({ ...prev, [key]: defaultAdjustments[key] }))}
+                              className="text-gray-400 hover:text-gray-600 text-xs"
+                              title="Reset"
+                            >
+                              ↺
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
