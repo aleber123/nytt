@@ -30,6 +30,7 @@ import { adminFetch } from '@/lib/adminFetch';
 import { getCustomerByEmailDomain } from '@/firebase/customerService';
 import { NotesTab, CommunicationTab, InvoiceTab, FilesTab, OverviewTab, ServicesTab, PriceTab, ProcessingTab, CoverLettersTab, FormFillTab } from '@/components/admin/order';
 import { generateVisaSubmittedEmail, generateVisaApprovedEmail, generateVisaRejectedEmail, generateEVisaDeliveryEmail, generateVisaDocsReceivedEmail, generateVisaReturnShippingEmail, generateVisaEmbassySubmittedEmail } from '@/components/order/templates/visaStatusUpdateEmail';
+import { getDocumentRequirementsForProduct, updateProductDocumentRequirements } from '@/firebase/visaRequirementsService';
 
 // Define Order interface locally to match the updated interface
 interface ExtendedOrder extends Order {
@@ -990,6 +991,13 @@ function AdminOrderDetailPage() {
   const [savingTracking, setSavingTracking] = useState(false);
   const [receivedDocumentsDescription, setReceivedDocumentsDescription] = useState('');
   const [savingReceivedDocs, setSavingReceivedDocs] = useState(false);
+  // Document checklist for visa orders (documents_received step)
+  const [documentChecklist, setDocumentChecklist] = useState<Array<{
+    requirementId: string; name: string; nameEn: string; type: string; required: boolean;
+    received: boolean; receivedAt?: string; receivedBy?: string;
+  }>>([]);
+  const [loadingDocChecklist, setLoadingDocChecklist] = useState(false);
+  const [savingDocChecklist, setSavingDocChecklist] = useState(false);
   // Confirmed prices for return shipment email
   const [confirmedPrices, setConfirmedPrices] = useState<Array<{ label: string; amount: string }>>([]);
   const [savingConfirmedPrices, setSavingConfirmedPrices] = useState(false);
@@ -5502,6 +5510,296 @@ function AdminOrderDetailPage() {
     }
   };
 
+  // Load document checklist for visa orders
+  const loadDocumentChecklist = async () => {
+    if (!order || order.orderType !== 'visa') return;
+    const existingChecklist = (order as any).documentChecklist;
+    if (existingChecklist?.length > 0) {
+      setDocumentChecklist(existingChecklist);
+      return;
+    }
+    // Fetch document requirements from visa product config
+    const countryCode = (order as any).destinationCountryCode;
+    const productId = (order as any).visaProduct?.id;
+    if (!countryCode || !productId) return;
+    setLoadingDocChecklist(true);
+    try {
+      const requirements = await getDocumentRequirementsForProduct(countryCode, productId);
+      if (requirements.length > 0) {
+        const checklist = requirements.map(r => ({
+          requirementId: r.id,
+          name: r.name,
+          nameEn: r.nameEn,
+          type: r.type,
+          required: r.required,
+          received: false,
+        }));
+        setDocumentChecklist(checklist);
+      }
+    } catch {
+      // Non-critical — admin can still manage order
+    } finally {
+      setLoadingDocChecklist(false);
+    }
+  };
+
+  // Toggle a document checklist item
+  const toggleDocChecklistItem = (requirementId: string) => {
+    setDocumentChecklist(prev => prev.map(item =>
+      item.requirementId === requirementId
+        ? {
+            ...item,
+            received: !item.received,
+            receivedAt: !item.received ? new Date().toISOString() : undefined,
+            receivedBy: !item.received ? (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') : undefined,
+          }
+        : item
+    ));
+  };
+
+  // Add a custom document to checklist
+  const addDocChecklistItem = (item: { name: string; nameEn: string; type: string; required: boolean }) => {
+    setDocumentChecklist(prev => [...prev, {
+      requirementId: `custom_${Date.now()}`,
+      name: item.name,
+      nameEn: item.nameEn,
+      type: item.type,
+      required: item.required,
+      received: false,
+    }]);
+  };
+
+  // Remove a document from checklist
+  const removeDocChecklistItem = (requirementId: string) => {
+    setDocumentChecklist(prev => prev.filter(item => item.requirementId !== requirementId));
+  };
+
+  // Sync checklist back to visa product document requirements in Firebase
+  const syncChecklistToProduct = async () => {
+    if (!order || order.orderType !== 'visa') return;
+    const countryCode = (order as any).destinationCountryCode;
+    const productId = (order as any).visaProduct?.id;
+    if (!countryCode || !productId) return;
+
+    try {
+      // Get current product requirements
+      const currentReqs = await getDocumentRequirementsForProduct(countryCode, productId);
+      const currentIds = new Set(currentReqs.map(r => r.id));
+
+      // Build updated requirements list from checklist
+      // Keep existing requirements, add new custom ones, remove deleted ones
+      const checklistIds = new Set(documentChecklist.map(d => d.requirementId));
+
+      // Start with existing requirements that are still in checklist
+      const updatedReqs = currentReqs.filter(r => checklistIds.has(r.id));
+
+      // Add new custom items that don't exist in product yet
+      for (const item of documentChecklist) {
+        if (!currentIds.has(item.requirementId)) {
+          updatedReqs.push({
+            id: item.requirementId,
+            type: item.type as any,
+            name: item.name,
+            nameEn: item.nameEn,
+            description: '',
+            descriptionEn: '',
+            required: item.required,
+            uploadable: false,
+            order: updatedReqs.length + 1,
+            isActive: true,
+          });
+        }
+      }
+
+      const adminName = (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string;
+      await updateProductDocumentRequirements(countryCode, productId, updatedReqs, adminName);
+    } catch {
+      // Non-critical — order checklist is already saved
+      console.error('Could not sync checklist to product requirements');
+    }
+  };
+
+  // Save document checklist to order (and sync to product)
+  const saveDocumentChecklist = async (checklistToSave?: typeof documentChecklist) => {
+    if (!order) return;
+    const orderId = router.query.id as string;
+    setSavingDocChecklist(true);
+    try {
+      const data = checklistToSave || documentChecklist;
+      await adminUpdateOrder(orderId, { documentChecklist: data });
+      setOrder({ ...order, documentChecklist: data } as ExtendedOrder);
+      // Also sync changes back to the visa product's document requirements
+      await syncChecklistToProduct();
+      toast.success('Document checklist saved');
+    } catch {
+      toast.error('Could not save checklist');
+    } finally {
+      setSavingDocChecklist(false);
+    }
+  };
+
+  // Send document instructions email to customer
+  const sendDocumentInstructionsEmail = async () => {
+    if (!order || documentChecklist.length === 0) return;
+
+    const orderId = router.query.id as string;
+    const isEn = (order as any).locale === 'en';
+    const customerName = order.customerInfo?.firstName || order.customerInfo?.companyName || 'Kund';
+    const destination = (order as any).destinationCountry || '';
+    const visaName = (order as any).visaProduct?.name || 'visum';
+
+    const requiredDocs = documentChecklist.filter(d => d.required);
+    const optionalDocs = documentChecklist.filter(d => !d.required);
+
+    const typeIcons: Record<string, string> = {
+      passport: '🛂', photo: '📸', form: '📝', financial: '💰',
+      invitation: '✉️', insurance: '🛡️', itinerary: '✈️',
+      accommodation: '🏨', employment: '💼', residence: '🏠', other: '📄',
+    };
+
+    const formatDocList = (docs: typeof documentChecklist) =>
+      docs.map(d => `<li style="padding:4px 0;">${typeIcons[d.type] || '📄'} ${isEn ? d.nameEn || d.name : d.name}</li>`).join('');
+
+    const subject = isEn
+      ? `Documents needed for your visa application – ${order.orderNumber}`
+      : `Dokument som behövs för din visumansökan – ${order.orderNumber}`;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0EB0A6;padding:16px 20px;text-align:center;">
+          <h1 style="color:white;margin:0;font-size:18px;">DOX Visumpartner</h1>
+        </div>
+        <div style="padding:24px;background:#fff;">
+          <p>${isEn ? `Dear ${customerName},` : `Hej ${customerName}!`}</p>
+          <p>${isEn
+            ? `Thank you for your order. To process your visa application to <strong>${destination}</strong>, we need the following documents:`
+            : `Tack för din beställning. För att handlägga din visumansökan till <strong>${destination}</strong> behöver vi följande dokument:`}</p>
+
+          <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:16px;margin:16px 0;">
+            <p style="margin:0 0 8px;font-weight:bold;color:#065f46;">${isEn ? 'Required documents:' : 'Obligatoriska dokument:'}</p>
+            <ul style="margin:0;padding-left:20px;color:#065f46;">${formatDocList(requiredDocs)}</ul>
+          </div>
+
+          ${optionalDocs.length > 0 ? `
+          <div style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;padding:16px;margin:16px 0;">
+            <p style="margin:0 0 8px;font-weight:bold;color:#374151;">${isEn ? 'If applicable:' : 'Om tillämpligt:'}</p>
+            <ul style="margin:0;padding-left:20px;color:#374151;">${formatDocList(optionalDocs)}</ul>
+          </div>` : ''}
+
+          <p>${isEn
+            ? 'Please send the documents to us as soon as possible. You can send them by post to our office or reply to this email with scanned copies.'
+            : 'Vänligen skicka dokumenten till oss så snart som möjligt. Du kan skicka dem per post till vårt kontor eller svara på detta mail med inskannade kopior.'}</p>
+
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin:16px 0;">
+            <p style="margin:0;font-size:13px;color:#1e40af;">
+              <strong>DOX Visumpartner AB</strong><br/>
+              Wallingatan 34, 111 24 Stockholm<br/>
+              info@doxvl.se | 08-409 419 00
+            </p>
+          </div>
+
+          <p style="margin-top:24px;">${isEn ? 'Best regards,' : 'Med vänliga hälsningar,'}<br/><strong>DOX Visumpartner AB</strong></p>
+        </div>
+        <div style="background:#f3f4f6;padding:12px;text-align:center;font-size:12px;color:#6b7280;">
+          <p style="margin:0;">${isEn ? 'Order' : 'Order'}: ${order.orderNumber}</p>
+        </div>
+      </div>`;
+
+    try {
+      const db = getFirebaseDb();
+      await addDoc(collection(db, 'customerEmails'), {
+        name: customerName,
+        email: order.customerInfo?.email,
+        phone: order.customerInfo?.phone || '',
+        subject,
+        message: html,
+        orderId,
+        createdAt: new Date(),
+        status: 'unread',
+        type: 'document_instructions',
+      });
+      // Mark on order that instructions were sent
+      await adminUpdateOrder(orderId, {
+        documentInstructionsSentAt: new Date().toISOString(),
+      });
+      setOrder({ ...order, documentInstructionsSentAt: new Date().toISOString() } as ExtendedOrder);
+      toast.success('Document instructions email sent');
+    } catch {
+      toast.error('Could not send email');
+    }
+  };
+
+  // Send email about missing documents
+  const sendMissingDocumentsEmail = async () => {
+    if (!order) return;
+    const missingDocs = documentChecklist.filter(d => !d.received && d.required);
+    if (missingDocs.length === 0) return;
+
+    const orderId = router.query.id as string;
+    const isEn = (order as any).locale === 'en';
+    const customerName = order.customerInfo?.firstName || order.customerInfo?.companyName || 'Kund';
+    const destination = (order as any).destinationCountry || '';
+    const missingList = missingDocs.map(d => `<li>${isEn ? d.nameEn : d.name}</li>`).join('');
+
+    const subject = isEn
+      ? `Documents needed for your visa application – ${order.orderNumber}`
+      : `Dokument behövs för din visumansökan – ${order.orderNumber}`;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0EB0A6;padding:16px 20px;text-align:center;">
+          <h1 style="color:white;margin:0;font-size:18px;">DOX Visumpartner</h1>
+        </div>
+        <div style="padding:24px;background:#fff;">
+          <p>${isEn ? `Dear ${customerName},` : `Hej ${customerName}!`}</p>
+          <p>${isEn
+            ? `Thank you for your visa application to <strong>${destination}</strong>. To proceed with your application, we still need the following document(s):`
+            : `Tack för din visumansökan till <strong>${destination}</strong>. För att kunna gå vidare med din ansökan behöver vi fortfarande följande dokument:`}</p>
+          <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px;margin:16px 0;">
+            <p style="margin:0 0 8px;font-weight:bold;color:#92400e;">${isEn ? 'Missing documents:' : 'Dokument som saknas:'}</p>
+            <ul style="margin:0;padding-left:20px;color:#92400e;">${missingList}</ul>
+          </div>
+          <p>${isEn
+            ? 'Please send these documents to us as soon as possible so we can submit your application without delay.'
+            : 'Vänligen skicka dessa dokument till oss så snart som möjligt så att vi kan skicka in din ansökan utan fördröjning.'}</p>
+          <p>${isEn
+            ? 'You can reply to this email or send the documents to <a href="mailto:info@doxvl.se">info@doxvl.se</a>.'
+            : 'Du kan svara på detta mail eller skicka dokumenten till <a href="mailto:info@doxvl.se">info@doxvl.se</a>.'}</p>
+          <p style="margin-top:24px;">${isEn ? 'Best regards,' : 'Med vänliga hälsningar,'}<br/><strong>DOX Visumpartner AB</strong></p>
+        </div>
+        <div style="background:#f3f4f6;padding:12px;text-align:center;font-size:12px;color:#6b7280;">
+          <p style="margin:0;">${isEn ? 'Order' : 'Order'}: ${order.orderNumber}</p>
+          <p style="margin:4px 0 0;">info@doxvl.se | 08-409 419 00</p>
+        </div>
+      </div>`;
+
+    try {
+      const db = getFirebaseDb();
+      await addDoc(collection(db, 'customerEmails'), {
+        name: customerName,
+        email: order.customerInfo?.email,
+        phone: order.customerInfo?.phone || '',
+        subject,
+        message: html,
+        orderId,
+        createdAt: new Date(),
+        status: 'unread',
+        type: 'missing_documents',
+      });
+      toast.success('Missing documents email sent');
+    } catch {
+      toast.error('Could not send email');
+    }
+  };
+
+  // Load document checklist when order loads (for visa orders)
+  useEffect(() => {
+    if (order?.orderType === 'visa') {
+      loadDocumentChecklist();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.orderType, (order as any)?.destinationCountryCode, (order as any)?.visaProduct?.id]);
+
   // Save confirmed prices for return shipment email
   const saveConfirmedPrices = async () => {
     if (!order) return;
@@ -7012,6 +7310,10 @@ function AdminOrderDetailPage() {
                     receivedDocumentsDescription, setReceivedDocumentsDescription, savingReceivedDocs, saveReceivedDocumentsDescription,
                     handleStepUpdateWithConfirmation, updateProcessingStep,
                     isAuthorityService, getReturnServiceName,
+                    documentChecklist, toggleDocChecklistItem, saveDocumentChecklist,
+                    addDocChecklistItem, removeDocChecklistItem,
+                    loadingDocChecklist, savingDocChecklist,
+                    sendMissingDocumentsEmail, sendDocumentInstructionsEmail,
                   }} />
                 )}
 

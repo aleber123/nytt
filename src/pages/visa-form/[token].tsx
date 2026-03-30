@@ -573,33 +573,51 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     otherGivenName: { parent: 'hasOtherNames', showWhen: 'yes' },
     otherNationality: { parent: 'hasOtherNationality', showWhen: 'yes' },
     lostPassportExplanation: { parent: 'hasLostPassport', showWhen: 'yes' },
-    // DS-160 - Travel
+    // DS-160 - Travel (payer details only conditional, travel plan fields always visible)
     payerName: { parent: 'whoPaysTripCost', showWhen: ['OTHER_PERSON', 'COMPANY'] },
     payerRelationship: { parent: 'whoPaysTripCost', showWhen: ['OTHER_PERSON', 'COMPANY'] },
-    intendedArrivalDate: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
-    intendedStayLength: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
-    intendedStayUnit: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
-    usStreetAddress: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
-    usCity: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
-    usState: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
-    usZipCode: { parent: 'hasSpecificTravelPlans', showWhen: 'yes' },
     // DS-160 - Previous US Travel
     lastUSVisitDate: { parent: 'hasBeenToUS', showWhen: 'yes' },
     lastUSVisitLength: { parent: 'hasBeenToUS', showWhen: 'yes' },
+    allPreviousUSTrips: { parent: 'hasBeenToUS', showWhen: 'yes' },
     usDriversLicenseState: { parent: 'hasUSDriversLicense', showWhen: 'yes' },
     previousVisaIssueDate: { parent: 'hasHadUSVisa', showWhen: 'yes' },
     previousVisaNumber: { parent: 'hasHadUSVisa', showWhen: 'yes' },
     isSameVisaType: { parent: 'hasHadUSVisa', showWhen: 'yes' },
     hasVisaBeenLostStolen: { parent: 'hasHadUSVisa', showWhen: 'yes' },
     visaRefusalExplanation: { parent: 'hasBeenRefusedVisa', showWhen: 'yes' },
+    // DS-160 - Contact (previous email/phone)
+    previousEmail: { parent: 'hasPreviousEmail', showWhen: 'yes' },
+    previousPhone: { parent: 'hasPreviousPhone', showWhen: 'yes' },
     // DS-160 - Family
     immediateRelativeDetails: { parent: 'hasImmediateRelativesInUS', showWhen: 'yes' },
     spouseSurname: { parent: 'maritalStatus', showWhen: 'MARRIED' },
     spouseGivenName: { parent: 'maritalStatus', showWhen: 'MARRIED' },
     spouseDateOfBirth: { parent: 'maritalStatus', showWhen: 'MARRIED' },
-    // spouseNationality already defined above for India form
+    // spouseNationality already defined above for India form (also used by DS-160)
+    // DS-160 - Former spouse (show if divorced, widowed, or separated)
+    formerSpouseSurname: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    formerSpouseGivenName: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    formerSpouseDateOfBirth: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    formerSpouseMarriageDate: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    formerSpouseDivorceDate: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    formerSpouseHowMarriageEnded: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    formerSpouseCountryOfBirth: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    formerSpouseNationality: { parent: 'hasFormerSpouse', showWhen: 'yes' },
+    // DS-160 - Work (previous employer)
+    prevEmployerName: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerAddress: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerCity: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerCountry: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerPhone: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerJobTitle: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerSupervisor: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerStartDate: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerEndDate: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
+    prevEmployerDuties: { parent: 'hasPreviousEmployer', showWhen: 'yes' },
     // DS-160 - Additional Information
     educationInstitutionName: { parent: 'hasAttendedEducation', showWhen: 'yes' },
+    educationAddress: { parent: 'hasAttendedEducation', showWhen: 'yes' },
     educationCity: { parent: 'hasAttendedEducation', showWhen: 'yes' },
     educationCountry: { parent: 'hasAttendedEducation', showWhen: 'yes' },
     educationCourseOfStudy: { parent: 'hasAttendedEducation', showWhen: 'yes' },
@@ -965,10 +983,10 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                   </button>
                   <button
                     onClick={() => {
-                      if (personnummerErrors.length > 0 || requiredFieldsMissing) {
+                      if (hasValidationErrors) {
                         setShowValidation(true);
                         // Scroll to first missing field
-                        const firstMissing = missingRequiredFields[0] || personnummerErrors[0];
+                        const firstMissing = missingRequiredFields[0] || personnummerErrors[0] || phoneErrors[0];
                         if (firstMissing) {
                           const el = document.querySelector(`[data-field-id="${firstMissing}"]`);
                           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });

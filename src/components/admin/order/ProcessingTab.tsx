@@ -43,9 +43,20 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
     receivedDocumentsDescription, setReceivedDocumentsDescription, savingReceivedDocs, saveReceivedDocumentsDescription,
     handleStepUpdateWithConfirmation, updateProcessingStep,
     isAuthorityService, getReturnServiceName,
+    documentChecklist, toggleDocChecklistItem, saveDocumentChecklist,
+    addDocChecklistItem, removeDocChecklistItem,
+    loadingDocChecklist, savingDocChecklist,
+    sendMissingDocumentsEmail, sendDocumentInstructionsEmail,
   } = ctx;
   const steps = processingSteps as ProcessingStep[];
   const notes = internalNotesList as any[];
+
+  // Document checklist edit mode
+  const [editingChecklist, setEditingChecklist] = useState(false);
+  const [newDocName, setNewDocName] = useState('');
+  const [newDocNameEn, setNewDocNameEn] = useState('');
+  const [newDocType, setNewDocType] = useState('other');
+  const [newDocRequired, setNewDocRequired] = useState(true);
 
   // E-visa file upload state
   const [uploadingEVisa, setUploadingEVisa] = useState(false);
@@ -647,6 +658,388 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                 {(order as any)?.receivedDocumentsDescription && (
                                   <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
                                     <span>✓</span> Saved: {(order as any).receivedDocumentsDescription}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Document instructions step — review & send to customer */}
+                            {step.id === 'send_document_instructions' && order?.orderType === 'visa' && (
+                              <div className="mt-3 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                <div className="flex items-center justify-between mb-3">
+                                  <label className="text-sm font-medium text-indigo-900">
+                                    📋 Document Requirements
+                                  </label>
+                                  <div className="flex items-center gap-2">
+                                    {documentChecklist?.length > 0 && (
+                                      <span className="text-xs text-indigo-700">
+                                        {documentChecklist.filter((d: any) => d.required).length} required, {documentChecklist.filter((d: any) => !d.required).length} optional
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={() => setEditingChecklist(!editingChecklist)}
+                                      className={`text-xs px-2 py-1 rounded ${editingChecklist ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 border border-indigo-300 hover:bg-indigo-50'}`}
+                                    >
+                                      {editingChecklist ? '✓ Done editing' : '✏️ Edit'}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {loadingDocChecklist ? (
+                                  <p className="text-xs text-gray-500">Loading requirements...</p>
+                                ) : documentChecklist?.length > 0 ? (
+                                  <>
+                                    <p className="text-xs text-indigo-700 mb-2">
+                                      Review the document list below. Edit if needed, then send to customer.
+                                    </p>
+                                    <div className="space-y-1.5">
+                                      {documentChecklist.map((item: any) => {
+                                        const typeIcons: Record<string, string> = {
+                                          passport: '🛂', photo: '📸', form: '📝', financial: '💰',
+                                          invitation: '✉️', insurance: '🛡️', itinerary: '✈️',
+                                          accommodation: '🏨', employment: '💼', residence: '🏠', other: '📄',
+                                        };
+                                        return (
+                                          <div
+                                            key={item.requirementId}
+                                            className={`flex items-center gap-3 p-2 rounded-lg ${
+                                              item.required
+                                                ? 'bg-white border border-indigo-200'
+                                                : 'bg-white border border-gray-100'
+                                            }`}
+                                          >
+                                            <span className="text-base">{typeIcons[item.type] || '📄'}</span>
+                                            <div className="flex-1 min-w-0">
+                                              <span className="text-sm text-gray-900">{item.nameEn || item.name}</span>
+                                              {item.required && (
+                                                <span className="ml-1.5 text-[10px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Required</span>
+                                              )}
+                                            </div>
+                                            {editingChecklist && (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  if (confirm(`Remove "${item.nameEn || item.name}" from list?`)) {
+                                                    removeDocChecklistItem(item.requirementId);
+                                                  }
+                                                }}
+                                                className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                                                title="Remove"
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {/* Add document form (edit mode) */}
+                                    {editingChecklist && (
+                                      <div className="mt-3 p-3 bg-white border border-indigo-200 rounded-lg space-y-2">
+                                        <p className="text-xs font-medium text-gray-700">Add document</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <input
+                                            type="text"
+                                            value={newDocNameEn}
+                                            onChange={(e) => setNewDocNameEn(e.target.value)}
+                                            placeholder="Name (English)"
+                                            className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={newDocName}
+                                            onChange={(e) => setNewDocName(e.target.value)}
+                                            placeholder="Name (Swedish)"
+                                            className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <select
+                                            value={newDocType}
+                                            onChange={(e) => setNewDocType(e.target.value)}
+                                            className="px-2 py-1.5 border border-gray-300 rounded text-sm flex-1"
+                                          >
+                                            <option value="passport">🛂 Passport</option>
+                                            <option value="photo">📸 Photo</option>
+                                            <option value="form">📝 Form</option>
+                                            <option value="financial">💰 Financial</option>
+                                            <option value="invitation">✉️ Invitation</option>
+                                            <option value="insurance">🛡️ Insurance</option>
+                                            <option value="itinerary">✈️ Itinerary</option>
+                                            <option value="accommodation">🏨 Accommodation</option>
+                                            <option value="employment">💼 Employment</option>
+                                            <option value="residence">🏠 Residence</option>
+                                            <option value="other">📄 Other</option>
+                                          </select>
+                                          <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                                            <input
+                                              type="checkbox"
+                                              checked={newDocRequired}
+                                              onChange={(e) => setNewDocRequired(e.target.checked)}
+                                              className="w-3.5 h-3.5"
+                                            />
+                                            Required
+                                          </label>
+                                          <button
+                                            onClick={() => {
+                                              if (!newDocNameEn.trim()) {
+                                                toast?.error?.('Enter an English name') || alert('Enter an English name');
+                                                return;
+                                              }
+                                              addDocChecklistItem({
+                                                name: newDocName.trim() || newDocNameEn.trim(),
+                                                nameEn: newDocNameEn.trim(),
+                                                type: newDocType,
+                                                required: newDocRequired,
+                                              });
+                                              setNewDocName('');
+                                              setNewDocNameEn('');
+                                              setNewDocType('other');
+                                              setNewDocRequired(true);
+                                            }}
+                                            className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 whitespace-nowrap"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Action buttons */}
+                                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-indigo-200">
+                                      <button
+                                        onClick={() => saveDocumentChecklist()}
+                                        disabled={savingDocChecklist}
+                                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 disabled:opacity-50"
+                                      >
+                                        {savingDocChecklist ? 'Saving...' : '💾 Save'}
+                                      </button>
+                                      <button
+                                        onClick={async () => {
+                                          if (confirm(`Send document instructions email to ${order?.customerInfo?.email}?\n\n${documentChecklist.length} documents listed.`)) {
+                                            await saveDocumentChecklist();
+                                            await sendDocumentInstructionsEmail();
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
+                                      >
+                                        📧 Send to customer
+                                      </button>
+                                      {(order as any)?.documentInstructionsSentAt && (
+                                        <span className="text-xs text-green-700 flex items-center gap-1">
+                                          ✓ Sent {new Date((order as any).documentInstructionsSentAt).toLocaleDateString('sv-SE')} {new Date((order as any).documentInstructionsSentAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <p className="text-xs text-gray-500">
+                                    No document requirements configured for this visa product.
+                                    <a href="/admin/visa-document-requirements" className="text-indigo-600 hover:underline ml-1">
+                                      Configure requirements →
+                                    </a>
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Document checklist for visa orders — documents_received step */}
+                            {step.id === 'documents_received' && order?.orderType === 'visa' && (
+                              <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center justify-between mb-3">
+                                  <label className="text-sm font-medium text-blue-900">
+                                    📋 Document Checklist
+                                  </label>
+                                  <div className="flex items-center gap-2">
+                                    {documentChecklist?.length > 0 && (
+                                      <span className="text-xs text-blue-700">
+                                        {documentChecklist.filter((d: any) => d.received).length}/{documentChecklist.length} received
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={() => setEditingChecklist(!editingChecklist)}
+                                      className={`text-xs px-2 py-1 rounded ${editingChecklist ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-50'}`}
+                                    >
+                                      {editingChecklist ? '✓ Done editing' : '✏️ Edit'}
+                                    </button>
+                                  </div>
+                                </div>
+                                {loadingDocChecklist ? (
+                                  <p className="text-xs text-gray-500">Loading requirements...</p>
+                                ) : documentChecklist?.length > 0 ? (
+                                  <>
+                                    <div className="space-y-2">
+                                      {documentChecklist.map((item: any) => {
+                                        const typeIcons: Record<string, string> = {
+                                          passport: '🛂', photo: '📸', form: '📝', financial: '💰',
+                                          invitation: '✉️', insurance: '🛡️', itinerary: '✈️',
+                                          accommodation: '🏨', employment: '💼', residence: '🏠', other: '📄',
+                                        };
+                                        return (
+                                          <label
+                                            key={item.requirementId}
+                                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition ${
+                                              item.received
+                                                ? 'bg-green-50 border border-green-200'
+                                                : item.required
+                                                ? 'bg-white border border-gray-200 hover:border-blue-300'
+                                                : 'bg-white border border-gray-100 hover:border-blue-200'
+                                            }`}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={item.received}
+                                              onChange={() => toggleDocChecklistItem(item.requirementId)}
+                                              className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                            />
+                                            <span className="text-base">{typeIcons[item.type] || '📄'}</span>
+                                            <div className="flex-1 min-w-0">
+                                              <span className={`text-sm ${item.received ? 'text-green-800 line-through' : 'text-gray-900'}`}>
+                                                {item.nameEn || item.name}
+                                              </span>
+                                              {item.required && !item.received && (
+                                                <span className="ml-1.5 text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Required</span>
+                                              )}
+                                              {item.received && item.receivedAt && (
+                                                <span className="ml-2 text-[10px] text-green-600">
+                                                  ✓ {new Date(item.receivedAt).toLocaleDateString('sv-SE')}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {editingChecklist && (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  if (confirm(`Remove "${item.nameEn || item.name}" from checklist?`)) {
+                                                    removeDocChecklistItem(item.requirementId);
+                                                  }
+                                                }}
+                                                className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                                                title="Remove"
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {/* Add document form (edit mode) */}
+                                    {editingChecklist && (
+                                      <div className="mt-3 p-3 bg-white border border-blue-200 rounded-lg space-y-2">
+                                        <p className="text-xs font-medium text-gray-700">Add document</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <input
+                                            type="text"
+                                            value={newDocNameEn}
+                                            onChange={(e) => setNewDocNameEn(e.target.value)}
+                                            placeholder="Name (English)"
+                                            className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={newDocName}
+                                            onChange={(e) => setNewDocName(e.target.value)}
+                                            placeholder="Name (Swedish)"
+                                            className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <select
+                                            value={newDocType}
+                                            onChange={(e) => setNewDocType(e.target.value)}
+                                            className="px-2 py-1.5 border border-gray-300 rounded text-sm flex-1"
+                                          >
+                                            <option value="passport">🛂 Passport</option>
+                                            <option value="photo">📸 Photo</option>
+                                            <option value="form">📝 Form</option>
+                                            <option value="financial">💰 Financial</option>
+                                            <option value="invitation">✉️ Invitation</option>
+                                            <option value="insurance">🛡️ Insurance</option>
+                                            <option value="itinerary">✈️ Itinerary</option>
+                                            <option value="accommodation">🏨 Accommodation</option>
+                                            <option value="employment">💼 Employment</option>
+                                            <option value="residence">🏠 Residence</option>
+                                            <option value="other">📄 Other</option>
+                                          </select>
+                                          <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                                            <input
+                                              type="checkbox"
+                                              checked={newDocRequired}
+                                              onChange={(e) => setNewDocRequired(e.target.checked)}
+                                              className="w-3.5 h-3.5"
+                                            />
+                                            Required
+                                          </label>
+                                          <button
+                                            onClick={() => {
+                                              if (!newDocNameEn.trim()) {
+                                                toast?.error?.('Enter an English name') || alert('Enter an English name');
+                                                return;
+                                              }
+                                              addDocChecklistItem({
+                                                name: newDocName.trim() || newDocNameEn.trim(),
+                                                nameEn: newDocNameEn.trim(),
+                                                type: newDocType,
+                                                required: newDocRequired,
+                                              });
+                                              setNewDocName('');
+                                              setNewDocNameEn('');
+                                              setNewDocType('other');
+                                              setNewDocRequired(true);
+                                            }}
+                                            className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 whitespace-nowrap"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-blue-200">
+                                      <button
+                                        onClick={() => saveDocumentChecklist()}
+                                        disabled={savingDocChecklist}
+                                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50"
+                                      >
+                                        {savingDocChecklist ? 'Saving...' : '💾 Save checklist'}
+                                      </button>
+                                      {documentChecklist.some((d: any) => !d.received && d.required) && (
+                                        <button
+                                          onClick={async () => {
+                                            const missingCount = documentChecklist.filter((d: any) => !d.received && d.required).length;
+                                            const missingNames = documentChecklist
+                                              .filter((d: any) => !d.received && d.required)
+                                              .map((d: any) => d.nameEn || d.name)
+                                              .join(', ');
+                                            if (confirm(`Send email to customer about ${missingCount} missing document(s)?\n\n${missingNames}`)) {
+                                              await saveDocumentChecklist();
+                                              await sendMissingDocumentsEmail();
+                                            }
+                                          }}
+                                          className="px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded hover:bg-amber-700"
+                                        >
+                                          📧 Email missing docs ({documentChecklist.filter((d: any) => !d.received && d.required).length})
+                                        </button>
+                                      )}
+                                      {documentChecklist.every((d: any) => d.received || !d.required) && (
+                                        <span className="text-xs text-green-700 font-medium flex items-center gap-1">
+                                          ✅ All required documents received
+                                        </span>
+                                      )}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <p className="text-xs text-gray-500">
+                                    No document requirements configured for this visa product.
+                                    <a href="/admin/visa-document-requirements" className="text-blue-600 hover:underline ml-1">
+                                      Configure requirements →
+                                    </a>
                                   </p>
                                 )}
                               </div>

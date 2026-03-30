@@ -163,6 +163,18 @@ export interface VisaOrder {
   
   // Processing steps for visa
   processingSteps?: VisaProcessingStep[];
+
+  // Document checklist for passport received step
+  documentChecklist?: {
+    requirementId: string;
+    name: string;
+    nameEn: string;
+    type: string;
+    required: boolean;
+    received: boolean;
+    receivedAt?: string;
+    receivedBy?: string;
+  }[];
   
   // Admin notes
   adminNotes?: AdminNote[];
@@ -225,6 +237,14 @@ export const getDefaultVisaProcessingSteps = (
     id: 'order_verification',
     name: '✓ Order verification',
     description: 'Check order details, pricing and customer information',
+    status: 'pending'
+  });
+
+  // STEP 2: Send document instructions - Always after order verification
+  steps.push({
+    id: 'send_document_instructions',
+    name: '📋 Send document instructions',
+    description: 'Review required documents and send instructions to customer',
     status: 'pending'
   });
 
