@@ -994,7 +994,7 @@ function AdminOrderDetailPage() {
   // Document checklist for visa orders (documents_received step)
   const [documentChecklist, setDocumentChecklist] = useState<Array<{
     requirementId: string; name: string; nameEn: string; type: string; required: boolean;
-    received: boolean; receivedAt?: string; receivedBy?: string;
+    originalRequired?: boolean; received: boolean; receivedAt?: string; receivedBy?: string;
   }>>([]);
   const [loadingDocChecklist, setLoadingDocChecklist] = useState(false);
   const [savingDocChecklist, setSavingDocChecklist] = useState(false);
@@ -5532,6 +5532,7 @@ function AdminOrderDetailPage() {
           nameEn: r.nameEn,
           type: r.type,
           required: r.required,
+          originalRequired: r.originalRequired ?? false,
           received: false,
         }));
         setDocumentChecklist(checklist);
@@ -5558,13 +5559,14 @@ function AdminOrderDetailPage() {
   };
 
   // Add a custom document to checklist
-  const addDocChecklistItem = (item: { name: string; nameEn: string; type: string; required: boolean }) => {
+  const addDocChecklistItem = (item: { name: string; nameEn: string; type: string; required: boolean; originalRequired?: boolean }) => {
     setDocumentChecklist(prev => [...prev, {
       requirementId: `custom_${Date.now()}`,
       name: item.name,
       nameEn: item.nameEn,
       type: item.type,
       required: item.required,
+      originalRequired: item.originalRequired ?? false,
       received: false,
     }]);
   };
@@ -5604,7 +5606,8 @@ function AdminOrderDetailPage() {
             description: '',
             descriptionEn: '',
             required: item.required,
-            uploadable: false,
+            originalRequired: item.originalRequired ?? false,
+            uploadable: !item.originalRequired,
             order: updatedReqs.length + 1,
             isActive: true,
           });
@@ -5648,7 +5651,9 @@ function AdminOrderDetailPage() {
     const destination = (order as any).destinationCountry || '';
     const visaName = (order as any).visaProduct?.name || 'visum';
 
-    const requiredDocs = documentChecklist.filter(d => d.required);
+    // Group documents: originals (must send by post) vs digital (can email/upload)
+    const originalDocs = documentChecklist.filter(d => d.required && d.originalRequired);
+    const digitalDocs = documentChecklist.filter(d => d.required && !d.originalRequired);
     const optionalDocs = documentChecklist.filter(d => !d.required);
 
     const typeIcons: Record<string, string> = {
@@ -5675,10 +5680,23 @@ function AdminOrderDetailPage() {
             ? `Thank you for your order. To process your visa application to <strong>${destination}</strong>, we need the following documents:`
             : `Tack för din beställning. För att handlägga din visumansökan till <strong>${destination}</strong> behöver vi följande dokument:`}</p>
 
+          ${originalDocs.length > 0 ? `
+          <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:16px;margin:16px 0;">
+            <p style="margin:0 0 4px;font-weight:bold;color:#991b1b;">📮 ${isEn ? 'Must be sent by post (originals required):' : 'Måste skickas per post (original krävs):'}</p>
+            <p style="margin:0 0 8px;font-size:12px;color:#991b1b;">${isEn
+              ? 'These documents must be physical originals. Digital copies are not accepted.'
+              : 'Dessa dokument måste vara fysiska original. Digitala kopior godtas inte.'}</p>
+            <ul style="margin:0;padding-left:20px;color:#991b1b;">${formatDocList(originalDocs)}</ul>
+          </div>` : ''}
+
+          ${digitalDocs.length > 0 ? `
           <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:16px;margin:16px 0;">
-            <p style="margin:0 0 8px;font-weight:bold;color:#065f46;">${isEn ? 'Required documents:' : 'Obligatoriska dokument:'}</p>
-            <ul style="margin:0;padding-left:20px;color:#065f46;">${formatDocList(requiredDocs)}</ul>
-          </div>
+            <p style="margin:0 0 4px;font-weight:bold;color:#065f46;">📧 ${isEn ? 'Can be sent digitally:' : 'Kan skickas digitalt:'}</p>
+            <p style="margin:0 0 8px;font-size:12px;color:#065f46;">${isEn
+              ? 'These can be sent as scanned copies or photos via email.'
+              : 'Dessa kan skickas som inskannade kopior eller foton via e-post.'}</p>
+            <ul style="margin:0;padding-left:20px;color:#065f46;">${formatDocList(digitalDocs)}</ul>
+          </div>` : ''}
 
           ${optionalDocs.length > 0 ? `
           <div style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;padding:16px;margin:16px 0;">
@@ -5686,18 +5704,24 @@ function AdminOrderDetailPage() {
             <ul style="margin:0;padding-left:20px;color:#374151;">${formatDocList(optionalDocs)}</ul>
           </div>` : ''}
 
-          <p>${isEn
-            ? 'Please send the documents to us as soon as possible. You can send them by post to our office or reply to this email with scanned copies.'
-            : 'Vänligen skicka dokumenten till oss så snart som möjligt. Du kan skicka dem per post till vårt kontor eller svara på detta mail med inskannade kopior.'}</p>
-
-          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin:16px 0;">
+          ${originalDocs.length > 0 ? `
+          <p style="font-weight:bold;">${isEn
+            ? 'Please send original documents by post to:'
+            : 'Vänligen skicka originaldokument per post till:'}</p>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin:8px 0 16px;">
             <p style="margin:0;font-size:13px;color:#1e40af;">
               <strong>DOX Visumpartner AB</strong><br/>
-              Wallingatan 34, 111 24 Stockholm<br/>
-              info@doxvl.se | 08-409 419 00
+              Livdjursgatan 4, våning 6<br/>
+              121 62 Johanneshov
             </p>
-          </div>
+          </div>` : ''}
 
+          ${digitalDocs.length > 0 ? `
+          <p>${isEn
+            ? 'Digital documents can be sent by replying to this email or to <a href="mailto:info@doxvl.se">info@doxvl.se</a>.'
+            : 'Digitala dokument kan skickas genom att svara på detta mail eller till <a href="mailto:info@doxvl.se">info@doxvl.se</a>.'}</p>` : ''}
+
+          <p style="margin-top:16px;font-size:13px;color:#6b7280;">info@doxvl.se | 08-409 419 00</p>
           <p style="margin-top:24px;">${isEn ? 'Best regards,' : 'Med vänliga hälsningar,'}<br/><strong>DOX Visumpartner AB</strong></p>
         </div>
         <div style="background:#f3f4f6;padding:12px;text-align:center;font-size:12px;color:#6b7280;">

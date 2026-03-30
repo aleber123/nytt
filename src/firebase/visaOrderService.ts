@@ -171,6 +171,7 @@ export interface VisaOrder {
     nameEn: string;
     type: string;
     required: boolean;
+    originalRequired?: boolean;
     received: boolean;
     receivedAt?: string;
     receivedBy?: string;

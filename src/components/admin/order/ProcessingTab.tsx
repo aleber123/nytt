@@ -52,11 +52,13 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
   const notes = internalNotesList as any[];
 
   // Document checklist edit mode
+  const [sendingInstructions, setSendingInstructions] = useState(false);
   const [editingChecklist, setEditingChecklist] = useState(false);
   const [newDocName, setNewDocName] = useState('');
   const [newDocNameEn, setNewDocNameEn] = useState('');
   const [newDocType, setNewDocType] = useState('other');
   const [newDocRequired, setNewDocRequired] = useState(true);
+  const [newDocOriginal, setNewDocOriginal] = useState(false);
 
   // E-visa file upload state
   const [uploadingEVisa, setUploadingEVisa] = useState(false);
@@ -714,6 +716,9 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                               {item.required && (
                                                 <span className="ml-1.5 text-[10px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Required</span>
                                               )}
+                                              {item.originalRequired && (
+                                                <span className="ml-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">📮 Original</span>
+                                              )}
                                             </div>
                                             {editingChecklist && (
                                               <button
@@ -782,6 +787,15 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                             />
                                             Required
                                           </label>
+                                          <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                                            <input
+                                              type="checkbox"
+                                              checked={newDocOriginal}
+                                              onChange={(e) => setNewDocOriginal(e.target.checked)}
+                                              className="w-3.5 h-3.5"
+                                            />
+                                            📮 Original
+                                          </label>
                                           <button
                                             onClick={() => {
                                               if (!newDocNameEn.trim()) {
@@ -793,11 +807,13 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                                 nameEn: newDocNameEn.trim(),
                                                 type: newDocType,
                                                 required: newDocRequired,
+                                                originalRequired: newDocOriginal,
                                               });
                                               setNewDocName('');
                                               setNewDocNameEn('');
                                               setNewDocType('other');
                                               setNewDocRequired(true);
+                                              setNewDocOriginal(false);
                                             }}
                                             className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 whitespace-nowrap"
                                           >
@@ -817,15 +833,22 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                         {savingDocChecklist ? 'Saving...' : '💾 Save'}
                                       </button>
                                       <button
+                                        disabled={sendingInstructions}
                                         onClick={async () => {
+                                          if (sendingInstructions) return;
                                           if (confirm(`Send document instructions email to ${order?.customerInfo?.email}?\n\n${documentChecklist.length} documents listed.`)) {
-                                            await saveDocumentChecklist();
-                                            await sendDocumentInstructionsEmail();
+                                            setSendingInstructions(true);
+                                            try {
+                                              await saveDocumentChecklist();
+                                              await sendDocumentInstructionsEmail();
+                                            } finally {
+                                              setSendingInstructions(false);
+                                            }
                                           }
                                         }}
-                                        className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
+                                        className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 disabled:opacity-50"
                                       >
-                                        📧 Send to customer
+                                        {sendingInstructions ? 'Sending...' : '📧 Send to customer'}
                                       </button>
                                       {(order as any)?.documentInstructionsSentAt && (
                                         <span className="text-xs text-green-700 flex items-center gap-1">
@@ -902,6 +925,9 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                               {item.required && !item.received && (
                                                 <span className="ml-1.5 text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Required</span>
                                               )}
+                                              {item.originalRequired && (
+                                                <span className="ml-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">📮 Original</span>
+                                              )}
                                               {item.received && item.receivedAt && (
                                                 <span className="ml-2 text-[10px] text-green-600">
                                                   ✓ {new Date(item.receivedAt).toLocaleDateString('sv-SE')}
@@ -975,6 +1001,15 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                             />
                                             Required
                                           </label>
+                                          <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                                            <input
+                                              type="checkbox"
+                                              checked={newDocOriginal}
+                                              onChange={(e) => setNewDocOriginal(e.target.checked)}
+                                              className="w-3.5 h-3.5"
+                                            />
+                                            📮 Original
+                                          </label>
                                           <button
                                             onClick={() => {
                                               if (!newDocNameEn.trim()) {
@@ -986,11 +1021,13 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                                 nameEn: newDocNameEn.trim(),
                                                 type: newDocType,
                                                 required: newDocRequired,
+                                                originalRequired: newDocOriginal,
                                               });
                                               setNewDocName('');
                                               setNewDocNameEn('');
                                               setNewDocType('other');
                                               setNewDocRequired(true);
+                                              setNewDocOriginal(false);
                                             }}
                                             className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 whitespace-nowrap"
                                           >

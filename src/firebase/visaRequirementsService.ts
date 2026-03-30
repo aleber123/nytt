@@ -36,6 +36,7 @@ export interface DocumentRequirement {
   description: string;    // Swedish description
   descriptionEn: string;  // English description
   required: boolean;      // Is this mandatory?
+  originalRequired?: boolean; // Must be sent as physical original (not digital copy)?
   uploadable: boolean;    // Can customer upload this?
   templateUrl?: string;   // Link to downloadable template/form
   order: number;          // Display order
