@@ -294,10 +294,13 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
         if (data.surname) {
           autoFill['surname'] = data.surname;
           autoFill['lastName'] = data.surname;
+          autoFill['familyName'] = data.surname; // ESTA
+          autoFill['applicantLastName'] = data.surname; // ESTA portal
         }
         if (data.givenNames) {
           autoFill['givenName'] = data.givenNames;
           autoFill['firstName'] = data.givenNames.split(' ')[0];
+          autoFill['applicantFirstName'] = data.givenNames; // ESTA portal
         }
         // Angola: full name field
         if (data.givenNames && data.surname) {
@@ -306,34 +309,48 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
         if (data.dateOfBirth) autoFill['dateOfBirth'] = data.dateOfBirth;
         if (data.gender) {
           autoFill['gender'] = data.gender; // MALE/FEMALE matches India template options
-          // Angola: sex field uses M/F
+          // Angola + Madagascar + ESTA: sex field uses M/F
           autoFill['sex'] = data.gender === 'MALE' ? 'M' : data.gender === 'FEMALE' ? 'F' : data.gender;
         }
         if (data.passportNumber) autoFill['passportNumber'] = data.passportNumber;
         if (data.expiryDate) {
           autoFill['dateOfExpiry'] = data.expiryDate;
           autoFill['passportExpiryDate'] = data.expiryDate;
+          autoFill['passportExpirationDate'] = data.expiryDate; // ESTA
           autoFill['passportValidUntil'] = data.expiryDate; // Angola
+        }
+        // Passport issue date from MRZ (if available)
+        if ((data as any).issueDate) {
+          autoFill['passportIssueDate'] = (data as any).issueDate;
+          autoFill['passportIssuanceDate'] = (data as any).issueDate; // ESTA
         }
         if (data.issuingCountry) {
           autoFill['passportIssuingCountry'] = data.issuingCountry;
+          autoFill['issuingCountry'] = data.issuingCountry; // ESTA
           autoFill['countryOfBirth'] = data.issuingCountry;
+          autoFill['nativeCountry'] = data.issuingCountry; // Madagascar
           autoFill['nationality'] = data.issuingCountry;
           autoFill['presentNationality'] = data.issuingCountry; // Angola
           autoFill['nationalityAtBirth'] = data.issuingCountry; // Angola
           autoFill['issuedIn'] = data.issuingCountry; // Angola: passport issued in
+          autoFill['countryOfCitizenship'] = data.issuingCountry; // ESTA
+          autoFill['citizenshipCountry'] = data.issuingCountry; // ESTA
         }
         if (data.personalNumber) {
           autoFill['citizenshipNationalId'] = data.personalNumber;
+          autoFill['nationalIdNumber'] = data.personalNumber; // ESTA
         }
         if (data.nationality) {
           autoFill['nationality'] = data.nationality;
+          autoFill['passportNationality'] = data.nationality; // Madagascar
           autoFill['presentNationality'] = data.nationality; // Angola
           autoFill['nationalityAtBirth'] = data.nationality; // Angola
+          autoFill['countryOfCitizenship'] = data.nationality; // ESTA
         }
         if ((data as any).placeOfBirth) {
           autoFill['placeOfBirth'] = (data as any).placeOfBirth; // Angola
           autoFill['townCityOfBirth'] = (data as any).placeOfBirth; // India
+          autoFill['cityOfBirth'] = (data as any).placeOfBirth; // ESTA
         }
 
         // Fill fields that exist in the template (overwrite existing values with passport data)

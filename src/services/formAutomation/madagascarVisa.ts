@@ -1,0 +1,335 @@
+/**
+ * Madagascar e-Visa Form Auto-fill Script Generator
+ *
+ * Generates JavaScript snippets for the Madagascar visa application portal.
+ * The form has two pages:
+ * 1. Page 1: Personal Information, Passport, Declaration
+ * 2. Page 2: Stay Information & Contact Details
+ *
+ * Admin navigates to each page, pastes the script in the browser console → auto-fill.
+ */
+
+// ============================================================
+// DATA TYPE — All fields needed across both pages
+// ============================================================
+
+export interface MadagascarVisaData {
+  // === Page 1: Personal Information ===
+  lastName: string;               // Uppercase, no special chars
+  firstName: string;              // Uppercase, no special chars
+  birthDay: string;               // "01"–"31"
+  birthMonth: string;             // "01"–"12"
+  birthYear: string;              // e.g. "1990"
+  nativeCountry: string;          // French name, e.g. "SUÈDE" (portal uses French autocomplete)
+  gender: 'M' | 'F';
+
+  // === Passport ===
+  passportType: 'O' | 'D' | 'S'; // O=Ordinary, D=Diplomatic, S=Service
+  passportIssuingCountry: string; // French name, e.g. "SUÈDE" (portal uses French autocomplete)
+  passportNumber: string;         // Max 9 chars, uppercase
+  passportNationality: string;    // French nationality, e.g. "SUÉDOIS" (portal uses French autocomplete)
+  passportIssueDay: string;       // "01"–"31"
+  passportIssueMonth: string;     // "01"–"12"
+  passportIssueYear: string;      // e.g. "2020"
+  passportExpiryDay: string;      // "01"–"31"
+  passportExpiryMonth: string;    // "01"–"12"
+  passportExpiryYear: string;     // e.g. "2030"
+
+  // === Page 2: Stay Information ===
+  arrivalDay: string;             // "01"–"31"
+  arrivalMonth: string;           // "01"–"12"
+  arrivalYear: string;            // e.g. "2026"
+  departureDay: string;           // "01"–"31"
+  departureMonth: string;         // "01"–"12"
+  departureYear: string;          // e.g. "2026"
+  pointOfEntry: string;           // Value code: "TNR"=Antananarivo, "NOS"=Nosy Be, "DIE"=Antsiranana, "MJN"=Mahajanga, "SMS"=Sainte Marie, "TMM"=Toamasina, "TLE"=Toliara, "FTU"=Taolagnaro
+  visaDuration: string;           // "15", "30", "60", or "90" (Tourist visa days)
+
+  // === Contact (pre-filled on page 2 but can override) ===
+  phoneNumber: string;
+  email: string;
+}
+
+// ============================================================
+// COUNTRY NAMES IN FRENCH — Madagascar portal uses French
+// ============================================================
+
+/** Common country names in French for the Madagascar portal autocomplete fields */
+export const MADAGASCAR_COUNTRY_FRENCH: Record<string, { country: string; nationality: string }> = {
+  SE: { country: 'SUÈDE', nationality: 'SUÉDOIS' },
+  NO: { country: 'NORVÈGE', nationality: 'NORVÉGIEN' },
+  DK: { country: 'DANEMARK', nationality: 'DANOIS' },
+  FI: { country: 'FINLANDE', nationality: 'FINLANDAIS' },
+  DE: { country: 'ALLEMAGNE', nationality: 'ALLEMAND' },
+  FR: { country: 'FRANCE', nationality: 'FRANÇAIS' },
+  GB: { country: 'ROYAUME-UNI', nationality: 'BRITANNIQUE' },
+  US: { country: 'ÉTATS-UNIS', nationality: 'AMÉRICAIN' },
+  NL: { country: 'PAYS-BAS', nationality: 'NÉERLANDAIS' },
+  BE: { country: 'BELGIQUE', nationality: 'BELGE' },
+  CH: { country: 'SUISSE', nationality: 'SUISSE' },
+  ES: { country: 'ESPAGNE', nationality: 'ESPAGNOL' },
+  IT: { country: 'ITALIE', nationality: 'ITALIEN' },
+  PT: { country: 'PORTUGAL', nationality: 'PORTUGAIS' },
+  AT: { country: 'AUTRICHE', nationality: 'AUTRICHIEN' },
+  PL: { country: 'POLOGNE', nationality: 'POLONAIS' },
+  AU: { country: 'AUSTRALIE', nationality: 'AUSTRALIEN' },
+  CA: { country: 'CANADA', nationality: 'CANADIEN' },
+  JP: { country: 'JAPON', nationality: 'JAPONAIS' },
+  CN: { country: 'CHINE', nationality: 'CHINOIS' },
+  IN: { country: 'INDE', nationality: 'INDIEN' },
+  ZA: { country: 'AFRIQUE DU SUD', nationality: 'SUD-AFRICAIN' },
+  BR: { country: 'BRÉSIL', nationality: 'BRÉSILIEN' },
+  MX: { country: 'MEXIQUE', nationality: 'MEXICAIN' },
+  KR: { country: 'CORÉE DU SUD', nationality: 'SUD-CORÉEN' },
+  RU: { country: 'RUSSIE', nationality: 'RUSSE' },
+  TR: { country: 'TURQUIE', nationality: 'TURC' },
+  GR: { country: 'GRÈCE', nationality: 'GREC' },
+  IE: { country: 'IRLANDE', nationality: 'IRLANDAIS' },
+  IS: { country: 'ISLANDE', nationality: 'ISLANDAIS' },
+};
+
+/**
+ * Helper to get French country/nationality from ISO code.
+ * Falls back to the code itself if not in the map.
+ */
+export function getFrenchCountry(isoCode: string): { country: string; nationality: string } {
+  return MADAGASCAR_COUNTRY_FRENCH[isoCode.toUpperCase()] || { country: isoCode, nationality: isoCode };
+}
+
+// ============================================================
+// SCRIPT GENERATORS
+// ============================================================
+
+const SCRIPT_HEADER = `
+// === Madagascar Visa Auto-fill Script ===
+// Generated by DOX Visumpartner Admin
+// ========================================
+
+(function() {
+  'use strict';
+
+  function findEl(selectorStr) {
+    var parts = selectorStr.split(',');
+    for (var i = 0; i < parts.length; i++) {
+      var el = document.querySelector(parts[i].trim());
+      if (el) return el;
+    }
+    return null;
+  }
+
+  function setVal(selector, value) {
+    var el = findEl(selector);
+    if (!el) { console.warn('Not found:', selector); return false; }
+    var proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    var setter = Object.getOwnPropertyDescriptor(proto, 'value');
+    if (setter && setter.set) { setter.set.call(el, value); }
+    else { el.value = value; }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.dispatchEvent(new Event('blur', { bubbles: true }));
+    return true;
+  }
+
+  function setSelect(selector, value) {
+    var el = findEl(selector);
+    if (!el) { console.warn('Select not found:', selector); return false; }
+    for (var i = 0; i < el.options.length; i++) {
+      var optVal = el.options[i].value.trim().toUpperCase();
+      var optTxt = el.options[i].text.trim().toUpperCase();
+      if (optVal === value.toUpperCase() || optTxt === value.toUpperCase()) {
+        el.selectedIndex = i;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }
+    }
+    for (var i = 0; i < el.options.length; i++) {
+      var optTxt2 = el.options[i].text.trim().toUpperCase();
+      if (optTxt2.includes(value.toUpperCase()) || value.toUpperCase().includes(optTxt2)) {
+        el.selectedIndex = i;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }
+    }
+    console.warn('Option not found:', value, 'in', selector);
+    return false;
+  }
+
+  function setRadio(name, value) {
+    var radios = document.querySelectorAll('input[name="' + name + '"]');
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].value === value || radios[i].value.toUpperCase() === value.toUpperCase()) {
+        radios[i].checked = true;
+        radios[i].click();
+        radios[i].dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }
+    }
+    console.warn('Radio not found:', name, '=', value);
+    return false;
+  }
+
+  function setCheckbox(selector, checked) {
+    var el = findEl(selector);
+    if (!el) { console.warn('Checkbox not found:', selector); return false; }
+    if (el.checked !== checked) { el.click(); }
+    return true;
+  }
+
+  // For autocomplete fields: set value and trigger jQuery UI autocomplete
+  function setAutocomplete(selector, value) {
+    var el = findEl(selector);
+    if (!el) { console.warn('Autocomplete not found:', selector); return false; }
+    var proto = HTMLInputElement.prototype;
+    var setter = Object.getOwnPropertyDescriptor(proto, 'value');
+    if (setter && setter.set) { setter.set.call(el, value); }
+    else { el.value = value; }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    // Trigger jQuery UI autocomplete search
+    if (typeof jQuery !== 'undefined') {
+      try {
+        jQuery(el).autocomplete('search', value);
+      } catch(e) {}
+      // Auto-select first result after a short delay
+      setTimeout(function() {
+        var items = document.querySelectorAll('.ui-autocomplete .ui-menu-item');
+        if (items.length > 0) {
+          var firstLink = items[0].querySelector('a, .ui-menu-item-wrapper');
+          if (firstLink) firstLink.click();
+          else items[0].click();
+        }
+        el.dispatchEvent(new Event('blur', { bubbles: true }));
+      }, 500);
+    } else {
+      el.dispatchEvent(new Event('blur', { bubbles: true }));
+    }
+    return true;
+  }
+
+  var results = [];
+  function r(name, ok) { results.push([name, ok]); }
+`;
+
+const SCRIPT_FOOTER = `
+  setTimeout(function() {
+    var success = 0, fail = 0;
+    for (var i = 0; i < results.length; i++) {
+      if (results[i][1]) { success++; console.log('\\u2705 ' + results[i][0]); }
+      else { fail++; console.log('\\u274C ' + results[i][0] + ' \\u2014 CHECK MANUALLY'); }
+    }
+    var msg = 'Madagascar visa auto-fill done!\\n\\nFilled: ' + success + '/' + results.length;
+    if (fail > 0) msg += '\\n\\n\\u26A0\\uFE0F ' + fail + ' field(s) need manual review.';
+    msg += '\\n\\nReview all fields before submitting.';
+    alert(msg);
+  }, 1500);
+})();
+`;
+
+function esc(s: string): string {
+  return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+}
+
+/**
+ * Page 1: Personal Information + Passport + Declaration
+ */
+export function generatePage1Script(data: MadagascarVisaData): string {
+  return `${SCRIPT_HEADER}
+  // === PAGE 1: Personal Information + Passport ===
+  // Traveler: ${esc(data.firstName)} ${esc(data.lastName)}
+
+  // --- Personal Information ---
+  r('Last name', setVal('#info-last-name', '${esc(data.lastName.toUpperCase())}'));
+  r('First name', setVal('#info-first-name', '${esc(data.firstName.toUpperCase())}'));
+
+  // Date of Birth
+  r('Birth day', setSelect('#birthdate_day', '${esc(data.birthDay)}'));
+  r('Birth month', setSelect('#birthdate_month', '${esc(data.birthMonth)}'));
+  r('Birth year', setSelect('#birthdate_year', '${esc(data.birthYear)}'));
+
+  // Native country (autocomplete field)
+  r('Native country', setAutocomplete('#info-birth-country', '${esc(data.nativeCountry)}'));
+
+  // Gender
+  r('Gender', setRadio('info-sex', '${esc(data.gender)}'));
+
+  // --- Passport ---
+  r('Passport type', setSelect('#passport-type', '${esc(data.passportType)}'));
+
+  // Country that issued passport (autocomplete)
+  setTimeout(function() {
+    r('Issuing country', setAutocomplete('#passport-issue-nationality', '${esc(data.passportIssuingCountry)}'));
+  }, 600);
+
+  r('Passport number', setVal('#passport-number', '${esc(data.passportNumber.toUpperCase())}'));
+  r('Passport number confirm', setVal('#passport-number-confirm', '${esc(data.passportNumber.toUpperCase())}'));
+
+  // Nationality on passport (autocomplete)
+  setTimeout(function() {
+    r('Passport nationality', setAutocomplete('#passport-nationality', '${esc(data.passportNationality)}'));
+  }, 1200);
+
+  // Passport issue date
+  r('Issue day', setSelect('#deliv_pass_day', '${esc(data.passportIssueDay)}'));
+  r('Issue month', setSelect('#deliv_pass_month', '${esc(data.passportIssueMonth)}'));
+  r('Issue year', setSelect('#deliv_pass_year', '${esc(data.passportIssueYear)}'));
+
+  // Passport expiry date
+  r('Expiry day', setSelect('#exp_pass_day', '${esc(data.passportExpiryDay)}'));
+  r('Expiry month', setSelect('#exp_pass_month', '${esc(data.passportExpiryMonth)}'));
+  r('Expiry year', setSelect('#exp_pass_year', '${esc(data.passportExpiryYear)}'));
+
+  // --- Declaration ---
+  r('Declaration checkbox', setCheckbox('#dec-acceptation', true));
+  r('Terms checkbox', setCheckbox('#dec-condition', true));
+
+${SCRIPT_FOOTER}`;
+}
+
+/**
+ * Page 2: Stay Information + Contact
+ *
+ * NOTE: Selectors are based on the naming convention from page 1.
+ * If they don't match, inspect the HTML and update the IDs below.
+ */
+export function generatePage2Script(data: MadagascarVisaData): string {
+  return `${SCRIPT_HEADER}
+  // === PAGE 2: Stay Information + Contact ===
+  // Traveler: ${esc(data.firstName)} ${esc(data.lastName)}
+
+  // --- Expected arrival date ---
+  r('Arrival day', setSelect('#arrival_day', '${esc(data.arrivalDay)}'));
+  r('Arrival month', setSelect('#arrival_month', '${esc(data.arrivalMonth)}'));
+  r('Arrival year', setSelect('#arrival_year', '${esc(data.arrivalYear)}'));
+
+  // --- Expected departure date ---
+  r('Departure day', setSelect('#departure_day', '${esc(data.departureDay)}'));
+  r('Departure month', setSelect('#departure_month', '${esc(data.departureMonth)}'));
+  r('Departure year', setSelect('#departure_year', '${esc(data.departureYear)}'));
+
+  // --- Point of entry ---
+  // Values: TNR=Antananarivo, NOS=Nosy Be, DIE=Antsiranana, MJN=Mahajanga,
+  //         SMS=Sainte Marie, TMM=Toamasina, TLE=Toliara, FTU=Taolagnaro
+  r('Point of entry', setSelect('#visa-entry', '${esc(data.pointOfEntry)}'));
+
+  // --- Visa requested (15/30/60/90 days) ---
+  r('Visa duration', setSelect('#visa-duration', '${esc(data.visaDuration)}'));
+
+  // --- Contact ---
+  r('Phone', setVal('#contact-phone', '${esc(data.phoneNumber)}'));
+  r('Email', setVal('#contact-mail', '${esc(data.email)}'));
+
+${SCRIPT_FOOTER}`;
+}
+
+/**
+ * Generate all scripts for a traveler — returns an object with page1 and page2 scripts.
+ */
+export function generateMadagascarScripts(data: MadagascarVisaData): {
+  page1: string;
+  page2: string;
+} {
+  return {
+    page1: generatePage1Script(data),
+    page2: generatePage2Script(data),
+  };
+}
