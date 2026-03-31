@@ -947,6 +947,7 @@ function DocumentRequirementModal({
   const [description, setDescription] = useState(document?.description || '');
   const [descriptionEn, setDescriptionEn] = useState(document?.descriptionEn || '');
   const [required, setRequired] = useState(document?.required ?? true);
+  const [originalRequired, setOriginalRequired] = useState(document?.originalRequired ?? false);
   const [uploadable, setUploadable] = useState(document?.uploadable ?? false);
   const [templateUrl, setTemplateUrl] = useState(document?.templateUrl || '');
   const [isActive, setIsActive] = useState(document?.isActive ?? true);
@@ -988,6 +989,7 @@ function DocumentRequirementModal({
       description,
       descriptionEn,
       required,
+      originalRequired,
       uploadable,
       order: document?.order || nextOrder,
       isActive,
@@ -1197,6 +1199,16 @@ function DocumentRequirementModal({
               <span className="text-sm text-gray-700">Required (mandatory)</span>
             </label>
             
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={originalRequired}
+                onChange={(e) => setOriginalRequired(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">📮 Original krävs (skickas per post)</span>
+            </label>
+
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"

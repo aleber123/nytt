@@ -240,6 +240,16 @@ function AdminIndexPage() {
       permission: null, // visible to all roles
     },
     {
+      title: 'Email Templates',
+      description: 'View and edit all automated emails sent to customers — with process flow map',
+      href: '/admin/email-templates',
+      color: 'bg-pink-600 hover:bg-pink-700',
+      badge: 'Mail',
+      icon: 'receipt',
+      category: 'operations',
+      permission: 'canManageOrders' as const,
+    },
+    {
       title: 'GDPR Management',
       description: 'Manage data retention, anonymization and customer data requests',
       href: '/admin/gdpr',
