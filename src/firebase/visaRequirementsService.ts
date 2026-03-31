@@ -50,7 +50,7 @@ export interface DocumentRequirement {
 }
 
 // Visa categories (purpose of travel)
-export type VisaCategory = 'tourist' | 'business' | 'transit' | 'student' | 'work' | 'medical' | 'conference' | 'non-immigrant' | 'other';
+export type VisaCategory = 'tourist' | 'business' | 'transit' | 'short-term-work' | 'student' | 'work' | 'medical' | 'conference' | 'non-immigrant' | 'other';
 
 // Visa product offered for a specific country
 export interface VisaProduct {

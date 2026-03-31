@@ -37,6 +37,7 @@ const VISA_CATEGORY_LABELS: Record<string, { label: string; labelSv: string; col
   'tourist': { label: 'Tourist', labelSv: 'Turist', color: 'bg-sky-100 text-sky-800' },
   'business': { label: 'Business', labelSv: 'Affärs', color: 'bg-amber-100 text-amber-800' },
   'transit': { label: 'Transit', labelSv: 'Transit', color: 'bg-slate-100 text-slate-800' },
+  'short-term-work': { label: 'Short-Term Work', labelSv: 'Kortidsarbete', color: 'bg-lime-100 text-lime-800' },
   'student': { label: 'Student', labelSv: 'Student', color: 'bg-indigo-100 text-indigo-800' },
   'work': { label: 'Work', labelSv: 'Arbete', color: 'bg-orange-100 text-orange-800' },
   'medical': { label: 'Medical', labelSv: 'Medicinsk', color: 'bg-rose-100 text-rose-800' },
