@@ -3736,7 +3736,7 @@ export const visaCountries: Record<string, VisaCountryData> = {
     countryCode: 'MG',
     countryName: 'Madagaskar',
     heroSubtitle: 'E-visum, visum vid ankomst & turistvisum till Madagaskar',
-    heroDescription: 'Svenska medborgare behöver visum till Madagaskar. Ansök om e-visum online, eller få visum vid ankomst. Vi hjälper dig med hela processen – snabbt, säkert och till fast pris.',
+    heroDescription: 'Alla resenärer behöver visum till Madagaskar. Ansök om e-visum online, eller få visum vid ankomst. Vi hjälper dig med hela processen – snabbt, säkert och till fast pris.',
     heroGradient: 'bg-gradient-to-br from-white via-[#007E3A] to-[#FC3D32]',
     heroTextColor: 'text-[#007E3A]',
     accentColor: '#007E3A',
@@ -3746,11 +3746,11 @@ export const visaCountries: Record<string, VisaCountryData> = {
     ctaSecondaryHoverColor: 'hover:text-[#FC3D32]',
     seo: {
       title: 'Visum Madagaskar 2026 – E-visum, pris & ansökan från Sverige | DOX',
-      description: 'Behöver du visum till Madagaskar? E-visum online eller visum vid ankomst från 35 EUR. Vi hjälper svenska medborgare med visumansökan – turistvisum 15, 30, 60 eller 90 dagar. Snabb handläggning.',
+      description: 'Behöver du visum till Madagaskar? E-visum online eller visum vid ankomst från 35 EUR. Vi hjälper dig med visumansökan – turistvisum 15, 30, 60 eller 90 dagar. Snabb handläggning från Sverige.',
       keywords: 'visum Madagaskar, Madagaskar visum, e-visum Madagaskar, turistvisum Madagaskar, Madagaskar visum pris, visum Madagaskar från Sverige, Madagaskar visum vid ankomst, visum Madagaskar kostnad, ansöka visum Madagaskar, Madagaskar inresebestämmelser, Madagaskar visum online, eVisa Madagascar, Nosy Be visum, Antananarivo visum',
       ogTitle: 'Visum Madagaskar 2026 – E-visum & turistvisum | DOX Visumpartner',
       ogDescription: 'Ansök om visum till Madagaskar från Sverige. E-visum online eller visum vid ankomst. Turistvisum 15–90 dagar. Fast pris, snabb handläggning.',
-      schemaDescription: 'Professionell visumservice för Madagaskar. Vi hjälper svenska medborgare med e-visum, turistvisum och affärsvisum till Madagaskar. Visum vid ankomst från 35 EUR eller förhandsansökan online.',
+      schemaDescription: 'Professionell visumservice för Madagaskar. Vi hjälper dig med e-visum, turistvisum och affärsvisum till Madagaskar. Visum vid ankomst från 35 EUR eller förhandsansökan online.',
       priceLow: '495',
       priceHigh: '3500',
       offerCount: '5',
@@ -3784,11 +3784,11 @@ export const visaCountries: Record<string, VisaCountryData> = {
     ],
     infoTitle: 'Visum till Madagaskar – komplett guide för svenska resenärer 2026',
     infoTexts: [
-      'Svenska medborgare behöver visum för att resa till Madagaskar. Det finns tre sätt att få visum: e-visum online (rekommenderat), visum vid ankomst på flygplatsen, eller via en visumservice som DOX Visumpartner. Vi rekommenderar att ansöka i förväg för att undvika köer och osäkerhet vid ankomst.',
+      'De flesta resenärer behöver visum för att resa till Madagaskar. Det finns tre sätt att få visum: e-visum online (rekommenderat), visum vid ankomst på flygplatsen, eller via en visumservice som DOX Visumpartner. Vi rekommenderar att ansöka i förväg för att undvika köer och osäkerhet vid ankomst.',
       'Sedan 2024 erbjuder Madagaskar ett modernt e-visumsystem via evisamada-mg.com. E-visumet behandlas vanligtvis inom 72 timmar och skickas digitalt till din e-post. Det är det smidigaste alternativet, särskilt för svenska resenärer som vill ha allt ordnat före avresa.',
       'Visum vid ankomst finns fortfarande kvar som alternativ vid Ivato International Airport (Antananarivo), Fascene Airport (Nosy Be) och andra internationella inresepunkter. Priserna varierar: ca 10 EUR för 15 dagar, 35 EUR för 30 dagar och 40 EUR för 60 dagar. Betalning i EUR eller USD kontant rekommenderas.',
       'Madagaskar är ett av världens mest unika resmål. Ön bröts loss från Afrika för 160 miljoner år sedan och har utvecklat en helt egen flora och fauna – hela 90% av alla arter är endemiska. Här finns över 100 arter av lemurer, 6 av världens 8 baobabarter, och korallrev bland de rikaste i Indiska oceanen.',
-      'Ditt pass måste vara giltigt minst 6 månader efter planerad utresa och ha minst 2 tomma sidor. Om du reser via ett gul feber-endemiskt land (t.ex. Kenya eller Etiopien) krävs gul febervaccinationsintyg. Malariaprofylax rekommenderas starkt för alla resenärer – kontakta din vårdcentral minst 4 veckor före avresa.',
+      'Ditt pass måste vara giltigt minst 6 månader efter planerad utresa och ha minst 2 tomma sidor. Om du reser via ett gul feber-endemiskt land (t.ex. Kenya eller Etiopien) krävs gul febervaccinationsintyg. Malariaprofylax rekommenderas starkt – kontakta din vårdcentral minst 4 veckor före avresa.',
       'Madagaskar har två säsonger: torrsäsongen (april–oktober) är bäst för resor, med behagliga temperaturer och lite regn. Regnperioden (november–mars) kan göra vägar oframkomliga, särskilt till Tsingy de Bemaraha. Valskådning vid Île Sainte-Marie är bäst juli–september.',
     ],
     infoBox: {
@@ -3800,7 +3800,7 @@ export const visaCountries: Record<string, VisaCountryData> = {
       textColor: 'text-green-800',
     },
     faq: [
-      { question: 'Behöver svenska medborgare visum till Madagaskar?', answer: 'Ja, alla svenska medborgare behöver visum för att resa till Madagaskar. Du kan ansöka om e-visum online via evisamada-mg.com, få visum vid ankomst på flygplatsen, eller låta DOX Visumpartner sköta din ansökan.' },
+      { question: 'Behöver jag visum till Madagaskar?', answer: 'Ja, de flesta resenärer behöver visum för att resa till Madagaskar. Du kan ansöka om e-visum online via evisamada-mg.com, få visum vid ankomst på flygplatsen, eller låta DOX Visumpartner sköta din ansökan.' },
       { question: 'Hur ansöker jag om e-visum till Madagaskar?', answer: 'Gå till den officiella portalen evisamada-mg.com, fyll i ansökan med passuppgifter och reseinfo, betala avgiften online och få ditt e-visum via e-post inom 72 timmar. Vi på DOX kan även hantera hela processen åt dig.' },
       { question: 'Vad kostar visum till Madagaskar 2026?', answer: 'Priserna varierar beroende på visumtyp: ca 10 EUR (15 dagar), 35 EUR (30 dagar), 40 EUR (60 dagar) och ca 55 EUR (90 dagar). Via DOX Visumpartner kostar vår service från 495 SEK plus visumavgiften.' },
       { question: 'Kan jag få visum vid ankomst i Madagaskar?', answer: 'Ja, visum vid ankomst (Visa on Arrival) finns vid Ivato International Airport i Antananarivo, Fascene Airport i Nosy Be och andra internationella flygplatser. Ta med kontanta EUR eller USD för betalning. Vi rekommenderar dock e-visum för att undvika köer.' },
@@ -3824,14 +3824,15 @@ export const visaCountries: Record<string, VisaCountryData> = {
     en: {
       countryName: 'Madagascar',
       heroSubtitle: 'E-visa, visa on arrival & tourist visa to Madagascar',
-      heroDescription: 'Swedish citizens need a visa for Madagascar. Apply for an e-visa online, or get a visa on arrival. We handle the entire process – fast, secure, and at a fixed price.',
+      heroDescription: 'Most travelers need a visa for Madagascar. Apply for an e-visa online, or get a visa on arrival. We handle the entire process – fast, secure, and at a fixed price.',
       infoTitle: 'Madagascar visa – complete guide for Swedish travelers 2026',
       infoTexts: [
-        'Swedish citizens need a visa to travel to Madagascar. There are three ways to obtain one: e-visa online (recommended), visa on arrival at the airport, or through a visa service like DOX Visumpartner. We recommend applying in advance to avoid queues and uncertainty on arrival.',
+        'Most travelers need a visa to travel to Madagascar. There are three ways to obtain one: e-visa online (recommended), visa on arrival at the airport, or through a visa service like DOX Visumpartner. We recommend applying in advance to avoid queues and uncertainty on arrival.',
         'Since 2024, Madagascar offers a modern e-visa system via evisamada-mg.com. The e-visa is typically processed within 72 hours and sent digitally to your email. It is the most convenient option, especially for Swedish travelers who want everything arranged before departure.',
         'Visa on arrival is still available at Ivato International Airport (Antananarivo), Fascene Airport (Nosy Be) and other international entry points. Prices vary: approx. 10 EUR (15 days), 35 EUR (30 days) and 40 EUR (60 days). Cash payment in EUR or USD is recommended.',
         'Madagascar is one of the most unique destinations in the world. The island broke away from Africa 160 million years ago and has developed entirely unique flora and fauna – 90% of all species are endemic. Here you find over 100 species of lemurs, 6 of the world\'s 8 baobab species, and coral reefs among the richest in the Indian Ocean.',
         'Your passport must be valid for at least 6 months after your planned departure date and have at least 2 blank pages. If traveling via a yellow fever endemic country (e.g. Kenya or Ethiopia), a yellow fever vaccination certificate is required. Malaria prophylaxis is strongly recommended – contact your health center at least 4 weeks before departure.',
+
         'Madagascar has two seasons: dry season (April–October) is best for travel, with pleasant temperatures and little rain. The rainy season (November–March) can make roads impassable, especially to Tsingy de Bemaraha. Whale watching at Île Sainte-Marie is best July–September.',
       ],
       infoBox: { title: 'E-visa recommended – avoid queues on arrival', text: 'Madagascar offers e-visa via evisamada-mg.com. Processing time approx. 72 hours. Alternatively, visa can be purchased at Ivato Airport (Antananarivo): 15 days ~10 EUR, 30 days ~35 EUR, 60 days ~40 EUR. Cash payment in EUR/USD.' },
@@ -3855,7 +3856,7 @@ export const visaCountries: Record<string, VisaCountryData> = {
         { name: 'Ifaty & the coral reef', desc: 'Madagascar\'s best snorkeling and diving area with one of the world\'s third-largest coral reefs. Whale watching possible July–September.' },
       ],
       faq: [
-        { question: 'Do Swedish citizens need a visa for Madagascar?', answer: 'Yes, all Swedish citizens need a visa to travel to Madagascar. You can apply for an e-visa online via evisamada-mg.com, get a visa on arrival at the airport, or let DOX Visumpartner handle your application.' },
+        { question: 'Do I need a visa for Madagascar?', answer: 'Yes, most travelers need a visa to travel to Madagascar. You can apply for an e-visa online via evisamada-mg.com, get a visa on arrival at the airport, or let DOX Visumpartner handle your application.' },
         { question: 'How do I apply for an e-visa to Madagascar?', answer: 'Go to the official portal evisamada-mg.com, fill in the application with passport details and travel info, pay the fee online, and receive your e-visa via email within 72 hours. DOX can also handle the entire process for you.' },
         { question: 'How much does a visa to Madagascar cost in 2026?', answer: 'Prices vary by visa type: approx. 10 EUR (15 days), 35 EUR (30 days), 40 EUR (60 days) and about 55 EUR (90 days). Through DOX Visumpartner, our service costs from 495 SEK plus the visa fee.' },
         { question: 'Can I get a visa on arrival in Madagascar?', answer: 'Yes, visa on arrival is available at Ivato International Airport in Antananarivo, Fascene Airport in Nosy Be and other international airports. Bring cash EUR or USD for payment. We recommend e-visa to avoid queues.' },
