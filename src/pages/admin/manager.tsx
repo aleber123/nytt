@@ -192,11 +192,36 @@ function ManagerPage() {
       // Queue email via customerEmails collection (same pattern as send-custom-email)
       const { addDoc, collection: fbCollection, serverTimestamp } = await import('firebase/firestore');
       const { db: firebaseDb } = await import('@/firebase/config');
-      await addDoc(fbCollection(firebaseDb, 'customerEmails'), {
-        name: assignee.displayName || assignee.email,
-        email: assignee.email,
-        subject: `🔔 Reminder ping from ${actorName}: ${pingTarget.message}`,
-        message: `
+      const { renderEmail } = await import('@/services/emailRenderer');
+
+      const entityType = pingTarget.entityType === 'crm_lead' ? 'Lead' : 'Order';
+      const entityLabel = pingTarget.entityLabel || '';
+      const pingNoteHtml = pingNote.trim()
+        ? `<div style="background:#f9fafb;border-radius:6px;padding:12px 16px;margin:16px 0;"><p style="margin:0 0 4px 0;font-size:12px;color:#6b7280;text-transform:uppercase;">Note from ${actorName}</p><p style="margin:0;color:#374151;white-space:pre-wrap;">${pingNote.trim()}</p></div>`
+        : '';
+
+      // Try the new editable template system first
+      const rendered = await renderEmail(
+        'reminder-ping-internal',
+        {
+          assigneeName: assignee.displayName || assignee.email,
+          managerName: actorName,
+          message: pingTarget.message,
+          dueDate: dueFmt,
+          entityLabel,
+          entityType,
+          entityUrl,
+          pingNoteBlock: pingNoteHtml,
+        },
+        'en',
+        { showTrackingButton: false, showContactSection: false }
+      );
+
+      // Legacy inline fallback
+      const subject = rendered.rendered
+        ? rendered.subject
+        : `🔔 Reminder ping from ${actorName}: ${pingTarget.message}`;
+      const message = rendered.rendered ? rendered.html : `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <div style="background: #dc2626; padding: 20px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 20px;">🔔 Reminder Ping — DOX Visumpartner</h1>
@@ -207,27 +232,29 @@ function ManagerPage() {
     <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin: 16px 0;">
       <p style="margin: 0 0 8px 0; color: #991b1b; font-weight: bold; font-size: 16px;">${pingTarget.message}</p>
       <p style="margin: 0; color: #6b7280; font-size: 13px;">Due: <strong>${dueFmt}</strong></p>
-      <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">${pingTarget.entityLabel || ''}</p>
+      <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 13px;">${entityLabel}</p>
     </div>
-    ${pingNote.trim() ? `
-    <div style="background: #f9fafb; border-radius: 6px; padding: 12px 16px; margin: 16px 0;">
-      <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Note from ${actorName}</p>
-      <p style="margin: 0; color: #374151; white-space: pre-wrap;">${pingNote.trim()}</p>
-    </div>
-    ` : ''}
+    ${pingNoteHtml}
     <div style="text-align: center; margin: 24px 0;">
-      <a href="${entityUrl}" style="display: inline-block; background: #0EB0A6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold;">Open ${pingTarget.entityType === 'crm_lead' ? 'Lead' : 'Order'}</a>
+      <a href="${entityUrl}" style="display: inline-block; background: #0EB0A6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold;">Open ${entityType}</a>
     </div>
   </div>
   <div style="background: #f5f5f5; padding: 12px; text-align: center; font-size: 11px; color: #999;">
     DOX Visumpartner internal manager ping
   </div>
 </div>
-        `.trim(),
+        `.trim();
+
+      await addDoc(fbCollection(firebaseDb, 'customerEmails'), {
+        name: assignee.displayName || assignee.email,
+        email: assignee.email,
+        subject,
+        message,
         orderId: pingTarget.entityId || pingTarget.orderId || '',
         createdAt: serverTimestamp(),
         status: 'unread',
         type: 'reminder_ping',
+        renderer: rendered.rendered ? 'new' : 'legacy', // for tracing
       });
 
       // Log the ping on the reminder

@@ -16,10 +16,14 @@ import { toast } from 'react-hot-toast';
 import {
   EmailTemplate,
   EmailCategory,
+  EmailDesignSettings,
   getAllEmailTemplates,
   updateEmailTemplateContent,
   seedEmailTemplates,
+  getEmailDesignSettings,
+  saveEmailDesignSettings,
   DEFAULT_EMAIL_TEMPLATES,
+  DEFAULT_DESIGN_SETTINGS,
 } from '@/firebase/emailTemplateService';
 
 // ============================================================
@@ -33,6 +37,7 @@ const CATEGORY_CONFIG: Record<EmailCategory, { label: string; color: string; ico
   'shipping':           { label: 'Shipping',           color: 'bg-purple-100 text-purple-800 border-purple-200', icon: '🚚' },
   'billing':            { label: 'Billing',            color: 'bg-rose-100 text-rose-800 border-rose-200', icon: '💰' },
   'custom':             { label: 'Other',              color: 'bg-gray-100 text-gray-800 border-gray-200', icon: '✉️' },
+  'internal':           { label: 'Internal',           color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: '👥' },
 };
 
 const TRIGGER_LABELS: Record<string, { label: string; color: string }> = {
@@ -48,6 +53,7 @@ const PROCESS_GROUPS = [
   { id: 'Resultat',          label: 'Result',              icon: '🎯', step: 7, color: 'border-indigo-400 bg-indigo-50' },
   { id: 'Leverans',          label: 'Delivery',            icon: '📬', step: 8, color: 'border-purple-400 bg-purple-50' },
   { id: 'Övriga',            label: 'Other',               icon: '✉️', step: 0, color: 'border-gray-400 bg-gray-50' },
+  { id: 'Internal',          label: 'Internal Communication', icon: '👥', step: 99, color: 'border-indigo-500 bg-indigo-50' },
 ];
 
 // ============================================================
@@ -59,13 +65,36 @@ export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [view, setView] = useState<'process' | 'list'>('process');
+  const [view, setView] = useState<'process' | 'list' | 'design'>('process');
   const [filterCategory, setFilterCategory] = useState<EmailCategory | 'all'>('all');
   const [seeding, setSeeding] = useState(false);
+  const [designSettings, setDesignSettings] = useState<EmailDesignSettings>(DEFAULT_DESIGN_SETTINGS);
 
   useEffect(() => {
-    if (currentUser) loadTemplates();
+    if (currentUser) {
+      loadTemplates();
+      loadDesignSettings();
+    }
   }, [currentUser]);
+
+  const loadDesignSettings = async () => {
+    try {
+      const settings = await getEmailDesignSettings();
+      setDesignSettings(settings);
+    } catch {
+      // Use defaults
+    }
+  };
+
+  const handleSaveDesignSettings = async (settings: EmailDesignSettings) => {
+    try {
+      await saveEmailDesignSettings(settings);
+      setDesignSettings(settings);
+      toast.success('Design settings saved!');
+    } catch {
+      toast.error('Failed to save design settings');
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -105,7 +134,11 @@ export default function EmailTemplatesPage() {
     setSeeding(true);
     try {
       const result = await seedEmailTemplates();
-      toast.success(`Created ${result.created} templates, ${result.skipped} already existed`);
+      const parts: string[] = [];
+      if (result.created > 0) parts.push(`${result.created} created`);
+      if (result.refreshed > 0) parts.push(`${result.refreshed} refreshed`);
+      if (result.preservedCustomized > 0) parts.push(`${result.preservedCustomized} customized preserved`);
+      toast.success(parts.length ? parts.join(', ') : 'No changes');
       await loadTemplates();
     } catch (error) {
       toast.error('Failed to sync templates');
@@ -121,7 +154,7 @@ export default function EmailTemplatesPage() {
         subjectEn: template.subjectEn,
         bodySv: template.bodySv,
         bodyEn: template.bodyEn,
-        isCustomized: true,
+        useCustomTemplate: template.useCustomTemplate ?? false,
         lastEditedBy: currentUser?.email || 'unknown',
       });
       toast.success('Template saved!');
@@ -197,6 +230,12 @@ export default function EmailTemplatesPage() {
               >
                 List View
               </button>
+              <button
+                onClick={() => setView('design')}
+                className={`px-4 py-2 text-sm font-medium ${view === 'design' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                Design Settings
+              </button>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -224,6 +263,11 @@ export default function EmailTemplatesPage() {
 
           {loading ? (
             <div className="text-center py-20 text-gray-500">Loading templates...</div>
+          ) : view === 'design' ? (
+            <DesignSettingsPanel
+              settings={designSettings}
+              onSave={handleSaveDesignSettings}
+            />
           ) : view === 'process' ? (
             <ProcessMapView
               groups={groupedTemplates}
@@ -376,15 +420,22 @@ function ListView({
                   {t.subjectSv}
                 </td>
                 <td className="px-4 py-3">
-                  {t.isCustomized ? (
-                    <span className="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 border border-yellow-300">
-                      Customized
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-500">
-                      Default
-                    </span>
-                  )}
+                  <div className="flex flex-col gap-1">
+                    {t.isCustomized ? (
+                      <span className="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700 border border-yellow-300 inline-block w-fit">
+                        Customized
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-500 inline-block w-fit">
+                        Default
+                      </span>
+                    )}
+                    {t.useCustomTemplate && (
+                      <span className="px-2 py-0.5 rounded text-xs bg-emerald-600 text-white font-bold inline-block w-fit">
+                        ✓ NEW system active
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button className="text-primary-600 hover:text-primary-700 font-medium">
@@ -430,6 +481,11 @@ function TemplateCard({
               Customized
             </span>
           )}
+          {template.useCustomTemplate && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-600 text-white font-bold" title="New editable template is active">
+              ✓ NEW
+            </span>
+          )}
         </div>
       </div>
       <h4 className="font-semibold text-gray-900 text-sm group-hover:text-primary-700">
@@ -463,6 +519,7 @@ function TemplateEditorModal({
     subjectEn: template.subjectEn,
     bodySv: template.bodySv,
     bodyEn: template.bodyEn,
+    useCustomTemplate: template.useCustomTemplate ?? false,
   });
   const [activeTab, setActiveTab] = useState<'edit' | 'preview' | 'info'>('edit');
   const [lang, setLang] = useState<'sv' | 'en'>('sv');
@@ -481,7 +538,8 @@ function TemplateEditorModal({
     editData.subjectSv !== template.subjectSv ||
     editData.subjectEn !== template.subjectEn ||
     editData.bodySv !== template.bodySv ||
-    editData.bodyEn !== template.bodyEn;
+    editData.bodyEn !== template.bodyEn ||
+    editData.useCustomTemplate !== (template.useCustomTemplate ?? false);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -551,6 +609,39 @@ function TemplateEditorModal({
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'edit' && (
             <div className="space-y-5">
+              {/* Feature flag — opt in to the new editable renderer */}
+              <div className={`rounded-lg border p-4 ${
+                editData.useCustomTemplate
+                  ? 'bg-emerald-50 border-emerald-300'
+                  : 'bg-gray-50 border-gray-200'
+              }`}>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editData.useCustomTemplate}
+                    onChange={(e) => setEditData(prev => ({ ...prev, useCustomTemplate: e.target.checked }))}
+                    className="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">Use this editable template</span>
+                      {editData.useCustomTemplate && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white">ACTIVE</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      When enabled, sent emails use the subject and body below.{' '}
+                      When disabled (default), the legacy hardcoded sender runs unchanged — safe to A/B test.
+                      {!template.useCustomTemplate && (
+                        <span className="block mt-1 text-amber-700">
+                          ⚠️ Currently disabled — your edits below will <strong>not</strong> affect outgoing emails until you enable this and click Save.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </label>
+              </div>
+
               {/* Subject */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -623,6 +714,7 @@ function TemplateEditorModal({
               body={lang === 'sv' ? editData.bodySv : editData.bodyEn}
               variables={template.variables}
               lang={lang}
+              category={template.category}
             />
           )}
 
@@ -732,12 +824,17 @@ function EmailPreview({
   body,
   variables,
   lang,
+  category,
 }: {
   subject: string;
   body: string;
   variables: { key: string; example: string }[];
   lang: 'sv' | 'en';
+  category: EmailCategory;
 }) {
+  // Legalization emails use SWE format, visa emails use VISA format
+  const isLegalizationEmail = category === 'order-confirmation' && !subject.toLowerCase().includes('visa');
+  const sampleOrderNumber = isLegalizationEmail ? 'SWE000325' : 'VISA000451';
   // Replace variables with example values
   let previewBody = body;
   let previewSubject = subject;
@@ -762,18 +859,18 @@ function EmailPreview({
       <div style={{ background: '#f8f9fa', padding: 20, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", lineHeight: 1.6, color: '#202124' }}>
         <div style={{ maxWidth: 600, margin: '0 auto', background: '#ffffff', borderRadius: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
 
-          {/* Header — matches wrapEmail() */}
-          <div style={{ background: '#ffffff', color: '#2E2D2C', padding: '28px 36px', textAlign: 'center', borderBottom: '2px solid #2E2D2C' }}>
+          {/* Header — matches new wrapEmail() output. Clean logo, no border. */}
+          <div style={{ background: '#2E2D2C', color: '#ffffff', padding: '32px 36px 24px', textAlign: 'center', borderBottom: '2px solid #2E2D2C' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://doxvl.se/dox-logo-new.png"
+              src="/logo-new.png"
               alt="DOX Visumpartner AB"
-              style={{ maxHeight: 50, width: 'auto', marginBottom: 16, border: '1px solid #e2e8f0', borderRadius: 6, padding: 4, background: '#fff' }}
+              style={{ height: 53, width: 'auto', display: 'inline-block', border: 0 }}
             />
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: 0.2, color: '#2E2D2C' }}>
+            <h1 style={{ margin: '20px 0 0', fontSize: 22, fontWeight: 700, letterSpacing: 0.2, color: '#ffffff' }}>
               {previewSubject}
             </h1>
-            <p style={{ color: '#5f6368', margin: '8px 0 0' }}>
+            <p style={{ color: '#ffffff', opacity: 0.8, margin: '8px 0 0' }}>
               {isEn ? 'Update for your order with DOX Visumpartner AB' : 'Uppdatering för din order hos DOX Visumpartner AB'}
             </p>
           </div>
@@ -795,7 +892,7 @@ function EmailPreview({
             {/* Order summary box */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 20, margin: '20px 0' }}>
               <div style={{ background: '#0EB0A6', color: '#fff', padding: '10px 16px', borderRadius: 6, display: 'inline-block', fontWeight: 700, fontSize: 15, margin: '0 0 12px' }}>
-                {isEn ? 'Order number' : 'Ordernummer'}: #<span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: 3, color: '#92400e' }}>VISA000451</span>
+                {isEn ? 'Order number' : 'Ordernummer'}: #<span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: 3, color: '#92400e' }}>{sampleOrderNumber}</span>
               </div>
               <div style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eaecef' }}>
@@ -843,6 +940,367 @@ function EmailPreview({
             <p style={{ margin: '5px 0', color: '#5f6368', fontSize: 13 }}>
               {isEn ? 'This is an automatically generated message.' : 'Detta är ett automatiskt genererat meddelande.'}
             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// DESIGN SETTINGS PANEL
+// ============================================================
+
+function DesignSettingsPanel({
+  settings,
+  onSave,
+}: {
+  settings: EmailDesignSettings;
+  onSave: (s: EmailDesignSettings) => void;
+}) {
+  const [draft, setDraft] = useState<EmailDesignSettings>(settings);
+  const [previewLang, setPreviewLang] = useState<'sv' | 'en'>('sv');
+
+  const update = (key: keyof EmailDesignSettings, value: string | number | boolean) => {
+    setDraft(prev => ({ ...prev, [key]: value }));
+  };
+
+  const hasChanges = JSON.stringify(draft) !== JSON.stringify(settings);
+
+  const isEn = previewLang === 'en';
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Settings Form */}
+      <div className="space-y-6">
+        {/* Header Settings */}
+        <div className="bg-white border rounded-xl p-5">
+          <h3 className="font-bold text-gray-900 mb-4">Header</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
+              <input
+                type="text"
+                value={draft.logoUrl}
+                onChange={e => update('logoUrl', e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+              <p className="text-xs text-gray-400 mt-1">Use a transparent PNG or SVG. For retina displays, export at 2× the height below.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Logo link URL</label>
+              <input
+                type="text"
+                value={draft.logoLinkUrl}
+                onChange={e => update('logoLinkUrl', e.target.value)}
+                placeholder="https://doxvl.se"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+              <p className="text-xs text-gray-400 mt-1">Where the logo links to when clicked in the email.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Logo height (px)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min="24"
+                    max="80"
+                    value={draft.logoHeight}
+                    onChange={e => update('logoHeight', Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="text-xs font-mono text-gray-600 w-10 text-right">{draft.logoHeight}px</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Logo alignment</label>
+                <div className="flex bg-gray-100 rounded-lg overflow-hidden text-xs">
+                  <button
+                    type="button"
+                    onClick={() => update('logoAlign', 'left')}
+                    className={`flex-1 py-1.5 font-medium ${draft.logoAlign === 'left' ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    ⇤ Left
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update('logoAlign', 'center')}
+                    className={`flex-1 py-1.5 font-medium ${draft.logoAlign === 'center' ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    ⇔ Center
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.showLogo}
+                  onChange={e => update('showLogo', e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-sm text-gray-700">Show logo</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.showHeaderTitle}
+                  onChange={e => update('showHeaderTitle', e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-sm text-gray-700">Show email subject under logo</span>
+              </label>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Background</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={draft.headerBackground} onChange={e => update('headerBackground', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                  <input type="text" value={draft.headerBackground} onChange={e => update('headerBackground', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Text Color</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={draft.headerTextColor} onChange={e => update('headerTextColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                  <input type="text" value={draft.headerTextColor} onChange={e => update('headerTextColor', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Border</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={draft.headerBorderColor} onChange={e => update('headerBorderColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                  <input type="text" value={draft.headerBorderColor} onChange={e => update('headerBorderColor', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Colors */}
+        <div className="bg-white border rounded-xl p-5">
+          <h3 className="font-bold text-gray-900 mb-4">Colors</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Primary (buttons, links)</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={draft.primaryColor} onChange={e => update('primaryColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                <input type="text" value={draft.primaryColor} onChange={e => update('primaryColor', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Success (approve, track)</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={draft.successColor} onChange={e => update('successColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                <input type="text" value={draft.successColor} onChange={e => update('successColor', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Danger (reject, decline)</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={draft.dangerColor} onChange={e => update('dangerColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                <input type="text" value={draft.dangerColor} onChange={e => update('dangerColor', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-white border rounded-xl p-5">
+          <h3 className="font-bold text-gray-900 mb-4">Footer</h3>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Background</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={draft.footerBackground} onChange={e => update('footerBackground', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                  <input type="text" value={draft.footerBackground} onChange={e => update('footerBackground', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Text Color</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={draft.footerTextColor} onChange={e => update('footerTextColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+                  <input type="text" value={draft.footerTextColor} onChange={e => update('footerTextColor', e.target.value)} className="flex-1 px-2 py-1 border rounded text-xs font-mono" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Company Name</label>
+              <input type="text" value={draft.companyName} onChange={e => update('companyName', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tagline (SV)</label>
+                <input type="text" value={draft.companyTagline} onChange={e => update('companyTagline', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tagline (EN)</label>
+                <input type="text" value={draft.companyTaglineEn} onChange={e => update('companyTaglineEn', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact */}
+        <div className="bg-white border rounded-xl p-5">
+          <h3 className="font-bold text-gray-900 mb-4">Contact Info</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+              <input type="email" value={draft.contactEmail} onChange={e => update('contactEmail', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
+              <input type="text" value={draft.contactPhone} onChange={e => update('contactPhone', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Postal Address</label>
+            <textarea value={draft.postalAddress} onChange={e => update('postalAddress', e.target.value)} rows={3} className="w-full px-3 py-2 border rounded-lg text-sm" />
+          </div>
+        </div>
+
+        {/* Layout */}
+        <div className="bg-white border rounded-xl p-5">
+          <h3 className="font-bold text-gray-900 mb-4">Layout</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Max Width (px)</label>
+              <input type="number" value={draft.bodyMaxWidth} onChange={e => update('bodyMaxWidth', parseInt(e.target.value) || 600)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Border Radius (px)</label>
+              <input type="number" value={draft.borderRadius} onChange={e => update('borderRadius', parseInt(e.target.value) || 12)} className="w-full px-3 py-2 border rounded-lg text-sm" />
+            </div>
+          </div>
+        </div>
+
+        {/* Save */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {hasChanges && <span className="text-amber-600 text-sm font-medium">Unsaved changes</span>}
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Reset all design settings to defaults? This will overwrite logo, colors, header, footer, and contact info.')) {
+                  setDraft(DEFAULT_DESIGN_SETTINGS);
+                }
+              }}
+              className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              ↺ Reset to defaults
+            </button>
+          </div>
+          <button
+            onClick={() => onSave(draft)}
+            disabled={!hasChanges}
+            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+          >
+            Save Design Settings
+          </button>
+        </div>
+      </div>
+
+      {/* Live Preview */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-gray-900">Live Preview</h3>
+          <div className="flex bg-gray-100 rounded-lg overflow-hidden">
+            <button onClick={() => setPreviewLang('sv')} className={`px-3 py-1 text-xs font-medium ${previewLang === 'sv' ? 'bg-gray-800 text-white' : 'text-gray-600'}`}>SV</button>
+            <button onClick={() => setPreviewLang('en')} className={`px-3 py-1 text-xs font-medium ${previewLang === 'en' ? 'bg-gray-800 text-white' : 'text-gray-600'}`}>EN</button>
+          </div>
+        </div>
+
+        <div className="border rounded-xl overflow-hidden shadow-sm sticky top-8">
+          {/* Rendered email preview using draft settings */}
+          <div style={{ background: '#f8f9fa', padding: 20, fontFamily: draft.fontFamily, lineHeight: 1.6, color: '#202124' }}>
+            <div style={{ maxWidth: draft.bodyMaxWidth, margin: '0 auto', background: '#ffffff', borderRadius: draft.borderRadius, boxShadow: '0 2px 6px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+
+              {/* Header */}
+              <div style={{ background: draft.headerBackground, color: draft.headerTextColor, padding: '32px 36px 24px', textAlign: draft.logoAlign, borderBottom: `2px solid ${draft.headerBorderColor}` }}>
+                {draft.showLogo && draft.logoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={draft.logoUrl}
+                    alt={draft.companyName}
+                    style={{ height: draft.logoHeight, width: 'auto', display: 'inline-block', border: 0 }}
+                  />
+                )}
+                {draft.showHeaderTitle && (
+                  <>
+                    <h1 style={{ margin: `${draft.showLogo ? 20 : 0}px 0 0`, fontSize: 22, fontWeight: 700, letterSpacing: 0.2, color: draft.headerTextColor }}>
+                      {isEn ? 'Your visa application has been submitted' : 'Din visumansökan har skickats in'}
+                    </h1>
+                    <p style={{ color: draft.headerTextColor, opacity: 0.8, margin: '8px 0 0' }}>
+                      {isEn ? 'Update for your order with' : 'Uppdatering för din order hos'} {draft.companyName}
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* Content */}
+              <div style={{ padding: '32px 36px' }}>
+                <div style={{ fontSize: 17, fontWeight: 600, color: '#202124', marginBottom: 16 }}>
+                  {isEn ? 'Dear Erik,' : 'Hej Erik!'}
+                </div>
+                <p style={{ fontSize: 15, lineHeight: 1.6, margin: '0 0 16px' }}>
+                  {isEn
+                    ? 'We have now submitted your visa application for Thailand through the official visa portal.'
+                    : 'Vi har nu skickat in din visumansökan för Thailand via den officiella visumportalen.'}
+                </p>
+
+                {/* Status box */}
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: 18, margin: '20px 0' }}>
+                  <p style={{ margin: 0, fontSize: 15 }}>
+                    🌐 <strong>{isEn ? 'Status:' : 'Status:'}</strong> {isEn ? 'Application submitted' : 'Ansökan inskickad'}
+                  </p>
+                </div>
+
+                {/* Order summary */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 20, margin: '20px 0' }}>
+                  <div style={{ background: draft.primaryColor, color: '#fff', padding: '10px 16px', borderRadius: 6, display: 'inline-block', fontWeight: 700, fontSize: 15 }}>
+                    {isEn ? 'Order number' : 'Ordernummer'}: #VISA000451
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eaecef' }}>
+                      <span style={{ fontWeight: 500, color: '#5f6368' }}>{isEn ? 'Date' : 'Datum'}:</span>
+                      <span style={{ fontWeight: 700, color: '#202124' }}>2026-03-31</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                      <span style={{ fontWeight: 500, color: '#5f6368' }}>{isEn ? 'Destination' : 'Destination'}:</span>
+                      <span style={{ fontWeight: 700, color: '#202124' }}>Thailand</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tracking */}
+                <div style={{ background: '#f0fdf4', border: `2px solid ${draft.successColor}`, borderRadius: 8, padding: 20, margin: '22px 0', textAlign: 'center' }}>
+                  <h3 style={{ color: '#166534', margin: '0 0 10px', fontSize: 17 }}>
+                    📍 {isEn ? 'Track Your Order' : 'Följ din order'}
+                  </h3>
+                  <span style={{ display: 'inline-block', background: draft.successColor, color: '#fff', padding: '12px 28px', borderRadius: 6, fontWeight: 700, fontSize: 15 }}>
+                    {isEn ? 'Track Order Status' : 'Se orderstatus'}
+                  </span>
+                </div>
+
+                {/* Contact */}
+                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 18, margin: '22px 0', textAlign: 'center' }}>
+                  <h3 style={{ margin: '0 0 8px' }}>{isEn ? 'Questions?' : 'Har du frågor?'}</h3>
+                  <p style={{ margin: 0 }}>{isEn ? 'Feel free to contact us:' : 'Kontakta oss gärna:'}</p>
+                  <p style={{ margin: '8px 0 0' }}>📧 <span style={{ color: draft.primaryColor }}>{draft.contactEmail}</span> &nbsp; 📞 {draft.contactPhone}</p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ background: draft.footerBackground, padding: '24px 36px', textAlign: 'center', borderTop: '1px solid #eaecef' }}>
+                <p style={{ margin: '5px 0', color: draft.footerTextColor, fontSize: 13 }}><strong>{draft.companyName}</strong></p>
+                <p style={{ margin: '5px 0', color: draft.footerTextColor, fontSize: 13 }}>{isEn ? draft.companyTaglineEn : draft.companyTagline}</p>
+                <p style={{ margin: '5px 0', color: draft.footerTextColor, fontSize: 13 }}>{isEn ? draft.autoGeneratedNoteEn : draft.autoGeneratedNote}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

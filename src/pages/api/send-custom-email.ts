@@ -86,24 +86,59 @@ export default async function handler(
       return res.status(400).json({ error: 'Customer has no email address' });
     }
 
-    // Queue email
-    await db.collection('customerEmails').add({
-      name: customerName,
-      email: customerEmail,
-      phone: order?.customerInfo?.phone || '',
-      subject: subject.trim(),
-      message: generateEmailHtml({
+    // Try the new editable template system first (opt-in via useCustomTemplate flag)
+    let finalSubject = subject.trim();
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
+
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('custom-email');
+      if (tmpl?.useCustomTemplate) {
+        const result = await renderEmailAdmin(
+          'custom-email',
+          {
+            customerName,
+            orderNumber: String(orderNumber),
+            subject: subject.trim(),
+            message: message.trim(),
+          },
+          isEnglish ? 'en' : 'sv',
+          { orderNumber: String(orderNumber) }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[send-custom-email] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      // Legacy hardcoded path — unchanged
+      finalHtml = generateEmailHtml({
         customerName,
         orderNumber,
         subject: subject.trim(),
         message: message.trim(),
         locale: orderLocale
-      }),
+      });
+    }
+
+    await db.collection('customerEmails').add({
+      name: customerName,
+      email: customerEmail,
+      phone: order?.customerInfo?.phone || '',
+      subject: finalSubject,
+      message: finalHtml,
       orderId: actualOrderId,
       createdAt: new Date(),
       status: 'unread',
       type: 'custom_email',
-      templateId: templateId || 'custom'
+      templateId: templateId || 'custom',
+      renderer, // for tracing — 'new' or 'legacy'
     });
 
     // Log the email in order history

@@ -1792,13 +1792,31 @@ function AdminOrderDetailPage() {
           try {
             const { addDoc, collection: fbCollection, serverTimestamp } = await import('firebase/firestore');
             const { db: firebaseDb } = await import('@/firebase/config');
+            const { renderEmail } = await import('@/services/emailRenderer');
             const dueDateFmt = new Date(reminderDueDate).toLocaleString('sv-SE');
             const orderUrl = `${window.location.origin}/admin/orders/${orderId}`;
-            await addDoc(fbCollection(firebaseDb, 'customerEmails'), {
-              name: assigneeName || 'Admin',
-              email: notifyEmail,
-              subject: `🔔 Reminder: ${reminderMessage.trim()} — Order #${order.orderNumber || orderId}`,
-              message: `
+            const orderNum = order.orderNumber || orderId;
+
+            // Try the new editable template system first
+            const rendered = await renderEmail(
+              'reminder-created-internal',
+              {
+                message: reminderMessage.trim(),
+                dueDate: dueDateFmt,
+                orderNumber: orderNum,
+                assigneeName: assigneeName || assignee,
+                createdByName: actorName,
+                orderUrl,
+              },
+              'sv',
+              { showTrackingButton: false, showContactSection: false }
+            );
+
+            // Fall back to legacy inline HTML when the renderer can't load the template
+            const subject = rendered.rendered
+              ? rendered.subject
+              : `🔔 Reminder: ${reminderMessage.trim()} — Order #${orderNum}`;
+            const message = rendered.rendered ? rendered.html : `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <div style="background: #f59e0b; padding: 20px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 20px;">🔔 Reminder — DOX Visumpartner</h1>
@@ -1807,7 +1825,7 @@ function AdminOrderDetailPage() {
     <p style="margin: 0 0 8px 0; color: #92400e; font-weight: bold;">${reminderMessage.trim()}</p>
     <p style="margin: 0 0 16px 0; color: #6b7280; font-size: 14px;">Due: <strong>${dueDateFmt}</strong></p>
     <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
-    <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Order:</strong> #${order.orderNumber || orderId}</p>
+    <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Order:</strong> #${orderNum}</p>
     <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Assigned to:</strong> ${assigneeName || assignee}</p>
     <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Created by:</strong> ${actorName}</p>
     <div style="text-align: center; margin: 24px 0;">
@@ -1818,11 +1836,18 @@ function AdminOrderDetailPage() {
     DOX Visumpartner internal reminder notification
   </div>
 </div>
-              `.trim(),
+              `.trim();
+
+            await addDoc(fbCollection(firebaseDb, 'customerEmails'), {
+              name: assigneeName || 'Admin',
+              email: notifyEmail,
+              subject,
+              message,
               orderId: String(orderId),
               createdAt: serverTimestamp(),
               status: 'unread',
               type: 'reminder_notification',
+              renderer: rendered.rendered ? 'new' : 'legacy', // for tracing
             });
           } catch (emailErr) {
             console.error('Failed to queue reminder email:', emailErr);

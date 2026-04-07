@@ -178,22 +178,67 @@ export default async function handler(
       ? (isEnglish ? 'pickup address' : 'upphämtningsadress')
       : (isEnglish ? 'return address' : 'returadress');
 
-    await db.collection('customerEmails').add({
-      name: customerName,
-      email: customerEmail,
-      phone: order?.customerInfo?.phone || '',
-      subject: emailSubject,
-      message: generateEmailHtml({
+    // Try the new editable template system first (opt-in via useCustomTemplate flag)
+    let finalSubject = emailSubject;
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
+
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('address-confirmation');
+      if (tmpl?.useCustomTemplate) {
+        const addressLine = [
+          address.companyName,
+          address.contactName,
+          address.street,
+          [address.postalCode, address.city].filter(Boolean).join(' '),
+          address.country,
+        ].filter(Boolean).join('<br>');
+
+        const result = await renderEmailAdmin(
+          'address-confirmation',
+          {
+            customerName,
+            orderNumber: String(orderNum),
+            address: addressLine,
+            addressType: addressTypeText,
+            confirmationUrl,
+          },
+          isEnglish ? 'en' : 'sv',
+          { orderNumber: String(orderNum) }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[address-confirmation] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      // Legacy hardcoded path — unchanged
+      finalHtml = generateEmailHtml({
         customerName,
         orderNumber: orderNum,
         addressType: addressTypeText,
         address,
         confirmationUrl,
         locale: orderLocale
-      }),
+      });
+    }
+
+    await db.collection('customerEmails').add({
+      name: customerName,
+      email: customerEmail,
+      phone: order?.customerInfo?.phone || '',
+      subject: finalSubject,
+      message: finalHtml,
       orderId: actualOrderId,
       createdAt: new Date(),
-      status: 'unread'
+      status: 'unread',
+      renderer, // for tracing — 'new' or 'legacy'
     });
 
     // Update order to track that confirmation was sent
