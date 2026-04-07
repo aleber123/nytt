@@ -257,6 +257,12 @@ service cloud.firestore {
       allow read, write: if isAdmin() || isDoxStaff();
     }
 
+    // EMAIL TEMPLATES – editable transactional email templates and design settings
+    // Admin/staff can read+write templates and the __design_settings__ doc.
+    match /emailTemplates/{templateId} {
+      allow read, write: if isAdmin() || isDoxStaff();
+    }
+
     // ADMIN USERS – role-based access control for admin panel
     match /adminUsers/{userId} {
       // Allow authenticated users to read their own admin user document
