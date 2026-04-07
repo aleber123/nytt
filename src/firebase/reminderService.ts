@@ -46,6 +46,18 @@ export interface Reminder {
   
   // CRM-specific fields
   reminderType?: ReminderType;
+
+  // Optional email notification: address to notify when the reminder is created.
+  // Useful for important reminders so handlers don't miss them.
+  notifyEmail?: string;
+
+  // Manager ping history — tracks when a manager has nudged the assignee
+  pingHistory?: Array<{
+    byUid: string;
+    byName: string;
+    sentAt: string; // ISO
+    note?: string;
+  }>;
 }
 
 // Backwards compatibility alias
@@ -78,6 +90,74 @@ export async function getRemindersByOrder(orderId: string): Promise<OrderReminde
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as OrderReminder));
+}
+
+/**
+ * Get ALL active/snoozed reminders across all users (manager view).
+ * Used by the Manager dashboard to see what every handler has open.
+ */
+export async function getAllActiveReminders(): Promise<Reminder[]> {
+  if (!db) return [];
+  // Note: no orderBy to avoid requiring a composite index for `where in + orderBy`.
+  // Sort client-side instead.
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('status', 'in', ['active', 'snoozed'])
+  );
+  const snapshot = await getDocs(q);
+  const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
+  return items.sort((a, b) => {
+    const aDate = a.dueDate && typeof a.dueDate === 'object' && 'toDate' in a.dueDate
+      ? (a.dueDate as any).toDate().getTime()
+      : new Date(a.dueDate as string).getTime();
+    const bDate = b.dueDate && typeof b.dueDate === 'object' && 'toDate' in b.dueDate
+      ? (b.dueDate as any).toDate().getTime()
+      : new Date(b.dueDate as string).getTime();
+    return aDate - bDate;
+  });
+}
+
+/**
+ * Bulk reassign multiple reminders to a new user (e.g. when someone is sick).
+ */
+export async function bulkReassignReminders(
+  reminderIds: string[],
+  newAssigneeUid: string,
+  newAssigneeName: string
+): Promise<void> {
+  if (!db) throw new Error('Database not initialized');
+  await Promise.all(
+    reminderIds.map(id =>
+      updateDoc(doc(db, COLLECTION_NAME, id), {
+        assignedTo: newAssigneeUid,
+        assignedToName: newAssigneeName,
+      })
+    )
+  );
+}
+
+/**
+ * Log a manager ping on a reminder (appends to pingHistory).
+ * The actual email is queued separately by the caller.
+ */
+export async function logReminderPing(
+  reminderId: string,
+  byUid: string,
+  byName: string,
+  note?: string
+): Promise<void> {
+  if (!db) throw new Error('Database not initialized');
+  const docRef = doc(db, COLLECTION_NAME, reminderId);
+  const snap = await getDocs(query(collection(db, COLLECTION_NAME), where('__name__', '==', reminderId)));
+  const existing = snap.docs[0]?.data() as Reminder | undefined;
+  const history = existing?.pingHistory || [];
+  history.push({
+    byUid,
+    byName,
+    sentAt: new Date().toISOString(),
+    ...(note ? { note } : {}),
+  });
+  await updateDoc(docRef, { pingHistory: history });
 }
 
 /**

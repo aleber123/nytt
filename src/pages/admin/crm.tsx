@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { GetStaticProps } from 'next';
@@ -56,6 +57,7 @@ const getStatusStyle = (status: LeadStatus) => STATUS_OPTIONS.find((s) => s.valu
 
 function CrmPage() {
   const { currentUser } = useAuth();
+  const router = useRouter();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<LeadStatus | 'all'>('all');
@@ -189,6 +191,18 @@ info@doxvl.se | doxvl.se`;
     };
     loadAdminUsers();
   }, []);
+
+  // Auto-open lead detail when ?lead=ID query param is present (e.g. from ReminderBell click)
+  useEffect(() => {
+    const leadId = router.query.lead;
+    if (!leadId || typeof leadId !== 'string' || leads.length === 0) return;
+    if (selectedLead?.id === leadId) return;
+    const lead = leads.find(l => l.id === leadId);
+    if (lead) {
+      openLeadDetail(lead);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query.lead, leads]);
 
   // ── FILTER & SORT ──
   const filteredLeads = useMemo(() => {

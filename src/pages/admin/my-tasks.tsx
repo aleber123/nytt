@@ -182,7 +182,7 @@ function MyTasksPage() {
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -293,15 +293,16 @@ function MyTasksPage() {
                         Assigned Orders ({myOrders.length})
                       </h2>
                       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                        <table className="w-full text-sm">
+                        <div className="overflow-x-auto">
+                        <table className="w-full text-sm table-auto">
                           <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                             <tr>
-                              <th className="px-4 py-3 text-left">Order</th>
-                              <th className="px-4 py-3 text-left">Customer</th>
-                              <th className="px-4 py-3 text-left">Type</th>
-                              <th className="px-4 py-3 text-left">Status</th>
-                              <th className="px-4 py-3 text-left">Next Step</th>
-                              <th className="px-4 py-3 text-left">Date</th>
+                              <th className="px-3 py-3 text-left whitespace-nowrap">Order</th>
+                              <th className="px-3 py-3 text-left">Customer</th>
+                              <th className="px-3 py-3 text-left">Type</th>
+                              <th className="px-3 py-3 text-left whitespace-nowrap">Status</th>
+                              <th className="px-3 py-3 text-left">Next Step</th>
+                              <th className="px-3 py-3 text-left whitespace-nowrap">Date</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
@@ -309,32 +310,43 @@ function MyTasksPage() {
                               const step = nextStep(o);
                               return (
                                 <tr key={o.id} className="hover:bg-blue-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/admin/orders/${o.id}`}>
-                                  <td className="px-4 py-3 font-medium text-gray-900">{o.orderNumber || o.id?.slice(0, 8)}</td>
-                                  <td className="px-4 py-3 text-gray-600">
-                                    {o.customerInfo?.firstName} {o.customerInfo?.lastName}
-                                    {o.customerInfo?.companyName && <span className="text-gray-400 ml-1">· {o.customerInfo.companyName}</span>}
+                                  <td className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap">{o.orderNumber || o.id?.slice(0, 8)}</td>
+                                  <td className="px-3 py-3 text-gray-600">
+                                    <div className="text-gray-900 truncate max-w-[200px]" title={`${o.customerInfo?.firstName || ''} ${o.customerInfo?.lastName || ''}`.trim()}>
+                                      {o.customerInfo?.firstName} {o.customerInfo?.lastName}
+                                    </div>
+                                    {o.customerInfo?.companyName && (
+                                      <div className="text-xs text-gray-400 truncate max-w-[200px]" title={o.customerInfo.companyName}>
+                                        {o.customerInfo.companyName}
+                                      </div>
+                                    )}
                                   </td>
-                                  <td className="px-4 py-3">
+                                  <td className="px-3 py-3">
                                     {o.orderType === 'visa' ? (
-                                      <span className="text-emerald-700 font-medium">{o.destinationCountry || o.destinationCountryCode || 'Visa'}</span>
+                                      <span className="text-emerald-700 font-medium truncate block max-w-[140px]" title={o.destinationCountry || o.destinationCountryCode || 'Visa'}>
+                                        {o.destinationCountry || o.destinationCountryCode || 'Visa'}
+                                      </span>
                                     ) : (
-                                      <span className="text-gray-600">
+                                      <span className="text-gray-600 truncate block max-w-[180px]" title={Array.isArray(o.services) ? o.services.map(getServiceName).join(', ') : o.country || '—'}>
                                         {Array.isArray(o.services) ? o.services.map(getServiceName).join(', ') : o.country || '—'}
                                       </span>
                                     )}
                                   </td>
-                                  <td className="px-4 py-3">
+                                  <td className="px-3 py-3 whitespace-nowrap">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(o.status)}`}>
                                       {o.status}
                                     </span>
                                   </td>
-                                  <td className="px-4 py-3 text-gray-500 text-xs">{step?.name || '—'}</td>
-                                  <td className="px-4 py-3 text-gray-400 text-xs">{formatDate(o.createdAt)}</td>
+                                  <td className="px-3 py-3 text-gray-500 text-xs">
+                                    <span className="truncate block max-w-[180px]" title={step?.name || '—'}>{step?.name || '—'}</span>
+                                  </td>
+                                  <td className="px-3 py-3 text-gray-400 text-xs whitespace-nowrap">{formatDate(o.createdAt)}</td>
                                 </tr>
                               );
                             })}
                           </tbody>
                         </table>
+                        </div>
                         {myOrders.length > 10 && (
                           <div className="px-4 py-2 bg-gray-50 text-xs text-gray-500 text-center">
                             Showing 10 of {myOrders.length} — <button onClick={() => setActiveTab('orders')} className="text-primary-600 hover:underline">View all</button>
@@ -361,16 +373,17 @@ function MyTasksPage() {
                     <div className="text-center py-16 text-gray-400">No orders assigned to you</div>
                   ) : (
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                      <table className="w-full text-sm">
+                      <div className="overflow-x-auto">
+                      <table className="w-full text-sm table-auto">
                         <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
                           <tr>
-                            <th className="px-4 py-3 text-left">Order</th>
-                            <th className="px-4 py-3 text-left">Customer</th>
-                            <th className="px-4 py-3 text-left">Type / Services</th>
-                            <th className="px-4 py-3 text-left">Status</th>
-                            <th className="px-4 py-3 text-left">Next Step</th>
-                            <th className="px-4 py-3 text-left">Created</th>
-                            <th className="px-4 py-3 text-right">Price</th>
+                            <th className="px-3 py-3 text-left whitespace-nowrap">Order</th>
+                            <th className="px-3 py-3 text-left">Customer</th>
+                            <th className="px-3 py-3 text-left">Type / Services</th>
+                            <th className="px-3 py-3 text-left whitespace-nowrap">Status</th>
+                            <th className="px-3 py-3 text-left">Next Step</th>
+                            <th className="px-3 py-3 text-left whitespace-nowrap">Created</th>
+                            <th className="px-3 py-3 text-right whitespace-nowrap">Price</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -413,6 +426,7 @@ function MyTasksPage() {
                           })}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   )}
                 </div>

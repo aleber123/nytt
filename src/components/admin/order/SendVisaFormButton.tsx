@@ -45,9 +45,12 @@ export default function SendVisaFormButton({ order }: SendVisaFormButtonProps) {
 
       // Auto-select best matching template
       if (order.destinationCountryCode && order.visaProduct?.category) {
+        // ESTA detection: products with visaType='ESTA' or id containing 'esta' need the ESTA template
+        const isEsta = order.visaProduct?.visaType === 'ESTA' || /esta/i.test(order.visaProduct?.id || '');
+        const matchCategory = isEsta ? 'esta' : order.visaProduct.category;
         const best = await getTemplateForProduct(
           order.destinationCountryCode,
-          order.visaProduct.category,
+          matchCategory,
           order.visaProduct?.id || ''
         );
         if (best) setSelectedTemplate(best.id);

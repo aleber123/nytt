@@ -30,7 +30,8 @@ export type Permission =
   | 'canManageVisaRequirements'
   | 'canManageGdpr'
   | 'canManageShipping'
-  | 'canViewReports';
+  | 'canViewReports'
+  | 'canManageReminders';
 
 // Role permissions
 export const ROLE_PERMISSIONS: Record<UserRole, {
@@ -47,7 +48,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageVisaRequirements: true,
     canManageGdpr: true,
     canManageShipping: true,
-    canViewReports: true
+    canViewReports: true,
+    canManageReminders: true
   },
   admin: {
     label: 'Admin',
@@ -59,7 +61,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageVisaRequirements: true,
     canManageGdpr: false,
     canManageShipping: true,
-    canViewReports: true
+    canViewReports: true,
+    canManageReminders: true
   },
   editor: {
     label: 'Editor',
@@ -71,7 +74,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageVisaRequirements: false,
     canManageGdpr: false,
     canManageShipping: false,
-    canViewReports: true
+    canViewReports: true,
+    canManageReminders: false
   },
   viewer: {
     label: 'Viewer',
@@ -83,7 +87,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, {
     canManageVisaRequirements: false,
     canManageGdpr: false,
     canManageShipping: false,
-    canViewReports: true
+    canViewReports: true,
+    canManageReminders: false
   }
 };
 

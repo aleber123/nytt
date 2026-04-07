@@ -140,6 +140,17 @@ function PhotoEditorPage() {
   const cachedImg = useRef<HTMLImageElement | null>(null);
   const cachedImgSrc = useRef<string | null>(null);
 
+  // Brush state — manual touch-up (erase / restore) on the processed image
+  type BrushMode = 'off' | 'erase' | 'restore';
+  const [brushMode, setBrushMode] = useState<BrushMode>('off');
+  const [brushSize, setBrushSize] = useState(30);
+  const isPainting = useRef(false);
+  const lastBrushPos = useRef<{ x: number; y: number } | null>(null);
+  const workCanvasRef = useRef<HTMLCanvasElement | null>(null); // full-res processed image (mutated by brush)
+  const originalImgRef = useRef<HTMLImageElement | null>(null); // full-res original (source for restore brush)
+  const brushUndoStack = useRef<string[]>([]); // dataUrls of work canvas states for undo
+  const [brushCursorPos, setBrushCursorPos] = useState<{ x: number; y: number } | null>(null);
+
   const currentImage = processedImage || originalImage;
 
   // ─── Load custom templates from Firestore ────────────────────────────────
@@ -365,23 +376,15 @@ function PhotoEditorPage() {
       const blob = await resp.blob();
       const resultBlob = await removeBackground(blob);
 
+      // Store the transparent cutout directly — the background color is filled
+      // by drawCanvas/renderPhotoToCanvas BEFORE ctx.filter is applied, so adjustments
+      // (brightness/contrast/etc.) only affect the subject, not the chosen bg color.
       const reader = new FileReader();
       reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const c = document.createElement('canvas');
-          c.width = img.width;
-          c.height = img.height;
-          const ctx = c.getContext('2d')!;
-          ctx.fillStyle = BG_COLORS[selectedTemplate.backgroundColor];
-          ctx.fillRect(0, 0, c.width, c.height);
-          ctx.drawImage(img, 0, 0);
-          setProcessedImage(c.toDataURL('image/png'));
-          setBgRemoved(true);
-          toast.dismiss(loadingToast);
-          toast.success('Background removed!');
-        };
-        img.src = reader.result as string;
+        setProcessedImage(reader.result as string);
+        setBgRemoved(true);
+        toast.dismiss(loadingToast);
+        toast.success('Background removed!');
       };
       reader.readAsDataURL(resultBlob);
     } catch (err: any) {
@@ -392,13 +395,172 @@ function PhotoEditorPage() {
     }
   };
 
+  // ─── Brush touch-up (erase/restore on processed image) ───────────────────
+
+  // Initialize the work canvas + original-image ref whenever bg is removed.
+  // The work canvas holds the full-resolution processed image; brush strokes mutate it
+  // and we then sync `processedImage` so the display canvas re-renders.
+  useEffect(() => {
+    if (!bgRemoved || !processedImage || !originalImage) {
+      workCanvasRef.current = null;
+      originalImgRef.current = null;
+      brushUndoStack.current = [];
+      return;
+    }
+
+    // Load processed image into work canvas at native resolution
+    const procImg = new Image();
+    procImg.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = procImg.width;
+      c.height = procImg.height;
+      const ctx = c.getContext('2d')!;
+      ctx.drawImage(procImg, 0, 0);
+      workCanvasRef.current = c;
+      brushUndoStack.current = [c.toDataURL('image/png')];
+    };
+    procImg.src = processedImage;
+
+    // Load original image (sized to match the processed canvas) for restore brush
+    const origImg = new Image();
+    origImg.onload = () => { originalImgRef.current = origImg; };
+    origImg.src = originalImage;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bgRemoved]);
+
+  // Map a mouse event on the display canvas → coordinates on the work canvas
+  const getBrushCoords = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    const work = workCanvasRef.current;
+    if (!canvas || !work) return null;
+    const rect = canvas.getBoundingClientRect();
+    const xCss = e.clientX - rect.left;
+    const yCss = e.clientY - rect.top;
+    const sx = work.width / rect.width;
+    const sy = work.height / rect.height;
+    return { x: xCss * sx, y: yCss * sy, displayX: xCss, displayY: yCss };
+  };
+
+  const paintStroke = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+    const work = workCanvasRef.current;
+    if (!work) return;
+    const ctx = work.getContext('2d');
+    if (!ctx) return;
+    const radius = (brushSize / 2) * (work.width / 400); // scale brush to work canvas
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = radius * 2;
+
+    if (brushMode === 'erase') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      ctx.restore();
+    } else if (brushMode === 'restore') {
+      const orig = originalImgRef.current;
+      if (!orig) return;
+      // Draw the original image clipped to the brush stroke path
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.lineWidth = radius * 2;
+      // Use a path-based clip by stroking the path into a temporary mask
+      // Simpler approach: fill circles along the path using composite source-over with the original image as source
+      // We accomplish this by using a clip region
+      ctx.beginPath();
+      // Draw two end caps + a rect along the segment to form the stroke path
+      ctx.arc(from.x, from.y, radius, 0, Math.PI * 2);
+      ctx.arc(to.x, to.y, radius, 0, Math.PI * 2);
+      // Quadrilateral between the two circles
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const nx = -dy / len * radius;
+      const ny = dx / len * radius;
+      ctx.moveTo(from.x + nx, from.y + ny);
+      ctx.lineTo(to.x + nx, to.y + ny);
+      ctx.lineTo(to.x - nx, to.y - ny);
+      ctx.lineTo(from.x - nx, from.y - ny);
+      ctx.closePath();
+      ctx.clip();
+      // Draw the original image at the same size as the work canvas
+      ctx.drawImage(orig, 0, 0, work.width, work.height);
+      ctx.restore();
+    }
+  };
+
+  const commitBrushStroke = () => {
+    const work = workCanvasRef.current;
+    if (!work) return;
+    setProcessedImage(work.toDataURL('image/png'));
+    // Save undo snapshot (cap at 20)
+    brushUndoStack.current.push(work.toDataURL('image/png'));
+    if (brushUndoStack.current.length > 20) brushUndoStack.current.shift();
+  };
+
+  const undoBrushStroke = () => {
+    if (brushUndoStack.current.length <= 1) {
+      toast('Nothing to undo');
+      return;
+    }
+    brushUndoStack.current.pop(); // remove current
+    const prev = brushUndoStack.current[brushUndoStack.current.length - 1];
+    const work = workCanvasRef.current;
+    if (!work || !prev) return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = work.getContext('2d')!;
+      ctx.clearRect(0, 0, work.width, work.height);
+      ctx.drawImage(img, 0, 0);
+      setProcessedImage(work.toDataURL('image/png'));
+    };
+    img.src = prev;
+  };
+
   // ─── Canvas interaction ──────────────────────────────────────────────────
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (brushMode !== 'off') {
+      const pos = getBrushCoords(e);
+      if (!pos) return;
+      isPainting.current = true;
+      lastBrushPos.current = { x: pos.x, y: pos.y };
+      // Single click = paint a dot
+      paintStroke(lastBrushPos.current, lastBrushPos.current);
+      // Live preview straight from work canvas
+      const work = workCanvasRef.current;
+      if (work) {
+        cachedImg.current = work as unknown as HTMLImageElement;
+        drawCanvas();
+      }
+      return;
+    }
     isDragging.current = true;
     lastPos.current = { x: e.clientX, y: e.clientY };
   };
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (brushMode !== 'off') {
+      const pos = getBrushCoords(e);
+      if (pos) setBrushCursorPos({ x: pos.displayX, y: pos.displayY });
+      if (!isPainting.current || !pos || !lastBrushPos.current) return;
+      const from = lastBrushPos.current;
+      paintStroke(from, { x: pos.x, y: pos.y });
+      lastBrushPos.current = { x: pos.x, y: pos.y };
+      // Live preview: draw the work canvas directly to the display canvas (no dataURL, no React state)
+      const work = workCanvasRef.current;
+      if (work) {
+        // Temporarily point cachedImg at the work canvas so drawCanvas renders the latest pixels
+        cachedImg.current = work as unknown as HTMLImageElement;
+        cancelAnimationFrame(rafId.current);
+        rafId.current = requestAnimationFrame(() => drawCanvas());
+      }
+      return;
+    }
     if (!isDragging.current) return;
     const dx = e.clientX - lastPos.current.x;
     const dy = e.clientY - lastPos.current.y;
@@ -409,7 +571,27 @@ function PhotoEditorPage() {
       setCrop(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
     });
   };
-  const handleMouseUp = () => { isDragging.current = false; };
+  const handleMouseUp = () => {
+    if (brushMode !== 'off' && isPainting.current) {
+      isPainting.current = false;
+      lastBrushPos.current = null;
+      commitBrushStroke();
+      return;
+    }
+    isDragging.current = false;
+  };
+  const handleMouseLeave = () => {
+    if (brushMode !== 'off') {
+      setBrushCursorPos(null);
+      if (isPainting.current) {
+        isPainting.current = false;
+        lastBrushPos.current = null;
+        commitBrushStroke();
+      }
+      return;
+    }
+    isDragging.current = false;
+  };
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
@@ -511,36 +693,62 @@ function PhotoEditorPage() {
     ctx.fillRect(0, 0, paperWPx, paperHPx);
 
     if (useQueue) {
-      // Load all queue images, then draw them in grid slots
-      const count = Math.min(printQueue.length, grid.total);
+      // Load all queue images first, then split into sheets of `grid.total` photos each
+      const total = printQueue.length;
       let loaded = 0;
-      const images: HTMLImageElement[] = [];
-      printQueue.slice(0, count).forEach((item, i) => {
+      const images: HTMLImageElement[] = new Array(total);
+      printQueue.forEach((item, i) => {
         const img = new Image();
         img.onload = () => {
           images[i] = img;
           loaded++;
-          if (loaded === count) {
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = mmToPixels(0.3);
-            let placed = 0;
-            for (let row = 0; row < grid.rows && placed < count; row++) {
-              for (let col = 0; col < grid.cols && placed < count; col++) {
-                const x = marginPx + col * (photoWPx + gutterPx);
-                const y = marginPx + row * (photoHPx + gutterPx);
-                ctx.drawImage(images[placed], x, y, photoWPx, photoHPx);
-                ctx.strokeRect(x, y, photoWPx, photoHPx);
-                placed++;
+          if (loaded === total) {
+            const sheets = Math.ceil(total / grid.total);
+            let exported = 0;
+
+            const renderSheet = (sheetIdx: number) => {
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, paperWPx, paperHPx);
+              ctx.strokeStyle = '#000000';
+              ctx.lineWidth = mmToPixels(0.3);
+
+              const startIdx = sheetIdx * grid.total;
+              const endIdx = Math.min(startIdx + grid.total, total);
+              const sheetCount = endIdx - startIdx;
+              let placed = 0;
+              for (let row = 0; row < grid.rows && placed < sheetCount; row++) {
+                for (let col = 0; col < grid.cols && placed < sheetCount; col++) {
+                  const x = marginPx + col * (photoWPx + gutterPx);
+                  const y = marginPx + row * (photoHPx + gutterPx);
+                  ctx.drawImage(images[startIdx + placed], x, y, photoWPx, photoHPx);
+                  ctx.strokeRect(x, y, photoWPx, photoHPx);
+                  placed++;
+                }
               }
-            }
-            canvas.toBlob(blob => {
-              if (!blob) return;
-              const a = document.createElement('a');
-              a.href = URL.createObjectURL(blob);
-              a.download = `print_${paper.id}_${count}pcs.jpg`;
-              a.click();
-              toast.success(`Print layout with ${count} photos exported!`);
-            }, 'image/jpeg', 0.95);
+
+              canvas.toBlob(blob => {
+                if (!blob) return;
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = sheets > 1
+                  ? `print_${paper.id}_sheet${sheetIdx + 1}of${sheets}.jpg`
+                  : `print_${paper.id}_${sheetCount}pcs.jpg`;
+                a.click();
+                exported++;
+                if (exported === sheets) {
+                  toast.success(
+                    sheets > 1
+                      ? `Exported ${sheets} sheets (${total} photos total)`
+                      : `Print layout with ${total} photos exported!`
+                  );
+                } else {
+                  // Stagger downloads slightly so the browser doesn't suppress them
+                  setTimeout(() => renderSheet(sheetIdx + 1), 250);
+                }
+              }, 'image/jpeg', 0.95);
+            };
+
+            renderSheet(0);
           }
         };
         img.src = item.dataUrl;
@@ -778,9 +986,59 @@ function PhotoEditorPage() {
                     </button>
 
                     {bgRemoved && (
-                      <button onClick={() => { setProcessedImage(null); setBgRemoved(false); }} className="px-3 py-1.5 border border-gray-300 text-sm rounded-lg hover:bg-gray-50">
+                      <button onClick={() => { setProcessedImage(null); setBgRemoved(false); setBrushMode('off'); }} className="px-3 py-1.5 border border-gray-300 text-sm rounded-lg hover:bg-gray-50">
                         Restore original
                       </button>
+                    )}
+
+                    {/* Brush touch-up — only available after background removal */}
+                    {bgRemoved && (
+                      <>
+                        <div className="h-6 w-px bg-gray-300 mx-1" />
+                        <button
+                          onClick={() => setBrushMode(brushMode === 'erase' ? 'off' : 'erase')}
+                          className={`px-3 py-1.5 text-sm rounded-lg flex items-center gap-1.5 ${
+                            brushMode === 'erase'
+                              ? 'bg-red-600 text-white hover:bg-red-700'
+                              : 'border border-gray-300 hover:bg-gray-50'
+                          }`}
+                          title="Erase brush — click and drag to remove pixels"
+                        >
+                          🧽 Erase
+                        </button>
+                        <button
+                          onClick={() => setBrushMode(brushMode === 'restore' ? 'off' : 'restore')}
+                          className={`px-3 py-1.5 text-sm rounded-lg flex items-center gap-1.5 ${
+                            brushMode === 'restore'
+                              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                              : 'border border-gray-300 hover:bg-gray-50'
+                          }`}
+                          title="Restore brush — click and drag to bring back pixels from the original"
+                        >
+                          ↩️ Restore
+                        </button>
+                        {brushMode !== 'off' && (
+                          <>
+                            <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg px-2 py-1">
+                              <span className="text-xs text-gray-500">Size</span>
+                              <input
+                                type="range" min="5" max="120"
+                                value={brushSize}
+                                onChange={e => setBrushSize(Number(e.target.value))}
+                                className="w-24 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                              />
+                              <span className="text-xs font-mono text-gray-600 w-6 text-right">{brushSize}</span>
+                            </div>
+                            <button
+                              onClick={undoBrushStroke}
+                              className="px-3 py-1.5 border border-gray-300 text-sm rounded-lg hover:bg-gray-50"
+                              title="Undo last brush stroke"
+                            >
+                              ↶ Undo
+                            </button>
+                          </>
+                        )}
+                      </>
                     )}
 
                     <div className="flex-1" />
@@ -816,13 +1074,35 @@ function PhotoEditorPage() {
                         onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}
                         onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseUp}
+                        onMouseLeave={handleMouseLeave}
                         onWheel={handleWheel}
-                        className="border border-gray-300 rounded cursor-grab active:cursor-grabbing"
+                        className={`border border-gray-300 rounded ${
+                          brushMode === 'off' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'
+                        }`}
                       />
+                      {/* Brush cursor overlay */}
+                      {brushMode !== 'off' && brushCursorPos && (
+                        <div
+                          className="absolute pointer-events-none rounded-full"
+                          style={{
+                            left: brushCursorPos.x - brushSize / 2,
+                            top: brushCursorPos.y - brushSize / 2,
+                            width: brushSize,
+                            height: brushSize,
+                            border: brushMode === 'erase' ? '2px solid #dc2626' : '2px solid #059669',
+                            boxShadow: '0 0 0 1px rgba(255,255,255,0.9), inset 0 0 0 1px rgba(255,255,255,0.9)',
+                            backgroundColor: brushMode === 'erase' ? 'rgba(220,38,38,0.18)' : 'rgba(5,150,105,0.18)',
+                          }}
+                        />
+                      )}
                       <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
                         {selectedTemplate.widthMm}×{selectedTemplate.heightMm} mm
                       </div>
+                      {brushMode !== 'off' && (
+                        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                          {brushMode === 'erase' ? '🧽 Erase mode' : '↩️ Restore mode'} — click & drag
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1004,7 +1284,12 @@ function PhotoEditorPage() {
                   </button>
                   <p className="text-xs text-gray-400 mt-2">
                     {printQueue.length > 0
-                      ? `Generates a ${selectedPaper.name} layout with ${Math.min(printQueue.length, grid.total)} different photos at ${PRINT_DPI} DPI.`
+                      ? (() => {
+                          const sheets = Math.ceil(printQueue.length / grid.total);
+                          return sheets > 1
+                            ? `Generates ${sheets} ${selectedPaper.name} sheets (${grid.total} per sheet × ${sheets}, ${printQueue.length} photos total) at ${PRINT_DPI} DPI.`
+                            : `Generates a ${selectedPaper.name} layout with ${printQueue.length} different photos at ${PRINT_DPI} DPI.`;
+                        })()
                       : `Generates a ${selectedPaper.name} image with ${Math.min(photoCount, grid.total)} photos and cut marks at ${PRINT_DPI} DPI.`
                     }
                   </p>

@@ -1102,6 +1102,7 @@ function AdminOrderDetailPage() {
   const [reminderMessage, setReminderMessage] = useState('');
   const [reminderDueDate, setReminderDueDate] = useState('');
   const [reminderAssignees, setReminderAssignees] = useState<string[]>([]);
+  const [reminderNotifyEmail, setReminderNotifyEmail] = useState('');
   const [savingReminder, setSavingReminder] = useState(false);
 
   // Combined shipping (samskick) states - linked via tracking number
@@ -1761,6 +1762,13 @@ function AdminOrderDetailPage() {
       const actorName = (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string;
       const orderId = router.query.id as string;
       const newReminders: any[] = [];
+      const notifyEmail = reminderNotifyEmail.trim();
+      // Basic email validation
+      if (notifyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
+        toast.error('Invalid notification email');
+        setSavingReminder(false);
+        return;
+      }
       for (const assignee of reminderAssignees) {
         const assigneeName = adminUsers.find(u => u.id === assignee)?.displayName || adminUsers.find(u => u.id === assignee)?.email || '';
         const id = await createReminder({
@@ -1776,7 +1784,51 @@ function AdminOrderDetailPage() {
           createdAt: new Date().toISOString(),
           createdBy: actorName,
           status: 'active',
+          ...(notifyEmail ? { notifyEmail } : {}),
         });
+
+        // Send email notification immediately if address provided
+        if (notifyEmail) {
+          try {
+            const { addDoc, collection: fbCollection, serverTimestamp } = await import('firebase/firestore');
+            const { db: firebaseDb } = await import('@/firebase/config');
+            const dueDateFmt = new Date(reminderDueDate).toLocaleString('sv-SE');
+            const orderUrl = `${window.location.origin}/admin/orders/${orderId}`;
+            await addDoc(fbCollection(firebaseDb, 'customerEmails'), {
+              name: assigneeName || 'Admin',
+              email: notifyEmail,
+              subject: `🔔 Reminder: ${reminderMessage.trim()} — Order #${order.orderNumber || orderId}`,
+              message: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background: #f59e0b; padding: 20px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 20px;">🔔 Reminder — DOX Visumpartner</h1>
+  </div>
+  <div style="padding: 24px; background: #ffffff; border: 1px solid #fde68a; border-top: none;">
+    <p style="margin: 0 0 8px 0; color: #92400e; font-weight: bold;">${reminderMessage.trim()}</p>
+    <p style="margin: 0 0 16px 0; color: #6b7280; font-size: 14px;">Due: <strong>${dueDateFmt}</strong></p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+    <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Order:</strong> #${order.orderNumber || orderId}</p>
+    <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Assigned to:</strong> ${assigneeName || assignee}</p>
+    <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Created by:</strong> ${actorName}</p>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${orderUrl}" style="display: inline-block; background: #0EB0A6; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold;">Open Order</a>
+    </div>
+  </div>
+  <div style="background: #f5f5f5; padding: 12px; text-align: center; font-size: 11px; color: #999;">
+    DOX Visumpartner internal reminder notification
+  </div>
+</div>
+              `.trim(),
+              orderId: String(orderId),
+              createdAt: serverTimestamp(),
+              status: 'unread',
+              type: 'reminder_notification',
+            });
+          } catch (emailErr) {
+            console.error('Failed to queue reminder email:', emailErr);
+            // Non-blocking — reminder was created successfully
+          }
+        }
         newReminders.push({
           id,
           orderId,
@@ -1794,8 +1846,10 @@ function AdminOrderDetailPage() {
       setReminderMessage('');
       setReminderDueDate('');
       setReminderAssignees([]);
+      setReminderNotifyEmail('');
       setShowAddReminder(false);
-      toast.success(reminderAssignees.length > 1 ? `Reminder created for ${reminderAssignees.length} people` : 'Reminder created');
+      const baseMsg = reminderAssignees.length > 1 ? `Reminder created for ${reminderAssignees.length} people` : 'Reminder created';
+      toast.success(notifyEmail ? `${baseMsg} — email notification sent to ${notifyEmail}` : baseMsg);
     } catch (err) {
       toast.error('Failed to create reminder');
     } finally {
@@ -7110,6 +7164,17 @@ function AdminOrderDetailPage() {
                             </label>
                           ))}
                         </div>
+                      </div>
+                      <div className="w-56">
+                        <label className="block text-xs text-gray-500 mb-1">Notify email <span className="text-gray-400">(optional)</span></label>
+                        <input
+                          type="email"
+                          value={reminderNotifyEmail}
+                          onChange={(e) => setReminderNotifyEmail(e.target.value)}
+                          placeholder="e.g. alexander@doxvl.se"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-0.5">Sends an email when reminder is created</p>
                       </div>
                       <button onClick={handleCreateReminder} disabled={savingReminder || !reminderMessage.trim() || !reminderDueDate || reminderAssignees.length === 0} className="px-3 py-1.5 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 disabled:opacity-50">
                         {savingReminder ? 'Saving...' : 'Save'}

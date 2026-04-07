@@ -85,6 +85,16 @@ function AdminIndexPage() {
       category: 'orders',
       permission: null, // visible to all roles
     },
+    {
+      title: 'Manager — Reminders',
+      description: 'Team reminders overview, ping handlers and reassign on the fly',
+      href: '/admin/manager',
+      color: 'bg-indigo-600 hover:bg-indigo-700',
+      badge: 'Manager',
+      icon: 'users',
+      category: 'orders',
+      permission: 'canManageReminders' as const, // super_admin + admin only
+    },
     // Legalization section
     {
       title: 'Embassy Prices',

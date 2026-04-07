@@ -23,6 +23,7 @@ import { db } from '@/firebase/config';
 import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 import type { PassportData } from '@/services/passportService';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import { MADAGASCAR_COUNTRY_FRENCH } from '@/services/formAutomation/madagascarVisa';
 
 
 /** Searchable single-country dropdown */
@@ -63,6 +64,81 @@ function CountryDropdown({ value, onChange, isEn }: { value: string; onChange: (
           {filtered.map(c => (
             <button key={c.code} type="button" onClick={() => { onChange(c.nameEn || c.name); setOpen(false); setSearch(''); }} className={`w-full text-left px-3 py-2 hover:bg-teal-50 flex items-center gap-2 text-sm ${value === c.nameEn || value === c.name ? 'bg-teal-50 font-medium' : ''}`}>
               <span className="text-xs text-gray-400 w-8">({c.code})</span><span>{isEn ? c.nameEn : c.name}</span>
+            </button>
+          ))}
+          {filtered.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">{isEn ? 'No results' : 'Inga resultat'}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Madagascar-specific dropdown that stores French country/nationality names. */
+function FrenchCountryDropdown({ value, onChange, isEn, mode }: { value: string; onChange: (v: string) => void; isEn: boolean; mode: 'country' | 'nationality' }) {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Build a list of supported countries (those with French translations) merged with English/Swedish names from ALL_COUNTRIES
+  const items = Object.entries(MADAGASCAR_COUNTRY_FRENCH).map(([code, fr]) => {
+    const meta = ALL_COUNTRIES.find(c => c.code === code);
+    return {
+      code,
+      french: mode === 'nationality' ? fr.nationality : fr.country,
+      frenchCountry: fr.country,
+      frenchNationality: fr.nationality,
+      nameEn: meta?.nameEn || code,
+      name: meta?.name || code,
+    };
+  }).sort((a, b) => (isEn ? a.nameEn : a.name).localeCompare(isEn ? b.nameEn : b.name));
+
+  const selected = items.find(it => it.french === value);
+
+  const filtered = search.trim()
+    ? items.filter(it => {
+        const t = search.toLowerCase();
+        return (
+          it.name.toLowerCase().includes(t) ||
+          it.nameEn.toLowerCase().includes(t) ||
+          it.code.toLowerCase().includes(t) ||
+          it.frenchCountry.toLowerCase().includes(t) ||
+          it.frenchNationality.toLowerCase().includes(t)
+        );
+      })
+    : items;
+
+  return (
+    <div className="relative" ref={ref}>
+      <div onClick={() => setOpen(true)} className="w-full px-3 py-2 border border-gray-300 rounded-lg cursor-pointer flex items-center justify-between focus-within:ring-2 focus-within:ring-[#0EB0A6]">
+        {selected ? (
+          <span className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">({selected.code})</span>
+            <span>{isEn ? selected.nameEn : selected.name}</span>
+            <span className="text-xs text-gray-500">→ {selected.french}</span>
+          </span>
+        ) : value ? (
+          <span className="flex items-center gap-2"><span>{value}</span></span>
+        ) : (
+          <span className="text-gray-400">{isEn ? 'Select country (French)...' : 'Välj land (franska)...'}</span>
+        )}
+        <span className="text-gray-400">▼</span>
+      </div>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+          <div className="sticky top-0 bg-white p-2 border-b">
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={isEn ? 'Search country...' : 'Sök land...'} className="w-full px-3 py-2 border border-gray-200 rounded text-sm focus:ring-2 focus:ring-[#0EB0A6]" autoFocus />
+          </div>
+          {filtered.map(it => (
+            <button key={it.code} type="button" onClick={() => { onChange(it.french); setOpen(false); setSearch(''); }} className={`w-full text-left px-3 py-2 hover:bg-teal-50 flex items-center gap-2 text-sm ${value === it.french ? 'bg-teal-50 font-medium' : ''}`}>
+              <span className="text-xs text-gray-400 w-8">({it.code})</span>
+              <span className="flex-1">{isEn ? it.nameEn : it.name}</span>
+              <span className="text-xs text-gray-500">{it.french}</span>
             </button>
           ))}
           {filtered.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">{isEn ? 'No results' : 'Inga resultat'}</p>}
@@ -568,6 +644,17 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     .filter(f => formData[f.id] && !isValidPhone(formData[f.id]))
     .map(f => f.id);
 
+  // Validate forward-looking date fields (arrival/departure/expiry) — must not be in the past
+  const todayIso = new Date().toISOString().split('T')[0];
+  const isForwardDate = (id: string) => /arrival|departure|expiry|expiration|validUntil|return|travel/i.test(id);
+  const isPastDate = (id: string) => /birth|dateOfIssue|issueDate|issuanceDate/i.test(id);
+  const dateErrors = fields
+    .filter(f => f.type === 'date' && formData[f.id] && (
+      (isForwardDate(f.id) && formData[f.id] < todayIso) ||
+      (isPastDate(f.id) && formData[f.id] > todayIso)
+    ))
+    .map(f => f.id);
+
   // Conditional visibility rules (same as in render)
   const conditionRules: Record<string, { parent: string; showWhen: string | string[] }> = {
     previousName: { parent: 'haveYouChangedName', showWhen: 'Yes' },
@@ -662,7 +749,7 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
     .map(f => f.id);
 
   const requiredFieldsMissing = missingRequiredFields.length > 0;
-  const hasValidationErrors = requiredFieldsMissing || personnummerErrors.length > 0 || phoneErrors.length > 0;
+  const hasValidationErrors = requiredFieldsMissing || personnummerErrors.length > 0 || phoneErrors.length > 0 || dateErrors.length > 0;
 
   return (
     <>
@@ -904,6 +991,20 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                               {isEn ? field.placeholderEn || field.labelEn : field.placeholder || field.label}
                             </span>
                           </label>
+                        ) : template?.countryCode === 'MG' && ['nativeCountry', 'passportIssuingCountry'].includes(field.id) ? (
+                          <FrenchCountryDropdown
+                            value={formData[field.id] || ''}
+                            onChange={(v) => handleFieldChange(field.id, v)}
+                            isEn={isEn}
+                            mode="country"
+                          />
+                        ) : template?.countryCode === 'MG' && field.id === 'passportNationality' ? (
+                          <FrenchCountryDropdown
+                            value={formData[field.id] || ''}
+                            onChange={(v) => handleFieldChange(field.id, v)}
+                            isEn={isEn}
+                            mode="nationality"
+                          />
                         ) : ['countryOfBirth', 'nationality', 'passportIssuingCountry', 'fatherNationality', 'motherNationality', 'spouseNationality', 'fatherCountryOfBirth', 'motherCountryOfBirth', 'spouseCountryOfBirth', 'otherPassportCountry', 'presentNationality', 'nationalityAtBirth', 'fathersNationality', 'mothersNationality'].includes(field.id) ? (
                           <CountryDropdown
                             value={formData[field.id] || ''}
@@ -955,10 +1056,17 @@ export default function VisaFormPage({ token }: VisaFormPageProps) {
                               value={formData[field.id] || ''}
                               onChange={(e) => handleFieldChange(field.id, e.target.value)}
                               placeholder={isEn ? field.placeholderEn || (field.type === 'phone' ? 'e.g. +46701234567' : undefined) : field.placeholder || (field.type === 'phone' ? 't.ex. +46701234567' : undefined)}
+                              min={field.type === 'date' && /arrival|departure|expiry|expiration|validUntil|return|travel/i.test(field.id) ? new Date().toISOString().split('T')[0] : undefined}
+                              max={field.type === 'date' && /birth|dateOfIssue|issueDate|issuanceDate/i.test(field.id) ? new Date().toISOString().split('T')[0] : undefined}
                               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0EB0A6] focus:border-[#0EB0A6] ${
-                                personnummerErrors.includes(field.id) || phoneErrors.includes(field.id) ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                                personnummerErrors.includes(field.id) || phoneErrors.includes(field.id) || (field.type === 'date' && dateErrors.includes(field.id)) ? 'border-red-400 bg-red-50' : 'border-gray-300'
                               }`}
                             />
+                            {field.type === 'date' && dateErrors.includes(field.id) && (
+                              <p className="text-xs text-red-600 mt-1">
+                                {isEn ? 'Date cannot be in the past' : 'Datumet får inte vara i det förflutna'}
+                              </p>
+                            )}
                             {personnummerErrors.includes(field.id) && (
                               <p className="text-xs text-red-600 mt-1">
                                 {isEn ? 'Must be in format YYYYMMDD-NNNN (e.g. 19900101-1234)' : 'Måste vara i formatet ÅÅÅÅMMDD-NNNN (t.ex. 19900101-1234)'}

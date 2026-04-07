@@ -18,6 +18,7 @@ import type { VisaFormTemplate, FormField as TemplateFormField } from '@/firebas
 import { buildBrazilVisaDataFromOrder, generateBrazilAutoFillScript, generateBrazilSectionScripts } from '@/services/formAutomation/brazilVisaAutofill';
 import type { SectionScript } from '@/services/formAutomation/brazilVisaAutofill';
 import { generateDS160CompleteScript, buildDS160DataFromOrder } from '@/services/formAutomation/usaDS160Autofill';
+import { generateMadagascarScripts, getFrenchCountry, type MadagascarVisaData } from '@/services/formAutomation/madagascarVisa';
 import { toast } from 'react-hot-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateVisaOrder } from '@/firebase/visaOrderService';
@@ -88,6 +89,20 @@ const COUNTRY_CONFIG: Record<string, {
       'Print the PDF and submit to the embassy',
     ],
   },
+  MG: {
+    label: 'Madagascar',
+    flag: '🇲🇬',
+    websiteUrl: 'https://evisamada.gov.mg/',
+    websiteLabel: 'Madagascar e-Visa',
+    color: 'yellow',
+    hasAutoFill: true,
+    instructions: [
+      'Open the Madagascar e-Visa website and start a new application',
+      'On Page 1 (Personal + Passport): click "Copy Page 1 Script", paste in browser console (F12 → Console)',
+      'Continue to Page 2, click "Copy Page 2 Script" and paste in console',
+      'Review all fields manually before submitting — French autocomplete fields may need confirmation',
+    ],
+  },
   US: {
     label: 'USA',
     flag: '🇺🇸',
@@ -127,10 +142,24 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
   const [matchedTemplateName, setMatchedTemplateName] = useState<string>('');
 
   const countryCode = order.destinationCountryCode || '';
-  const countryConfig = COUNTRY_CONFIG[countryCode] || null;
   const travelers = order.travelers || [];
   const traveler = travelers[selectedTraveler];
   const hasHardcodedFields = countryCode === 'BR';
+  const isEstaOrder = order.visaProduct?.visaType === 'ESTA' || /esta/i.test(order.visaProduct?.id || '');
+  const countryConfig = isEstaOrder ? {
+    label: 'USA — ESTA',
+    flag: '🇺🇸',
+    websiteUrl: 'https://esta.cbp.dhs.gov/',
+    websiteLabel: 'ESTA Application (CBP)',
+    color: 'blue',
+    hasAutoFill: false,
+    instructions: [
+      'Open the official ESTA website: https://esta.cbp.dhs.gov',
+      'Start a new application and use the data collected from the customer form below',
+      'Upload the customer\'s passport copy when needed (no biometric photo is required for ESTA)',
+      'After submission, save the application number and confirmation page',
+    ],
+  } : (COUNTRY_CONFIG[countryCode] || null);
 
   // Dynamically load template fields for countries without hardcoded config
   useEffect(() => {
@@ -138,7 +167,9 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     const loadTemplate = async () => {
       setLoadingTemplate(true);
       try {
-        const visaCategory = order.visaProduct?.category || order.visaCategory || '';
+        // ESTA detection: products with visaType='ESTA' or id containing 'esta' use the ESTA template
+        const isEsta = order.visaProduct?.visaType === 'ESTA' || /esta/i.test(order.visaProduct?.id || '');
+        const visaCategory = isEsta ? 'esta' : (order.visaProduct?.category || order.visaCategory || '');
         const productId = order.visaProduct?.id || '';
         const template = await getTemplateForProduct(countryCode || 'all', visaCategory, productId);
         if (template && template.fields.length > 0) {
@@ -396,6 +427,59 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     setManualFields(prev => ({ ...prev, [fieldId]: value }));
   };
 
+  // Build Madagascar visa data from merged form data + selected traveler
+  const buildMadagascarData = (): MadagascarVisaData | null => {
+    const splitDate = (iso: string) => {
+      if (!iso) return { d: '', m: '', y: '' };
+      const parts = iso.split('-');
+      if (parts.length !== 3) return { d: '', m: '', y: '' };
+      return { y: parts[0], m: parts[1], d: parts[2] };
+    };
+    const dob = splitDate(getFieldValue('dateOfBirth'));
+    const issue = splitDate(getFieldValue('passportIssueDate'));
+    const expiry = splitDate(getFieldValue('passportExpiryDate'));
+    const arr = splitDate(getFieldValue('arrivalDate'));
+    const dep = splitDate(getFieldValue('departureDate'));
+
+    // Derive French country/nationality from ISO code if user didn't enter French names
+    const traveler = order.travelers?.[selectedTraveler] || {};
+    const isoNat = (traveler.nationality || traveler.passportCountry || 'SE').toUpperCase();
+    const french = getFrenchCountry(isoNat);
+
+    return {
+      lastName: getFieldValue('lastName') || traveler.lastName || '',
+      firstName: getFieldValue('firstName') || traveler.firstName || '',
+      birthDay: dob.d,
+      birthMonth: dob.m,
+      birthYear: dob.y,
+      nativeCountry: getFieldValue('nativeCountry') || french.country,
+      gender: (getFieldValue('gender') || 'M') as 'M' | 'F',
+
+      passportType: (getFieldValue('passportType') || 'O') as 'O' | 'D' | 'S',
+      passportIssuingCountry: getFieldValue('passportIssuingCountry') || french.country,
+      passportNumber: getFieldValue('passportNumber') || traveler.passportNumber || '',
+      passportNationality: getFieldValue('passportNationality') || french.nationality,
+      passportIssueDay: issue.d,
+      passportIssueMonth: issue.m,
+      passportIssueYear: issue.y,
+      passportExpiryDay: expiry.d,
+      passportExpiryMonth: expiry.m,
+      passportExpiryYear: expiry.y,
+
+      arrivalDay: arr.d,
+      arrivalMonth: arr.m,
+      arrivalYear: arr.y,
+      departureDay: dep.d,
+      departureMonth: dep.m,
+      departureYear: dep.y,
+      pointOfEntry: getFieldValue('pointOfEntry') || 'TNR',
+      visaDuration: getFieldValue('visaDuration') || '30',
+
+      phoneNumber: getFieldValue('phoneNumber') || order.customerInfo?.phone || '',
+      email: getFieldValue('email') || order.customerInfo?.email || '',
+    };
+  };
+
   // Generate and copy full script (legacy)
   const handleCopyScript = async () => {
     if (countryCode === 'BR') {
@@ -410,6 +494,21 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
         await navigator.clipboard.writeText(script);
         setScriptCopied(true);
         toast.success('DPVN auto-fill script copied to clipboard!');
+        setTimeout(() => setScriptCopied(false), 5000);
+      } catch {
+        toast.error('Failed to copy to clipboard');
+      }
+    } else if (countryCode === 'MG') {
+      const data = buildMadagascarData();
+      if (!data) {
+        toast.error('Could not build Madagascar visa data');
+        return;
+      }
+      const { page1 } = generateMadagascarScripts(data);
+      try {
+        await navigator.clipboard.writeText(page1);
+        setScriptCopied(true);
+        toast.success('Madagascar Page 1 script copied! Paste in browser console on the e-Visa site.');
         setTimeout(() => setScriptCopied(false), 5000);
       } catch {
         toast.error('Failed to copy to clipboard');
@@ -432,6 +531,24 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
 
   // Copy a single section script to clipboard
   const handleCopySectionScript = async (sectionId: string) => {
+    if (countryCode === 'MG') {
+      const data = buildMadagascarData();
+      if (!data) {
+        toast.error('Could not build Madagascar visa data');
+        return;
+      }
+      const scripts = generateMadagascarScripts(data);
+      const script = sectionId === 'page2' ? scripts.page2 : scripts.page1;
+      try {
+        await navigator.clipboard.writeText(script);
+        setCopiedSection(sectionId);
+        toast.success(`Madagascar ${sectionId === 'page2' ? 'Page 2' : 'Page 1'} script copied!`);
+        setTimeout(() => setCopiedSection(null), 3000);
+      } catch {
+        toast.error('Failed to copy to clipboard');
+      }
+      return;
+    }
     if (countryCode === 'BR') {
       const mergedData = getMergedData();
       const data = buildBrazilVisaDataFromOrder(order, selectedTraveler, mergedData, uploadedDocs);
@@ -511,7 +628,7 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
           Country: <strong>{countryCode || '—'}</strong>
         </span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border text-gray-700">
-          Category: <strong>{order.visaProduct?.category || order.visaCategory || '—'}</strong>
+          Category: <strong>{(order.visaProduct?.visaType === 'ESTA' || /esta/i.test(order.visaProduct?.id || '')) ? 'esta' : (order.visaProduct?.category || order.visaCategory || '—')}</strong>
         </span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white border text-gray-700">
           Product ID: <strong className="font-mono">{order.visaProduct?.id || '—'}</strong>
@@ -596,24 +713,32 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { id: 'passportCopy', label: 'Passport Copy (first page)', accept: '.jpg,.jpeg,.png,.pdf', icon: '📘', scannable: true },
+              { id: 'passportCopy', label: isEstaOrder ? 'Passport Copy (first page) — REQUIRED for ESTA upload' : 'Passport Copy (first page)', accept: '.jpg,.jpeg,.png,.pdf', icon: '📘', scannable: true, required: isEstaOrder },
               ...(countryCode === 'BR' ? [
-                { id: 'personbevis', label: 'Personbevis (Population Register)', accept: '.jpg,.jpeg,.png,.pdf', icon: '📋', scannable: true },
-                { id: 'criminalRecord', label: 'Criminal Record Extract', accept: '.jpg,.jpeg,.png,.pdf', icon: '📄', scannable: true },
+                { id: 'personbevis', label: 'Personbevis (Population Register)', accept: '.jpg,.jpeg,.png,.pdf', icon: '📋', scannable: true, required: false },
+                { id: 'criminalRecord', label: 'Criminal Record Extract', accept: '.jpg,.jpeg,.png,.pdf', icon: '📄', scannable: true, required: false },
               ] : []),
-              { id: 'passportPhoto', label: 'Passport Photo (biometric)', accept: '.jpg,.jpeg,.png', icon: '📷', scannable: false },
+              // ESTA does NOT require a photo (only DS-160 / B1/B2 visa does)
+              ...(isEstaOrder ? [] : [
+                { id: 'passportPhoto', label: 'Passport Photo (biometric)', accept: '.jpg,.jpeg,.png', icon: '📷', scannable: false, required: false },
+              ]),
             ].map(docType => {
               const existing = uploadedDocs.find(d => d.id === `${docType.id}_${selectedTraveler}`);
               const isUploading = uploading === docType.id;
               const ocr = ocrStatuses[docType.id];
+              const missingRequired = docType.required && !existing;
               return (
-                <div key={docType.id} className={`border rounded-lg p-4 ${docType.scannable ? 'border-blue-200 bg-blue-50/30' : ''}`}>
+                <div key={docType.id} className={`border rounded-lg p-4 ${missingRequired ? 'border-red-300 bg-red-50' : docType.scannable ? 'border-blue-200 bg-blue-50/30' : ''}`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">
                       {docType.icon} {docType.label}
+                      {docType.required && <span className="text-red-500 ml-1">*</span>}
                       {docType.scannable && <span className="ml-1 text-xs text-blue-500 font-normal">(auto-scan)</span>}
                     </span>
                   </div>
+                  {missingRequired && (
+                    <p className="text-xs text-red-600 mb-2">⚠️ Required — must be uploaded before submitting to the embassy site</p>
+                  )}
                   {existing ? (
                     <div className="flex items-center gap-2">
                       <a
@@ -783,6 +908,48 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
           </div>
         ))}
       </div>
+
+      {/* Madagascar per-page copy buttons */}
+      {countryConfig?.hasAutoFill && countryCode === 'MG' && (
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <span>🇲🇬</span> Madagascar e-Visa Auto-fill Scripts
+            </h3>
+            {countryConfig.websiteUrl && (
+              <a
+                href={countryConfig.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                🌐 Open Madagascar e-Visa
+              </a>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Navigate to each page on the Madagascar e-Visa site, then click the corresponding button to copy the script and paste in the browser console (F12 → Console).
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {[
+              { id: 'page1', label: '📄 Page 1 — Personal + Passport' },
+              { id: 'page2', label: '📄 Page 2 — Stay + Contact' },
+            ].map(sec => (
+              <button
+                key={sec.id}
+                onClick={() => handleCopySectionScript(sec.id)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium border transition-colors ${
+                  copiedSection === sec.id
+                    ? 'bg-green-50 border-green-300 text-green-700'
+                    : 'bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100'
+                }`}
+              >
+                {copiedSection === sec.id ? '✅ Copied!' : sec.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Per-section copy buttons */}
       {countryConfig?.hasAutoFill && countryCode === 'BR' && (
