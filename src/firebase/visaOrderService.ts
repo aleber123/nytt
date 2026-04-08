@@ -136,6 +136,7 @@ export interface VisaOrder {
     price: number;
     icon?: string;
     formTemplateId?: string;
+    processingStep?: { name: string; description: string; insertAfter: string };
   }[];
   
   // Pricing
@@ -226,7 +227,12 @@ export const getDefaultVisaProcessingSteps = (
     pickupService?: boolean;
     confirmReturnAddressLater?: boolean;
     returnAddressConfirmed?: boolean;
-    addOnServices?: { id: string; name: string; formTemplateId?: string }[];
+    addOnServices?: {
+      id: string;
+      name: string;
+      formTemplateId?: string;
+      processingStep?: { name: string; description: string; insertAfter: string };
+    }[];
   }
 ): VisaProcessingStep[] => {
   const isEVisa = order.visaProduct?.visaType === 'e-visa';
@@ -432,6 +438,40 @@ export const getDefaultVisaProcessingSteps = (
     description: 'Create and send invoice to the customer',
     status: 'pending'
   });
+
+  // Inject addon-specific processing steps after the matching base step.
+  // Each addon with a `processingStep` config gets its own step in the workflow
+  // so handlers see it and can mark it done — even for addons without forms.
+  const addonStepEntries = (order.addOnServices || [])
+    .filter(a => a.processingStep && a.processingStep.name)
+    .map(a => ({
+      addonId: a.id,
+      addonName: a.name,
+      step: a.processingStep!,
+    }));
+
+  for (const entry of addonStepEntries) {
+    const newStep: VisaProcessingStep = {
+      id: `addon_${entry.addonId}`,
+      name: entry.step.name,
+      description: entry.step.description || `Addon: ${entry.addonName}`,
+      status: 'pending',
+    };
+
+    // Find the index of the base step to insert after
+    const baseIdx = steps.findIndex(s => s.id === entry.step.insertAfter);
+    if (baseIdx >= 0) {
+      steps.splice(baseIdx + 1, 0, newStep);
+    } else {
+      // Base step not found for this order type → insert before invoicing
+      const invoiceIdx = steps.findIndex(s => s.id === 'invoicing');
+      if (invoiceIdx >= 0) {
+        steps.splice(invoiceIdx, 0, newStep);
+      } else {
+        steps.push(newStep);
+      }
+    }
+  }
 
   return steps;
 };

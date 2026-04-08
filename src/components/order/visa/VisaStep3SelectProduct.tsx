@@ -214,7 +214,14 @@ export default function VisaStep3SelectProduct({
     const mergedAddons = getMergedAddons(product);
     const selectedAddOnServices = mergedAddons
       .filter(a => a.includedInProduct || addOns.has(a.id))
-      .map(a => ({ id: a.id, name: a.name, nameEn: a.nameEn, price: a.includedInProduct ? 0 : a.price, ...(a.formTemplateId ? { formTemplateId: a.formTemplateId } : {}) }));
+      .map(a => ({
+        id: a.id,
+        name: a.name,
+        nameEn: a.nameEn,
+        price: a.includedInProduct ? 0 : a.price,
+        ...(a.formTemplateId ? { formTemplateId: a.formTemplateId } : {}),
+        ...((a as any).processingStep ? { processingStep: (a as any).processingStep } : {}),
+      }));
 
     onUpdate({
       selectedVisaProduct: selectedProduct,

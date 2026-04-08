@@ -107,6 +107,16 @@ function AdminIndexPage() {
       permission: 'canManagePricing' as const,
     },
     {
+      title: 'Hague Convention Countries',
+      description: 'Add or remove countries from the Hague Apostille list — affects which services are shown in the order flow',
+      href: '/admin/hague-countries',
+      color: 'bg-amber-500 hover:bg-amber-600',
+      icon: 'building',
+      badge: 'Apostille',
+      category: 'legalization',
+      permission: 'canManageVisaRequirements' as const,
+    },
+    {
       title: 'Standard Prices',
       description: 'Configure prices for legalization services (notarization, apostille, etc.)',
       href: '/admin/standard-services-prices',

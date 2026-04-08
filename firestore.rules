@@ -263,6 +263,14 @@ service cloud.firestore {
       allow read, write: if isAdmin() || isDoxStaff();
     }
 
+    // HAGUE CONVENTION COUNTRIES – dynamic apostille membership list
+    // Read is public because the order flow runs unauthenticated on /bestall.
+    // Only admins/staff can modify the list.
+    match /hagueCountries/{countryCode} {
+      allow read: if true;
+      allow write: if isAdmin() || isDoxStaff();
+    }
+
     // ADMIN USERS – role-based access control for admin panel
     match /adminUsers/{userId} {
       // Allow authenticated users to read their own admin user document

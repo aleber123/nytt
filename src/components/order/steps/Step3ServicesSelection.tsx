@@ -8,7 +8,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps, Service } from '../types';
-import { HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
+import { useHagueCountries } from '@/hooks/useHagueCountries';
 import CountryFlag from '../../ui/CountryFlag';
 import { PREDEFINED_DOCUMENT_TYPES } from '@/firebase/pricingService';
 
@@ -30,7 +30,8 @@ export const Step3ServicesSelection: React.FC<Step3Props> = ({
 }) => {
   const { t } = useTranslation('common');
 
-  const isHagueCountry = HAGUE_CONVENTION_COUNTRIES.includes(answers.country);
+  const { isHague } = useHagueCountries();
+  const isHagueCountry = isHague(answers.country);
 
   const [isNotarizationModalOpen, setIsNotarizationModalOpen] = React.useState(false);
   const [isTranslationModalOpen, setIsTranslationModalOpen] = React.useState(false);

@@ -88,8 +88,86 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
     }
   };
 
+  // ── ADDONS BANNER STATE ──
+  // Each addon has a `done` toggle stored on order.addOnServiceDoneFlags as a map.
+  const addOnServices = (order as any)?.addOnServices || [];
+  const addonDoneFlags = (order as any)?.addOnServiceDoneFlags || {};
+  const toggleAddonDone = async (addonId: string, current: boolean) => {
+    try {
+      const next = { ...addonDoneFlags, [addonId]: !current };
+      await adminUpdateOrder(orderId, { addOnServiceDoneFlags: next });
+      setOrder({ ...order, addOnServiceDoneFlags: next });
+    } catch {
+      toast.error('Failed to update addon status');
+    }
+  };
+
   return (
                 <div className="space-y-6">
+                    {/* Active Add-on Services banner — visual reminder for handlers
+                        to deliver each addon, even those not tied to a processing step */}
+                    {addOnServices.length > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-semibold text-emerald-900">
+                            🎁 Active Add-on Services ({addOnServices.length})
+                          </h3>
+                          <span className="text-xs text-emerald-700">
+                            Mark each addon as done when delivered
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {addOnServices.map((addon: any) => {
+                            const isDone = !!addonDoneFlags[addon.id];
+                            const hasStep = !!addon.processingStep;
+                            return (
+                              <div
+                                key={addon.id}
+                                className={`flex items-start gap-3 p-3 rounded-md border ${
+                                  isDone
+                                    ? 'bg-green-100 border-green-300'
+                                    : 'bg-white border-emerald-200'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isDone}
+                                  onChange={() => toggleAddonDone(addon.id, isDone)}
+                                  className="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`text-sm font-medium ${isDone ? 'text-green-900 line-through' : 'text-gray-900'}`}>
+                                      {addon.nameEn || addon.name}
+                                    </span>
+                                    <span className="text-xs text-gray-500">— {addon.price} kr</span>
+                                    {hasStep && (
+                                      <span
+                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700"
+                                        title={`This addon also has a dedicated step in the workflow: ${addon.processingStep.name}`}
+                                      >
+                                        ⚙️ STEP
+                                      </span>
+                                    )}
+                                    {addon.formTemplateId && (
+                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                                        📝 FORM
+                                      </span>
+                                    )}
+                                  </div>
+                                  {hasStep && (
+                                    <p className="text-xs text-gray-600 mt-0.5">
+                                      ⚙️ {addon.processingStep.name}: {addon.processingStep.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-medium">Processing steps</h3>

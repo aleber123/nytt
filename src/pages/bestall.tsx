@@ -35,6 +35,7 @@ import Step9CustomerInfo from '@/components/order/steps/Step9CustomerInfo';
 import Step10ReviewSubmit from '@/components/order/steps/Step10ReviewSubmit';
 import OrderSummary from '@/components/order/OrderSummary';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
+import { useHagueCountries } from '@/hooks/useHagueCountries';
 
 interface TestOrderPageProps {}
 
@@ -218,14 +219,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Hague Convention countries (apostille available)
-  const hagueConventionCountries = [
-    'SE', 'NO', 'DK', 'FI', 'DE', 'GB', 'US', 'FR', 'ES', 'IT', 'NL', 'PL',
-    'AT', 'BE', 'CH', 'CZ', 'EE', 'GR', 'HU', 'IE', 'IS', 'LI', 'LT', 'LU',
-    'LV', 'MT', 'PT', 'SK', 'SI', 'BG', 'HR', 'CY', 'RO', 'TR', 'AU', 'CA',
-    'JP', 'KR', 'MX', 'NZ', 'ZA', 'PH', 'CN', 'IN', 'BR', 'AR', 'CL', 'CO',
-    'PE', 'EC', 'UY', 'PY', 'BO', 'CR', 'PA', 'DO', 'SV', 'GT', 'HN', 'NI'
-  ];
+  // Hague Convention countries — loaded dynamically from Firestore via the
+  // useHagueCountries hook. The hardcoded HAGUE_CONVENTION_COUNTRIES list in
+  // countries.ts is the synchronous fallback used until Firestore responds.
+  const { codes: hagueCountrySet } = useHagueCountries();
 
   // Popular countries sorted by selection frequency (most popular first)
   // Mix of Hague Convention countries (HC) and non-Hague countries (require embassy legalization)
@@ -303,7 +300,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   });
 
   const isHagueConventionCountry = (countryCode: string) => {
-    return hagueConventionCountries.includes(countryCode);
+    if (!countryCode) return false;
+    return hagueCountrySet.has(countryCode.toUpperCase());
   };
 
   const [availableServices, setAvailableServices] = useState<any[]>([]);

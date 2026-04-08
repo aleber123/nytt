@@ -818,6 +818,94 @@ function AdminVisaAddonsPage() {
                   </label>
                 </div>
 
+                {/* Processing Step (optional) — shows in handler workflow */}
+                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-indigo-900">⚙️ Processing Step (optional)</h3>
+                      <p className="text-xs text-indigo-700 mt-0.5">
+                        When set, this addon adds a dedicated step in the order processing workflow so handlers see it and can mark it done.
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer ml-4 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={!!editingAddon.processingStep}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            updateEditField('processingStep', {
+                              name: editingAddon.processingStep?.name || '',
+                              description: editingAddon.processingStep?.description || '',
+                              insertAfter: editingAddon.processingStep?.insertAfter || 'visa_result',
+                            });
+                          } else {
+                            updateEditField('processingStep', undefined);
+                          }
+                        }}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs font-medium text-indigo-900">Enable</span>
+                    </label>
+                  </div>
+                  {editingAddon.processingStep && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Step name (with emoji)</label>
+                        <input
+                          type="text"
+                          value={editingAddon.processingStep.name || ''}
+                          onChange={(e) => updateEditField('processingStep', {
+                            ...editingAddon.processingStep!,
+                            name: e.target.value,
+                          })}
+                          placeholder="e.g. 📷 Scan visa before return"
+                          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Step description</label>
+                        <textarea
+                          value={editingAddon.processingStep.description || ''}
+                          onChange={(e) => updateEditField('processingStep', {
+                            ...editingAddon.processingStep!,
+                            description: e.target.value,
+                          })}
+                          rows={2}
+                          placeholder="e.g. Scan the visa page in high quality and email it to the customer before sending the passport back"
+                          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Insert after step</label>
+                        <select
+                          value={editingAddon.processingStep.insertAfter || 'visa_result'}
+                          onChange={(e) => updateEditField('processingStep', {
+                            ...editingAddon.processingStep!,
+                            insertAfter: e.target.value,
+                          })}
+                          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          <option value="order_verification">After ✓ Order verification</option>
+                          <option value="send_document_instructions">After 📋 Send document instructions</option>
+                          <option value="data_collection_form">After 📩 Awaiting customer data</option>
+                          <option value="documents_received">After 📄 Documents received / uploaded</option>
+                          <option value="quality_control">After 🔍 Quality control</option>
+                          <option value="application_preparation">After 📝 Application preparation</option>
+                          <option value="portal_submission">After 🌐 Submit to e-visa portal (e-visa only)</option>
+                          <option value="visa_result">After 📋 Visa result</option>
+                          <option value="evisa_delivery">After 📧 E-Visa delivery (e-visa only)</option>
+                          <option value="embassy_pickup">After 📦 Embassy – pick up (sticker only)</option>
+                          <option value="prepare_return">After 📦 Prepare return (sticker only)</option>
+                          <option value="return_shipping">After 🚚 Return shipment sent (sticker only)</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          If the chosen base step doesn't exist for an order (e.g. e-visa without embassy steps), this addon step is appended right before invoicing.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Required Fields */}
                 <div className="bg-blue-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">

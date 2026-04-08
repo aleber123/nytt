@@ -35,11 +35,38 @@ export interface VisaAddon {
   requiredFields: AddonRequiredField[];
   // Link to a form template for data collection (if addon needs extra info from customer)
   formTemplateId?: string;
+  // Optional: when set, this addon injects a dedicated processing step into
+  // the visa order so handlers see it in the workflow and can mark it done.
+  // Without this, the addon only shows as a chip on the order overview.
+  processingStep?: AddonProcessingStep;
   // Metadata
   createdAt: string;
   updatedAt: string;
   createdBy: string;
   updatedBy: string;
+}
+
+export interface AddonProcessingStep {
+  /** Display name of the step, e.g. "📷 Scan visa before return" */
+  name: string;
+  /** Internal description shown on the processing tab */
+  description: string;
+  /**
+   * Where to place this step in the existing workflow. The step is inserted
+   * AFTER the matching base step id. If the base step doesn't exist for
+   * this order type, the addon step is appended near the end (before invoicing).
+   *
+   * Common values:
+   *  - 'order_verification'
+   *  - 'send_document_instructions'
+   *  - 'documents_received'
+   *  - 'quality_control'
+   *  - 'application_preparation'
+   *  - 'visa_result'             ← good for "scan visa before return"
+   *  - 'embassy_pickup'
+   *  - 'prepare_return'
+   */
+  insertAfter: string;
 }
 
 export interface AddonRequiredField {
@@ -147,6 +174,7 @@ export const saveVisaAddon = async (addon: Partial<VisaAddon> & { id?: string },
       includedInProduct: addon.includedInProduct ?? false,
       sortOrder: addon.sortOrder ?? 100,
       requiredFields: addon.requiredFields || [],
+      ...(addon.processingStep ? { processingStep: addon.processingStep } : {}),
       createdAt: now,
       updatedAt: now,
       createdBy: updatedBy,

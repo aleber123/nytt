@@ -7,7 +7,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { StepContainer } from '../shared/StepContainer';
 import { StepProps, Country } from '../types';
-import { ALL_COUNTRIES, HAGUE_CONVENTION_COUNTRIES } from '../data/countries';
+import { ALL_COUNTRIES } from '../data/countries';
+import { useHagueCountries } from '@/hooks/useHagueCountries';
 import CountryFlag from '../../ui/CountryFlag';
 import { trackCountrySelection, getPopularCountries, CountryPopularity } from '@/firebase/pricingService';
 
@@ -94,8 +95,9 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const { isHague } = useHagueCountries();
   const selectedCountryName = answers.country ? getCountryName(answers.country) : '';
-  const isHagueCountry = HAGUE_CONVENTION_COUNTRIES.includes(answers.country);
+  const isHagueCountry = isHague(answers.country);
   const isOtherCountry = answers.country === 'other';
 
   return (
