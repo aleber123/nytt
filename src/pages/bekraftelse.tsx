@@ -194,9 +194,9 @@ export function ConfirmationPage() {
       case 'stockholm-sameday':
         return 'Stockholm Same Day';
       case 'own-delivery':
-        return 'Egen returfrakt (redan bokad)';
+        return router.locale === 'en' ? 'Own return shipping (already booked)' : 'Egen returfrakt (redan bokad)';
       case 'office-pickup':
-        return 'Hämtning på vårt kontor';
+        return router.locale === 'en' ? 'Pickup at our office' : 'Hämtning på vårt kontor';
       default:
         return serviceId;
     }
@@ -309,12 +309,12 @@ export function ConfirmationPage() {
                         </p>
                         {order.customerNumber && (
                           <p className="text-gray-700 break-words">
-                            <span className="font-medium">Kundnummer:</span> {order.customerNumber}
+                            <span className="font-medium">{router.locale === 'en' ? 'Customer number:' : 'Kundnummer:'}</span> {order.customerNumber}
                           </p>
                         )}
                         {order.invoiceReference && (
                           <p className="text-gray-700 break-words">
-                            <span className="font-medium">Fakturareferens:</span> {order.invoiceReference}
+                            <span className="font-medium">{router.locale === 'en' ? 'Invoice reference:' : 'Fakturareferens:'}</span> {order.invoiceReference}
                           </p>
                         )}
                       </div>
@@ -359,11 +359,12 @@ export function ConfirmationPage() {
                       <h3 className="text-lg font-heading font-semibold text-gray-900 mb-4">{t('confirmation.orderDetails')}:</h3>
                       <div className="space-y-3">
                         <p className="text-gray-700">
-                          <span className="font-medium">Dokumenttyp:</span> {
+                          <span className="font-medium">{router.locale === 'en' ? 'Document type:' : 'Dokumenttyp:'}</span> {
                             (() => {
+                              const isEn = router.locale === 'en';
                               const getDocTypeName = (typeId: string): string => {
                                 const predefined = PREDEFINED_DOCUMENT_TYPES.find(dt => dt.id === typeId);
-                                if (predefined) return predefined.name;
+                                if (predefined) return isEn ? (predefined.nameEn || predefined.name) : predefined.name;
                                 if (typeId.startsWith('custom_')) {
                                   const name = typeId.replace('custom_', '').replace(/_/g, ' ');
                                   return name.charAt(0).toUpperCase() + name.slice(1);
@@ -373,21 +374,23 @@ export function ConfirmationPage() {
                               const types = Array.isArray(order.documentTypes) && order.documentTypes.length > 0
                                 ? order.documentTypes
                                 : order.documentType ? [order.documentType] : [];
-                              return types.map(getDocTypeName).join(', ') || 'Annat dokument';
+                              return types.map(getDocTypeName).join(', ') || (isEn ? 'Other document' : 'Annat dokument');
                             })()
                           }
                         </p>
                         <p className="text-gray-700">
-                          <span className="font-medium">Antal dokument:</span> {order.quantity} st
+                          <span className="font-medium">{router.locale === 'en' ? 'Number of documents:' : 'Antal dokument:'}</span> {order.quantity} {router.locale === 'en' ? 'pcs' : 'st'}
                         </p>
                         <p className="text-gray-700">
-                          <span className="font-medium">Dokumentkälla:</span> {
-                            order.documentSource === 'original' ? 'Originaldokument' : 'Uppladdade kopior'
+                          <span className="font-medium">{router.locale === 'en' ? 'Document source:' : 'Dokumentkälla:'}</span> {
+                            order.documentSource === 'original'
+                              ? (router.locale === 'en' ? 'Original documents' : 'Originaldokument')
+                              : (router.locale === 'en' ? 'Uploaded copies' : 'Uppladdade kopior')
                           }
                         </p>
                         {order.expedited && (
                           <p className="text-gray-700">
-                            <span className="font-medium">Expressbehandling:</span> Ja
+                            <span className="font-medium">{router.locale === 'en' ? 'Express processing:' : 'Expressbehandling:'}</span> {router.locale === 'en' ? 'Yes' : 'Ja'}
                           </p>
                         )}
                       </div>
@@ -398,17 +401,17 @@ export function ConfirmationPage() {
                       <div className="space-y-3">
                         {order.scannedCopies && (
                           <p className="text-gray-700">
-                            <span className="font-medium">Scannade kopior:</span> Ja (+{200 * order.quantity} kr)
+                            <span className="font-medium">{router.locale === 'en' ? 'Scanned copies:' : 'Scannade kopior:'}</span> {router.locale === 'en' ? 'Yes' : 'Ja'} (+{200 * order.quantity} kr)
                           </p>
                         )}
                         {order.pickupService && (
                           <p className="text-gray-700">
-                            <span className="font-medium">Dokumenthämtning:</span> Ja (+450 kr)
+                            <span className="font-medium">{router.locale === 'en' ? 'Document pickup:' : 'Dokumenthämtning:'}</span> {router.locale === 'en' ? 'Yes' : 'Ja'} (+450 kr)
                           </p>
                         )}
                         {order.returnService && (
                           <p className="text-gray-700">
-                            <span className="font-medium">Returfrakt:</span> {getReturnServiceName(order.returnService)}
+                            <span className="font-medium">{router.locale === 'en' ? 'Return shipping:' : 'Returfrakt:'}</span> {getReturnServiceName(order.returnService)}
                           </p>
                         )}
                       </div>
@@ -422,7 +425,11 @@ export function ConfirmationPage() {
                       <div className="space-y-2">
                         <p className="text-orange-700 font-medium">{order.pickupAddress.street}</p>
                         <p className="text-orange-700 font-medium">{order.pickupAddress.postalCode} {order.pickupAddress.city}</p>
-                        <p className="text-orange-600 text-sm mt-3">Vi kontaktar dig inom 24 timmar för att boka hämtning.</p>
+                        <p className="text-orange-600 text-sm mt-3">
+                          {router.locale === 'en'
+                            ? 'We will contact you within 24 hours to schedule pickup.'
+                            : 'Vi kontaktar dig inom 24 timmar för att boka hämtning.'}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -442,11 +449,15 @@ export function ConfirmationPage() {
                       <div className="space-y-2">
                         {order.uploadedFiles.map((file: any, index: number) => (
                           <p key={index} className="text-green-700">
-                            • {file.name || `Dokument ${index + 1}`} ({file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Okänd storlek'})
+                            • {file.name || (router.locale === 'en' ? `Document ${index + 1}` : `Dokument ${index + 1}`)} ({file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : (router.locale === 'en' ? 'Unknown size' : 'Okänd storlek')})
                           </p>
                         ))}
                       </div>
-                      <p className="text-green-600 text-sm mt-3">Filer har sparats och kommer att bearbetas.</p>
+                      <p className="text-green-600 text-sm mt-3">
+                        {router.locale === 'en'
+                          ? 'Files have been saved and will be processed.'
+                          : 'Filer har sparats och kommer att bearbetas.'}
+                      </p>
                     </div>
                   )}
                   
@@ -477,9 +488,21 @@ export function ConfirmationPage() {
                         <h3 className="text-lg font-heading font-semibold text-blue-800">{t('confirmation.invoiceInfo')}</h3>
                       </div>
                       <div className="space-y-3">
-                        <p className="text-gray-700">En faktura kommer skickats till din e-postadress: <span className="font-medium">{order.customerInfo.email}</span></p>
-                        <p className="text-gray-700">Betalningsvillkor: <span className="font-medium">14 dagar</span></p>
-                        <p className="text-gray-700">Betalningsinformation finns i fakturan.</p>
+                        <p className="text-gray-700">
+                          {router.locale === 'en'
+                            ? <>An invoice will be sent to your email: <span className="font-medium">{order.customerInfo.email}</span></>
+                            : <>En faktura kommer skickats till din e-postadress: <span className="font-medium">{order.customerInfo.email}</span></>}
+                        </p>
+                        <p className="text-gray-700">
+                          {router.locale === 'en'
+                            ? <>Payment terms: <span className="font-medium">14 days</span></>
+                            : <>Betalningsvillkor: <span className="font-medium">14 dagar</span></>}
+                        </p>
+                        <p className="text-gray-700">
+                          {router.locale === 'en'
+                            ? 'Payment details are included in the invoice.'
+                            : 'Betalningsinformation finns i fakturan.'}
+                        </p>
                       </div>
                     </div>
                   )}
