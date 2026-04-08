@@ -207,44 +207,112 @@ exports.verifyOrderRecaptcha = functions.firestore
     return null;
   });
 
+// Helper: actually send a customerEmails document. Used by both the onCreate
+// trigger and the scheduled processor.
+async function deliverCustomerEmail(snap) {
+  const emailData = snap.data();
+  if (!emailData) return null;
+
+  try {
+    const mailOptions = {
+      from: `"DOX Visumpartner" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      to: emailData.email,
+      subject: emailData.subject || 'Bekräftelse på din beställning',
+      html: emailData.message,
+      text: (emailData.message || '').replace(/<[^>]*>?/gm, ''),
+      attachments: emailData.attachments || []
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Customer email sent to ${emailData.email}`);
+
+    await snap.ref.update({
+      status: 'sent',
+      sentAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return null;
+  } catch (error) {
+    console.error('Error sending customer email:', error);
+    await snap.ref.update({
+      status: 'error',
+      error: error.message,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    throw error;
+  }
+}
+
 // Cloud Function triggered when a new customer email needs to be sent
 exports.sendCustomerConfirmationEmail = functions.firestore
   .document('customerEmails/{emailId}')
   .onCreate(async (snap, context) => {
     const emailData = snap.data();
-    
+
     // Skip if already processed
     if (emailData.status === 'sent') return null;
-    
-    try {
-      const mailOptions = {
-        from: `"DOX Visumpartner" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-        to: emailData.email,
-        subject: emailData.subject || 'Bekräftelse på din beställning',
-        html: emailData.message,
-        text: emailData.message.replace(/<[^>]*>?/gm, ''), // Strip HTML for plain text version
-        attachments: emailData.attachments || []
-      };
-      
-      // Send email
-      await transporter.sendMail(mailOptions);
-      console.log(`Customer confirmation email sent to ${emailData.email}`);
-      
-      // Update status
-      await snap.ref.update({
-        status: 'sent',
-        sentAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      
+
+    // Scheduled delivery: when sendAt is in the future (or status is already
+    // 'scheduled'), don't send now — leave it for the processScheduledEmails
+    // scheduled function to pick up at the right time.
+    const now = Date.now();
+    let sendAtMs = null;
+    if (emailData.sendAt) {
+      if (typeof emailData.sendAt.toMillis === 'function') {
+        sendAtMs = emailData.sendAt.toMillis();
+      } else if (typeof emailData.sendAt === 'string') {
+        sendAtMs = new Date(emailData.sendAt).getTime();
+      } else if (emailData.sendAt instanceof Date) {
+        sendAtMs = emailData.sendAt.getTime();
+      }
+    }
+
+    if (emailData.status === 'scheduled' || (sendAtMs && sendAtMs > now)) {
+      // Ensure status is 'scheduled' so the cron picks it up later
+      if (emailData.status !== 'scheduled') {
+        await snap.ref.update({ status: 'scheduled' });
+      }
+      console.log(`Email ${context.params.emailId} scheduled for ${sendAtMs ? new Date(sendAtMs).toISOString() : 'unknown'}`);
       return null;
-    } catch (error) {
-      console.error('Error sending customer confirmation email:', error);
-      await snap.ref.update({
-        status: 'error',
-        error: error.message,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      throw error;
+    }
+
+    return deliverCustomerEmail(snap);
+  });
+
+// Scheduled function: every minute, look for customerEmails with status='scheduled'
+// and sendAt in the past, then deliver them.
+exports.processScheduledEmails = functions.pubsub
+  .schedule('every 1 minutes')
+  .timeZone('Europe/Stockholm')
+  .onRun(async () => {
+    const db = admin.firestore();
+    const now = admin.firestore.Timestamp.now();
+
+    try {
+      const dueSnap = await db.collection('customerEmails')
+        .where('status', '==', 'scheduled')
+        .where('sendAt', '<=', now)
+        .limit(50)
+        .get();
+
+      if (dueSnap.empty) {
+        return null;
+      }
+
+      console.log(`Processing ${dueSnap.size} scheduled email(s)`);
+
+      // Deliver in parallel; failures don't block siblings
+      await Promise.all(dueSnap.docs.map(async (doc) => {
+        try {
+          await deliverCustomerEmail(doc);
+        } catch (err) {
+          console.error(`Failed to deliver scheduled email ${doc.id}:`, err);
+        }
+      }));
+
+      return null;
+    } catch (err) {
+      console.error('processScheduledEmails error:', err);
+      return null;
     }
   });
 

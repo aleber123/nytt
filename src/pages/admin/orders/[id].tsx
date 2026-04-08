@@ -1838,6 +1838,13 @@ function AdminOrderDetailPage() {
 </div>
               `.trim();
 
+            // Schedule the email to be sent at the reminder's due date.
+            // Cloud Function `processScheduledEmails` runs every minute and
+            // delivers any customerEmails docs whose sendAt has passed.
+            const dueDateObj = new Date(reminderDueDate);
+            const isFuture = dueDateObj.getTime() > Date.now();
+            const { Timestamp } = await import('firebase/firestore');
+
             await addDoc(fbCollection(firebaseDb, 'customerEmails'), {
               name: assigneeName || 'Admin',
               email: notifyEmail,
@@ -1845,7 +1852,11 @@ function AdminOrderDetailPage() {
               message,
               orderId: String(orderId),
               createdAt: serverTimestamp(),
-              status: 'unread',
+              // 'scheduled' tells the onCreate trigger to skip immediate delivery;
+              // the cron picks it up when sendAt passes. If due date is in the
+              // past, send right away by using 'unread' status.
+              status: isFuture ? 'scheduled' : 'unread',
+              sendAt: Timestamp.fromDate(dueDateObj),
               type: 'reminder_notification',
               renderer: rendered.rendered ? 'new' : 'legacy', // for tracing
             });
@@ -1874,7 +1885,14 @@ function AdminOrderDetailPage() {
       setReminderNotifyEmail('');
       setShowAddReminder(false);
       const baseMsg = reminderAssignees.length > 1 ? `Reminder created for ${reminderAssignees.length} people` : 'Reminder created';
-      toast.success(notifyEmail ? `${baseMsg} — email notification sent to ${notifyEmail}` : baseMsg);
+      const dueDateObj = new Date(reminderDueDate);
+      const isScheduledForFuture = dueDateObj.getTime() > Date.now();
+      const emailMsg = notifyEmail
+        ? (isScheduledForFuture
+            ? ` — email scheduled for ${dueDateObj.toLocaleString('sv-SE')}`
+            : ` — email sent to ${notifyEmail}`)
+        : '';
+      toast.success(`${baseMsg}${emailMsg}`);
     } catch (err) {
       toast.error('Failed to create reminder');
     } finally {
