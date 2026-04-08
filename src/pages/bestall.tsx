@@ -318,12 +318,15 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   // Calculate total price from pricing breakdown (exclude TBC items)
   const totalPrice = pricingBreakdown.reduce((sum, item) => sum + (item.isTBC ? 0 : (item.total || 0)), 0);
 
-  // Load services when country changes
+  // Load services when country changes — also re-run when the Hague country
+  // list arrives from Firestore so dynamically-added countries (e.g. Kyrgyzstan)
+  // get apostille without requiring a page reload.
   useEffect(() => {
     if (answers.country) {
       loadAvailableServices(answers.country);
     }
-  }, [answers.country]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers.country, hagueCountrySet]);
 
   // Load return and pickup services on component mount and when locale changes
   useEffect(() => {
