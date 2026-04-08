@@ -13,7 +13,6 @@ import { useTranslation } from 'next-i18next';
 import { ALL_COUNTRIES } from '@/components/order/data/countries';
 import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 import { OrderAnswers } from './types';
-import { useSavedCustomerInfo } from '@/hooks/useSavedCustomerInfo';
 
 // Saved address from customer database
 interface CustomerSavedAddress {
@@ -65,11 +64,7 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
 }) => {
   const { t } = useTranslation('common');
   const hasPrefilledRef = useRef(false);
-  const hasLoadedSavedInfoRef = useRef(false);
   const isEn = locale === 'en';
-  const { savedInfo, saveCustomerInfo, clearSavedInfo, hasSavedInfo } = useSavedCustomerInfo();
-  const [saveAddressChecked, setSaveAddressChecked] = useState(true);
-  const [showSavedInfoBanner, setShowSavedInfoBanner] = useState(false);
 
   // Customer number lookup state
   const [customerNumberInput, setCustomerNumberInput] = useState(answers.customerNumber || '');
@@ -205,81 +200,6 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
       lookupCustomer(answers.customerNumber);
     }
   }, [answers.customerNumber, customerLookupResult, lookupCustomer]);
-
-  // Check if we have saved info to offer on mount
-  useEffect(() => {
-    if (hasLoadedSavedInfoRef.current) return;
-    if (hasSavedInfo && savedInfo) {
-      // Only show banner if billingInfo is empty
-      const billingEmpty = !answers.billingInfo.firstName && !answers.billingInfo.email;
-      if (billingEmpty) {
-        setShowSavedInfoBanner(true);
-      }
-    }
-    hasLoadedSavedInfoRef.current = true;
-  }, [hasSavedInfo, savedInfo, answers.billingInfo.firstName, answers.billingInfo.email]);
-
-  // Function to load saved info into form
-  const loadSavedInfo = () => {
-    if (!savedInfo) return;
-    
-    setAnswers(prev => ({
-      ...prev,
-      billingInfo: {
-        ...prev.billingInfo,
-        firstName: savedInfo.firstName,
-        lastName: savedInfo.lastName,
-        companyName: savedInfo.companyName || '',
-        street: savedInfo.street,
-        postalCode: savedInfo.postalCode,
-        city: savedInfo.city,
-        countryCode: savedInfo.countryCode,
-        country: ALL_COUNTRIES.find(c => c.code === savedInfo.countryCode)?.name || savedInfo.countryCode,
-        email: savedInfo.email,
-        phone: savedInfo.phone
-      }
-    }));
-    setShowSavedInfoBanner(false);
-  };
-
-  // Use refs to always have access to latest values in event handler
-  const saveAddressCheckedRef = useRef(saveAddressChecked);
-  const billingInfoRef = useRef(answers.billingInfo);
-  
-  // Keep refs updated
-  useEffect(() => {
-    saveAddressCheckedRef.current = saveAddressChecked;
-  }, [saveAddressChecked]);
-  
-  useEffect(() => {
-    billingInfoRef.current = answers.billingInfo;
-  }, [answers.billingInfo]);
-
-  // Function to save current info to localStorage (called when form is complete)
-  const handleSaveInfo = useCallback(() => {
-    if (!saveAddressCheckedRef.current) return;
-    
-    const info = billingInfoRef.current;
-    if (info.firstName && info.email && info.street) {
-      saveCustomerInfo({
-        firstName: info.firstName,
-        lastName: info.lastName,
-        companyName: info.companyName,
-        street: info.street,
-        postalCode: info.postalCode,
-        city: info.city,
-        countryCode: info.countryCode,
-        email: info.email,
-        phone: info.phone
-      });
-    }
-  }, [saveCustomerInfo]);
-
-  // Expose save function to parent via a custom event
-  useEffect(() => {
-    window.addEventListener('saveCustomerInfo', handleSaveInfo);
-    return () => window.removeEventListener('saveCustomerInfo', handleSaveInfo);
-  }, [handleSaveInfo]);
 
   // Pre-fill return address from pickup address if available
   useEffect(() => {
@@ -431,43 +351,6 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
 
   return (
     <div className="mt-8 space-y-8">
-      {/* Saved Info Banner */}
-      {showSavedInfoBanner && savedInfo && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3">
-              <span className="text-2xl">💾</span>
-              <div>
-                <h4 className="font-medium text-blue-900">
-                  {isEn ? 'Use saved information?' : 'Använda sparad information?'}
-                </h4>
-                <p className="text-sm text-blue-700 mt-1">
-                  {isEn 
-                    ? `We found your saved details: ${savedInfo.firstName} ${savedInfo.lastName}, ${savedInfo.email}`
-                    : `Vi hittade dina sparade uppgifter: ${savedInfo.firstName} ${savedInfo.lastName}, ${savedInfo.email}`}
-                </p>
-                <div className="flex space-x-3 mt-3">
-                  <button
-                    type="button"
-                    onClick={loadSavedInfo}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    {isEn ? 'Yes, use saved info' : 'Ja, använd sparade uppgifter'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowSavedInfoBanner(false)}
-                    className="px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
-                  >
-                    {isEn ? 'No, enter new info' : 'Nej, ange nya uppgifter'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ===== SECTION: Customer Number Lookup ===== */}
       <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
         <SectionHeader
@@ -964,27 +847,6 @@ export const CustomerInfoForm: React.FC<CustomerInfoFormProps> = ({
         />
       </div>
 
-      {/* Save info checkbox */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <label className="flex items-start space-x-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={saveAddressChecked}
-            onChange={(e) => setSaveAddressChecked(e.target.checked)}
-            className="h-5 w-5 text-primary-600 rounded mt-0.5"
-          />
-          <div>
-            <span className="text-sm font-medium text-gray-700">
-              {isEn ? 'Save my information for future orders' : 'Spara mina uppgifter för framtida beställningar'}
-            </span>
-            <p className="text-xs text-gray-500 mt-1">
-              {isEn 
-                ? 'Your contact details will be saved locally in your browser for convenience on your next order.'
-                : 'Dina kontaktuppgifter sparas lokalt i din webbläsare för att underlätta vid nästa beställning.'}
-            </p>
-          </div>
-        </label>
-      </div>
     </div>
   );
 };

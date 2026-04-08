@@ -253,6 +253,6 @@ export const ALL_COUNTRIES: Country[] = [
   { code: 'TV', name: 'Tuvalu', nameEn: 'Tuvalu', flag: '🇹🇻' },
   { code: 'VU', name: 'Vanuatu', nameEn: 'Vanuatu', flag: '🇻🇺' },
 
-  // Other
-  { code: 'other', name: 'Annat land', nameEn: 'Other country', flag: '🌍' }
+  // Customer doesn't know the destination yet — exposes all services on Step 3
+  { code: 'other', name: 'Vet ej / Osäker', nameEn: 'Not sure yet', flag: '🤔' }
 ];

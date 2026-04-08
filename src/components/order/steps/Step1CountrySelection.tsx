@@ -96,6 +96,7 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
 
   const selectedCountryName = answers.country ? getCountryName(answers.country) : '';
   const isHagueCountry = HAGUE_CONVENTION_COUNTRIES.includes(answers.country);
+  const isOtherCountry = answers.country === 'other';
 
   return (
     <StepContainer
@@ -164,17 +165,42 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
               </div>
             ))
           ) : (
-            // Show dynamic popular countries
-            dynamicPopularCountries.map((country) => (
+            <>
+              {/* Dynamic popular countries (excluding the "other" placeholder —
+                  it's rendered as its own dedicated tile after the list so the
+                  fallback option is always visible regardless of popularity). */}
+              {dynamicPopularCountries
+                .filter(c => c.countryCode !== 'other')
+                .map((country) => (
+                  <button
+                    key={country.countryCode}
+                    onClick={() => handleCountrySelect(country.countryCode)}
+                    className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
+                  >
+                    <CountryFlag code={country.countryCode} size={24} />
+                    <span className="text-sm">{getCountryName(country.countryCode)}</span>
+                  </button>
+                ))}
+
+              {/* "Not sure yet" fallback tile — same style as country tiles */}
               <button
-                key={country.countryCode}
-                onClick={() => handleCountrySelect(country.countryCode)}
+                onClick={() => handleCountrySelect('other')}
                 className="flex items-center space-x-2 p-3 border border-gray-200 rounded-md hover:border-custom-button hover:bg-custom-button-light transition-colors"
+                title={currentLocale === 'en'
+                  ? "We'll show all available services so you can pick what fits."
+                  : 'Vi visar alla tillgängliga tjänster så du kan välja det som passar.'}
               >
-                <CountryFlag code={country.countryCode} size={24} />
-                <span className="text-sm">{getCountryName(country.countryCode)}</span>
+                <div
+                  className="flex items-center justify-center bg-gray-100 text-gray-500 text-xs font-semibold rounded"
+                  style={{ width: 24, height: 24 }}
+                >
+                  ?
+                </div>
+                <span className="text-sm">
+                  {currentLocale === 'en' ? 'Not sure yet' : 'Vet ej / Osäker'}
+                </span>
               </button>
-            ))
+            </>
           )}
         </div>
       </div>
@@ -184,16 +210,27 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
             <div className="mr-3">
-              <CountryFlag code={answers.country} size={32} />
+              {isOtherCountry ? (
+                <div
+                  className="flex items-center justify-center bg-gray-100 text-gray-500 text-base font-semibold rounded"
+                  style={{ width: 32, height: 32 }}
+                >
+                  ?
+                </div>
+              ) : (
+                <CountryFlag code={answers.country} size={32} />
+              )}
             </div>
             <div>
               <div className="font-medium text-green-900">
                 {selectedCountryName}
               </div>
               <div className="text-sm text-green-700">
-                {isHagueCountry 
-                  ? t('orderFlow.step1.hagueDescription', 'Haagkonventionen - Apostille tillgänglig')
-                  : t('orderFlow.step1.embassyDescription', 'Ambassadlegalisering krävs')
+                {isOtherCountry
+                  ? (currentLocale === 'en' ? 'All services will be available in the next step' : 'Alla tjänster visas i nästa steg')
+                  : isHagueCountry
+                    ? t('orderFlow.step1.hagueDescription', 'Haagkonventionen - Apostille tillgänglig')
+                    : t('orderFlow.step1.embassyDescription', 'Ambassadlegalisering krävs')
                 }
               </div>
             </div>
@@ -202,7 +239,7 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
       )}
 
       {/* Hague Convention Info */}
-      {answers.country && isHagueCountry && (
+      {answers.country && !isOtherCountry && isHagueCountry && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-start">
             <span className="text-2xl mr-3">ℹ️</span>
@@ -219,7 +256,7 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
       )}
 
       {/* Non-Hague Info */}
-      {answers.country && !isHagueCountry && (
+      {answers.country && !isOtherCountry && !isHagueCountry && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
           <div className="flex items-start">
             <span className="text-2xl mr-3">📋</span>
@@ -229,6 +266,24 @@ export const Step1CountrySelection: React.FC<StepProps> = ({
               </h4>
               <p className="text-sm text-amber-800">
                 {t('orderFlow.step1.nonHagueDescription', 'Detta land kräver ambassadlegalisering (ej Haagkonventionen).')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Not-sure-yet Info — shown when customer picked the "Vet ej" tile */}
+      {answers.country && isOtherCountry && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <div>
+              <h4 className="font-medium text-indigo-900 mb-1">
+                {currentLocale === 'en' ? 'No problem — we\'ll show all options' : 'Inga problem — vi visar alla alternativ'}
+              </h4>
+              <p className="text-sm text-indigo-800">
+                {currentLocale === 'en'
+                  ? 'In the next step you can pick from every service we offer (apostille, embassy legalization, notarization, translation, etc.). Not sure which one you need? Our team can help you choose.'
+                  : 'I nästa steg kan du välja mellan alla tjänster vi erbjuder (apostille, ambassadlegalisering, notarisering, översättning, m.m.). Osäker på vilket du behöver? Vårt team kan hjälpa dig välja.'}
               </p>
             </div>
           </div>

@@ -2450,8 +2450,8 @@ const getAllCountries = () => [
   { code: 'TV', name: 'Tuvalu', flag: '🇹🇻' },
   { code: 'VU', name: 'Vanuatu', flag: '🇻🇺' },
 
-  // Övriga
-  { code: 'other', name: 'Annat land', flag: '🌍' }
+  // Customer doesn't know the destination yet — exposes all services on Step 3
+  { code: 'other', name: 'Vet ej / Osäker', flag: '🤔' }
 ];
 
 // ============================================================================

@@ -53,33 +53,6 @@ export default function VisaOrderPage() {
     }
   }, [currentStep, highestStepReached]);
 
-  // Listen for saveCustomerInfo event at page level (CustomerInfoForm may be unmounted on review step)
-  const answersRef = useRef(answers);
-  useEffect(() => { answersRef.current = answers; }, [answers]);
-  useEffect(() => {
-    const handleSave = () => {
-      try {
-        const info = answersRef.current.billingInfo;
-        if (info.firstName && info.email && info.street) {
-          const data = {
-            firstName: info.firstName,
-            lastName: info.lastName,
-            companyName: info.companyName,
-            street: info.street,
-            postalCode: info.postalCode,
-            city: info.city,
-            countryCode: info.countryCode,
-            email: info.email,
-            phone: info.phone,
-            savedAt: Date.now(),
-          };
-          localStorage.setItem('doxvl_saved_customer_info', JSON.stringify(data));
-        }
-      } catch { /* ignore */ }
-    };
-    window.addEventListener('saveCustomerInfo', handleSave);
-    return () => window.removeEventListener('saveCustomerInfo', handleSave);
-  }, []);
 
   // Load return and pickup services from Firebase (only if needed)
   useEffect(() => {

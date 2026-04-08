@@ -407,6 +407,10 @@ export default function TestOrderPage({}: TestOrderPageProps) {
     try {
       setLoadingServices(true);
       const isHagueCountry = isHagueConventionCountry(countryCode);
+      // "Other / Annat land": customer doesn't know the destination yet — show
+      // every service (apostille AND embassy/UD) so they can pick whatever they
+      // need. We can't predict whether the destination is in the Hague convention.
+      const isOtherCountry = countryCode === 'other';
 
       // Try to load standard services from Sweden (SE) first
       try {
@@ -440,7 +444,11 @@ export default function TestOrderPage({}: TestOrderPageProps) {
            // Filter services based on country type to ensure logical consistency
            let filteredPricingRules = allPricingRules;
 
-           if (isHagueCountry) {
+           if (isOtherCountry) {
+             // Customer doesn't know destination → show all services so they
+             // can pick whatever applies (apostille AND embassy/UD).
+             filteredPricingRules = allPricingRules;
+           } else if (isHagueCountry) {
              // For Hague Convention countries: exclude UD and embassy services
              filteredPricingRules = allPricingRules.filter(rule =>
                !['ud', 'embassy'].includes(rule.serviceType)
@@ -544,69 +552,77 @@ export default function TestOrderPage({}: TestOrderPageProps) {
       // Services based on country type
       let availableServicesList = [];
 
-      if (isHagueCountry) {
+      // Define every possible service once
+      const ALL_SERVICES = {
+        translation: {
+          id: 'translation',
+          name: 'Auktoriserad översättning',
+          description: 'Översättning av dokument',
+          price: '0 kr',
+          available: true
+        },
+        chamber: {
+          id: 'chamber',
+          name: 'Handelskammare',
+          description: 'Legaliserng av handelsdokument genom Handelskammaren',
+          price: '0 kr',
+          available: true
+        },
+        notarization: {
+          id: 'notarization',
+          name: 'Notarisering',
+          description: 'Officiell notarisering av dokument',
+          price: '0 kr',
+          available: true
+        },
+        apostille: {
+          id: 'apostille',
+          name: 'Apostille',
+          description: 'För länder som är anslutna till Haagkonventionen',
+          price: '0 kr',
+          available: true
+        },
+        ud: {
+          id: 'ud',
+          name: 'Utrikesdepartementet',
+          description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer',
+          price: '0 kr',
+          available: true
+        },
+        embassy: {
+          id: 'embassy',
+          name: 'Ambassadlegalisering',
+          description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige',
+          price: '0 kr',
+          available: true
+        }
+      };
+
+      if (isOtherCountry) {
+        // Customer doesn't know destination → expose all services
+        availableServicesList = [
+          ALL_SERVICES.translation,
+          ALL_SERVICES.notarization,
+          ALL_SERVICES.apostille,
+          ALL_SERVICES.chamber,
+          ALL_SERVICES.ud,
+          ALL_SERVICES.embassy,
+        ];
+      } else if (isHagueCountry) {
         // Hague Convention countries (like Sweden) - only these 3 services
         availableServicesList = [
-          {
-            id: 'translation',
-            name: 'Auktoriserad översättning',
-            description: 'Översättning av dokument',
-            price: '0 kr',
-            available: true
-          },
-          {
-            id: 'notarization',
-            name: 'Notarisering',
-            description: 'Officiell notarisering av dokument',
-            price: '0 kr',
-            available: true
-          },
-          {
-            id: 'apostille',
-            name: 'Apostille',
-            description: 'För länder som är anslutna till Haagkonventionen',
-            price: '0 kr',
-            available: true
-          }
+          ALL_SERVICES.translation,
+          ALL_SERVICES.notarization,
+          ALL_SERVICES.apostille,
         ];
       } else {
         // Non-Hague countries - embassy legalization process
         availableServicesList = [
-          {
-            id: 'translation',
-            name: 'Auktoriserad översättning',
-            description: 'Översättning av dokument',
-            price: '0 kr',
-            available: true
-          },
-          {
-            id: 'chamber',
-            name: 'Handelskammare',
-            description: 'Legaliserng av handelsdokument genom Handelskammaren',
-            price: '0 kr',
-            available: true
-          },
-          {
-            id: 'notarization',
-            name: 'Notarisering',
-            description: 'Officiell notarisering av dokument',
-            price: '0 kr',
-            available: true
-          },
-          {
-            id: 'ud',
-            name: 'Utrikesdepartementet',
-            description: 'Legaliserng hos svenska UD för icke-Haagkonventionsländer',
-            price: '0 kr',
-            available: true
-          },
-          {
-            id: 'embassy',
-            name: 'Ambassadlegalisering',
-            description: 'Slutlig legalisering via det valda landets ambassad eller konsulat i Sverige',
-            price: '0 kr',
-            available: true
-          }
+          ALL_SERVICES.translation,
+          ALL_SERVICES.chamber,
+          ALL_SERVICES.notarization,
+          ALL_SERVICES.ud,
+          ALL_SERVICES.embassy,
         ];
       }
 
