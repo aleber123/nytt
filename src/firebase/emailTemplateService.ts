@@ -458,18 +458,76 @@ You can track your order at any time via the link below.`,
     triggerEvent: 'admin.sendDocumentInstructions',
     processStep: 2,
     processGroup: 'Dokumenthantering',
-    subjectSv: 'Dokument som behövs för din ansökan',
-    subjectEn: 'Documents needed for your application',
-    bodySv: 'För att handlägga din ansökan behöver vi följande dokument.',
-    bodyEn: 'To process your application, we need the following documents.',
+    subjectSv: 'Dokument som behövs för din visumansökan – {{orderNumber}}',
+    subjectEn: 'Documents needed for your visa application – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Tack för din beställning. För att handlägga din visumansökan till {{destination}} behöver vi följande dokument:
+
+{{documentList}}
+
+Digitala dokument kan skickas genom att svara på detta mail eller till info@doxvl.se.
+
+Hör av dig om du har några frågor.`,
+    bodyEn: `Dear {{customerName}},
+
+Thank you for your order. To process your visa application to {{destination}}, we need the following documents:
+
+{{documentList}}
+
+Digital documents can be sent by replying to this email or to info@doxvl.se.
+
+Let us know if you have any questions.`,
     variables: [
-      { key: 'customerName', description: 'Kundens namn', example: 'Erik' },
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
       { key: 'orderNumber', description: 'Ordernummer', example: 'VISA000451' },
-      { key: 'postalDocuments', description: 'Dokument per post (HTML-lista)', example: '📄 Pass i original' },
-      { key: 'digitalDocuments', description: 'Dokument digitalt (HTML-lista)', example: '📸 Passfoto' },
+      { key: 'destination', description: 'Destinationsland', example: 'Indien' },
+      { key: 'documentList', description: 'Grupperad dokumentlista (HTML, byggs automatiskt — original / digitalt / valfritt)', example: '<div>...</div>', isHtml: true },
     ],
     sourceFile: 'src/pages/admin/orders/[id].tsx',
     sourceFunction: 'sendDocumentInstructionsEmail',
+    isCustomized: false,
+    isActive: true,
+  },
+  {
+    id: 'missing-documents',
+    name: 'Saknade dokument',
+    nameEn: 'Missing Documents',
+    description: 'Påminnelse till kund om dokument som fortfarande saknas på checklistan.',
+    descriptionEn: 'Reminder to customer about documents still missing from the checklist.',
+    category: 'document-handling',
+    trigger: 'manual',
+    triggerEvent: 'admin.sendMissingDocuments',
+    processStep: 3,
+    processGroup: 'Dokumenthantering',
+    subjectSv: 'Dokument behövs för din visumansökan – {{orderNumber}}',
+    subjectEn: 'Documents needed for your visa application – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Tack för din visumansökan till {{destination}}. För att kunna gå vidare med din ansökan behöver vi fortfarande följande dokument:
+
+{{missingDocsBlock}}
+
+Vänligen skicka dessa dokument till oss så snart som möjligt så att vi kan skicka in din ansökan utan fördröjning.
+
+Du kan svara på detta mail eller skicka dokumenten till info@doxvl.se.`,
+    bodyEn: `Dear {{customerName}},
+
+Thank you for your visa application to {{destination}}. To proceed with your application, we still need the following document(s):
+
+{{missingDocsBlock}}
+
+Please send these documents to us as soon as possible so we can submit your application without delay.
+
+You can reply to this email or send the documents to info@doxvl.se.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'VISA000451' },
+      { key: 'destination', description: 'Destinationsland', example: 'Indien' },
+      { key: 'missingDocsBlock', description: 'Lista över saknade dokument (HTML, byggs automatiskt)', example: '<div>...</div>', isHtml: true },
+    ],
+    sourceFile: 'src/pages/admin/orders/[id].tsx',
+    sourceFunction: 'sendMissingDocumentsEmail',
     isCustomized: false,
     isActive: true,
   },
@@ -496,6 +554,254 @@ You can track your order at any time via the link below.`,
     ],
     sourceFile: 'src/pages/api/document-request/send.ts',
     sourceFunction: 'generateEmailHtml',
+    isCustomized: false,
+    isActive: true,
+  },
+
+  // === DOCUMENT FLOW STATUS (legalization processing) ===
+  // Templates for the inline emails sent from /admin/orders/[id].tsx when
+  // handlers progress through the legalization workflow. Currently these
+  // mails are still built inline in the order page; once wired up they
+  // will use these templates as the source of truth.
+  {
+    id: 'legalization-documents-received',
+    name: 'Dokument mottagna (legalisering)',
+    nameEn: 'Documents Received (Legalization)',
+    description: 'Bekräftelse till kund att vi tagit emot dokumenten som de skickat in.',
+    descriptionEn: 'Confirmation to customer that we have received the documents they sent.',
+    category: 'document-handling',
+    trigger: 'manual',
+    triggerEvent: 'admin.documentsReceived',
+    processStep: 4,
+    processGroup: 'Handläggning',
+    subjectSv: 'Bekräftelse: Vi har mottagit dina dokument – {{orderNumber}}',
+    subjectEn: 'Confirmation: We have received your documents – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Vi bekräftar att vi har mottagit dina dokument för order {{orderNumber}}. Vi börjar nu handlägga din beställning och kommer att skicka uppdateringar via mail.
+
+{{receivedDocsBlock}}
+
+Hör av dig om du har några frågor.`,
+    bodyEn: `Dear {{customerName}},
+
+We confirm that we have received your documents for order {{orderNumber}}. We are now starting to process your order and will send updates by email.
+
+{{receivedDocsBlock}}
+
+Let us know if you have any questions.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+      { key: 'receivedDocsBlock', description: 'Lista över mottagna dokument (HTML, byggs automatiskt)', example: '<div>...</div>', isHtml: true },
+    ],
+    sourceFile: 'src/pages/admin/orders/[id].tsx',
+    sourceFunction: 'inline (line ~3247)',
+    isCustomized: false,
+    isActive: true,
+  },
+  {
+    id: 'legalization-submitted-to-authority',
+    name: 'Inskickat till myndighet',
+    nameEn: 'Submitted to Authority',
+    description: 'Bekräftelse till kund att ärendet är inlämnat till UD/handelskammare/notarius/ambassad.',
+    descriptionEn: 'Confirmation to customer that the case has been submitted to UD/chamber/notary/embassy.',
+    category: 'document-handling',
+    trigger: 'manual',
+    triggerEvent: 'admin.submittedToAuthority',
+    processStep: 5,
+    processGroup: 'Handläggning',
+    subjectSv: 'Bekräftelse: Ärendet är inlämnat till {{authorityName}} – {{orderNumber}}',
+    subjectEn: 'Confirmation: Submitted to {{authorityName}} – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Vi har lämnat in ditt ärende till {{authorityName}}. Förväntad klar: {{expectedDate}}.
+
+Vi återkommer till dig så snart vi har uppdaterad information.`,
+    bodyEn: `Dear {{customerName}},
+
+We have submitted your case to {{authorityName}}. Expected completion: {{expectedDate}}.
+
+We will get back to you as soon as we have updated information.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+      { key: 'authorityName', description: 'Myndighet (UD, ambassad, etc.)', example: 'Utrikesdepartementet' },
+      { key: 'expectedDate', description: 'Förväntad klar-datum', example: '2026-04-15' },
+    ],
+    sourceFile: 'src/pages/admin/orders/[id].tsx',
+    sourceFunction: 'inline (line ~3471)',
+    isCustomized: false,
+    isActive: true,
+  },
+  {
+    id: 'legalization-tracking-registered',
+    name: 'Spårningsnummer registrerat',
+    nameEn: 'Tracking Number Registered',
+    description: 'Notis till kund när handläggare registrerar ett spårningsnummer på ordern.',
+    descriptionEn: 'Notification when the handler registers a tracking number on the order.',
+    category: 'shipping',
+    trigger: 'manual',
+    triggerEvent: 'admin.trackingRegistered',
+    processStep: 6,
+    processGroup: 'Leverans',
+    subjectSv: 'Spårningsnummer registrerat – {{orderNumber}}',
+    subjectEn: 'Tracking number registered – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Vi har registrerat ett spårningsnummer för din order {{orderNumber}}.
+
+Spårningsnummer: {{trackingNumber}}
+Spårningslänk: {{trackingUrl}}
+
+Du kan följa försändelsen via länken ovan.`,
+    bodyEn: `Dear {{customerName}},
+
+We have registered a tracking number for your order {{orderNumber}}.
+
+Tracking number: {{trackingNumber}}
+Tracking link: {{trackingUrl}}
+
+You can follow the shipment via the link above.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+      { key: 'trackingNumber', description: 'Spårningsnummer', example: 'JJD000390001234' },
+      { key: 'trackingUrl', description: 'Spårningslänk', example: 'https://tracking.dhl.com/...' },
+    ],
+    sourceFile: 'src/pages/admin/orders/[id].tsx',
+    sourceFunction: 'inline (line ~3721)',
+    isCustomized: false,
+    isActive: true,
+  },
+  {
+    id: 'legalization-ready-for-pickup',
+    name: 'Klar för upphämtning',
+    nameEn: 'Ready for Pickup',
+    description: 'Notis till kund att de färdiga dokumenten är klara för upphämtning på kontoret.',
+    descriptionEn: 'Notification to customer that finished documents are ready for office pickup.',
+    category: 'shipping',
+    trigger: 'manual',
+    triggerEvent: 'admin.readyForPickup',
+    processStep: 7,
+    processGroup: 'Leverans',
+    subjectSv: 'Dina dokument är klara för upphämtning – {{orderNumber}}',
+    subjectEn: 'Your documents are ready for pickup – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Dina färdiga dokument för order {{orderNumber}} är nu klara för upphämtning på vårt kontor.
+
+Adress:
+DOX Visumpartner AB
+Livdjursgatan 4, våning 6
+121 62 Johanneshov
+
+Öppettider: må–fre 09:00–17:00
+
+Vänligen ta med ID-handling vid upphämtning.`,
+    bodyEn: `Dear {{customerName}},
+
+Your finished documents for order {{orderNumber}} are now ready for pickup at our office.
+
+Address:
+DOX Visumpartner AB
+Livdjursgatan 4, floor 6
+121 62 Johanneshov
+
+Opening hours: Mon–Fri 09:00–17:00
+
+Please bring ID when picking up.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+    ],
+    sourceFile: 'src/pages/admin/orders/[id].tsx',
+    sourceFunction: 'inline (line ~4010)',
+    isCustomized: false,
+    isActive: true,
+  },
+  {
+    id: 'legalization-documents-shipped',
+    name: 'Dokument skickade',
+    nameEn: 'Documents Shipped',
+    description: 'Notis till kund att de färdiga dokumenten har skickats med spårningsinformation.',
+    descriptionEn: 'Notification to customer that finished documents have been shipped with tracking info.',
+    category: 'shipping',
+    trigger: 'manual',
+    triggerEvent: 'admin.documentsShipped',
+    processStep: 8,
+    processGroup: 'Leverans',
+    subjectSv: 'Dina dokument har skickats – {{orderNumber}}',
+    subjectEn: 'Your documents have been shipped – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Dina färdiga dokument för order {{orderNumber}} har nu skickats.
+
+Fraktmetod: {{shippingMethod}}
+Spårningsnummer: {{trackingNumber}}
+Spårningslänk: {{trackingUrl}}
+
+Försändelsen är på väg till dig och du kan följa den via länken ovan.`,
+    bodyEn: `Dear {{customerName}},
+
+Your finished documents for order {{orderNumber}} have now been shipped.
+
+Shipping method: {{shippingMethod}}
+Tracking number: {{trackingNumber}}
+Tracking link: {{trackingUrl}}
+
+The shipment is on its way to you and you can follow it via the link above.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+      { key: 'shippingMethod', description: 'Fraktmetod', example: 'PostNord REK' },
+      { key: 'trackingNumber', description: 'Spårningsnummer', example: 'JJD000390001234' },
+      { key: 'trackingUrl', description: 'Spårningslänk', example: 'https://tracking.dhl.com/...' },
+    ],
+    sourceFile: 'src/pages/admin/orders/[id].tsx',
+    sourceFunction: 'inline (line ~4290)',
+    isCustomized: false,
+    isActive: true,
+  },
+  {
+    id: 'legalization-document-request-form',
+    name: 'Dokumentbegäran med uppladdningslänk',
+    nameEn: 'Document Request (with upload link)',
+    description: 'Begär kompletterande dokument med en säker uppladdningslänk till kunden.',
+    descriptionEn: 'Request additional documents with a secure upload link sent to the customer.',
+    category: 'document-handling',
+    trigger: 'manual',
+    triggerEvent: 'admin.sendDocumentRequestForm',
+    processStep: 3,
+    processGroup: 'Dokumenthantering',
+    subjectSv: 'Vi behöver kompletterande dokument – {{orderNumber}}',
+    subjectEn: 'Additional documents needed – {{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+För att kunna fortsätta handlägga din order {{orderNumber}} behöver vi ytterligare dokument.
+
+{{customMessage}}
+
+Vänligen ladda upp dokumenten via länken nedan: {{uploadUrl}}
+
+Hör av dig om du har frågor.`,
+    bodyEn: `Dear {{customerName}},
+
+To continue processing your order {{orderNumber}}, we need additional documents.
+
+{{customMessage}}
+
+Please upload the documents via the link below: {{uploadUrl}}
+
+Let us know if you have any questions.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+      { key: 'customMessage', description: 'Handläggarens meddelande', example: 'Vi behöver en tydligare kopia av sidan 2.' },
+      { key: 'uploadUrl', description: 'Säker uppladdningslänk', example: 'https://doxvl.se/upload/abc123' },
+    ],
+    sourceFile: 'src/pages/admin/orders/[id].tsx',
+    sourceFunction: 'sendDocumentRequest',
     isCustomized: false,
     isActive: true,
   },

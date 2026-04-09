@@ -47,6 +47,7 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
     addDocChecklistItem, removeDocChecklistItem,
     loadingDocChecklist, savingDocChecklist,
     sendMissingDocumentsEmail, sendDocumentInstructionsEmail,
+    askEmailConfirm,
   } = ctx;
   const steps = processingSteps as ProcessingStep[];
   const notes = internalNotesList as any[];
@@ -914,7 +915,24 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                         disabled={sendingInstructions}
                                         onClick={async () => {
                                           if (sendingInstructions) return;
-                                          if (confirm(`Send document instructions email to ${order?.customerInfo?.email}?\n\n${documentChecklist.length} documents listed.`)) {
+                                          const isEn = (order as any)?.locale === 'en';
+                                          const customerFirst = order?.customerInfo?.firstName || (isEn ? 'customer' : 'kund');
+                                          const destination = (order as any)?.destinationCountry || '';
+                                          const ans = await askEmailConfirm({
+                                            title: isEn ? 'Send document instructions email?' : 'Skicka dokumentinstruktioner-mail?',
+                                            description: isEn
+                                              ? `Sends a list of ${documentChecklist.length} documents the customer needs to provide.`
+                                              : `Skickar en lista med ${documentChecklist.length} dokument som kunden behöver lämna in.`,
+                                            recipientEmail: order?.customerInfo?.email,
+                                            templateId: 'document-instructions',
+                                            defaultSubject: isEn
+                                              ? `Documents needed for your visa application – ${order?.orderNumber}`
+                                              : `Dokument som behövs för din visumansökan – ${order?.orderNumber}`,
+                                            defaultBody: isEn
+                                              ? `Dear ${customerFirst},\n\nThank you for your order. To process your visa application to ${destination}, we need ${documentChecklist.length} documents (listed in the email).\n\nLet us know if you have any questions.`
+                                              : `Hej ${customerFirst}!\n\nTack för din beställning. För att handlägga din visumansökan till ${destination} behöver vi ${documentChecklist.length} dokument (listas i mailet).\n\nHör av dig om du har några frågor.`,
+                                          });
+                                          if (ans.confirmed) {
                                             setSendingInstructions(true);
                                             try {
                                               await saveDocumentChecklist();
@@ -1132,7 +1150,24 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                               .filter((d: any) => !d.received && d.required)
                                               .map((d: any) => d.nameEn || d.name)
                                               .join(', ');
-                                            if (confirm(`Send email to customer about ${missingCount} missing document(s)?\n\n${missingNames}`)) {
+                                            const isEn = (order as any)?.locale === 'en';
+                                            const customerFirst = order?.customerInfo?.firstName || (isEn ? 'customer' : 'kund');
+                                            const destination = (order as any)?.destinationCountry || '';
+                                            const ans = await askEmailConfirm({
+                                              title: isEn ? `Send "Missing documents" email?` : 'Skicka "Saknade dokument"-mail?',
+                                              description: isEn
+                                                ? `Reminds the customer about ${missingCount} document(s) still missing: ${missingNames}`
+                                                : `Påminner kunden om ${missingCount} dokument som fortfarande saknas: ${missingNames}`,
+                                              recipientEmail: order?.customerInfo?.email,
+                                              templateId: 'missing-documents',
+                                              defaultSubject: isEn
+                                                ? `Documents needed for your visa application – ${order?.orderNumber}`
+                                                : `Dokument behövs för din visumansökan – ${order?.orderNumber}`,
+                                              defaultBody: isEn
+                                                ? `Dear ${customerFirst},\n\nThank you for your visa application to ${destination}. To proceed, we still need the following document(s):\n\n${missingNames}\n\nPlease send these to us as soon as possible.`
+                                                : `Hej ${customerFirst}!\n\nTack för din visumansökan till ${destination}. För att kunna gå vidare behöver vi fortfarande följande dokument:\n\n${missingNames}\n\nVänligen skicka dessa till oss så snart som möjligt.`,
+                                            });
+                                            if (ans.confirmed) {
                                               await saveDocumentChecklist();
                                               await sendMissingDocumentsEmail();
                                             }

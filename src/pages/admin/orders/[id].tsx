@@ -17,6 +17,7 @@ import PassportScanner from '@/components/admin/order/PassportScanner';
 import IndiaEVisaButton from '@/components/admin/order/IndiaEVisaButton';
 import AngolaVisaPdfButton from '@/components/admin/order/AngolaVisaPdfButton';
 import SendVisaFormButton from '@/components/admin/order/SendVisaFormButton';
+import EmailConfirmModal, { type EmailConfirmRequest } from '@/components/admin/order/EmailConfirmModal';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { convertOrderToInvoice, storeInvoice, getInvoicesByOrderId, getInvoiceById, generateInvoicePDF, sendInvoiceEmail } from '@/services/invoiceService';
@@ -1087,6 +1088,35 @@ function AdminOrderDetailPage() {
     notes?: string;
     updatedStep?: Partial<ProcessingStep>;
   } | null>(null);
+
+  // Email confirmation modal — replaces ugly window.confirm() popups when
+  // the handler is about to send a customer email after a processing step
+  // change. The modal lets them edit subject + body for this one send.
+  const [pendingEmailConfirm, setPendingEmailConfirm] = useState<EmailConfirmRequest | null>(null);
+
+  /**
+   * Helper that wraps an email-send action in the confirm modal.
+   * Returns a promise that resolves true (handler clicked Send), false
+   * (handler clicked Cancel) and provides the (possibly edited) subject
+   * and body via the resolve callback.
+   */
+  const askEmailConfirm = (
+    config: Omit<EmailConfirmRequest, 'onSend' | 'onCancel'>
+  ): Promise<{ confirmed: boolean; subject: string; body: string }> => {
+    return new Promise((resolve) => {
+      setPendingEmailConfirm({
+        ...config,
+        onSend: async (subject, body) => {
+          setPendingEmailConfirm(null);
+          resolve({ confirmed: true, subject, body });
+        },
+        onCancel: () => {
+          setPendingEmailConfirm(null);
+          resolve({ confirmed: false, subject: config.defaultSubject, body: config.defaultBody });
+        },
+      });
+    });
+  };
 
   // Embassy price confirmation states
   const [sendingEmbassyPriceConfirmation, setSendingEmbassyPriceConfirmation] = useState(false);
@@ -2678,11 +2708,22 @@ function AdminOrderDetailPage() {
       status === 'completed' &&
       customerEmail
     ) {
-      if (typeof window !== 'undefined') {
-        shouldSendDocumentReceiptEmail = window.confirm(
-          'Do you want to send a confirmation to the customer that we have received their documents?'
-        );
-      }
+      const isEn = (order as any).locale === 'en';
+      const ans = await askEmailConfirm({
+        title: isEn ? 'Send "Documents received" email?' : 'Skicka "Dokument mottagna"-mail?',
+        description: isEn
+          ? 'Confirms to the customer that we have received their documents and started processing.'
+          : 'Bekräftar för kunden att vi mottagit dokumenten och börjat handlägga.',
+        recipientEmail: customerEmail,
+        templateId: 'legalization-documents-received',
+        defaultSubject: isEn
+          ? `Confirmation: We have received your documents – ${order.orderNumber}`
+          : `Bekräftelse: Vi har mottagit dina dokument – ${order.orderNumber}`,
+        defaultBody: isEn
+          ? `Dear ${order.customerInfo?.firstName || 'customer'},\n\nWe confirm that we have received your documents for order ${order.orderNumber}. We are now starting to process your order and will send updates by email.\n\nLet us know if you have any questions.`
+          : `Hej ${order.customerInfo?.firstName || 'kund'}!\n\nVi bekräftar att vi har mottagit dina dokument för order ${order.orderNumber}. Vi börjar nu handlägga din beställning och kommer att skicka uppdateringar via mail.\n\nHör av dig om du har några frågor.`,
+      });
+      shouldSendDocumentReceiptEmail = ans.confirmed;
     }
 
     // Auto-create and send invoice when invoicing step is completed
@@ -2693,11 +2734,15 @@ function AdminOrderDetailPage() {
       previousStep.status !== 'completed' &&
       status === 'completed'
     ) {
-      if (typeof window !== 'undefined') {
-        shouldCreateAndSendInvoice = window.confirm(
-          'Send invoice to fakturor@visumpartner.se?'
-        );
-      }
+      const ans = await askEmailConfirm({
+        title: 'Send invoice to fakturor@visumpartner.se?',
+        description: 'Auto-creates the invoice for this order and emails it to the billing inbox.',
+        recipientEmail: 'fakturor@visumpartner.se',
+        templateId: 'invoice',
+        defaultSubject: `[Invoice] ${order.orderNumber} – ${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim(),
+        defaultBody: `An invoice will be auto-generated for order ${order.orderNumber} and sent to fakturor@visumpartner.se.\n\nThe invoice email itself is built by the invoicing function and includes the PDF attachment. Click Send to proceed.`,
+      });
+      shouldCreateAndSendInvoice = ans.confirmed;
     }
 
     if (
@@ -2712,41 +2757,65 @@ function AdminOrderDetailPage() {
       const alreadySentOwnDelivery = !!extOrder.ownDeliveryReturnEmailSent;
       const alreadySentOfficePickup = !!extOrder.officePickupReadyEmailSent;
 
+      const isEnReturn = (order as any).locale === 'en';
+      const customerFirst = order.customerInfo?.firstName || (isEnReturn ? 'customer' : 'kund');
+
       if (returnService === 'own-delivery') {
-        if (typeof window !== 'undefined') {
-          const msg = alreadySentOwnDelivery
-            ? 'An email was already sent. Do you want to re-send the email to the customer with the updated tracking number and prices?'
-            : 'Do you want to send an email to the customer confirming that the tracking number has been registered?';
-          const confirmSend = window.confirm(msg);
-          if (confirmSend) {
-            shouldSendOwnDeliveryReturnEmail = true;
-          }
-        } else {
-          shouldSendOwnDeliveryReturnEmail = true;
-        }
+        const ans = await askEmailConfirm({
+          title: alreadySentOwnDelivery
+            ? (isEnReturn ? 'Re-send tracking number email?' : 'Skicka om mail om spårningsnummer?')
+            : (isEnReturn ? 'Send "Tracking number registered" email?' : 'Skicka "Spårningsnummer registrerat"-mail?'),
+          description: alreadySentOwnDelivery
+            ? (isEnReturn
+              ? 'A previous email was already sent. This will send an updated version with the new tracking number and prices.'
+              : 'Ett tidigare mail är redan skickat. Detta skickar en uppdaterad version med nytt spårningsnummer och priser.')
+            : (isEnReturn
+              ? 'Confirms to the customer that the tracking number has been registered.'
+              : 'Bekräftar för kunden att spårningsnummer registrerats.'),
+          recipientEmail: customerEmail,
+          templateId: 'legalization-tracking-registered',
+          defaultSubject: isEnReturn
+            ? `Tracking number registered – ${order.orderNumber}`
+            : `Spårningsnummer registrerat – ${order.orderNumber}`,
+          defaultBody: isEnReturn
+            ? `Dear ${customerFirst},\n\nWe have registered a tracking number for your order ${order.orderNumber}.\n\nTracking number: ${trackingNumberForEmail || '(see system)'}\nTracking link: ${trackingUrlForEmail || '(see system)'}\n\nYou can follow the shipment via the link above.`
+            : `Hej ${customerFirst}!\n\nVi har registrerat ett spårningsnummer för din order ${order.orderNumber}.\n\nSpårningsnummer: ${trackingNumberForEmail || '(se systemet)'}\nSpårningslänk: ${trackingUrlForEmail || '(se systemet)'}\n\nDu kan följa försändelsen via länken ovan.`,
+        });
+        if (ans.confirmed) shouldSendOwnDeliveryReturnEmail = true;
       } else if (returnService === 'office-pickup') {
-        if (typeof window !== 'undefined') {
-          const msg = alreadySentOfficePickup
-            ? 'An email was already sent. Do you want to re-send the email to the customer?'
-            : 'Do you want to send an email to the customer informing them that the documents are ready for pickup at our office?';
-          const confirmSend = window.confirm(msg);
-          if (confirmSend) {
-            shouldSendOfficePickupReadyEmail = true;
-          }
-        } else {
-          shouldSendOfficePickupReadyEmail = true;
-        }
+        const ans = await askEmailConfirm({
+          title: alreadySentOfficePickup
+            ? (isEnReturn ? 'Re-send "Ready for pickup" email?' : 'Skicka om "Klar för upphämtning"-mail?')
+            : (isEnReturn ? 'Send "Ready for pickup" email?' : 'Skicka "Klar för upphämtning"-mail?'),
+          description: isEnReturn
+            ? 'Notifies the customer that the documents are ready for pickup at our office.'
+            : 'Informerar kunden att dokumenten är klara för upphämtning på vårt kontor.',
+          recipientEmail: customerEmail,
+          templateId: 'legalization-ready-for-pickup',
+          defaultSubject: isEnReturn
+            ? `Your documents are ready for pickup – ${order.orderNumber}`
+            : `Dina dokument är klara för upphämtning – ${order.orderNumber}`,
+          defaultBody: isEnReturn
+            ? `Dear ${customerFirst},\n\nYour finished documents for order ${order.orderNumber} are now ready for pickup at our office.\n\nAddress:\nDOX Visumpartner AB\nLivdjursgatan 4, floor 6\n121 62 Johanneshov\n\nOpening hours: Mon–Fri 09:00–17:00\n\nPlease bring ID when picking up.`
+            : `Hej ${customerFirst}!\n\nDina färdiga dokument för order ${order.orderNumber} är nu klara för upphämtning på vårt kontor.\n\nAdress:\nDOX Visumpartner AB\nLivdjursgatan 4, våning 6\n121 62 Johanneshov\n\nÖppettider: må–fre 09:00–17:00\n\nVänligen ta med ID-handling vid upphämtning.`,
+        });
+        if (ans.confirmed) shouldSendOfficePickupReadyEmail = true;
       } else {
-        if (typeof window !== 'undefined') {
-          const confirmReturn = window.confirm(
-            'Do you want to send an email to the customer informing them that the return shipment has been sent, including the tracking number?'
-          );
-          if (confirmReturn) {
-            shouldSendReturnShipmentEmail = true;
-          }
-        } else {
-          shouldSendReturnShipmentEmail = true;
-        }
+        const ans = await askEmailConfirm({
+          title: isEnReturn ? 'Send "Documents shipped" email?' : 'Skicka "Dokument skickade"-mail?',
+          description: isEnReturn
+            ? 'Notifies the customer that the return shipment has been sent, including tracking number.'
+            : 'Informerar kunden att returförsändelsen är skickad, med spårningsnummer.',
+          recipientEmail: customerEmail,
+          templateId: 'legalization-documents-shipped',
+          defaultSubject: isEnReturn
+            ? `Your documents have been shipped – ${order.orderNumber}`
+            : `Dina dokument har skickats – ${order.orderNumber}`,
+          defaultBody: isEnReturn
+            ? `Dear ${customerFirst},\n\nYour finished documents for order ${order.orderNumber} have now been shipped.\n\nTracking number: ${trackingNumberForEmail || '(see system)'}\nTracking link: ${trackingUrlForEmail || '(see system)'}\n\nThe shipment is on its way to you and you can follow it via the link above.`
+            : `Hej ${customerFirst}!\n\nDina färdiga dokument för order ${order.orderNumber} har nu skickats.\n\nSpårningsnummer: ${trackingNumberForEmail || '(se systemet)'}\nSpårningslänk: ${trackingUrlForEmail || '(se systemet)'}\n\nFörsändelsen är på väg till dig och du kan följa den via länken ovan.`,
+        });
+        if (ans.confirmed) shouldSendReturnShipmentEmail = true;
       }
     }
 
@@ -2780,29 +2849,58 @@ function AdminOrderDetailPage() {
       // visa_result needs special handling (approved vs rejected)
       if (previousStep.id === 'visa_result') {
         if (typeof window !== 'undefined') {
-          const isApproved = window.confirm('Was the visa APPROVED? Click OK for Approved, Cancel for Rejected.');
-          if (isApproved) {
-            const confirmSend = window.confirm('Send approval notification email to the customer?');
-            if (confirmSend) visaEmailToSend = generateVisaApprovedEmail(visaEmailParams);
-          } else {
-            const confirmSend = window.confirm('Send rejection notification email to the customer?');
-            if (confirmSend) visaEmailToSend = generateVisaRejectedEmail(visaEmailParams);
+          // Two-step: first ask approved/rejected, then show one styled modal
+          // for the chosen email so the handler can edit subject + body before sending
+          const isApproved = window.confirm('Was the visa APPROVED?\n\nClick OK for Approved, Cancel for Rejected.');
+          const generated = isApproved ? generateVisaApprovedEmail(visaEmailParams) : generateVisaRejectedEmail(visaEmailParams);
+          const ans = await askEmailConfirm({
+            title: isApproved ? 'Send "Visa approved" email?' : 'Send "Visa rejected" email?',
+            description: isApproved
+              ? 'Notifies the customer that their visa application has been approved.'
+              : 'Notifies the customer that their visa application has been rejected.',
+            recipientEmail: customerEmail,
+            templateId: isApproved ? 'visa-approved' : 'visa-rejected',
+            defaultSubject: generated.subject,
+            defaultBody: generated.html,
+            bodyIsHtml: true,
+          });
+          if (ans.confirmed) {
+            visaEmailToSend = { subject: ans.subject, html: ans.body };
           }
         }
       } else if (visaStepEmailMap[previousStep.id]) {
         const hasEVisaFile = !!(orderRef.current as any)?.eVisaFileUrl;
-        const stepLabels: Record<string, string> = {
-          'documents_received': 'Send confirmation email that documents have been received?',
-          'portal_submission': 'Send email notifying the customer that the visa application has been submitted?',
-          'embassy_delivery': 'Send email notifying the customer that the passport has been submitted to the embassy?',
+        const stepTitles: Record<string, string> = {
+          'documents_received': 'Send "Documents received" email?',
+          'portal_submission': 'Send "Visa application submitted" email?',
+          'embassy_delivery': 'Send "Passport submitted to embassy" email?',
           'evisa_delivery': hasEVisaFile
-            ? 'Send email with the approved e-visa attached to the customer?'
-            : '⚠️ No e-visa file uploaded!\n\nSend email WITHOUT e-visa attachment to the customer?\n(You can upload the e-visa PDF in the processing step before completing it)',
-          'return_shipping': 'Send email notifying the customer that the passport has been shipped?',
+            ? 'Send "E-visa ready" email (with attachment)?'
+            : '⚠️ Send e-visa email WITHOUT attachment?',
+          'return_shipping': 'Send "Passport shipped" email?',
         };
-        if (typeof window !== 'undefined') {
-          const confirmSend = window.confirm(stepLabels[previousStep.id] || 'Send status update email to customer?');
-          if (confirmSend) visaEmailToSend = visaStepEmailMap[previousStep.id]();
+        const stepDescriptions: Record<string, string> = {
+          'documents_received': 'Confirms to the customer that we have received their visa documents.',
+          'portal_submission': 'Notifies the customer that the visa application has been submitted to the portal.',
+          'embassy_delivery': 'Notifies the customer that the passport has been submitted to the embassy.',
+          'evisa_delivery': hasEVisaFile
+            ? 'Sends the approved e-visa to the customer as an email attachment.'
+            : 'No e-visa file uploaded. Upload the PDF in the processing step first, or send without attachment.',
+          'return_shipping': 'Notifies the customer that the passport with visa has been shipped back.',
+        };
+        // Generate the legacy HTML up-front so the modal can show / let admin edit it
+        const generated = visaStepEmailMap[previousStep.id]();
+        const ans = await askEmailConfirm({
+          title: stepTitles[previousStep.id] || 'Send status update email?',
+          description: stepDescriptions[previousStep.id],
+          recipientEmail: customerEmail,
+          templateId: `visa-${previousStep.id.replace(/_/g, '-')}`,
+          defaultSubject: generated.subject,
+          defaultBody: generated.html,
+          bodyIsHtml: true,
+        });
+        if (ans.confirmed) {
+          visaEmailToSend = { subject: ans.subject, html: ans.body };
         }
       }
     }
@@ -2829,18 +2927,31 @@ function AdminOrderDetailPage() {
         if (status === 'in_progress' && !notifiedStr) {
           const serviceNames = getAuthorityPickupServiceNames(previousStep.id, order as ExtendedOrder);
           const serviceName = serviceNames.en;
+          const isEnPickup = (order as any).locale === 'en';
+          const customerFirst = order.customerInfo?.firstName || (isEnPickup ? 'customer' : 'kund');
+          const expectedDateFmt = nextExpected instanceof Date
+            ? nextExpected.toLocaleDateString(isEnPickup ? 'en-GB' : 'sv-SE')
+            : nextExpected?.toDate
+              ? nextExpected.toDate().toLocaleDateString(isEnPickup ? 'en-GB' : 'sv-SE')
+              : nextExpectedStr;
 
-          if (typeof window !== 'undefined') {
-            const confirmInitial = window.confirm(
-              `Do you want to send an email to the customer informing them that the case has been submitted to ${serviceName} with the expected completion date?`
-            );
-            if (confirmInitial) {
-              shouldSendPickupInitialEmail = true;
-              nextNotifiedExpectedCompletionDate = nextExpectedStr;
-              const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
-              pickupExpectedDateForEmail = jsDate || null;
-            }
-          } else {
+          const ans = await askEmailConfirm({
+            title: isEnPickup
+              ? `Send "Submitted to ${serviceName}" email?`
+              : `Skicka "Inlämnat till ${serviceNames.sv}"-mail?`,
+            description: isEnPickup
+              ? `Notifies the customer that the case has been submitted to ${serviceName} with the expected completion date.`
+              : `Informerar kunden att ärendet är inlämnat till ${serviceNames.sv} med förväntad klar-datum.`,
+            recipientEmail: customerEmail,
+            templateId: 'legalization-submitted-to-authority',
+            defaultSubject: isEnPickup
+              ? `Submitted to ${serviceName} – ${order.orderNumber}`
+              : `Inlämnat till ${serviceNames.sv} – ${order.orderNumber}`,
+            defaultBody: isEnPickup
+              ? `Dear ${customerFirst},\n\nWe have submitted your case to ${serviceName}. Expected completion: ${expectedDateFmt}.\n\nWe will get back to you as soon as we have updated information.`
+              : `Hej ${customerFirst}!\n\nVi har lämnat in ditt ärende till ${serviceNames.sv}. Förväntad klar: ${expectedDateFmt}.\n\nVi återkommer till dig så snart vi har uppdaterad information.`,
+          });
+          if (ans.confirmed) {
             shouldSendPickupInitialEmail = true;
             nextNotifiedExpectedCompletionDate = nextExpectedStr;
             const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
@@ -2858,18 +2969,31 @@ function AdminOrderDetailPage() {
         ) {
           const serviceNames = getAuthorityPickupServiceNames(previousStep.id, order as ExtendedOrder);
           const serviceName = serviceNames.en;
+          const isEnUpdate = (order as any).locale === 'en';
+          const customerFirst = order.customerInfo?.firstName || (isEnUpdate ? 'customer' : 'kund');
+          const expectedDateFmt = nextExpected instanceof Date
+            ? nextExpected.toLocaleDateString(isEnUpdate ? 'en-GB' : 'sv-SE')
+            : nextExpected?.toDate
+              ? nextExpected.toDate().toLocaleDateString(isEnUpdate ? 'en-GB' : 'sv-SE')
+              : nextExpectedStr;
 
-          if (typeof window !== 'undefined') {
-            const confirmUpdate = window.confirm(
-              `Do you want to send an updated email to the customer with the new expected completion date at ${serviceName}?`
-            );
-            if (confirmUpdate) {
-              shouldSendPickupUpdateEmail = true;
-              nextNotifiedExpectedCompletionDate = nextExpectedStr;
-              const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
-              pickupExpectedDateForEmail = jsDate || null;
-            }
-          } else {
+          const ans = await askEmailConfirm({
+            title: isEnUpdate
+              ? `Send updated date for ${serviceName}?`
+              : `Skicka uppdaterat datum för ${serviceNames.sv}?`,
+            description: isEnUpdate
+              ? `Notifies the customer that the expected completion date at ${serviceName} has changed.`
+              : `Informerar kunden att förväntat klar-datum hos ${serviceNames.sv} har ändrats.`,
+            recipientEmail: customerEmail,
+            templateId: 'legalization-submitted-to-authority',
+            defaultSubject: isEnUpdate
+              ? `Updated: New expected completion date at ${serviceName} – ${order.orderNumber}`
+              : `Uppdatering: Nytt förväntat klar-datum hos ${serviceNames.sv} – ${order.orderNumber}`,
+            defaultBody: isEnUpdate
+              ? `Dear ${customerFirst},\n\nThe expected completion date for your case at ${serviceName} has been updated.\n\nNew expected date: ${expectedDateFmt}\n\nWe will get back to you as soon as the case is ready.`
+              : `Hej ${customerFirst}!\n\nFörväntat klar-datum för ditt ärende hos ${serviceNames.sv} har uppdaterats.\n\nNytt förväntat datum: ${expectedDateFmt}\n\nVi återkommer så snart ärendet är klart.`,
+          });
+          if (ans.confirmed) {
             shouldSendPickupUpdateEmail = true;
             nextNotifiedExpectedCompletionDate = nextExpectedStr;
             const jsDate = nextExpected instanceof Date ? nextExpected : nextExpected?.toDate ? nextExpected.toDate() : null;
@@ -4377,10 +4501,15 @@ function AdminOrderDetailPage() {
             // Invoice exists - ask if they want to send it
             const existingInvoice = existingInvoices[0];
             if (existingInvoice.status === 'draft') {
-              const sendExisting = window.confirm(
-                `Invoice ${existingInvoice.invoiceNumber} already exists. Send to fakturor@visumpartner.se?`
-              );
-              if (sendExisting) {
+              const ans = await askEmailConfirm({
+                title: `Send existing invoice ${existingInvoice.invoiceNumber}?`,
+                description: 'A draft invoice already exists for this order. Click Send to email it to fakturor@visumpartner.se with the PDF attached.',
+                recipientEmail: 'fakturor@visumpartner.se',
+                templateId: 'invoice',
+                defaultSubject: `[Invoice] ${existingInvoice.invoiceNumber} – ${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim(),
+                defaultBody: `Invoice ${existingInvoice.invoiceNumber} for order ${order.orderNumber}.\n\nThe invoice email is built by the invoicing function and includes the PDF attachment. Click Send to proceed.`,
+              });
+              if (ans.confirmed) {
                 const success = await sendInvoiceEmail(existingInvoice);
                 if (success) {
                   toast.success(`Invoice ${existingInvoice.invoiceNumber} sent to fakturor@visumpartner.se`);
@@ -5828,16 +5957,55 @@ function AdminOrderDetailPage() {
 
     try {
       const db = getFirebaseDb();
+
+      // Try the new editable template system first (opt-in via useCustomTemplate flag)
+      let finalSubject = subject;
+      let finalHtml = html;
+      let renderer: 'new' | 'legacy' = 'legacy';
+
+      try {
+        const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+        const { renderEmail } = await import('@/services/emailRenderer');
+        const { buildDocumentInstructionsBlock } = await import('@/services/visaDocumentEmailParts');
+        const tmpl = await getEmailTemplate('document-instructions');
+        if (tmpl?.useCustomTemplate) {
+          const lng: 'sv' | 'en' = isEn ? 'en' : 'sv';
+          const documentListHtml = buildDocumentInstructionsBlock({
+            checklist: documentChecklist,
+            locale: lng,
+          });
+          const result = await renderEmail(
+            'document-instructions',
+            {
+              customerName,
+              orderNumber: order.orderNumber || orderId,
+              destination,
+              documentList: documentListHtml,
+            },
+            lng,
+            { orderNumber: order.orderNumber || orderId }
+          );
+          if (result.rendered) {
+            finalSubject = result.subject || finalSubject;
+            finalHtml = result.html;
+            renderer = 'new';
+          }
+        }
+      } catch (rendererErr) {
+        console.warn('[document-instructions] new renderer failed, falling back to legacy', rendererErr);
+      }
+
       await addDoc(collection(db, 'customerEmails'), {
         name: customerName,
         email: order.customerInfo?.email,
         phone: order.customerInfo?.phone || '',
-        subject,
-        message: html,
+        subject: finalSubject,
+        message: finalHtml,
         orderId,
         createdAt: new Date(),
         status: 'unread',
         type: 'document_instructions',
+        renderer,
       });
       // Mark on order that instructions were sent
       await adminUpdateOrder(orderId, {
@@ -5896,16 +6064,55 @@ function AdminOrderDetailPage() {
 
     try {
       const db = getFirebaseDb();
+
+      // Try the new editable template system first (opt-in via useCustomTemplate flag)
+      let finalSubject = subject;
+      let finalHtml = html;
+      let renderer: 'new' | 'legacy' = 'legacy';
+
+      try {
+        const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+        const { renderEmail } = await import('@/services/emailRenderer');
+        const { buildMissingDocumentsBlock } = await import('@/services/visaDocumentEmailParts');
+        const tmpl = await getEmailTemplate('missing-documents');
+        if (tmpl?.useCustomTemplate) {
+          const lng: 'sv' | 'en' = isEn ? 'en' : 'sv';
+          const missingDocsHtml = buildMissingDocumentsBlock({
+            checklist: documentChecklist,
+            locale: lng,
+          });
+          const result = await renderEmail(
+            'missing-documents',
+            {
+              customerName,
+              orderNumber: order.orderNumber || orderId,
+              destination,
+              missingDocsBlock: missingDocsHtml,
+            },
+            lng,
+            { orderNumber: order.orderNumber || orderId }
+          );
+          if (result.rendered) {
+            finalSubject = result.subject || finalSubject;
+            finalHtml = result.html;
+            renderer = 'new';
+          }
+        }
+      } catch (rendererErr) {
+        console.warn('[missing-documents] new renderer failed, falling back to legacy', rendererErr);
+      }
+
       await addDoc(collection(db, 'customerEmails'), {
         name: customerName,
         email: order.customerInfo?.email,
         phone: order.customerInfo?.phone || '',
-        subject,
-        message: html,
+        subject: finalSubject,
+        message: finalHtml,
         orderId,
         createdAt: new Date(),
         status: 'unread',
         type: 'missing_documents',
+        renderer,
       });
       toast.success('Missing documents email sent');
     } catch {
@@ -7446,6 +7653,7 @@ function AdminOrderDetailPage() {
                     addDocChecklistItem, removeDocChecklistItem,
                     loadingDocChecklist, savingDocChecklist,
                     sendMissingDocumentsEmail, sendDocumentInstructionsEmail,
+                    askEmailConfirm,
                   }} />
                 )}
 
@@ -7631,6 +7839,9 @@ function AdminOrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Email Confirmation Modal — replaces window.confirm() popups for emails */}
+      <EmailConfirmModal request={pendingEmailConfirm} />
 
       {/* Embassy Price Warning Modal */}
       {showEmbassyPriceWarningModal && (
