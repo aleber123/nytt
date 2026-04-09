@@ -61,18 +61,46 @@ export default async function handler(
       return res.status(400).json({ error: 'Customer email not found' });
     }
 
-    // Generate email HTML
-    const emailHtml = generatePasswordEmail({
-      customerName,
-      orderNumber,
-      password,
-      fileName,
-      locale
-    });
-
-    const subject = locale === 'en' 
+    // Try the new editable template system first
+    let subject = locale === 'en'
       ? `Password for your document - Order #${orderNumber}`
       : `Lösenord för ditt dokument - Order #${orderNumber}`;
+    let emailHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
+
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('send-password');
+      if (tmpl?.useCustomTemplate) {
+        const result = await renderEmailAdmin(
+          'send-password',
+          {
+            customerName,
+            orderNumber: String(orderNumber),
+            password,
+          },
+          locale === 'en' ? 'en' : 'sv',
+          { orderNumber: String(orderNumber) }
+        );
+        if (result.rendered) {
+          subject = result.subject || subject;
+          emailHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[send-password] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!emailHtml) {
+      emailHtml = generatePasswordEmail({
+        customerName,
+        orderNumber,
+        password,
+        fileName,
+        locale
+      });
+    }
 
     // Queue email
     await db.collection('emailQueue').add({
@@ -81,6 +109,7 @@ export default async function handler(
       html: emailHtml,
       createdAt: new Date(),
       status: 'pending',
+      renderer,
       metadata: {
         orderId,
         orderNumber,

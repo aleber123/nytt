@@ -171,17 +171,53 @@ export default async function handler(
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://doxvl.se';
     const quoteUrl = `${baseUrl}/quote/${token}`;
 
-    // Queue email
-    const emailSubject = isEnglish 
+    // Queue email — try the new editable template system first
+    let finalSubject = isEnglish
       ? `Price Quote - Order ${orderNumber}`
       : `Offert - Order ${orderNumber}`;
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
 
-    await db.collection('customerEmails').add({
-      name: customerName,
-      email: customerEmail,
-      phone: order?.customerInfo?.phone || '',
-      subject: emailSubject,
-      message: generateQuoteEmailHtml({
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('quote');
+      if (tmpl?.useCustomTemplate) {
+        // Build line items table HTML for the {{lineItems}} variable
+        const lineItemsTable = `<table style="width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;">
+  <thead>
+    <tr style="background:#f8fafc;">
+      <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;color:#5f6368;">${isEnglish ? 'Service' : 'Tjänst'}</th>
+      <th style="padding:8px;text-align:right;border-bottom:2px solid #e2e8f0;color:#5f6368;">${isEnglish ? 'Amount' : 'Belopp'}</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${translatedLineItems.map((li: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eaecef;">${li.name || li.description || ''}</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eaecef;">${li.amount || ''} kr</td></tr>`).join('')}
+  </tbody>
+</table>`;
+        const result = await renderEmailAdmin(
+          'quote',
+          {
+            customerName,
+            orderNumber: String(orderNumber),
+            lineItems: lineItemsTable,
+            totalAmount: `${totalAmount} kr`,
+            quoteUrl,
+          },
+          isEnglish ? 'en' : 'sv',
+          { orderNumber: String(orderNumber) }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[quote] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      finalHtml = generateQuoteEmailHtml({
         customerName,
         orderNumber,
         lineItems: translatedLineItems,
@@ -190,11 +226,20 @@ export default async function handler(
         message: message || '',
         quoteUrl,
         locale: orderLocale
-      }),
+      });
+    }
+
+    await db.collection('customerEmails').add({
+      name: customerName,
+      email: customerEmail,
+      phone: order?.customerInfo?.phone || '',
+      subject: finalSubject,
+      message: finalHtml,
       orderId: actualOrderId,
       createdAt: new Date(),
       status: 'unread',
-      type: 'quote'
+      type: 'quote',
+      renderer,
     });
 
     // Update order to track that quote was sent
@@ -212,7 +257,7 @@ export default async function handler(
     const emailHistory = order.emailHistory || [];
     emailHistory.push({
       type: 'quote',
-      subject: emailSubject,
+      subject: finalSubject,
       sentAt: new Date().toISOString(),
       sentTo: customerEmail
     });

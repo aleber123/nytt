@@ -2833,6 +2833,7 @@ function AdminOrderDetailPage() {
         locale: (order as any).locale || 'sv',
         invoiceReference: (order as any).invoiceReference,
       };
+      const visaLocale: 'sv' | 'en' = ((order as any).locale === 'en') ? 'en' : 'sv';
 
       const visaStepEmailMap: Record<string, () => { subject: string; html: string }> = {
         'documents_received': () => generateVisaDocsReceivedEmail(visaEmailParams),
@@ -2846,20 +2847,57 @@ function AdminOrderDetailPage() {
         }),
       };
 
+      /**
+       * Resolves the default subject + html for a visa email. Tries the
+       * editable Firestore template first (when useCustomTemplate is on);
+       * falls back to the legacy generate*Email() function otherwise.
+       */
+      const resolveVisaEmailDefaults = async (
+        templateId: string,
+        legacyGen: () => { subject: string; html: string }
+      ): Promise<{ subject: string; html: string }> => {
+        try {
+          const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+          const { renderEmail } = await import('@/services/emailRenderer');
+          const tmpl = await getEmailTemplate(templateId);
+          if (tmpl?.useCustomTemplate) {
+            const result = await renderEmail(
+              templateId,
+              {
+                customerName: visaEmailParams.customerName,
+                orderNumber: visaEmailParams.orderNumber,
+                destinationCountry: visaEmailParams.destinationCountry,
+                visaProduct: visaEmailParams.visaProductName,
+                trackingNumber: trackingNumberForEmail,
+                trackingUrl: trackingUrlForEmail,
+              },
+              visaLocale,
+              { orderNumber: visaEmailParams.orderNumber }
+            );
+            if (result.rendered) {
+              return { subject: result.subject, html: result.html };
+            }
+          }
+        } catch (err) {
+          console.warn(`[${templateId}] template lookup failed, using legacy`, err);
+        }
+        return legacyGen();
+      };
+
       // visa_result needs special handling (approved vs rejected)
       if (previousStep.id === 'visa_result') {
         if (typeof window !== 'undefined') {
-          // Two-step: first ask approved/rejected, then show one styled modal
-          // for the chosen email so the handler can edit subject + body before sending
           const isApproved = window.confirm('Was the visa APPROVED?\n\nClick OK for Approved, Cancel for Rejected.');
-          const generated = isApproved ? generateVisaApprovedEmail(visaEmailParams) : generateVisaRejectedEmail(visaEmailParams);
+          const templateId = isApproved ? 'visa-approved' : 'visa-rejected';
+          const legacyGen = () => isApproved ? generateVisaApprovedEmail(visaEmailParams) : generateVisaRejectedEmail(visaEmailParams);
+          const generated = await resolveVisaEmailDefaults(templateId, legacyGen);
           const ans = await askEmailConfirm({
             title: isApproved ? 'Send "Visa approved" email?' : 'Send "Visa rejected" email?',
             description: isApproved
               ? 'Notifies the customer that their visa application has been approved.'
               : 'Notifies the customer that their visa application has been rejected.',
             recipientEmail: customerEmail,
-            templateId: isApproved ? 'visa-approved' : 'visa-rejected',
+            templateId,
             defaultSubject: generated.subject,
             defaultBody: generated.html,
             bodyIsHtml: true,
@@ -2888,13 +2926,21 @@ function AdminOrderDetailPage() {
             : 'No e-visa file uploaded. Upload the PDF in the processing step first, or send without attachment.',
           'return_shipping': 'Notifies the customer that the passport with visa has been shipped back.',
         };
-        // Generate the legacy HTML up-front so the modal can show / let admin edit it
-        const generated = visaStepEmailMap[previousStep.id]();
+        // Map step id to template id (catalog uses kebab-case visa-* ids)
+        const stepToTemplateId: Record<string, string> = {
+          'documents_received': 'visa-docs-received',
+          'portal_submission': 'visa-submitted-portal',
+          'embassy_delivery': 'visa-embassy-submitted',
+          'evisa_delivery': 'evisa-delivery',
+          'return_shipping': 'visa-return-shipping',
+        };
+        const templateId = stepToTemplateId[previousStep.id] || `visa-${previousStep.id.replace(/_/g, '-')}`;
+        const generated = await resolveVisaEmailDefaults(templateId, visaStepEmailMap[previousStep.id]);
         const ans = await askEmailConfirm({
           title: stepTitles[previousStep.id] || 'Send status update email?',
           description: stepDescriptions[previousStep.id],
           recipientEmail: customerEmail,
-          templateId: `visa-${previousStep.id.replace(/_/g, '-')}`,
+          templateId,
           defaultSubject: generated.subject,
           defaultBody: generated.html,
           bodyIsHtml: true,
@@ -3364,19 +3410,50 @@ function AdminOrderDetailPage() {
 </html>
               `.trim();
 
-            const subject = emailLocale === 'en'
+            let subject = emailLocale === 'en'
               ? `Confirmation: We have received your documents – ${orderNumber}`
               : `Bekräftelse: Vi har mottagit dina dokument – ${orderNumber}`;
+            let finalHtml = messageHtml;
+            let renderer: 'new' | 'legacy' = 'legacy';
+
+            try {
+              const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+              const { renderEmail } = await import('@/services/emailRenderer');
+              const tmpl = await getEmailTemplate('legalization-documents-received');
+              if (tmpl?.useCustomTemplate) {
+                const receivedDocsBlock = receivedDocumentsDescription || (order as any).receivedDocumentsDescription
+                  ? `<p style="margin:0;font-size:14px;color:#5f6368;"><strong>${emailLocale === 'en' ? 'Documents received:' : 'Mottagna dokument:'}</strong> ${receivedDocumentsDescription || (order as any).receivedDocumentsDescription}</p>`
+                  : '';
+                const result = await renderEmail(
+                  'legalization-documents-received',
+                  {
+                    customerName: order.customerInfo?.firstName || customerName,
+                    orderNumber,
+                    receivedDocsBlock,
+                  },
+                  emailLocale,
+                  { orderNumber: String(orderNumber) }
+                );
+                if (result.rendered) {
+                  subject = result.subject || subject;
+                  finalHtml = result.html;
+                  renderer = 'new';
+                }
+              }
+            } catch (rendererErr) {
+              console.warn('[legalization-documents-received] new renderer failed', rendererErr);
+            }
 
             await addDoc(collection(db, 'customerEmails'), {
               name: customerName,
               email: customerEmail,
               phone: order.customerInfo?.phone || '',
               subject,
-              message: messageHtml,
+              message: finalHtml,
               orderId: orderNumber,
               createdAt: serverTimestamp(),
-              status: 'unread'
+              status: 'unread',
+              renderer,
             });
             toast.success('Confirmation email to customer queued');
           }
@@ -3584,23 +3661,52 @@ function AdminOrderDetailPage() {
 </html>
               `.trim();
 
-            const subject = emailLocale === 'en'
+            let subject = emailLocale === 'en'
               ? isUpdate
                 ? `Update: New expected pickup date at ${serviceName} – ${orderNumber}`
                 : `Confirmation: Your documents have been submitted to ${serviceName} – ${orderNumber}`
               : isUpdate
                 ? `Uppdatering: Nytt förväntat klart datum hos ${serviceName} – ${orderNumber}`
                 : `Bekräftelse: Ärendet är inlämnat till ${serviceName} – ${orderNumber}`;
+            let finalHtml = messageHtml;
+            let renderer: 'new' | 'legacy' = 'legacy';
+
+            try {
+              const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+              const { renderEmail } = await import('@/services/emailRenderer');
+              const tmpl = await getEmailTemplate('legalization-submitted-to-authority');
+              if (tmpl?.useCustomTemplate) {
+                const result = await renderEmail(
+                  'legalization-submitted-to-authority',
+                  {
+                    customerName: order.customerInfo?.firstName || customerName,
+                    orderNumber,
+                    authorityName: serviceName,
+                    expectedDate: expectedDateFormatted,
+                  },
+                  emailLocale,
+                  { orderNumber: String(orderNumber) }
+                );
+                if (result.rendered) {
+                  subject = result.subject || subject;
+                  finalHtml = result.html;
+                  renderer = 'new';
+                }
+              }
+            } catch (rendererErr) {
+              console.warn('[legalization-submitted-to-authority] new renderer failed', rendererErr);
+            }
 
             await addDoc(collection(db, 'customerEmails'), {
               name: customerName,
               email: customerEmail,
               phone: order.customerInfo?.phone || '',
               subject,
-              message: messageHtml,
+              message: finalHtml,
               orderId: orderNumber,
               createdAt: serverTimestamp(),
-              status: 'unread'
+              status: 'unread',
+              renderer,
             });
 
             toast.success('Pickup email to customer queued');
@@ -3837,9 +3943,37 @@ function AdminOrderDetailPage() {
 </html>
               `.trim();
 
-              const subject = emailLocale === 'en'
+              let subject = emailLocale === 'en'
                 ? `Update: Tracking number registered – ${orderNumber}`
                 : `Uppdatering: Spårningsnummer registrerat – ${orderNumber}`;
+              let finalHtml = messageHtml;
+              let renderer: 'new' | 'legacy' = 'legacy';
+
+              try {
+                const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+                const { renderEmail } = await import('@/services/emailRenderer');
+                const tmpl = await getEmailTemplate('legalization-tracking-registered');
+                if (tmpl?.useCustomTemplate) {
+                  const result = await renderEmail(
+                    'legalization-tracking-registered',
+                    {
+                      customerName: order.customerInfo?.firstName || customerName,
+                      orderNumber,
+                      trackingNumber: trackingNumberText,
+                      trackingUrl: trackingUrlForEmail,
+                    },
+                    emailLocale,
+                    { orderNumber: String(orderNumber) }
+                  );
+                  if (result.rendered) {
+                    subject = result.subject || subject;
+                    finalHtml = result.html;
+                    renderer = 'new';
+                  }
+                }
+              } catch (rendererErr) {
+                console.warn('[legalization-tracking-registered] new renderer failed', rendererErr);
+              }
 
               // Send to customer
               await addDoc(collection(db, 'customerEmails'), {
@@ -3847,10 +3981,11 @@ function AdminOrderDetailPage() {
                 email: customerEmail,
                 phone: order.customerInfo?.phone || '',
                 subject,
-                message: messageHtml,
+                message: finalHtml,
                 orderId: orderNumber,
                 createdAt: serverTimestamp(),
-                status: 'unread'
+                status: 'unread',
+                renderer,
               });
 
               // If confirmed prices exist, also send to fakturor@visumpartner.se
@@ -4126,9 +4261,35 @@ function AdminOrderDetailPage() {
 </html>
               `.trim();
 
-            const subject = emailLocale === 'en'
+            let subject = emailLocale === 'en'
               ? `Your documents are ready for pickup – ${orderNumber}`
               : `Dina dokument är klara för upphämtning – ${orderNumber}`;
+            let finalHtml = messageHtml;
+            let renderer: 'new' | 'legacy' = 'legacy';
+
+            try {
+              const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+              const { renderEmail } = await import('@/services/emailRenderer');
+              const tmpl = await getEmailTemplate('legalization-ready-for-pickup');
+              if (tmpl?.useCustomTemplate) {
+                const result = await renderEmail(
+                  'legalization-ready-for-pickup',
+                  {
+                    customerName: order.customerInfo?.firstName || customerName,
+                    orderNumber,
+                  },
+                  emailLocale,
+                  { orderNumber: String(orderNumber) }
+                );
+                if (result.rendered) {
+                  subject = result.subject || subject;
+                  finalHtml = result.html;
+                  renderer = 'new';
+                }
+              }
+            } catch (rendererErr) {
+              console.warn('[legalization-ready-for-pickup] new renderer failed', rendererErr);
+            }
 
             // Send to customer
             await addDoc(collection(db, 'customerEmails'), {
@@ -4136,10 +4297,11 @@ function AdminOrderDetailPage() {
               email: customerEmail,
               phone: order.customerInfo?.phone || '',
               subject,
-              message: messageHtml,
+              message: finalHtml,
               orderId: orderNumber,
               createdAt: serverTimestamp(),
-              status: 'unread'
+              status: 'unread',
+              renderer,
             });
 
             // If confirmed prices exist, also send to fakturor@visumpartner.se
@@ -4406,9 +4568,38 @@ function AdminOrderDetailPage() {
 </html>
               `.trim();
 
-            const subject = emailLocale === 'en'
+            let subject = emailLocale === 'en'
               ? `Your documents have been shipped – ${orderNumber}`
               : `Dina dokument har skickats – ${orderNumber}`;
+            let finalHtml = messageHtml;
+            let renderer: 'new' | 'legacy' = 'legacy';
+
+            try {
+              const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+              const { renderEmail } = await import('@/services/emailRenderer');
+              const tmpl = await getEmailTemplate('legalization-documents-shipped');
+              if (tmpl?.useCustomTemplate) {
+                const result = await renderEmail(
+                  'legalization-documents-shipped',
+                  {
+                    customerName: order.customerInfo?.firstName || customerName,
+                    orderNumber,
+                    shippingMethod: getReturnServiceName((order as any).returnService) || '',
+                    trackingNumber: trackingNumberForEmail,
+                    trackingUrl: trackingUrlForEmail,
+                  },
+                  emailLocale,
+                  { orderNumber: String(orderNumber) }
+                );
+                if (result.rendered) {
+                  subject = result.subject || subject;
+                  finalHtml = result.html;
+                  renderer = 'new';
+                }
+              }
+            } catch (rendererErr) {
+              console.warn('[legalization-documents-shipped] new renderer failed', rendererErr);
+            }
 
             // Send to customer
             await addDoc(collection(db, 'customerEmails'), {
@@ -4416,10 +4607,11 @@ function AdminOrderDetailPage() {
               email: customerEmail,
               phone: order.customerInfo?.phone || '',
               subject,
-              message: messageHtml,
+              message: finalHtml,
               orderId: orderNumber,
               createdAt: serverTimestamp(),
-              status: 'unread'
+              status: 'unread',
+              renderer,
             });
 
             // If confirmed prices exist, also send to fakturor@visumpartner.se
@@ -6347,12 +6539,9 @@ function AdminOrderDetailPage() {
       const customerName = order.customerInfo?.firstName || 'Customer';
       const orderNumber = orderId.startsWith('SWE') ? orderId : `SWE${orderId}`;
 
-      // Send email to customer requesting documents
-      await addDoc(collection(db, 'customerEmails'), {
-        name: customerName,
-        email: customerEmail,
-        subject: `Document Request - Order ${orderNumber}`,
-        message: `
+      // Try the new editable template system first (opt-in via useCustomTemplate flag)
+      let finalSubject = `Document Request - Order ${orderNumber}`;
+      let finalHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -6384,9 +6573,44 @@ function AdminOrderDetailPage() {
   </div>
 </body>
 </html>
-        `.trim(),
+        `.trim();
+      let renderer: 'new' | 'legacy' = 'legacy';
+
+      try {
+        const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+        const { renderEmail } = await import('@/services/emailRenderer');
+        const tmpl = await getEmailTemplate('legalization-document-request-form');
+        if (tmpl?.useCustomTemplate) {
+          const result = await renderEmail(
+            'legalization-document-request-form',
+            {
+              customerName,
+              orderNumber,
+              customMessage: 'We are waiting for your documents to continue processing your order.',
+              uploadUrl: 'mailto:info@doxvl.se',
+            },
+            'en',
+            { orderNumber: String(orderNumber) }
+          );
+          if (result.rendered) {
+            finalSubject = result.subject || finalSubject;
+            finalHtml = result.html;
+            renderer = 'new';
+          }
+        }
+      } catch (rendererErr) {
+        console.warn('[legalization-document-request-form] new renderer failed', rendererErr);
+      }
+
+      // Send email to customer requesting documents
+      await addDoc(collection(db, 'customerEmails'), {
+        name: customerName,
+        email: customerEmail,
+        subject: finalSubject,
+        message: finalHtml,
         createdAt: serverTimestamp(),
-        status: 'queued'
+        status: 'queued',
+        renderer,
       });
 
       // Update order with request timestamp

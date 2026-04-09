@@ -73,18 +73,50 @@ export default async function handler(
       return res.status(400).json({ error: 'Selected files not found' });
     }
 
-    // Generate email HTML
-    const emailHtml = generateFilesEmail({
-      customerName,
-      orderNumber,
-      files: filesToSend,
-      customMessage,
-      locale
-    });
-
-    const subject = locale === 'en' 
+    // Try the new editable template system first
+    let subject = locale === 'en'
       ? `Documents for your order #${orderNumber} - DOX Visumpartner`
       : `Dokument för din order #${orderNumber} - DOX Visumpartner`;
+    let emailHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
+
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('send-files');
+      if (tmpl?.useCustomTemplate) {
+        const fileListHtml = `<ul style="margin:8px 0;padding-left:20px;color:#374151;">
+${filesToSend.map((f: any) => `  <li style="padding:3px 0;">📎 ${f.name}</li>`).join('\n')}
+</ul>`;
+        const result = await renderEmailAdmin(
+          'send-files',
+          {
+            customerName,
+            orderNumber: String(orderNumber),
+            fileList: fileListHtml,
+            customMessage: customMessage || '',
+          },
+          locale === 'en' ? 'en' : 'sv',
+          { orderNumber: String(orderNumber) }
+        );
+        if (result.rendered) {
+          subject = result.subject || subject;
+          emailHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[send-files] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!emailHtml) {
+      emailHtml = generateFilesEmail({
+        customerName,
+        orderNumber,
+        files: filesToSend,
+        customMessage,
+        locale
+      });
+    }
 
     // Queue email
     await db.collection('emailQueue').add({
@@ -93,6 +125,7 @@ export default async function handler(
       html: emailHtml,
       createdAt: new Date(),
       status: 'pending',
+      renderer,
       metadata: {
         orderId,
         orderNumber,

@@ -91,27 +91,72 @@ export default async function handler(
       return res.status(400).json({ error: 'Customer has no email address' });
     }
 
-    // Queue email
-    const emailSubject = isEnglish 
+    // Queue email — try the new editable template system first
+    let finalSubject = isEnglish
       ? `Order Updated - Order ${orderNumber}`
       : `Order uppdaterad - Order ${orderNumber}`;
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
 
-    await db.collection('customerEmails').add({
-      name: customerName,
-      email: customerEmail,
-      phone: order?.customerInfo?.phone || '',
-      subject: emailSubject,
-      message: generateEmailHtml({
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('order-update-notification');
+      if (tmpl?.useCustomTemplate) {
+        // Build HTML changes table for the {{changes}} variable
+        const changesTable = `<table style="width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;">
+  <thead>
+    <tr style="background:#f8fafc;">
+      <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;color:#5f6368;">${isEnglish ? 'Field' : 'Fält'}</th>
+      <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;color:#5f6368;">${isEnglish ? 'Old value' : 'Tidigare värde'}</th>
+      <th style="padding:8px;text-align:left;border-bottom:2px solid #e2e8f0;color:#5f6368;">${isEnglish ? 'New value' : 'Nytt värde'}</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${changes.map(c => `<tr><td style="padding:8px;border-bottom:1px solid #eaecef;font-weight:600;">${c.field}</td><td style="padding:8px;border-bottom:1px solid #eaecef;color:#9ca3af;text-decoration:line-through;">${c.oldValue}</td><td style="padding:8px;border-bottom:1px solid #eaecef;color:#202124;font-weight:700;">${c.newValue}</td></tr>`).join('')}
+  </tbody>
+</table>`;
+        const result = await renderEmailAdmin(
+          'order-update-notification',
+          {
+            customerName,
+            orderNumber: String(orderNumber),
+            changes: changesTable,
+            customMessage: customMessage || '',
+          },
+          isEnglish ? 'en' : 'sv',
+          { orderNumber: String(orderNumber) }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[order-update-notification] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      finalHtml = generateEmailHtml({
         customerName,
         orderNumber,
         changes,
         customMessage,
         locale: orderLocale
-      }),
+      });
+    }
+
+    await db.collection('customerEmails').add({
+      name: customerName,
+      email: customerEmail,
+      phone: order?.customerInfo?.phone || '',
+      subject: finalSubject,
+      message: finalHtml,
       orderId: actualOrderId,
       createdAt: new Date(),
       status: 'unread',
-      type: 'order_update'
+      type: 'order_update',
+      renderer,
     });
 
     // Update order to track that update notification was sent

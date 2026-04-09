@@ -228,16 +228,46 @@ export default async function handler(
     const emailsRef = db.collection('customerEmails');
     const orderLocale = order.locale || 'sv';
     const isEnglish = orderLocale === 'en';
-    const emailSubject = isEnglish 
+    let finalSubject = isEnglish
       ? `Pickup Instructions - Order ${order.orderNumber}`
       : `Upphämtningsinstruktioner - Order ${order.orderNumber}`;
-    
-    await emailsRef.add({
-      name: customerName,
-      email: customerEmail,
-      phone: order.customerInfo?.phone || '',
-      subject: emailSubject,
-      message: generatePickupEmailHtml({
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
+
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('dhl-pickup-label');
+      if (tmpl?.useCustomTemplate) {
+        const pickupAddressLine = [
+          shipperContact.companyName,
+          shipperContact.fullName,
+          shipperAddress.addressLine1,
+          [shipperAddress.postalCode, shipperAddress.cityName].filter(Boolean).join(' '),
+        ].filter(Boolean).join('<br>');
+        const result = await renderEmailAdmin(
+          'dhl-pickup-label',
+          {
+            customerName,
+            orderNumber: String(order.orderNumber),
+            trackingNumber,
+            pickupDate: shippingDate,
+            pickupAddress: pickupAddressLine,
+          },
+          isEnglish ? 'en' : 'sv',
+          { orderNumber: String(order.orderNumber) }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[dhl-pickup-label] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      finalHtml = generatePickupEmailHtml({
         customerName,
         orderNumber: order.orderNumber,
         trackingNumber,
@@ -251,7 +281,15 @@ export default async function handler(
           city: shipperAddress.cityName
         },
         locale: orderLocale
-      }),
+      });
+    }
+
+    await emailsRef.add({
+      name: customerName,
+      email: customerEmail,
+      phone: order.customerInfo?.phone || '',
+      subject: finalSubject,
+      message: finalHtml,
       attachments: labelBase64 ? [{
         filename: `DHL-Label-${order.orderNumber}.pdf`,
         content: labelBase64,
@@ -260,7 +298,8 @@ export default async function handler(
       }] : [],
       orderId,
       createdAt: new Date(),
-      status: 'unread'
+      status: 'unread',
+      renderer,
     });
 
     const envLabel = DHL_CONFIG.useSandbox ? ' (SANDBOX)' : '';

@@ -169,28 +169,60 @@ export default async function handler(
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://doxvl.se';
     const uploadUrl = `${baseUrl}/upload-documents/${token}`;
 
-    // Queue email
-    const emailSubject = isEnglish 
+    // Queue email — try the new editable template system first
+    let finalSubject = isEnglish
       ? `Document request - Order ${orderNumber}`
       : `Begäran om komplettering - Order ${orderNumber}`;
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
 
-    await db.collection('customerEmails').add({
-      name: customerName,
-      email: customerEmail,
-      phone: order?.customerInfo?.phone || '',
-      subject: emailSubject,
-      message: generateEmailHtml({
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('document-request');
+      if (tmpl?.useCustomTemplate) {
+        const result = await renderEmailAdmin(
+          'document-request',
+          {
+            customerName,
+            orderNumber: String(orderNumber),
+            customMessage: customMessage.trim(),
+            uploadUrl,
+          },
+          isEnglish ? 'en' : 'sv',
+          { orderNumber: String(orderNumber) }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[document-request] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      finalHtml = generateEmailHtml({
         customerName,
         orderNumber,
         customMessage: customMessage.trim(),
         uploadUrl,
         locale: orderLocale,
         templateName: template ? (isEnglish ? template.nameEn : template.name) : undefined
-      }),
+      });
+    }
+
+    await db.collection('customerEmails').add({
+      name: customerName,
+      email: customerEmail,
+      phone: order?.customerInfo?.phone || '',
+      subject: finalSubject,
+      message: finalHtml,
       orderId: actualOrderId,
       createdAt: new Date(),
       status: 'unread',
-      type: 'document_request'
+      type: 'document_request',
+      renderer,
     });
 
     // Update order to track that document request was sent

@@ -129,16 +129,41 @@ export default async function handler(
     const orderLocale = order?.locale || 'sv';
     const isEnglish = orderLocale === 'en';
     
-    const emailSubject = isEnglish 
+    let finalSubject = isEnglish
       ? `Confirm embassy fee - Order ${orderNum}`
       : `Bekräfta ambassadavgift - Order ${orderNum}`;
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
 
-    await db.collection('customerEmails').add({
-      name: customerName,
-      email: customerEmail,
-      phone: order?.customerInfo?.phone || '',
-      subject: emailSubject,
-      message: generateEmailHtml({
+    try {
+      const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+      const tmpl = await getEmailTemplateAdmin('embassy-price-confirmation');
+      if (tmpl?.useCustomTemplate) {
+        const result = await renderEmailAdmin(
+          'embassy-price-confirmation',
+          {
+            customerName,
+            orderNumber: String(orderNum),
+            originalPrice: `${originalTotalPrice} kr`,
+            newPrice: `${confirmedTotalPrice} kr`,
+            embassyPrice: `${confirmedEmbassyPrice} kr`,
+            confirmationUrl,
+          },
+          isEnglish ? 'en' : 'sv',
+          { orderNumber: String(orderNum) }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      console.warn('[embassy-price-confirmation] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      finalHtml = generateEmailHtml({
         customerName,
         orderNumber: orderNum,
         confirmedEmbassyPrice,
@@ -147,10 +172,19 @@ export default async function handler(
         confirmationUrl,
         locale: orderLocale,
         countryCode
-      }),
+      });
+    }
+
+    await db.collection('customerEmails').add({
+      name: customerName,
+      email: customerEmail,
+      phone: order?.customerInfo?.phone || '',
+      subject: finalSubject,
+      message: finalHtml,
       orderId: actualOrderId,
       createdAt: new Date(),
-      status: 'unread'
+      status: 'unread',
+      renderer,
     });
 
     // Update order to track that confirmation was sent
