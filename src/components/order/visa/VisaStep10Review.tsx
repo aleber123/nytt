@@ -267,25 +267,84 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       // Send confirmation email to customer
       if (createdOrder && customerEmail) {
         try {
-          const customerEmailHtml = generateVisaConfirmationEmail({
-            order: createdOrder,
-            locale: router.locale || 'sv',
-            documentRequirements,
-            confirmationToken
-          });
-          
+          const isEn = router.locale === 'en';
+          let finalSubject = isEn
+            ? `Visa Order Confirmation – ${createdOrderId}`
+            : `Orderbekräftelse – ${createdOrderId}`;
+          let finalHtml = '';
+          let renderer: 'new' | 'legacy' = 'legacy';
+
+          // Try the new editable template system first
+          try {
+            const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+            const { renderEmail } = await import('@/services/emailRenderer');
+            const tmpl = await getEmailTemplate('order-confirmation-visa');
+            if (tmpl?.useCustomTemplate) {
+              const o: any = createdOrder;
+              const product = o.visaProduct || {};
+              const productName = isEn && product.nameEn ? product.nameEn : product.name || 'Visa';
+              const travelersList = (o.travelers || [])
+                .map((t: any) => `${t.firstName || ''} ${t.lastName || ''}`.trim())
+                .filter(Boolean)
+                .join(', ');
+
+              const orderSummaryHtml = `
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:20px 0;">
+  <div style="background:#0EB0A6;color:#fff;padding:10px 16px;border-radius:6px;display:inline-block;font-weight:700;font-size:15px;margin-bottom:12px;">
+    ${isEn ? 'Order' : 'Order'}: #${createdOrderId}
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;">
+    <tr><td style="padding:8px 0;color:#5f6368;border-bottom:1px solid #eaecef;">${isEn ? 'Date' : 'Datum'}:</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#202124;border-bottom:1px solid #eaecef;">${new Date().toLocaleDateString(isEn ? 'en-GB' : 'sv-SE')}</td></tr>
+    <tr><td style="padding:8px 0;color:#5f6368;border-bottom:1px solid #eaecef;">${isEn ? 'Destination' : 'Destination'}:</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#202124;border-bottom:1px solid #eaecef;">${o.destinationCountry || ''}</td></tr>
+    <tr><td style="padding:8px 0;color:#5f6368;border-bottom:1px solid #eaecef;">${isEn ? 'Visa product' : 'Visumprodukt'}:</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#202124;border-bottom:1px solid #eaecef;">${productName}</td></tr>
+    ${travelersList ? `<tr><td style="padding:8px 0;color:#5f6368;border-bottom:1px solid #eaecef;">${isEn ? 'Travellers' : 'Resenärer'}:</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#202124;border-bottom:1px solid #eaecef;">${travelersList}</td></tr>` : ''}
+    ${o.totalPrice ? `<tr><td style="padding:8px 0;color:#5f6368;">${isEn ? 'Total' : 'Totalt'}:</td><td style="padding:8px 0;text-align:right;font-weight:800;color:#202124;font-size:15px;">${o.totalPrice} kr</td></tr>` : ''}
+  </table>
+</div>`.trim();
+
+              const result = await renderEmail(
+                'order-confirmation-visa',
+                {
+                  customerName: o.customerInfo?.firstName || customerName || (isEn ? 'customer' : 'kund'),
+                  orderNumber: String(createdOrderId),
+                  destinationCountry: o.destinationCountry || '',
+                  visaProduct: productName,
+                  travelers: travelersList,
+                  orderSummary: orderSummaryHtml,
+                },
+                isEn ? 'en' : 'sv',
+                { orderNumber: String(createdOrderId) }
+              );
+              if (result.rendered) {
+                finalSubject = result.subject || finalSubject;
+                finalHtml = result.html;
+                renderer = 'new';
+              }
+            }
+          } catch (rendererErr) {
+            console.warn('[order-confirmation-visa] new renderer failed, falling back to legacy', rendererErr);
+          }
+
+          if (!finalHtml) {
+            finalHtml = generateVisaConfirmationEmail({
+              order: createdOrder,
+              locale: router.locale || 'sv',
+              documentRequirements,
+              confirmationToken
+            });
+          }
+
           const customerEmailData = {
             name: customerName || 'Visumkund',
             email: customerEmail,
-            subject: router.locale === 'en' 
-              ? `Visa Order Confirmation – ${createdOrderId}` 
-              : `Orderbekräftelse – ${createdOrderId}`,
-            message: customerEmailHtml,
+            subject: finalSubject,
+            message: finalHtml,
             orderId: createdOrderId,
             createdAt: Timestamp.now(),
-            status: 'pending'
+            status: 'pending',
+            renderer,
           };
-          
+
           const emailsRef = collection(db, 'customerEmails');
           await addDoc(emailsRef, customerEmailData);
         } catch (emailError) {

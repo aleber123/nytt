@@ -429,16 +429,29 @@ You can track your order at any time via the link below.`,
     triggerEvent: 'order.created.visa',
     processStep: 1,
     processGroup: 'Beställning',
-    subjectSv: 'Bekräftelse på din visumbeställning',
-    subjectEn: 'Visa Order Confirmation',
-    bodySv: 'Tack för din visumbeställning! Vi har tagit emot din ansökan och kommer att börja handlägga den.',
-    bodyEn: 'Thank you for your visa order! We have received your application and will begin processing.',
+    subjectSv: 'Bekräftelse på din visumbeställning #{{orderNumber}}',
+    subjectEn: 'Visa Order Confirmation #{{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Tack för din visumbeställning! Vi har mottagit din ansökan till {{destinationCountry}} och börjar nu handlägga den. Här är en sammanfattning:
+
+{{orderSummary}}
+
+Vi återkommer till dig med uppdateringar via mail. Du kan följa din order när som helst via länken nedan.`,
+    bodyEn: `Dear {{customerName}},
+
+Thank you for your visa order! We have received your application for {{destinationCountry}} and will now start processing it. Here is a summary:
+
+{{orderSummary}}
+
+We will keep you updated by email as your order progresses. You can track your order at any time via the link below.`,
     variables: [
-      { key: 'customerName', description: 'Kundens namn', example: 'Erik' },
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
       { key: 'orderNumber', description: 'Ordernummer', example: 'VISA000451' },
       { key: 'destinationCountry', description: 'Destinationsland', example: 'Thailand' },
       { key: 'visaProduct', description: 'Visumprodukt', example: 'Turistvisum 60 dagar' },
-      { key: 'travelers', description: 'Lista resenärer', example: 'Erik Svensson, Anna Svensson' },
+      { key: 'travelers', description: 'Resenärer (kommaseparerad)', example: 'Erik Svensson, Anna Svensson' },
+      { key: 'orderSummary', description: 'Ordersammanfattning (HTML-tabell, byggs automatiskt)', example: '<table>...</table>', isHtml: true },
     ],
     sourceFile: 'src/components/order/visa/VisaStep10Review.tsx',
     sourceFunction: 'generateVisaConfirmationEmail',
@@ -1236,24 +1249,55 @@ Let us know if you have any questions.`,
     id: 'invoice',
     name: 'Faktura',
     nameEn: 'Invoice',
-    description: 'Faktura skickas till kund med bifogad PDF.',
-    descriptionEn: 'Invoice sent to customer with attached PDF.',
+    description: 'Faktura skickas med bifogad PDF. Mailet skickas till fakturor@visumpartner.se för manuell hantering.',
+    descriptionEn: 'Invoice sent with attached PDF. Email goes to fakturor@visumpartner.se for manual handling.',
     category: 'billing',
     trigger: 'manual',
     triggerEvent: 'admin.sendInvoice',
     processStep: 9,
     processGroup: 'Leverans',
-    subjectSv: 'Din faktura',
-    subjectEn: 'Your Invoice',
-    bodySv: 'Bifogat finner du din faktura.',
-    bodyEn: 'Please find your invoice attached.',
+    subjectSv: 'Faktura {{invoiceNumber}} från DOX Visumpartner AB',
+    subjectEn: 'Invoice {{invoiceNumber}} from DOX Visumpartner AB',
+    bodySv: `Hej {{customerName}}!
+
+Tack för att du har valt DOX Visumpartner AB för dina legaliseringstjänster.
+
+Här är information om din faktura:
+
+Fakturanummer: {{invoiceNumber}}
+Fakturadatum: {{invoiceDate}}
+Förfallodatum: {{dueDate}}
+Att betala: {{totalAmount}}
+Betalningsreferens: {{paymentReference}}
+
+Fakturan bifogas som PDF. Vänligen betala enligt betalningsvillkoren.
+
+Vid frågor kontakta oss på info@doxvl.se eller 070-123 45 67.`,
+    bodyEn: `Hello {{customerName}},
+
+Thank you for choosing DOX Visumpartner AB for your legalization services.
+
+Here is your invoice information:
+
+Invoice number: {{invoiceNumber}}
+Invoice date: {{invoiceDate}}
+Due date: {{dueDate}}
+Amount due: {{totalAmount}}
+Payment reference: {{paymentReference}}
+
+The invoice is attached as a PDF. Please pay according to the payment terms.
+
+If you have any questions, please contact us at info@doxvl.se or 070-123 45 67.`,
     variables: [
-      { key: 'customerName', description: 'Kundens namn', example: 'Erik' },
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
       { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
       { key: 'invoiceNumber', description: 'Fakturanummer', example: 'INV-2026-001' },
-      { key: 'totalAmount', description: 'Totalbelopp', example: '2500 kr' },
+      { key: 'totalAmount', description: 'Totalbelopp', example: '2500 SEK' },
+      { key: 'invoiceDate', description: 'Fakturadatum', example: '2026-04-09' },
+      { key: 'dueDate', description: 'Förfallodatum', example: '2026-04-23' },
+      { key: 'paymentReference', description: 'Betalningsreferens (OCR)', example: '1234567890' },
     ],
-    sourceFile: 'functions/index.js',
+    sourceFile: 'src/services/invoiceService.ts',
     sourceFunction: 'sendInvoiceEmail',
     isCustomized: false,
     isActive: true,

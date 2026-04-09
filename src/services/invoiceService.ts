@@ -1650,17 +1650,47 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
   try {
     // Generate PDF for attachment
     const pdfBlob = await generateInvoicePDFBlob(invoice);
-    
+
     // Convert Uint8Array to base64 string for Firestore storage
     const pdfBase64 = uint8ArrayToBase64(pdfBlob);
 
-    // Create email data for Firestore (will be processed by external service)
-    // Send to internal invoice email for manual processing with external invoicing system
-    const emailData = {
-      to: 'fakturor@visumpartner.se',
-      originalCustomerEmail: invoice.customerInfo.email,
-      subject: `Invoice ${invoice.invoiceNumber} from DOX Visumpartner AB`,
-      html: `
+    // Try the new editable template system first (opt-in via useCustomTemplate flag)
+    let finalSubject = `Invoice ${invoice.invoiceNumber} from DOX Visumpartner AB`;
+    let finalHtml = '';
+    let renderer: 'new' | 'legacy' = 'legacy';
+
+    try {
+      const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+      const { renderEmail } = await import('@/services/emailRenderer');
+      const tmpl = await getEmailTemplate('invoice');
+      if (tmpl?.useCustomTemplate) {
+        const result = await renderEmail(
+          'invoice',
+          {
+            customerName: invoice.customerInfo.firstName || invoice.customerInfo.lastName || 'customer',
+            orderNumber: invoice.orderNumber || invoice.invoiceNumber,
+            invoiceNumber: invoice.invoiceNumber,
+            totalAmount: `${invoice.totalAmount} SEK`,
+            invoiceDate: invoice.issueDate.toDate().toLocaleDateString('en-GB'),
+            dueDate: invoice.dueDate.toDate().toLocaleDateString('en-GB'),
+            paymentReference: invoice.paymentReference,
+          },
+          'en',
+          { orderNumber: invoice.orderNumber || invoice.invoiceNumber, showContactSection: false }
+        );
+        if (result.rendered) {
+          finalSubject = result.subject || finalSubject;
+          finalHtml = result.html;
+          renderer = 'new';
+        }
+      }
+    } catch (rendererErr) {
+      // eslint-disable-next-line no-console
+      console.warn('[invoice] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    if (!finalHtml) {
+      finalHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2a67aa;">Invoice from DOX Visumpartner AB</h2>
 
@@ -1688,7 +1718,16 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
           Org. No: 559351-8658<br/>
           VAT No: SE559351865801</p>
         </div>
-      `,
+      `;
+    }
+
+    // Create email data for Firestore (will be processed by external service)
+    // Send to internal invoice email for manual processing with external invoicing system
+    const emailData = {
+      to: 'fakturor@visumpartner.se',
+      originalCustomerEmail: invoice.customerInfo.email,
+      subject: finalSubject,
+      html: finalHtml,
       attachments: [{
         filename: `Invoice ${invoice.orderNumber || invoice.invoiceNumber}.pdf`,
         content: pdfBase64,
@@ -1699,7 +1738,8 @@ export const sendInvoiceEmail = async (invoice: Invoice): Promise<boolean> => {
       invoiceNumber: invoice.invoiceNumber,
       customerEmail: invoice.customerInfo.email,
       createdAt: Timestamp.now(),
-      status: 'pending'
+      status: 'pending',
+      renderer,
     };
 
     // Store email request in Firestore for processing
