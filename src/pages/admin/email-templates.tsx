@@ -130,14 +130,21 @@ export default function EmailTemplatesPage() {
     }
   };
 
-  const handleSeedTemplates = async () => {
+  const handleSeedTemplates = async (force = false) => {
+    if (force) {
+      const ok = confirm(
+        'Force refresh ALL templates from defaults?\n\nThis will OVERWRITE any customized subject/body content with the latest defaults from code. Useful when developers ship new template versions you want to apply.\n\nThe ON/OFF "Use this editable template" flag is preserved.'
+      );
+      if (!ok) return;
+    }
     setSeeding(true);
     try {
-      const result = await seedEmailTemplates();
+      const result = await seedEmailTemplates({ force });
       const parts: string[] = [];
       if (result.created > 0) parts.push(`${result.created} created`);
       if (result.refreshed > 0) parts.push(`${result.refreshed} refreshed`);
       if (result.preservedCustomized > 0) parts.push(`${result.preservedCustomized} customized preserved`);
+      if (result.forceOverwritten > 0) parts.push(`${result.forceOverwritten} force-overwritten`);
       toast.success(parts.length ? parts.join(', ') : 'No changes');
       await loadTemplates();
     } catch (error) {
@@ -205,11 +212,20 @@ export default function EmailTemplatesPage() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={handleSeedTemplates}
+                onClick={() => handleSeedTemplates(false)}
                 disabled={seeding}
                 className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                title="Add missing templates and refresh metadata. Customized content is preserved."
               >
                 {seeding ? 'Syncing...' : 'Sync Templates'}
+              </button>
+              <button
+                onClick={() => handleSeedTemplates(true)}
+                disabled={seeding}
+                className="px-4 py-2 text-sm bg-amber-100 text-amber-800 border border-amber-300 rounded-lg hover:bg-amber-200 disabled:opacity-50"
+                title="Force-overwrite ALL templates with the latest defaults from code, including any customized subject/body content."
+              >
+                ⚠️ Force refresh defaults
               </button>
               <span className="text-sm text-gray-500">{templates.length} templates</span>
             </div>
@@ -824,27 +840,54 @@ function EmailPreview({
   body,
   variables,
   lang,
-  category,
 }: {
   subject: string;
   body: string;
-  variables: { key: string; example: string }[];
+  variables: { key: string; example: string; isHtml?: boolean }[];
   lang: 'sv' | 'en';
   category: EmailCategory;
 }) {
-  // Legalization emails use SWE format, visa emails use VISA format
-  const isLegalizationEmail = category === 'order-confirmation' && !subject.toLowerCase().includes('visa');
-  const sampleOrderNumber = isLegalizationEmail ? 'SWE000325' : 'VISA000451';
-  // Replace variables with example values
-  let previewBody = body;
-  let previewSubject = subject;
-  for (const v of variables) {
-    const regex = new RegExp(`\\{\\{${v.key}\\}\\}`, 'g');
-    previewBody = previewBody.replace(regex, `<span style="background:#fef3c7;padding:2px 6px;border-radius:3px;font-weight:700">${v.example}</span>`);
-    previewSubject = previewSubject.replace(regex, v.example);
-  }
+  const [html, setHtml] = useState<string>('');
+  const [previewSubject, setPreviewSubject] = useState<string>('');
 
-  const isEn = lang === 'en';
+  // Render the actual email HTML (same wrapper used by the production sender)
+  // so the preview is pixel-perfect identical to what customers receive.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { generateEmailWrapper, getEmailDesignSettings } = await import('@/firebase/emailTemplateService');
+        const settings = await getEmailDesignSettings();
+
+        // Substitute {{variables}} in subject and body
+        const substitute = (str: string) => str.replace(/\{\{(\w+)\}\}/g, (_m, key) => {
+          const v = variables.find(x => x.key === key);
+          return v ? String(v.example) : '';
+        });
+        const subj = substitute(subject);
+        const bodyContent = substitute(body);
+
+        const wrapped = generateEmailWrapper({
+          settings,
+          lang,
+          title: subj,
+          headerTitle: subj,
+          bodyContent,
+          showTrackingButton: true,
+          orderNumber: lang === 'en' ? 'SWE000325' : 'SWE000325',
+          showContactSection: true,
+        });
+
+        if (!cancelled) {
+          setHtml(wrapped);
+          setPreviewSubject(subj);
+        }
+      } catch (err) {
+        console.error('Failed to render preview', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [subject, body, lang, variables]);
 
   return (
     <div className="border rounded-xl overflow-hidden shadow-sm">
@@ -855,94 +898,16 @@ function EmailPreview({
         <div><span className="text-gray-500">Subject:</span> <strong>{previewSubject}</strong></div>
       </div>
 
-      {/* Actual email body — matches real email structure */}
-      <div style={{ background: '#f8f9fa', padding: 20, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", lineHeight: 1.6, color: '#202124' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto', background: '#ffffff', borderRadius: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-
-          {/* Header — matches new wrapEmail() output. Clean logo, no border. */}
-          <div style={{ background: '#2E2D2C', color: '#ffffff', padding: '32px 36px 24px', textAlign: 'center', borderBottom: '2px solid #2E2D2C' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-new.png"
-              alt="DOX Visumpartner AB"
-              style={{ height: 53, width: 'auto', display: 'inline-block', border: 0 }}
-            />
-            <h1 style={{ margin: '20px 0 0', fontSize: 22, fontWeight: 700, letterSpacing: 0.2, color: '#ffffff' }}>
-              {previewSubject}
-            </h1>
-            <p style={{ color: '#ffffff', opacity: 0.8, margin: '8px 0 0' }}>
-              {isEn ? 'Update for your order with DOX Visumpartner AB' : 'Uppdatering för din order hos DOX Visumpartner AB'}
-            </p>
-          </div>
-
-          {/* Content */}
-          <div style={{ padding: '32px 36px' }}>
-            {/* Greeting */}
-            <div style={{ fontSize: 17, fontWeight: 600, color: '#202124', marginBottom: 16 }}>
-              {isEn ? 'Dear' : 'Hej'}{' '}
-              <span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: 3 }}>Erik</span>{isEn ? ',' : '!'}
-            </div>
-
-            {/* Body text */}
-            <div
-              style={{ fontSize: 15, lineHeight: 1.6 }}
-              dangerouslySetInnerHTML={{ __html: previewBody }}
-            />
-
-            {/* Order summary box */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 20, margin: '20px 0' }}>
-              <div style={{ background: '#0EB0A6', color: '#fff', padding: '10px 16px', borderRadius: 6, display: 'inline-block', fontWeight: 700, fontSize: 15, margin: '0 0 12px' }}>
-                {isEn ? 'Order number' : 'Ordernummer'}: #<span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: 3, color: '#92400e' }}>{sampleOrderNumber}</span>
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eaecef' }}>
-                  <span style={{ fontWeight: 500, color: '#5f6368' }}>{isEn ? 'Date' : 'Datum'}:</span>
-                  <span style={{ fontWeight: 700, color: '#202124' }}>2026-03-31</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eaecef' }}>
-                  <span style={{ fontWeight: 500, color: '#5f6368' }}>{isEn ? 'Destination' : 'Destination'}:</span>
-                  <span style={{ fontWeight: 700, color: '#202124' }}>Thailand</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-                  <span style={{ fontWeight: 500, color: '#5f6368' }}>{isEn ? 'Visa type' : 'Visumtyp'}:</span>
-                  <span style={{ fontWeight: 700, color: '#202124' }}>{isEn ? 'Tourist Visa 60 days' : 'Turistvisum 60 dagar'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tracking box */}
-            <div style={{ background: '#f0fdf4', border: '2px solid #22c55e', borderRadius: 8, padding: 20, margin: '22px 0', textAlign: 'center' }}>
-              <h3 style={{ color: '#166534', margin: '0 0 10px', fontSize: 17 }}>
-                📍 {isEn ? 'Track Your Order' : 'Följ din order'}
-              </h3>
-              <p style={{ color: '#15803d', margin: '0 0 14px', fontSize: 14 }}>
-                {isEn ? 'Follow the progress of your visa application in real-time:' : 'Följ ditt visumärende i realtid:'}
-              </p>
-              <span style={{ display: 'inline-block', background: '#22c55e', color: '#fff', padding: '12px 28px', borderRadius: 6, fontWeight: 700, fontSize: 15 }}>
-                {isEn ? 'Track Order Status' : 'Se orderstatus'}
-              </span>
-            </div>
-
-            {/* Contact info */}
-            <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 18, margin: '22px 0', textAlign: 'center' }}>
-              <h3 style={{ margin: '0 0 8px' }}>{isEn ? 'Questions?' : 'Har du frågor?'}</h3>
-              <p style={{ margin: 0 }}>{isEn ? 'Feel free to contact us:' : 'Kontakta oss gärna:'}</p>
-              <p style={{ margin: '8px 0 0' }}>📧 info@doxvl.se &nbsp; 📞 08-40941900</p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div style={{ background: '#f8f9fa', padding: '24px 36px', textAlign: 'center', borderTop: '1px solid #eaecef' }}>
-            <p style={{ margin: '5px 0', color: '#5f6368', fontSize: 13 }}><strong>DOX Visumpartner AB</strong></p>
-            <p style={{ margin: '5px 0', color: '#5f6368', fontSize: 13 }}>
-              {isEn ? 'Professional visa & document legalisation services' : 'Professionella visum- & legaliseringstjänster'}
-            </p>
-            <p style={{ margin: '5px 0', color: '#5f6368', fontSize: 13 }}>
-              {isEn ? 'This is an automatically generated message.' : 'Detta är ett automatiskt genererat meddelande.'}
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Render the real email HTML inside an iframe so customer-facing styles
+          are isolated from the admin app's CSS. Identical to what the
+          production sender produces. */}
+      <iframe
+        title="Email preview"
+        srcDoc={html}
+        className="w-full bg-white"
+        style={{ height: 720, border: 'none' }}
+        sandbox="allow-same-origin"
+      />
     </div>
   );
 }

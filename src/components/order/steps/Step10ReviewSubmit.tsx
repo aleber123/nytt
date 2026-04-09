@@ -1131,33 +1131,80 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     const customerLastName = answers.billingInfo?.lastName || answers.returnAddress?.lastName || answers.customerInfo?.lastName || '';
                     
                     if (customerEmail) {
-                      const customerConfirmationHtml = generateCustomerConfirmationEmail({
-                        orderId: orderId,
-                        customerFirstName: customerFirstName,
-                        customerLastName: customerLastName,
-                        countryName: countryName,
-                        documentType: documentTypeName,
-                        quantity: answers.quantity,
-                        services: servicesText,
-                        totalPrice: pricingResult.totalPrice,
-                        documentSource: answers.documentSource as 'upload' | 'original',
-                        returnService: returfraktText,
-                        locale: locale,
-                        invoiceReference: answers.invoiceReference || undefined
-                      });
+                      // Try the new editable template system first (opt-in via useCustomTemplate flag)
+                      // This is the UPLOAD flow (customer uploaded files digitally) →
+                      // template id: order-confirmation-legalization-upload
+                      let finalSubject = locale === 'en' ? `Order Confirmation – ${orderId}` : `Orderbekräftelse – ${orderId}`;
+                      let finalHtml = '';
+                      let renderer: 'new' | 'legacy' = 'legacy';
 
-                      // Use same format as original documents flow - message field contains HTML
+                      try {
+                        const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+                        const { renderEmail } = await import('@/services/emailRenderer');
+                        const { buildLegalizationOrderSummaryHtml, buildLegalizationDeliveredConfirmationHtml } = await import('@/services/legalizationOrderEmailParts');
+                        const tmpl = await getEmailTemplate('order-confirmation-legalization-upload');
+                        if (tmpl?.useCustomTemplate) {
+                          const isEnTpl = locale === 'en';
+                          const orderSummaryHtml = buildLegalizationOrderSummaryHtml({
+                            orderNumber: orderId,
+                            countryName,
+                            documentType: documentTypeName,
+                            quantity: answers.quantity,
+                            services: servicesText,
+                            totalPrice: pricingResult.totalPrice,
+                            locale: isEnTpl ? 'en' : 'sv',
+                          });
+                          const deliveredConfirmationHtml = buildLegalizationDeliveredConfirmationHtml(isEnTpl ? 'en' : 'sv');
+
+                          const result = await renderEmail(
+                            'order-confirmation-legalization-upload',
+                            {
+                              customerName: customerFirstName,
+                              orderNumber: orderId,
+                              orderSummary: orderSummaryHtml,
+                              deliveredConfirmationBlock: deliveredConfirmationHtml,
+                            },
+                            isEnTpl ? 'en' : 'sv',
+                            { orderNumber: orderId }
+                          );
+                          if (result.rendered) {
+                            finalSubject = result.subject || finalSubject;
+                            finalHtml = result.html;
+                            renderer = 'new';
+                          }
+                        }
+                      } catch (rendererErr) {
+                        console.warn('[order-confirmation-upload] new renderer failed, falling back to legacy', rendererErr);
+                      }
+
+                      if (!finalHtml) {
+                        // Legacy hardcoded path — unchanged
+                        finalHtml = generateCustomerConfirmationEmail({
+                          orderId: orderId,
+                          customerFirstName: customerFirstName,
+                          customerLastName: customerLastName,
+                          countryName: countryName,
+                          documentType: documentTypeName,
+                          quantity: answers.quantity,
+                          services: servicesText,
+                          totalPrice: pricingResult.totalPrice,
+                          documentSource: answers.documentSource as 'upload' | 'original',
+                          returnService: returfraktText,
+                          locale: locale,
+                          invoiceReference: answers.invoiceReference || undefined
+                        });
+                      }
+
                       const customerEmailData = {
                         name: `${customerFirstName} ${customerLastName}`,
                         email: customerEmail,
                         phone: answers.billingInfo?.phone || answers.returnAddress?.phone || answers.customerInfo?.phone || '',
-                        subject: locale === 'en' 
-                          ? `Order Confirmation – ${orderId}` 
-                          : `Orderbekräftelse – ${orderId}`,
-                        message: customerConfirmationHtml,
+                        subject: finalSubject,
+                        message: finalHtml,
                         orderId: orderId,
                         createdAt: Timestamp.now(),
-                        status: 'pending'
+                        status: 'pending',
+                        renderer, // for tracing — 'new' or 'legacy'
                       };
 
                       await addDoc(collection(db, 'customerEmails'), customerEmailData);
@@ -2060,19 +2107,92 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     const custFirstName = answers.billingInfo?.firstName || answers.returnAddress?.firstName || answers.customerInfo?.firstName || '';
                     const custLastName = answers.billingInfo?.lastName || answers.returnAddress?.lastName || answers.customerInfo?.lastName || '';
                     const custPhone = answers.billingInfo?.phone || answers.returnAddress?.phone || answers.customerInfo?.phone || '';
-                    
+
                     if (custEmail) {
+                      // Try the new editable template system first (opt-in via useCustomTemplate flag)
+                      // This is the ORIGINAL DOCUMENTS flow (customer sends docs by mail) →
+                      // template id: order-confirmation-legalization
+                      let finalSubject = isEnglish ? `Order Confirmation – ${orderId}` : `Orderbekräftelse – ${orderId}`;
+                      let finalHtml = '';
+                      let renderer: 'new' | 'legacy' = 'legacy';
+
+                      try {
+                        const { getEmailTemplate } = await import('@/firebase/emailTemplateService');
+                        const { renderEmail } = await import('@/services/emailRenderer');
+                        const { buildLegalizationOrderSummaryHtml, buildLegalizationNextStepsHtml } = await import('@/services/legalizationOrderEmailParts');
+                        const tmpl = await getEmailTemplate('order-confirmation-legalization');
+                        if (tmpl?.useCustomTemplate) {
+                          const lng: 'sv' | 'en' = isEnglish ? 'en' : 'sv';
+                          const countryNm = allCountries.find(c => c.code === answers.country)?.[isEnglish ? 'nameEn' : 'name']
+                            || allCountries.find(c => c.code === answers.country)?.name
+                            || answers.country;
+                          const docTypeNm = getAllDocumentTypesDisplay(isEnglish);
+                          const SN: Record<string, string> = isEnglish
+                            ? { apostille: 'Apostille', notarization: 'Notarization', embassy: 'Embassy legalization', ud: 'Ministry of Foreign Affairs legalization', translation: 'Certified translation', chamber: 'Chamber of Commerce legalization' }
+                            : { apostille: 'Apostille', notarization: 'Notarisering', embassy: 'Ambassadlegalisering', ud: 'UD-legalisering', translation: 'Auktoriserad översättning', chamber: 'Handelskammarens legalisering' };
+                          const servicesTxt = (answers.services || []).map((s: string) => SN[s] || s).join(', ');
+
+                          const orderSummaryHtml = buildLegalizationOrderSummaryHtml({
+                            orderNumber: orderId,
+                            countryName: countryNm,
+                            documentType: docTypeNm,
+                            quantity: answers.quantity,
+                            services: servicesTxt,
+                            locale: lng,
+                          });
+
+                          // returnService label for the "next steps" footer line
+                          const returnServiceLabel = answers.returnService
+                            ? (answers.returnService === 'own-delivery'
+                                ? (isEnglish ? 'your own return shipping' : 'egen returfrakt')
+                                : answers.returnService === 'office-pickup'
+                                  ? (isEnglish ? 'pickup at our office' : 'hämtning på vårt kontor')
+                                  : (returnServices.find((s: any) => s.id === answers.returnService)?.name || answers.returnService))
+                            : undefined;
+
+                          const nextStepsHtml = buildLegalizationNextStepsHtml({
+                            orderNumber: orderId,
+                            returnServiceLabel,
+                            hasPickup: answers.pickupService === true,
+                            locale: lng,
+                          });
+
+                          const result = await renderEmail(
+                            'order-confirmation-legalization',
+                            {
+                              customerName: custFirstName,
+                              orderNumber: orderId,
+                              orderSummary: orderSummaryHtml,
+                              nextStepsBlock: nextStepsHtml,
+                            },
+                            lng,
+                            { orderNumber: orderId }
+                          );
+                          if (result.rendered) {
+                            finalSubject = result.subject || finalSubject;
+                            finalHtml = result.html;
+                            renderer = 'new';
+                          }
+                        }
+                      } catch (rendererErr) {
+                        console.warn('[order-confirmation-original] new renderer failed, falling back to legacy', rendererErr);
+                      }
+
+                      if (!finalHtml) {
+                        // Legacy hardcoded path — unchanged
+                        finalHtml = customerHtml;
+                      }
+
                       const customerEmailData = {
                         name: `${custFirstName} ${custLastName}`,
                         email: custEmail,
                         phone: custPhone,
-                        subject: isEnglish
-                          ? `Order Confirmation – ${orderId}`
-                          : `Orderbekräftelse – ${orderId}`,
-                        message: customerHtml,
+                        subject: finalSubject,
+                        message: finalHtml,
                         orderId: orderId,
                         createdAt: Timestamp.now(),
-                        status: 'pending'
+                        status: 'pending',
+                        renderer, // for tracing — 'new' or 'legacy'
                       };
 
                       await addDoc(collection(db, 'customerEmails'), customerEmailData);

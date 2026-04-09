@@ -336,26 +336,85 @@ export const DEFAULT_EMAIL_TEMPLATES: Omit<EmailTemplate, 'createdAt' | 'updated
   // === ORDER CONFIRMATION ===
   {
     id: 'order-confirmation-legalization',
-    name: 'Orderbekräftelse (Legalisering)',
-    nameEn: 'Order Confirmation (Legalization)',
-    description: 'Skickas automatiskt till kund efter godkänd betalning av legaliseringsorder.',
-    descriptionEn: 'Sent automatically to customer after successful payment for legalization order.',
+    name: 'Orderbekräftelse (Legalisering — originaldokument)',
+    nameEn: 'Order Confirmation (Legalization — original documents)',
+    description: 'Skickas automatiskt till kund som ska skicka in originaldokument via post.',
+    descriptionEn: 'Sent automatically to customers who will send original documents by mail.',
     category: 'order-confirmation',
     trigger: 'automatic',
-    triggerEvent: 'order.created.legalization',
+    triggerEvent: 'order.created.legalization.original',
     processStep: 1,
     processGroup: 'Beställning',
-    subjectSv: 'Bekräftelse på din beställning',
-    subjectEn: 'Order Confirmation',
-    bodySv: 'Tack för din beställning! Vi har tagit emot din order och kommer att påbörja handläggningen.',
-    bodyEn: 'Thank you for your order! We have received your order and will begin processing.',
+    subjectSv: 'Bekräftelse på din beställning #{{orderNumber}}',
+    subjectEn: 'Order Confirmation #{{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Tack för din beställning! Vi har mottagit din order och börjar nu handlägga den. Här är en sammanfattning:
+
+{{orderSummary}}
+
+{{nextStepsBlock}}
+
+Du kan följa din order när som helst via länken nedan. Vi återkommer med uppdateringar via mail när din order rör sig framåt.`,
+    bodyEn: `Dear {{customerName}},
+
+Thank you for your order! We have received your order and will now start processing it. Here is a summary:
+
+{{orderSummary}}
+
+{{nextStepsBlock}}
+
+You can track your order at any time via the link below. We will keep you updated by email as your order progresses.`,
     variables: [
-      { key: 'customerName', description: 'Kundens namn', example: 'Erik' },
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
       { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
-      { key: 'orderSummary', description: 'Ordersammanfattning (HTML)', example: '<table>...</table>' },
+      { key: 'orderSummary', description: 'Ordersammanfattning (HTML-tabell, byggs automatiskt)', example: '<table>...</table>', isHtml: true },
+      { key: 'nextStepsBlock', description: '"Nästa steg"-block med adresser och instruktioner (HTML, byggs automatiskt)', example: '<div>...</div>', isHtml: true },
     ],
     sourceFile: 'src/components/order/steps/Step10ReviewSubmit.tsx',
-    sourceFunction: 'generateCustomerConfirmationEmail',
+    sourceFunction: 'inline (original documents flow)',
+    isCustomized: false,
+    isActive: true,
+  },
+  {
+    id: 'order-confirmation-legalization-upload',
+    name: 'Orderbekräftelse (Legalisering — uppladdade filer)',
+    nameEn: 'Order Confirmation (Legalization — uploaded files)',
+    description: 'Skickas automatiskt till kund som har laddat upp sina dokument digitalt.',
+    descriptionEn: 'Sent automatically to customers who have uploaded their documents digitally.',
+    category: 'order-confirmation',
+    trigger: 'automatic',
+    triggerEvent: 'order.created.legalization.upload',
+    processStep: 1,
+    processGroup: 'Beställning',
+    subjectSv: 'Bekräftelse på din beställning #{{orderNumber}}',
+    subjectEn: 'Order Confirmation #{{orderNumber}}',
+    bodySv: `Hej {{customerName}}!
+
+Tack för din beställning! Vi har mottagit dina uppladdade filer och börjar nu handlägga din ansökan. Här är en sammanfattning:
+
+{{orderSummary}}
+
+{{deliveredConfirmationBlock}}
+
+Du kan följa din order när som helst via länken nedan.`,
+    bodyEn: `Dear {{customerName}},
+
+Thank you for your order! We have received your uploaded files and will now start processing your application. Here is a summary:
+
+{{orderSummary}}
+
+{{deliveredConfirmationBlock}}
+
+You can track your order at any time via the link below.`,
+    variables: [
+      { key: 'customerName', description: 'Kundens förnamn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+      { key: 'orderSummary', description: 'Ordersammanfattning (HTML-tabell, byggs automatiskt)', example: '<table>...</table>', isHtml: true },
+      { key: 'deliveredConfirmationBlock', description: '"Vi har dina dokument"-bekräftelseruta (HTML, byggs automatiskt)', example: '<div>...</div>', isHtml: true },
+    ],
+    sourceFile: 'src/components/order/steps/Step10ReviewSubmit.tsx',
+    sourceFunction: 'generateCustomerConfirmationEmail (upload flow)',
     isCustomized: false,
     isActive: true,
   },
@@ -997,14 +1056,20 @@ export const DEFAULT_EMAIL_TEMPLATES: Omit<EmailTemplate, 'createdAt' | 'updated
  * Seed all default templates into Firestore.
  * - Always creates missing templates.
  * - For existing templates: refreshes metadata (name, description, variables,
- *   sourceFile, processGroup, ...) and only refreshes subject/body if the
- *   template has NOT been customized by admin (`isCustomized: false`).
- *   The `useCustomTemplate` flag is preserved (admin's choice is sticky).
+ *   sourceFile, processGroup, ...) and refreshes subject/body content only when
+ *   the template has NOT been customized by admin (`isCustomized: false`),
+ *   UNLESS `force: true` is passed — then customized content is overwritten too.
+ *
+ * The `useCustomTemplate` flag is always preserved (admin's choice is sticky).
  */
-export async function seedEmailTemplates(): Promise<{ created: number; refreshed: number; preservedCustomized: number }> {
+export async function seedEmailTemplates(
+  options: { force?: boolean } = {}
+): Promise<{ created: number; refreshed: number; preservedCustomized: number; forceOverwritten: number }> {
   let created = 0;
   let refreshed = 0;
   let preservedCustomized = 0;
+  let forceOverwritten = 0;
+  const force = options.force === true;
 
   for (const template of DEFAULT_EMAIL_TEMPLATES) {
     const existing = await getDoc(docRef(template.id));
@@ -1021,7 +1086,8 @@ export async function seedEmailTemplates(): Promise<{ created: number; refreshed
     const existingData = existing.data() as Partial<EmailTemplate>;
     const isCustomized = existingData.isCustomized === true;
 
-    // Always refresh metadata. Refresh content only when admin has not customized it.
+    // Always refresh metadata. Refresh content only when admin has not customized it,
+    // unless force is set.
     const refreshPayload: Record<string, any> = {
       name: template.name,
       nameEn: template.nameEn,
@@ -1038,11 +1104,18 @@ export async function seedEmailTemplates(): Promise<{ created: number; refreshed
       updatedAt: serverTimestamp(),
     };
 
-    if (!isCustomized) {
+    const shouldRefreshContent = !isCustomized || force;
+
+    if (shouldRefreshContent) {
       refreshPayload.subjectSv = template.subjectSv;
       refreshPayload.subjectEn = template.subjectEn;
       refreshPayload.bodySv = template.bodySv;
       refreshPayload.bodyEn = template.bodyEn;
+      if (force && isCustomized) {
+        // Reset the customized flag now that content is back to defaults
+        refreshPayload.isCustomized = false;
+        forceOverwritten++;
+      }
       // Only set the default useCustomTemplate flag for templates that ship with one
       // (i.e. internal reminder templates) — preserve admin's existing choice otherwise
       if (template.useCustomTemplate !== undefined && existingData.useCustomTemplate === undefined) {
@@ -1056,5 +1129,5 @@ export async function seedEmailTemplates(): Promise<{ created: number; refreshed
     refreshed++;
   }
 
-  return { created, refreshed, preservedCustomized };
+  return { created, refreshed, preservedCustomized, forceOverwritten };
 }

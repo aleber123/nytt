@@ -57,6 +57,43 @@ export function substituteVariables(
   });
 }
 
+/**
+ * Auto-format a plain-text email body into HTML paragraphs.
+ *
+ * If the body already contains block-level HTML tags (an admin who knows
+ * HTML), it is returned unchanged. Otherwise paragraphs separated by blank
+ * lines become <p>...</p> and single line breaks become <br>.
+ *
+ * Paragraphs that consist of nothing but a single HTML variable placeholder
+ * (e.g. `{{orderSummary}}` where orderSummary is `isHtml: true`) are kept
+ * as block-level inserts and NOT wrapped in <p> — preventing invalid
+ * `<p><table>...</table></p>` structures after substitution.
+ */
+export function formatBodyAsHtml(
+  body: string,
+  htmlVariableKeys: Set<string> = new Set()
+): string {
+  if (!body) return '';
+  // If the body already contains block-level HTML tags, treat it as authored HTML
+  if (/<\s*(p|div|table|h[1-6]|ul|ol|blockquote|hr|br)[\s>]/i.test(body)) {
+    return body;
+  }
+  const paragraphs = body
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+  return paragraphs.map(p => {
+    // Single HTML-variable placeholder on its own line — leave as-is so
+    // substitution inserts a block element directly into the body
+    const onlyVarMatch = p.match(/^\{\{(\w+)\}\}$/);
+    if (onlyVarMatch && htmlVariableKeys.has(onlyVarMatch[1])) {
+      return p;
+    }
+    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+  }).join('\n');
+}
+
 // ─── Local fallback lookup ──────────────────────────────────────────────────
 
 function findDefaultTemplate(id: string): EmailTemplate | null {
@@ -142,7 +179,17 @@ export function renderTemplate(
   const bodyTpl = locale === 'en' ? template.bodyEn : template.bodySv;
 
   const subject = substituteVariables(subjectTpl, variables, template.variables);
-  const bodyContent = substituteVariables(bodyTpl, variables, template.variables);
+  // Auto-format plain text bodies into HTML paragraphs so admin can write
+  // natural prose without manually adding <p> tags. Bodies that already
+  // contain block-level HTML are passed through unchanged.
+  // Format first so paragraph detection runs on the raw template; then
+  // substitute, so HTML variables (e.g. {{orderSummary}}) get inserted
+  // as block elements that aren't wrapped in <p>.
+  const htmlVarKeys = new Set(
+    (template.variables || []).filter(v => (v as any).isHtml).map(v => v.key)
+  );
+  const bodyFormatted = formatBodyAsHtml(bodyTpl, htmlVarKeys);
+  const bodyContent = substituteVariables(bodyFormatted, variables, template.variables);
 
   const orderNumber = options.orderNumber || variables.orderNumber || undefined;
   const showTracking = options.showTrackingButton ?? !!orderNumber;
