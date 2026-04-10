@@ -196,6 +196,7 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
     return order.documentType ? [order.documentType] : [];
   };
   const [editedDocumentTypes, setEditedDocumentTypes] = useState<string[]>(getInitialDocTypes());
+  const [editedQuantity, setEditedQuantity] = useState<number>(order.quantity || 1);
   const [editedDocumentSource, setEditedDocumentSource] = useState(order.documentSource || 'original');
   const [editedCustomerRef, setEditedCustomerRef] = useState((order as any).invoiceReference || '');
   const [editedCompanyName, setEditedCompanyName] = useState(order.customerInfo?.companyName || '');
@@ -242,8 +243,8 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
       changes.push({ field: 'documentTypes', oldValue: oldDocs, newValue: newDocs });
     }
     
-    if (editedDocumentTypes.length !== order.quantity) {
-      changes.push({ field: 'quantity', oldValue: String(order.quantity || 1), newValue: String(editedDocumentTypes.length || 1) });
+    if (editedQuantity !== order.quantity) {
+      changes.push({ field: 'quantity', oldValue: String(order.quantity || 1), newValue: String(editedQuantity || 1) });
     }
     
     if (editedDocumentSource !== (order.documentSource || 'original')) {
@@ -300,7 +301,7 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
         country: editedCountry,
         documentType: editedDocumentTypes[0] || '',
         documentTypes: editedDocumentTypes,
-        quantity: editedDocumentTypes.length || 1,
+        quantity: editedQuantity || editedDocumentTypes.length || 1,
         documentSource: editedDocumentSource,
         invoiceReference: editedCustomerRef,
         customerInfo: {
@@ -326,7 +327,7 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
         country: editedCountry,
         documentType: editedDocumentTypes[0] || '',
         documentTypes: editedDocumentTypes,
-        quantity: editedDocumentTypes.length || 1,
+        quantity: editedQuantity || editedDocumentTypes.length || 1,
         documentSource: editedDocumentSource,
         invoiceReference: editedCustomerRef,
         customerInfo: {
@@ -484,10 +485,25 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
           </div>
         </div>
 
+        {/* Quantity */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity (number of documents)</label>
+          <input
+            type="number"
+            min={1}
+            value={editedQuantity}
+            onChange={(e) => setEditedQuantity(Math.max(1, Number(e.target.value)))}
+            className="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Override if the customer has multiple copies of the same document type.
+          </p>
+        </div>
+
         {/* Document Types Section */}
         <div className="border-t pt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Documents ({editedDocumentTypes.length})
+            Documents ({editedDocumentTypes.length} type{editedDocumentTypes.length !== 1 ? 's' : ''})
           </label>
           
           {/* Current document types */}
@@ -539,7 +555,7 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-2">
-            Each document type counts as one document. Quantity will be set to the number of document types.
+            Add all document types included in this order. Use the Quantity field above if the customer has multiple copies of the same type.
           </p>
         </div>
 
