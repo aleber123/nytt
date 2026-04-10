@@ -212,15 +212,25 @@ export default function PriceTab({
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm border border-gray-200 rounded">
                           <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left">Include</th>
-                              <th className="px-3 py-2 text-left">Description</th>
-                              <th className="px-3 py-2 text-right">Base Amount</th>
-                              <th className="px-3 py-2 text-right">New Unit Price</th>
-                              <th className="px-3 py-2 text-center">Qty</th>
-                              <th className="px-3 py-2 text-right">New Total</th>
-                              <th className="px-3 py-2 text-right">VAT %</th>
-                            </tr>
+                            {order?.orderType === 'visa' && order?.pricingBreakdown && !Array.isArray(order.pricingBreakdown) ? (
+                              <tr>
+                                <th className="px-3 py-2 text-left">Include</th>
+                                <th className="px-3 py-2 text-left">Description</th>
+                                <th className="px-3 py-2 text-right">Base Amount</th>
+                                <th className="px-3 py-2 text-right">Override Price</th>
+                                <th className="px-3 py-2 text-right">VAT %</th>
+                              </tr>
+                            ) : (
+                              <tr>
+                                <th className="px-3 py-2 text-left">Include</th>
+                                <th className="px-3 py-2 text-left">Description</th>
+                                <th className="px-3 py-2 text-right">Base Amount</th>
+                                <th className="px-3 py-2 text-right">New Unit Price</th>
+                                <th className="px-3 py-2 text-center">Qty</th>
+                                <th className="px-3 py-2 text-right">New Total</th>
+                                <th className="px-3 py-2 text-right">VAT %</th>
+                              </tr>
+                            )}
                           </thead>
                           <tbody>
                             {/* Handle visa orders with object-based pricingBreakdown */}
@@ -256,13 +266,12 @@ export default function PriceTab({
                                       </td>
                                       <td className="px-3 py-2">{item.label}</td>
                                       <td className="px-3 py-2 text-right">{item.amount.toFixed(2)} kr</td>
-                                      <td className="px-3 py-2 text-right"><span className="text-gray-300">—</span></td>
                                       <td className="px-3 py-2 text-right">
                                         <input
                                           type="number"
-                                          className="w-28 border rounded px-2 py-1 text-right"
+                                          className="w-28 border border-blue-300 rounded px-2 py-1 text-right bg-blue-50 focus:ring-2 focus:ring-blue-500"
                                           value={o.overrideAmount ?? ''}
-                                          placeholder=""
+                                          placeholder={item.amount.toFixed(0)}
                                           onChange={(e) => {
                                             const val = e.target.value === '' ? null : Number(e.target.value);
                                             const next = [...lineOverrides];
@@ -289,7 +298,7 @@ export default function PriceTab({
                                   );
                                 }) : (
                                   <tr>
-                                    <td colSpan={6} className="px-3 py-4 text-center text-gray-500">No line items</td>
+                                    <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
                                   </tr>
                                 );
                               })()
