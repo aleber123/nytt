@@ -7865,7 +7865,8 @@ function AdminOrderDetailPage() {
                     router, initializeProcessingSteps, getServiceName,
                     getServiceStatus, getServiceStatusColor,
                     addingService, handleAddService, newServiceToAdd, setNewServiceToAdd,
-                    setProcessingSteps,
+                    setProcessingSteps, toast,
+                    adminName: (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string,
                   }} />
                 )}
 
