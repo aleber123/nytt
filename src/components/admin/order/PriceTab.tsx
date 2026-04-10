@@ -425,7 +425,20 @@ export default function PriceTab({
                         </div>
                         <div>
                           <p className="text-sm text-gray-500 mb-1">New Total Amount</p>
-                          <div className="text-xl font-semibold">{getComputedTotal()} SEK</div>
+                          <div className="text-xl font-bold text-blue-700">
+                            {(() => {
+                              // Compute locally from lineOverrides so we respond to
+                              // every keystroke without waiting for parent re-render
+                              const localTotal = lineOverrides.reduce((sum, o) => {
+                                if (o.include === false) return sum;
+                                const val = o.overrideAmount != null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
+                                return sum + (isNaN(val) ? 0 : val);
+                              }, 0);
+                              const adj = getAdjustmentsTotal();
+                              const disc = getDiscountTotal(localTotal);
+                              return Math.max(0, Math.round((localTotal + adj - disc) * 100) / 100);
+                            })()} SEK
+                          </div>
                         </div>
                       </div>
 
