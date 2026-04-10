@@ -177,6 +177,16 @@ function AdminIndexPage() {
       category: 'visa',
       permission: 'canManageOrders' as const,
     },
+    {
+      title: 'Abandoned Carts / Leads',
+      description: 'Customers who started an order but didn\'t complete it — follow up to recover the sale',
+      href: '/admin/abandoned-carts',
+      color: 'bg-amber-500 hover:bg-amber-600',
+      badge: 'Recovery',
+      icon: 'clipboard-list',
+      category: 'customers',
+      permission: 'canManageOrders' as const,
+    },
     // Customers & Sales
     {
       title: 'Sales CRM',

@@ -271,6 +271,14 @@ service cloud.firestore {
       allow write: if isAdmin() || isDoxStaff();
     }
 
+    // ABANDONED CARTS – tracks partially completed orders as leads.
+    // Public write (unauthenticated customers on /bestall create these).
+    // Only admins/staff can read the full list + update status.
+    match /abandonedCarts/{cartId} {
+      allow create, update: if true;
+      allow read, delete: if isAdmin() || isDoxStaff();
+    }
+
     // ADMIN USERS – role-based access control for admin panel
     match /adminUsers/{userId} {
       // Allow authenticated users to read their own admin user document

@@ -25,9 +25,11 @@ interface Props {
   onBack: () => void;
   onGoToStep: (step: number) => void;
   isEVisa?: boolean;
+  /** Called after a visa order is successfully created — used to mark abandoned cart as converted */
+  onOrderCreated?: (orderId: string) => void;
 }
 
-const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToStep, isEVisa = false }) => {
+const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToStep, isEVisa = false, onOrderCreated }) => {
   const { t } = useTranslation('common');
   const router = useRouter();
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -244,7 +246,8 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
       
       setOrderId(createdOrderId);
       setIsSubmitted(true);
-      
+      onOrderCreated?.(createdOrderId);
+
       // Fetch the created order to get full data for email
       const createdOrder = await getVisaOrder(createdOrderId);
       

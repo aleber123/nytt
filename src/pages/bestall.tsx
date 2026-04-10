@@ -153,12 +153,14 @@ export default function TestOrderPage({}: TestOrderPageProps) {
   const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
-  // Progress persistence - auto-save and restore order data
-  const { clearProgress, getSavedProgressInfo } = useOrderPersistence(
+  // Progress persistence - auto-save and restore order data + abandoned cart tracking
+  const { clearProgress, getSavedProgressInfo, markConverted } = useOrderPersistence(
     answers,
     currentQuestion,
     setAnswers,
-    setCurrentQuestion
+    setCurrentQuestion,
+    'legalization',
+    10
   );
 
   // Track highest step reached for navigation
@@ -1224,6 +1226,8 @@ export default function TestOrderPage({}: TestOrderPageProps) {
         
         toast.success('Beställning mottagen!');
         clearProgress();
+        const orderIdStr = typeof orderId === 'string' ? orderId : orderId?.orderId || '';
+        markConverted(orderIdStr);
         router.push(`/order-confirmation?id=${orderId}`);
       } else {
         toast.error('Något gick fel');

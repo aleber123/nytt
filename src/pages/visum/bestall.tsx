@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import Head from 'next/head';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
+import { useOrderPersistence } from '@/hooks/useOrderPersistence';
 import Seo from '@/components/Seo';
 import { VisaOrderAnswers, initialVisaOrderAnswers, VISA_TOTAL_STEPS } from '@/components/order/visa/types';
 import type { OrderAnswers } from '@/components/order/types';
@@ -30,6 +31,17 @@ export default function VisaOrderPage() {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [returnServices, setReturnServices] = useState<any[]>([]);
   const [loadingReturnServices, setLoadingReturnServices] = useState(false);
+
+  // Abandoned cart tracking — saves progress to Firestore so admin can see
+  // started-but-not-completed visa orders as leads
+  const { markConverted: markCartConverted } = useOrderPersistence(
+    answers,
+    currentStep,
+    setAnswers,
+    setCurrentStep,
+    'visa',
+    9
+  );
   const [pickupServices, setPickupServices] = useState<any[]>([]);
   const [loadingPickupServices, setLoadingPickupServices] = useState(false);
   const [visaType, setVisaType] = useState<VisaType | null>(null);
@@ -331,12 +343,13 @@ export default function VisaOrderPage() {
         );
       case 9:
         return (
-          <VisaStep10Review 
+          <VisaStep10Review
             answers={answers}
             onUpdate={updateAnswers}
             onBack={goToPrevious}
             onGoToStep={goToStep}
             isEVisa={isEVisaOnly}
+            onOrderCreated={(orderId: string) => markCartConverted(orderId)}
           />
         );
       default:

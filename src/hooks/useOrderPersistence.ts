@@ -13,7 +13,25 @@ import { useEffect, useCallback, useRef } from 'react';
 import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'orderDraft';
+const SESSION_ID_KEY = 'orderDraftSessionId';
 const EXPIRATION_HOURS = 24;
+
+/**
+ * Get or create a persistent session ID for abandoned cart tracking.
+ * Stored in sessionStorage so it survives page refreshes within the
+ * same tab but gets a new ID when the user opens a new tab/browser.
+ */
+function getOrCreateSessionId(): string {
+  try {
+    const existing = sessionStorage.getItem(SESSION_ID_KEY);
+    if (existing) return existing;
+    const id = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    sessionStorage.setItem(SESSION_ID_KEY, id);
+    return id;
+  } catch {
+    return `cart_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+}
 
 interface OrderDraft {
   answers: any;
@@ -25,10 +43,17 @@ export const useOrderPersistence = (
   answers: any,
   currentQuestion: number,
   setAnswers: (answers: any) => void,
-  setCurrentQuestion: (step: number) => void
+  setCurrentQuestion: (step: number) => void,
+  /** Order type for abandoned cart tracking ('legalization' | 'visa'). If omitted, Firestore sync is skipped. */
+  orderType?: 'legalization' | 'visa',
+  /** Total number of steps in the flow (for progress %) */
+  totalSteps?: number
 ) => {
   // Ref to track if we've already restored on mount (prevents double restoration in React Strict Mode)
   const hasRestoredRef = useRef(false);
+  // Debounce timer for Firestore writes (avoid hammering on every keystroke)
+  const firestoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionIdRef = useRef<string>(getOrCreateSessionId());
 
   /**
    * Save current progress to sessionStorage
@@ -163,14 +188,48 @@ export const useOrderPersistence = (
    * Auto-save on every change (debounced by React)
    */
   useEffect(() => {
-    // Don't save on initial mount
-    if (currentQuestion === 1 && !answers.country) {
+    // Don't save on initial mount when no data exists
+    if (currentQuestion === 1 && !answers.country && !answers.destinationCountry) {
       return;
     }
 
-    // Save progress whenever answers or step changes
+    // Save to sessionStorage immediately (synchronous, cheap)
     saveProgress();
-  }, [answers, currentQuestion, saveProgress]);
+
+    // Debounced save to Firestore for abandoned cart tracking (3 sec delay
+    // so we don't write on every keystroke, but still capture progress
+    // if the user leaves after filling in a field)
+    if (orderType) {
+      if (firestoreTimerRef.current) clearTimeout(firestoreTimerRef.current);
+      firestoreTimerRef.current = setTimeout(async () => {
+        try {
+          const { upsertAbandonedCart } = await import('@/firebase/abandonedCartService');
+          // Strip file objects and circular refs for Firestore
+          const serializableAnswers = { ...answers };
+          delete serializableAnswers.uploadedFiles;
+          delete serializableAnswers.idDocumentFile;
+          delete serializableAnswers.registrationCertFile;
+          delete serializableAnswers.signingAuthorityIdFile;
+          delete serializableAnswers.ownReturnLabelFile;
+
+          await upsertAbandonedCart({
+            sessionId: sessionIdRef.current,
+            orderType,
+            currentStep: currentQuestion,
+            totalSteps: totalSteps || 10,
+            answers: serializableAnswers,
+            locale: typeof window !== 'undefined' ? (document.documentElement.lang || 'sv') : 'sv',
+          });
+        } catch {
+          // Non-blocking
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (firestoreTimerRef.current) clearTimeout(firestoreTimerRef.current);
+    };
+  }, [answers, currentQuestion, saveProgress, orderType, totalSteps]);
 
   /**
    * Restore progress on mount (only once)
@@ -182,11 +241,27 @@ export const useOrderPersistence = (
     // The useEffect above will handle saving from this point forward
   }, []); // Empty dependency array = run once on mount
 
+  /**
+   * Mark the cart as converted in Firestore (call after successful order creation).
+   */
+  const markConverted = useCallback(async (orderId: string) => {
+    try {
+      const { markCartConverted } = await import('@/firebase/abandonedCartService');
+      await markCartConverted(sessionIdRef.current, orderId);
+    } catch {
+      // Non-blocking
+    }
+  }, []);
+
   return {
     saveProgress,
     restoreProgress,
     clearProgress,
-    getSavedProgressInfo
+    getSavedProgressInfo,
+    /** Call after successful order submission to mark the abandoned cart as converted */
+    markConverted,
+    /** The session ID used for abandoned cart tracking */
+    sessionId: sessionIdRef.current,
   };
 };
 
