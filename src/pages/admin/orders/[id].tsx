@@ -197,6 +197,8 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
   };
   const [editedDocumentTypes, setEditedDocumentTypes] = useState<string[]>(getInitialDocTypes());
   const [editedQuantity, setEditedQuantity] = useState<number>(order.quantity || 1);
+  const [editedReturnService, setEditedReturnService] = useState<string>((order as any).returnService || '');
+  const [editedCustomerEmail, setEditedCustomerEmail] = useState<string>(order.customerInfo?.email || '');
   const [editedDocumentSource, setEditedDocumentSource] = useState(order.documentSource || 'original');
   const [editedCustomerRef, setEditedCustomerRef] = useState((order as any).invoiceReference || '');
   const [editedCompanyName, setEditedCompanyName] = useState(order.customerInfo?.companyName || '');
@@ -258,7 +260,23 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
     if (editedCustomerRef !== ((order as any).invoiceReference || '')) {
       changes.push({ field: 'invoiceReference', oldValue: (order as any).invoiceReference || '—', newValue: editedCustomerRef || '—' });
     }
-    
+
+    if (editedReturnService !== ((order as any).returnService || '')) {
+      changes.push({
+        field: 'returnService',
+        oldValue: getReturnServiceName((order as any).returnService) || '—',
+        newValue: getReturnServiceName(editedReturnService) || '—',
+      });
+    }
+
+    if (editedCustomerEmail !== (order.customerInfo?.email || '')) {
+      changes.push({
+        field: 'customerEmail',
+        oldValue: order.customerInfo?.email || '—',
+        newValue: editedCustomerEmail || '—',
+      });
+    }
+
     return changes;
   };
 
@@ -304,9 +322,11 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
         quantity: editedQuantity || editedDocumentTypes.length || 1,
         documentSource: editedDocumentSource,
         invoiceReference: editedCustomerRef,
+        returnService: editedReturnService,
         customerInfo: {
           ...order.customerInfo,
-          companyName: editedCompanyName
+          companyName: editedCompanyName,
+          email: editedCustomerEmail,
         }
       };
       await onUpdate(updates);
@@ -330,13 +350,15 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
         quantity: editedQuantity || editedDocumentTypes.length || 1,
         documentSource: editedDocumentSource,
         invoiceReference: editedCustomerRef,
+        returnService: editedReturnService,
         customerInfo: {
           ...order.customerInfo,
-          companyName: editedCompanyName
+          companyName: editedCompanyName,
+          email: editedCustomerEmail,
         }
       };
       await onUpdate(updates);
-      
+
       if (!confirm('Regenerate processing steps based on new order info? Any progress will be lost.')) {
         setEditing(false);
         setSaving(false);
@@ -398,6 +420,14 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
             <div>
               <span className="text-gray-500">Company:</span>
               <span className="ml-2 font-medium">{order.customerInfo?.companyName || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Return service:</span>
+              <span className="ml-2 font-medium">{getReturnServiceName((order as any).returnService) || '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Customer email:</span>
+              <span className="ml-2 font-medium">{order.customerInfo?.email || '—'}</span>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-4">
@@ -482,6 +512,38 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
               placeholder="Company name"
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Return Service</label>
+            <select
+              value={editedReturnService}
+              onChange={(e) => setEditedReturnService(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="">Not set</option>
+              <option value="postnord-rek">PostNord REK</option>
+              <option value="postnord-express">PostNord Express</option>
+              <option value="dhl-sweden">DHL Sweden</option>
+              <option value="dhl-international">DHL International</option>
+              <option value="stockholm-city">Stockholm City Courier</option>
+              <option value="stockholm-express">Stockholm Express</option>
+              <option value="stockholm-sameday">Stockholm Same Day</option>
+              <option value="own-delivery">Own Delivery (customer sends label)</option>
+              <option value="office-pickup">Office Pickup</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Email</label>
+            <input
+              type="email"
+              value={editedCustomerEmail}
+              onChange={(e) => setEditedCustomerEmail(e.target.value)}
+              placeholder="customer@example.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              All order status emails will be sent to this address.
+            </p>
           </div>
         </div>
 
