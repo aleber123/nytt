@@ -195,8 +195,23 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
     }
     return order.documentType ? [order.documentType] : [];
   };
-  const [editedDocumentTypes, setEditedDocumentTypes] = useState<string[]>(getInitialDocTypes());
-  const [editedQuantity, setEditedQuantity] = useState<number>(order.quantity || 1);
+  // Document types with per-type quantity: { docTypeId: qty }
+  const getInitialDocQty = (): Record<string, number> => {
+    const existingQty = (order as any).documentTypeQuantities;
+    if (existingQty && typeof existingQty === 'object') return { ...existingQty };
+    // Backwards compat: distribute total quantity evenly or 1 each
+    const types = getInitialDocTypes();
+    const total = order.quantity || types.length || 1;
+    if (types.length === 1) return { [types[0]]: total };
+    // Multiple types but no per-type qty stored → default 1 each
+    const map: Record<string, number> = {};
+    types.forEach((t: string) => { map[t] = 1; });
+    return map;
+  };
+  const [editedDocQty, setEditedDocQty] = useState<Record<string, number>>(getInitialDocQty());
+  const editedDocumentTypes = Object.keys(editedDocQty);
+  const editedQuantity = Object.values(editedDocQty).reduce((sum, n) => sum + n, 0) || 1;
+
   const [editedReturnService, setEditedReturnService] = useState<string>((order as any).returnService || '');
   const [editedCustomerEmail, setEditedCustomerEmail] = useState<string>(order.customerInfo?.email || '');
   const [editedDocumentSource, setEditedDocumentSource] = useState(order.documentSource || 'original');
@@ -206,23 +221,29 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
   // Reset form when order changes
   useEffect(() => {
     setEditedCountry(order.country || '');
-    const docTypes = Array.isArray((order as any).documentTypes) && (order as any).documentTypes.length > 0
-      ? (order as any).documentTypes
-      : order.documentType ? [order.documentType] : [];
-    setEditedDocumentTypes(docTypes);
+    setEditedDocQty(getInitialDocQty());
     setEditedDocumentSource(order.documentSource || 'original');
     setEditedCustomerRef((order as any).invoiceReference || '');
     setEditedCompanyName(order.customerInfo?.companyName || '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order]);
 
   const handleAddDocumentType = (docTypeId: string) => {
-    if (docTypeId && !editedDocumentTypes.includes(docTypeId)) {
-      setEditedDocumentTypes([...editedDocumentTypes, docTypeId]);
+    if (docTypeId && !editedDocQty[docTypeId]) {
+      setEditedDocQty(prev => ({ ...prev, [docTypeId]: 1 }));
     }
   };
 
   const handleRemoveDocumentType = (docTypeId: string) => {
-    setEditedDocumentTypes(editedDocumentTypes.filter(d => d !== docTypeId));
+    setEditedDocQty(prev => {
+      const next = { ...prev };
+      delete next[docTypeId];
+      return next;
+    });
+  };
+
+  const handleDocQtyChange = (docTypeId: string, qty: number) => {
+    setEditedDocQty(prev => ({ ...prev, [docTypeId]: Math.max(1, qty) }));
   };
 
   // Build changes array for email notification
@@ -239,14 +260,15 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
       ? (order as any).documentTypes
       : order.documentType ? [order.documentType] : [];
     
-    if (JSON.stringify(editedDocumentTypes) !== JSON.stringify(currentDocTypes)) {
-      const oldDocs = currentDocTypes.map(getDocTypeName).join(', ') || '—';
-      const newDocs = editedDocumentTypes.map(getDocTypeName).join(', ') || '—';
-      changes.push({ field: 'documentTypes', oldValue: oldDocs, newValue: newDocs });
+    // Compare document types + per-type quantities
+    const oldDocStr = currentDocTypes.map((d: string) => `${getDocTypeName(d)} ×${(order as any).documentTypeQuantities?.[d] || 1}`).join(', ') || '—';
+    const newDocStr = editedDocumentTypes.map((d: string) => `${getDocTypeName(d)} ×${editedDocQty[d] || 1}`).join(', ') || '—';
+    if (oldDocStr !== newDocStr) {
+      changes.push({ field: 'documents', oldValue: oldDocStr, newValue: newDocStr });
     }
-    
-    if (editedQuantity !== order.quantity) {
-      changes.push({ field: 'quantity', oldValue: String(order.quantity || 1), newValue: String(editedQuantity || 1) });
+
+    if (editedQuantity !== (order.quantity || 1)) {
+      changes.push({ field: 'quantity', oldValue: String(order.quantity || 1), newValue: String(editedQuantity) });
     }
     
     if (editedDocumentSource !== (order.documentSource || 'original')) {
@@ -319,7 +341,8 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
         country: editedCountry,
         documentType: editedDocumentTypes[0] || '',
         documentTypes: editedDocumentTypes,
-        quantity: editedQuantity || editedDocumentTypes.length || 1,
+        quantity: editedQuantity,
+        documentTypeQuantities: editedDocQty,
         documentSource: editedDocumentSource,
         invoiceReference: editedCustomerRef,
         returnService: editedReturnService,
@@ -347,7 +370,8 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
         country: editedCountry,
         documentType: editedDocumentTypes[0] || '',
         documentTypes: editedDocumentTypes,
-        quantity: editedQuantity || editedDocumentTypes.length || 1,
+        quantity: editedQuantity,
+        documentTypeQuantities: editedDocQty,
         documentSource: editedDocumentSource,
         invoiceReference: editedCustomerRef,
         returnService: editedReturnService,
@@ -397,17 +421,17 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
                 {ALL_COUNTRIES.find(c => c.code === order.country)?.nameEn || order.country}
               </span>
             </div>
-            <div>
+            <div className="col-span-2">
               <span className="text-gray-500">Document(s):</span>
               <span className="ml-2 font-medium">
-                {editedDocumentTypes.length > 0 
-                  ? editedDocumentTypes.map(getDocTypeName).join(', ')
+                {editedDocumentTypes.length > 0
+                  ? editedDocumentTypes.map(d => {
+                      const qty = (order as any).documentTypeQuantities?.[d] || 1;
+                      return `${getDocTypeName(d)} ×${qty}`;
+                    }).join(', ')
                   : 'Not specified'}
               </span>
-            </div>
-            <div>
-              <span className="text-gray-500">Quantity:</span>
-              <span className="ml-2 font-medium">{order.quantity}</span>
+              <span className="ml-2 text-gray-400 text-xs">({order.quantity || editedDocumentTypes.length} total)</span>
             </div>
             <div>
               <span className="text-gray-500">Source:</span>
@@ -547,47 +571,42 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
           </div>
         </div>
 
-        {/* Quantity */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity (number of documents)</label>
-          <input
-            type="number"
-            min={1}
-            value={editedQuantity}
-            onChange={(e) => setEditedQuantity(Math.max(1, Number(e.target.value)))}
-            className="w-32 px-3 py-2 border border-gray-300 rounded-md text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Override if the customer has multiple copies of the same document type.
-          </p>
-        </div>
-
-        {/* Document Types Section */}
+        {/* Document Types Section with per-type quantity */}
         <div className="border-t pt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Documents ({editedDocumentTypes.length} type{editedDocumentTypes.length !== 1 ? 's' : ''})
+            Documents ({editedDocumentTypes.length} type{editedDocumentTypes.length !== 1 ? 's' : ''} · {editedQuantity} total)
           </label>
-          
-          {/* Current document types */}
+
+          {/* Current document types with qty */}
           {editedDocumentTypes.length > 0 && (
             <div className="space-y-2 mb-3">
               {editedDocumentTypes.map((docTypeId, index) => (
-                <div key={`${docTypeId}-${index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-                  <span className="text-sm">
+                <div key={docTypeId} className="flex items-center gap-3 bg-gray-50 px-3 py-2 rounded-md">
+                  <span className="text-sm flex-1">
                     {index + 1}. {getDocTypeName(docTypeId)}
                   </span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={1}
+                      value={editedDocQty[docTypeId] || 1}
+                      onChange={(e) => handleDocQtyChange(docTypeId, Number(e.target.value))}
+                      className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center"
+                    />
+                    <span className="text-xs text-gray-500">pcs</span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveDocumentType(docTypeId)}
                     className="text-red-500 hover:text-red-700 text-sm"
                   >
-                    ✕ Remove
+                    ✕
                   </button>
                 </div>
               ))}
             </div>
           )}
-          
+
           {/* Add new document type */}
           <div className="flex gap-2">
             <select
@@ -617,7 +636,7 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-2">
-            Add all document types included in this order. Use the Quantity field above if the customer has multiple copies of the same type.
+            Set the quantity for each document type. Total quantity is calculated automatically.
           </p>
         </div>
 
