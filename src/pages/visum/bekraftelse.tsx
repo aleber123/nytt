@@ -284,6 +284,18 @@ export default function VisaConfirmationPage() {
   const [error, setError] = useState<string | null>(null);
   const locale = router.locale || 'sv';
 
+  // Backup cleanup: if the order page didn't clear the saved draft before
+  // redirecting here, remove it now so the next visit to /visum/bestall
+  // starts fresh instead of auto-advancing with the completed order's data.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('orderDraft');
+      sessionStorage.removeItem('orderDraft_notified');
+    } catch {
+      // sessionStorage may be unavailable (SSR, private mode) — ignore
+    }
+  }, []);
+
   useEffect(() => {
     if (!router.isReady) return;
 

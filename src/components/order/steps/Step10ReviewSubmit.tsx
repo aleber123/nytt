@@ -984,9 +984,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   const orderResult = await createOrderWithFiles(orderData, getFilesForUpload());
                   const orderId = String(typeof orderResult === 'object' && orderResult?.orderId ? orderResult.orderId : orderResult); // Handle both new and legacy format
 
-                  // Trigger save of customer info to localStorage if checkbox is checked
-                  window.dispatchEvent(new CustomEvent('saveCustomerInfo'));
-
                   // Send email notification (save to Firestore for external processing, same as contact form)
                   try {
                     const isEn = locale === 'en';
@@ -1478,9 +1475,6 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                   // Submit order (include any notarization support files + return label)
                   const orderResult2 = await createOrderWithFiles(orderData, getFilesForUpload());
                   const orderId = String(typeof orderResult2 === 'object' && orderResult2?.orderId ? orderResult2.orderId : orderResult2); // Handle both new and legacy format
-
-                  // Trigger save of customer info to localStorage if checkbox is checked
-                  window.dispatchEvent(new CustomEvent('saveCustomerInfo'));
 
                   // Clear saved progress since order is complete
                   clearProgress();

@@ -34,7 +34,7 @@ export default function VisaOrderPage() {
 
   // Abandoned cart tracking — saves progress to Firestore so admin can see
   // started-but-not-completed visa orders as leads
-  const { markConverted: markCartConverted } = useOrderPersistence(
+  const { markConverted: markCartConverted, clearProgress } = useOrderPersistence(
     answers,
     currentStep,
     setAnswers,
@@ -350,6 +350,7 @@ export default function VisaOrderPage() {
             onGoToStep={goToStep}
             isEVisa={isEVisaOnly}
             onOrderCreated={(orderId: string) => markCartConverted(orderId)}
+            onClearProgress={clearProgress}
           />
         );
       default:

@@ -27,9 +27,11 @@ interface Props {
   isEVisa?: boolean;
   /** Called after a visa order is successfully created — used to mark abandoned cart as converted */
   onOrderCreated?: (orderId: string) => void;
+  /** Clears the saved order draft from sessionStorage so the next visit starts fresh */
+  onClearProgress?: () => void;
 }
 
-const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToStep, isEVisa = false, onOrderCreated }) => {
+const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToStep, isEVisa = false, onOrderCreated, onClearProgress }) => {
   const { t } = useTranslation('common');
   const router = useRouter();
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -542,9 +544,11 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         }
       }
       
-      // Trigger save customer info event (for "Save my information" checkbox)
-      window.dispatchEvent(new Event('saveCustomerInfo'));
-      
+      // Clear the saved order draft so the next visit starts fresh.
+      // Without this, sessionStorage.orderDraft would persist and auto-advance
+      // the customer to the last step with old data on their next order.
+      onClearProgress?.();
+
       // Redirect to confirmation page with secure token
       router.push(`/visum/bekraftelse?token=${confirmationToken}`);
       
