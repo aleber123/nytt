@@ -67,6 +67,29 @@ export default function ReminderBell() {
       try {
         const { getRemindersByUser } = await import('@/firebase/reminderService');
         const data = await getRemindersByUser(currentUser.uid);
+        const now = new Date();
+
+        // Auto-reactivate snoozed reminders whose snooze period has passed
+        const reactivatePromises: Promise<void>[] = [];
+        for (const r of data) {
+          if (r.status === 'snoozed' && r.snoozedUntil) {
+            const snoozedUntil = (r.snoozedUntil as any)?.toDate
+              ? (r.snoozedUntil as any).toDate()
+              : new Date(r.snoozedUntil as string);
+            if (snoozedUntil <= now && r.id) {
+              r.status = 'active'; // Update locally immediately
+              const { updateDoc, doc } = await import('firebase/firestore');
+              const { db } = await import('@/firebase/config');
+              reactivatePromises.push(
+                updateDoc(doc(db!, 'reminders', r.id), { status: 'active', snoozedUntil: null })
+              );
+            }
+          }
+        }
+        if (reactivatePromises.length > 0) {
+          await Promise.all(reactivatePromises).catch(() => {});
+        }
+
         setReminders(data.filter(r => r.status !== 'dismissed') as Reminder[]);
       } catch (e) { /* ignore */ }
     };

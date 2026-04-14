@@ -75,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       orderId = orderNumber;
     }
 
-    // Send email notification to staff
+    // Send email notification to staff via the editable template system
     try {
       const typeLabel = orderType === 'visa' ? 'Visum' : 'Legalisering';
       const country = orderData.destinationCountry || orderData.country || '–';
@@ -85,41 +85,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? orderData.travelers.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ')
         : '';
 
-      const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f8f9fa;">
-  <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-    <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #fff; padding: 24px 32px;">
-      <h1 style="margin: 0; font-size: 20px;">📋 Ny portalbeställning</h1>
-      <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">Order #${orderId}</p>
-    </div>
-    <div style="padding: 32px;">
-      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-        <tr><td style="padding: 8px 0; color: #6b7280; width: 140px;">Företag</td><td style="padding: 8px 0; font-weight: 600;">${customer.companyName}</td></tr>
-        <tr><td style="padding: 8px 0; color: #6b7280;">Kontaktperson</td><td style="padding: 8px 0;">${customer.displayName}</td></tr>
-        <tr><td style="padding: 8px 0; color: #6b7280;">E-post</td><td style="padding: 8px 0;">${customer.email}</td></tr>
-        <tr><td style="padding: 8px 0; color: #6b7280;">Typ</td><td style="padding: 8px 0; font-weight: 600;">${typeLabel}</td></tr>
-        <tr><td style="padding: 8px 0; color: #6b7280;">Land</td><td style="padding: 8px 0;">${country}</td></tr>
-        ${services ? `<tr><td style="padding: 8px 0; color: #6b7280;">Tjänster</td><td style="padding: 8px 0;">${services}</td></tr>` : ''}
-        ${orderData.documentType ? `<tr><td style="padding: 8px 0; color: #6b7280;">Dokumenttyp</td><td style="padding: 8px 0;">${orderData.documentType} × ${orderData.quantity || 1}</td></tr>` : ''}
-        ${travelers ? `<tr><td style="padding: 8px 0; color: #6b7280;">Resenärer</td><td style="padding: 8px 0;">${travelers}</td></tr>` : ''}
-        <tr><td style="padding: 8px 0; color: #6b7280;">DHL-upphämtning</td><td style="padding: 8px 0;">${pickup}</td></tr>
-        ${orderData.additionalNotes ? `<tr><td style="padding: 8px 0; color: #6b7280;">Meddelande</td><td style="padding: 8px 0;">${orderData.additionalNotes}</td></tr>` : ''}
-      </table>
-      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-        <p style="margin: 0; font-size: 13px; color: #9ca3af;">Beställningen finns i admin under ordrar.</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`.trim();
+      const { buildPortalOrderSummaryHtml } = await import('@/services/internalNotificationEmailParts');
+      const { renderEmailAdmin } = await import('@/services/emailRendererAdmin');
+
+      const orderSummaryHtml = buildPortalOrderSummaryHtml({
+        companyName: customer.companyName || '',
+        contactPerson: customer.displayName || '',
+        contactEmail: customer.email || '',
+        typeLabel,
+        country,
+        services,
+        documentType: orderData.documentType,
+        quantity: orderData.quantity,
+        travelers,
+        pickup,
+        additionalNotes: orderData.additionalNotes,
+      });
+
+      const rendered = await renderEmailAdmin(
+        'internal-portal-order',
+        {
+          orderNumber: orderId,
+          companyName: customer.companyName || '',
+          typeLabel,
+          orderSummaryHtml,
+        },
+        'sv',
+        { showTrackingButton: false, showContactSection: false }
+      );
+
+      const fallbackSubject = `Ny portalbeställning #${orderId} – ${customer.companyName} (${typeLabel})`;
+      const fallbackHtml = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:20px;"><h1>📋 Ny portalbeställning</h1><p>Order #${orderId}</p>${orderSummaryHtml}</div>`;
 
       await db.collection('emailQueue').add({
         to: 'info@doxvl.se,info@visumpartner.se',
-        subject: `Ny portalbeställning #${orderId} – ${customer.companyName} (${typeLabel})`,
-        html: emailHtml,
+        subject: rendered.rendered ? rendered.subject : fallbackSubject,
+        html: rendered.rendered ? rendered.html : fallbackHtml,
         createdAt: new Date(),
         status: 'pending',
         metadata: {

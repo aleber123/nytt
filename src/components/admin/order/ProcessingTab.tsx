@@ -72,18 +72,23 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
     setUploadingEVisa(true);
     try {
       const storage = getStorage();
-      const path = `orders/${orderId}/evisa/${file.name}`;
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const path = `visa-documents/${orderId}_evisa_${cleanName}`;
       const fileRef = storageRef(storage, path);
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
+      const snapshot = await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(snapshot.ref);
       await adminUpdateOrder(orderId, {
         eVisaFileUrl: url,
         eVisaFileName: file.name,
       });
       setOrder({ ...order, eVisaFileUrl: url, eVisaFileName: file.name });
       toast.success('E-visa uploaded successfully');
-    } catch (err) {
-      toast.error('Failed to upload e-visa file');
+    } catch (err: any) {
+      console.error('E-visa upload error:', err);
+      const msg = err?.code === 'storage/unauthorized'
+        ? 'Upload failed: missing storage permissions'
+        : err?.message || 'Failed to upload e-visa file';
+      toast.error(msg);
     } finally {
       setUploadingEVisa(false);
     }

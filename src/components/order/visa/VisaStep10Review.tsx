@@ -355,24 +355,84 @@ const VisaStep10Review: React.FC<Props> = ({ answers, onUpdate, onBack, onGoToSt
         }
       }
       
-      // Send notification email to business (styled HTML)
+      // Send notification email to business via the editable template system
       try {
         if (createdOrder) {
-          const businessEmailHtml = generateVisaBusinessNotificationEmail({
-            order: createdOrder,
-            locale: 'sv'
+          const {
+            buildVisaInternalSummaryHtml,
+            buildInternalCustomerInfoHtml,
+          } = await import('@/services/internalNotificationEmailParts');
+          const { renderEmail: renderInternalEmail } = await import('@/services/emailRenderer');
+
+          const destinationCountryEn = createdOrder.destinationCountry || '';
+          const nationalityEn = createdOrder.nationality || '';
+          const visaProductNameEn = (createdOrder.visaProduct as any)?.nameEn || createdOrder.visaProduct?.name || '';
+          const visaTypeLabel = createdOrder.visaProduct?.visaType === 'e-visa' ? 'E-Visa' : 'Sticker Visa';
+          const entryTypeLabel = createdOrder.visaProduct?.entryType === 'single'
+            ? 'Single entry'
+            : createdOrder.visaProduct?.entryType === 'double'
+              ? 'Double entry'
+              : 'Multiple entry';
+
+          const orderSummaryHtml = buildVisaInternalSummaryHtml({
+            orderNumber: createdOrder.orderNumber || createdOrderId,
+            destinationCountry: destinationCountryEn,
+            nationality: nationalityEn,
+            visaProductName: visaProductNameEn,
+            visaType: visaTypeLabel,
+            entryType: entryTypeLabel,
+            validityDays: createdOrder.visaProduct?.validityDays,
+            departureDate: createdOrder.departureDate,
+            returnDate: createdOrder.returnDate,
+            passportNeededBy: createdOrder.passportNeededBy,
+            travelers: createdOrder.travelers?.map(t => ({ firstName: t.firstName, lastName: t.lastName })),
+            travelerCount: createdOrder.travelerCount,
+            totalPrice: createdOrder.totalPrice,
+            customerType: createdOrder.customerType,
+            pricingBreakdown: createdOrder.pricingBreakdown,
           });
-          
+
+          const customerInfoHtml = buildInternalCustomerInfoHtml({
+            firstName: createdOrder.customerInfo?.firstName || '',
+            lastName: createdOrder.customerInfo?.lastName || '',
+            email: createdOrder.customerInfo?.email || '',
+            phone: createdOrder.customerInfo?.phone,
+            address: createdOrder.customerInfo?.address,
+            postalCode: createdOrder.customerInfo?.postalCode,
+            city: createdOrder.customerInfo?.city,
+            companyName: createdOrder.customerInfo?.companyName,
+          });
+
+          const rendered = await renderInternalEmail(
+            'internal-new-order-visa',
+            {
+              orderNumber: createdOrder.orderNumber || createdOrderId,
+              destinationCountry: answers.destinationCountry,
+              orderSummaryHtml,
+              customerInfoHtml,
+            },
+            'sv',
+            { showTrackingButton: false, showContactSection: false }
+          );
+
+          // Fall back to legacy renderer when the template can't be loaded
+          const fallbackHtml = rendered.rendered
+            ? rendered.html
+            : generateVisaBusinessNotificationEmail({ order: createdOrder, locale: 'sv' });
+          const fallbackSubject = rendered.rendered
+            ? rendered.subject
+            : `🛂 Ny visumbeställning ${createdOrderId}: ${answers.destinationCountry}`;
+
           const businessEmailData = {
             name: customerName || 'Visumkund',
             email: 'info@doxvl.se,info@visumpartner.se',
-            subject: `🛂 Ny visumbeställning ${createdOrderId}: ${answers.destinationCountry}`,
-            message: businessEmailHtml,
+            subject: fallbackSubject,
+            message: fallbackHtml,
             orderId: createdOrderId,
             createdAt: Timestamp.now(),
             status: 'queued'
           };
-          
+
           const emailsRef = collection(db, 'customerEmails');
           await addDoc(emailsRef, businessEmailData);
         }

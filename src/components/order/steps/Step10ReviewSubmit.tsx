@@ -1026,101 +1026,77 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     const servicesText = answers.services.map(serviceId => getServiceNameForEmail(serviceId, locale)).join(', ');
                     const siteUrlInternal = process.env.NEXT_PUBLIC_SITE_URL || 'https://doxvl-51a30.web.app';
                     
-                    // Build internal HTML email for handlers (same design as original documents flow)
-                    const internalHtml = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>New Order #${orderId} | DOX Visumpartner AB</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px; }
-    .wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
-    .header { background: #2E2D2C; color: #fff; padding: 24px 32px; text-align: center; }
-    .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
-    .content { padding: 24px 28px; }
-    .badge { display:inline-block; background:#0EB0A6; color:#fff; border-radius: 6px; padding: 8px 12px; font-weight: 700; margin: 8px 0 16px; }
-    .section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:16px 0; }
-    .row { display:flex; justify-content:space-between; gap: 12px; padding:8px 0; border-bottom:1px solid #eef2f6; }
-    .row:last-child { border-bottom:none; }
-    .label { color:#5f6368; font-weight:600; }
-    .value { color:#202124; font-weight:700; }
-    .button { display:inline-block; background:#0EB0A6; color:#fff !important; text-decoration:none; border-radius:6px; padding:10px 16px; font-weight:700; margin-top:12px; }
-    .muted { color:#5f6368; font-size:13px; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="header">
-      <h1>New Order 📎 UPLOADED FILES</h1>
-    </div>
-    <div class="content">
-      <div class="badge">Order #${orderId}</div>
-
-      <div class="section">
-        <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleDateString('en-GB')}</span></div>
-        <div class="row"><span class="label">Country</span><span class="value">${(allCountries.find(c => c.code === answers.country)?.nameEn || allCountries.find(c => c.code === answers.country)?.name || answers.country)}</span></div>
-        <div class="row"><span class="label">Document Type</span><span class="value">${getAllDocumentTypesDisplay(true)}</span></div>
-        <div class="row"><span class="label">Quantity</span><span class="value">${answers.quantity} pcs</span></div>
-        <div class="row"><span class="label">Services</span><span class="value">${answers.services.map(s => getServiceNameForEmail(s, 'en')).join(', ')}</span></div>
-        <div class="row"><span class="label">Total Amount</span><span class="value">${pricingResult.totalPrice} SEK</span></div>
-        <div class="row"><span class="label">Document Source</span><span class="value" style="${answers.willSendMainDocsLater ? 'color:#D97706; font-weight:800;' : ''}">${answers.willSendMainDocsLater ? '⏳ AWAITING - Customer will send via email' : 'Uploaded files'}</span></div>
-        <div class="row"><span class="label">Return Shipping</span><span class="value">${returfraktText}</span></div>
-        ${premiumText ? `<div class="row"><span class="label">Premium</span><span class="value">${premiumText}</span></div>` : ''}
-      </div>
-
-      <div class="section">
-        <div class="row"><span class="label">Customer</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
-        <div class="row"><span class="label">Email</span><span class="value">${answers.customerInfo.email}</span></div>
-        <div class="row"><span class="label">Phone</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
-        <div class="row"><span class="label">Address</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
-        ${answers.customerNumber ? `<div class="row"><span class="label">Customer Number</span><span class="value">${answers.customerNumber}</span></div>` : ''}
-        ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
-      </div>
-
-      ${answers.willSendMainDocsLater ? `
-      <div class="section" style="background:#FEF3C7; border:2px solid #F59E0B;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-          <span style="font-size:24px;">⏳</span>
-          <h3 style="margin:0; color:#92400E; font-size:16px; font-weight:700;">AWAITING DOCUMENTS VIA EMAIL</h3>
-        </div>
-        <div style="background:#fff; border:1px solid #FCD34D; border-radius:6px; padding:12px; color:#78350F;">
-          <p style="margin:0 0 8px 0;"><strong>Customer will send ${answers.quantity} document${answers.quantity > 1 ? 's' : ''} to info@doxvl.se</strong></p>
-          <p style="margin:0; font-size:13px;">Check inbox for incoming documents before processing this order.</p>
-        </div>
-      </div>
-      ` : ''}
-
-      ${answers.uploadedFiles && answers.uploadedFiles.length > 0 ? `
-      <div class="section" style="background:#ECFDF5; border:2px solid #10B981;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-          <span style="font-size:24px;">📎</span>
-          <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPLOADED FILES (${answers.uploadedFiles.length} pcs)</h3>
-        </div>
-        <div style="background:#fff; border:1px solid #A7F3D0; border-radius:6px; padding:12px;">
-          ${answers.uploadedFiles.map((file: File | null, i: number) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'File ' + (i + 1)}</div>`).join('')}
-        </div>
-        <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 View files in admin</a>
-      </div>
-      ` : ''}
-
-      ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Additional Notes</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
-
-      <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
-    </div>
-  </div>
-</body>
-</html>
-                    `.trim();
-
-                    // Send styled HTML email to handlers via customerEmails queue (same as original documents flow)
+                    // Build internal notification email via the editable template system
                     const awaitingDocsPrefix = answers.willSendMainDocsLater ? '⏳ AWAITING DOCS - ' : '';
+                    const orderNumDisplay = orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, 'SWE') : `SWE${orderId}`;
+                    const {
+                      buildLegalizationInternalSummaryHtml,
+                      buildInternalCustomerInfoHtml,
+                      buildAwaitingDocsAlertHtml,
+                      buildUploadedFilesBlockHtml,
+                      buildAdditionalNotesBlockHtml,
+                    } = await import('@/services/internalNotificationEmailParts');
+                    const { renderEmail: renderInternalEmail } = await import('@/services/emailRenderer');
+
+                    const countryNameEn = allCountries.find(c => c.code === answers.country)?.nameEn
+                      || allCountries.find(c => c.code === answers.country)?.name
+                      || answers.country;
+                    const orderSummaryHtml = buildLegalizationInternalSummaryHtml({
+                      orderNumber: orderNumDisplay,
+                      countryName: countryNameEn,
+                      documentType: getAllDocumentTypesDisplay(true),
+                      quantity: answers.quantity,
+                      services: answers.services.map(s => getServiceNameForEmail(s, 'en')).join(', '),
+                      totalPrice: pricingResult.totalPrice,
+                      documentSource: 'upload',
+                      willSendMainDocsLater: answers.willSendMainDocsLater,
+                      hasPickup: false,
+                      returnShipping: returfraktText,
+                      premiumText,
+                    });
+                    const customerInfoHtml = buildInternalCustomerInfoHtml({
+                      firstName: answers.customerInfo.firstName,
+                      lastName: answers.customerInfo.lastName,
+                      email: answers.customerInfo.email,
+                      phone: answers.customerInfo.phone,
+                      address: answers.customerInfo.address,
+                      postalCode: answers.customerInfo.postalCode,
+                      city: answers.customerInfo.city,
+                      customerNumber: answers.customerNumber,
+                      invoiceReference: answers.invoiceReference,
+                    });
+                    const alertBlocks = answers.willSendMainDocsLater
+                      ? buildAwaitingDocsAlertHtml(answers.quantity)
+                      : '';
+                    const extraBlocksHtml = [
+                      answers.uploadedFiles && answers.uploadedFiles.length > 0
+                        ? buildUploadedFilesBlockHtml(
+                            answers.uploadedFiles.map((f: File | null) => ({ name: f?.name })),
+                            `${siteUrlInternal}/admin/orders/${orderId}`
+                          )
+                        : '',
+                      answers.additionalNotes ? buildAdditionalNotesBlockHtml(answers.additionalNotes) : '',
+                    ].filter(Boolean).join('\n');
+
+                    const rendered = await renderInternalEmail(
+                      'internal-new-order-legalization',
+                      {
+                        orderNumber: orderNumDisplay,
+                        subjectPrefix: awaitingDocsPrefix,
+                        alertBlocks,
+                        orderSummaryHtml,
+                        customerInfoHtml,
+                        extraBlocksHtml,
+                      },
+                      'en',
+                      { showTrackingButton: false, showContactSection: false }
+                    );
+
                     await addDoc(collection(db, 'customerEmails'), {
                       name: `Order #${orderId}`,
                       email: 'info@doxvl.se,info@visumpartner.se',
-                      subject: `${awaitingDocsPrefix}New Order - ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
-                      message: internalHtml,
+                      subject: rendered.rendered ? rendered.subject : `${awaitingDocsPrefix}New Order - #${orderNumDisplay}`,
+                      message: rendered.rendered ? rendered.html : `<p>New order #${orderNumDisplay}</p>`,
                       createdAt: Timestamp.now(),
                       status: 'queued'
                     });
@@ -1557,163 +1533,115 @@ export const Step10ReviewSubmit: React.FC<Step10Props> = ({
                     const returnAddrLine3 = [returnAddr?.street, returnAddr?.addressLine2].filter(Boolean).join(', ').trim();
                     const returnAddrLine4 = [returnAddr?.postalCode, returnAddr?.city].filter(Boolean).join(' ').trim();
                     
-                    const internalHtml = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>New Order #${orderId} | DOX Visumpartner AB</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #202124; max-width: 700px; margin: 0 auto; background: #f8f9fa; padding: 20px; }
-    .wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); overflow: hidden; }
-    .header { background: #2E2D2C; color: #fff; padding: 24px 32px; text-align: center; }
-    .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
-    .content { padding: 24px 28px; }
-    .badge { display:inline-block; background:#0EB0A6; color:#fff; border-radius: 6px; padding: 8px 12px; font-weight: 700; margin: 8px 0 16px; }
-    .section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:16px 0; }
-    .row { display:flex; justify-content:space-between; gap: 12px; padding:8px 0; border-bottom:1px solid #eef2f6; }
-    .row:last-child { border-bottom:none; }
-    .label { color:#5f6368; font-weight:600; }
-    .value { color:#202124; font-weight:700; }
-    .address { background:#fff; border:2px solid #065f46; border-radius:6px; padding:14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:14px; }
-    .button { display:inline-block; background:#0EB0A6; color:#fff !important; text-decoration:none; border-radius:6px; padding:10px 16px; font-weight:700; margin-top:12px; }
-    .muted { color:#5f6368; font-size:13px; }
-    .pickup-alert { background:#FEF3C7; border:2px solid #F59E0B; border-radius:8px; padding:16px; margin:16px 0; }
-    .pickup-alert-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-    .pickup-alert-icon { font-size:28px; }
-    .pickup-alert-title { color:#92400E; font-size:18px; font-weight:700; margin:0; }
-    .pickup-address { background:#fff; border:2px solid #F59E0B; border-radius:6px; padding:14px; margin-top:12px; }
-    .return-alert { background:#E0F2FE; border:2px solid #0284C7; border-radius:8px; padding:16px; margin:16px 0; }
-    .return-alert-title { color:#075985; font-size:18px; font-weight:700; margin:0; }
-    .return-address { background:#fff; border:2px solid #0284C7; border-radius:6px; padding:14px; margin-top:12px; }
-  </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="header">
-        <h1>New Order${hasPickup ? ' 📦 PICKUP ORDERED' : ''}</h1>
-      </div>
-      <div class="content">
-        <div class="badge">Order #${orderId}</div>
+                    // Build internal notification email via the editable template system
+                    const orderNumDisplay = orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, 'SWE') : `SWE${orderId}`;
+                    const {
+                      buildLegalizationInternalSummaryHtml,
+                      buildInternalCustomerInfoHtml,
+                      buildPickupAlertHtml,
+                      buildStockholmReturnAlertHtml,
+                      buildUploadedFilesBlockHtml,
+                      buildPostalAddressBlockHtml,
+                      buildAdditionalNotesBlockHtml,
+                    } = await import('@/services/internalNotificationEmailParts');
+                    const { renderEmail: renderInternalEmail } = await import('@/services/emailRenderer');
 
-        ${hasPickup ? `
-        <!-- PICKUP ALERT - VERY VISIBLE -->
-        <div class="pickup-alert">
-          <div class="pickup-alert-header">
-            <span class="pickup-alert-icon">🚚</span>
-            <h2 class="pickup-alert-title">PICKUP ORDERED!</h2>
-          </div>
-          <p style="margin:0 0 8px 0; color:#92400E; font-weight:600;">
-            Customer has ordered document pickup. Book DHL pickup!
-          </p>
-          <div class="row" style="border:none; padding:4px 0;"><span class="label">Pickup Service</span><span class="value">${getPickupMethodName(answers.pickupMethod)}</span></div>
-          ${isStockholmPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Level</span><span class="value">${getStockholmLevel(answers.premiumPickup)}</span></div>` : (answers.premiumPickup ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Premium</span><span class="value">${getPremiumPickupName(answers.premiumPickup)}</span></div>` : '')}
-          ${isStockholmPickup && answers.pickupDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Date</span><span class="value">${answers.pickupDate}</span></div>` : ''}
-          ${isStockholmPickup && answers.pickupTimeWindow ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Time Window</span><span class="value">${answers.pickupTimeWindow}</span></div>` : ''}
-          
-          ${pickupAddr && pickupAddr.street ? `
-          <div class="pickup-address">
-            <div style="font-weight:700; margin-bottom:8px; color:#92400E;">📍 Pickup Address:</div>
-            ${pickupAddr.company ? `<div style="font-weight:700;">${pickupAddr.company}</div>` : ''}
-            <div>${pickupAddr.name || ''}</div>
-            <div>${pickupAddr.street}</div>
-            <div>${pickupAddr.postalCode} ${pickupAddr.city}</div>
-          </div>
-          ` : ''}
-        </div>
-        ` : ''}
+                    const countryNameEn = allCountries.find(c => c.code === answers.country)?.nameEn
+                      || allCountries.find(c => c.code === answers.country)?.name
+                      || answers.country;
+                    const SN: Record<string,string> = { apostille:'Apostille', notarization:'Notarization', embassy:'Embassy legalization', ud:'Ministry of Foreign Affairs legalization', translation:'Certified translation', chamber:'Chamber of Commerce legalization' };
+                    const servicesEn = answers.services.map(s => SN[s] || s).join(', ');
+                    const returnShippingValue = (() => {
+                      if (!answers.returnService) return 'Not selected';
+                      if (answers.returnService === 'own-delivery') return 'Own return shipping';
+                      if (answers.returnService === 'office-pickup') return 'Office pickup';
+                      return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
+                    })();
+                    const orderSummaryHtml = buildLegalizationInternalSummaryHtml({
+                      orderNumber: orderNumDisplay,
+                      countryName: countryNameEn,
+                      documentType: getAllDocumentTypesDisplay(true),
+                      quantity: answers.quantity,
+                      services: servicesEn,
+                      totalPrice: pricingResult.totalPrice,
+                      documentSource: answers.documentSource === 'original' ? 'original' : 'upload',
+                      hasPickup,
+                      returnShipping: returnShippingValue,
+                    });
+                    const customerInfoHtml = buildInternalCustomerInfoHtml({
+                      firstName: answers.customerInfo.firstName,
+                      lastName: answers.customerInfo.lastName,
+                      email: answers.customerInfo.email,
+                      phone: answers.customerInfo.phone,
+                      address: answers.customerInfo.address,
+                      postalCode: answers.customerInfo.postalCode,
+                      city: answers.customerInfo.city,
+                      customerNumber: answers.customerNumber,
+                      invoiceReference: answers.invoiceReference,
+                    });
+                    const alertBlocks = [
+                      hasPickup
+                        ? buildPickupAlertHtml({
+                            pickupMethodName: getPickupMethodName(answers.pickupMethod),
+                            premiumPickupName: answers.premiumPickup && !isStockholmPickup ? getPremiumPickupName(answers.premiumPickup) : undefined,
+                            stockholmLevel: isStockholmPickup ? getStockholmLevel(answers.premiumPickup) : undefined,
+                            pickupDate: answers.pickupDate,
+                            pickupTimeWindow: answers.pickupTimeWindow,
+                            isStockholmPickup,
+                            pickupAddress: pickupAddr ? {
+                              company: pickupAddr.company,
+                              name: pickupAddr.name,
+                              street: pickupAddr.street,
+                              postalCode: pickupAddr.postalCode,
+                              city: pickupAddr.city,
+                            } : null,
+                          })
+                        : '',
+                      isStockholmReturn
+                        ? buildStockholmReturnAlertHtml({
+                            stockholmLevel: getStockholmLevel(answers.premiumDelivery),
+                            returnDeliveryDate: answers.returnDeliveryDate,
+                            deliveryAddress: {
+                              line1: returnAddrLine1,
+                              line2: returnAddrLine2,
+                              line3: returnAddrLine3,
+                              line4: returnAddrLine4,
+                            },
+                          })
+                        : '',
+                    ].filter(Boolean).join('\n');
+                    const extraBlocksHtml = [
+                      answers.documentSource === 'original' && !hasPickup
+                        ? buildPostalAddressBlockHtml(orderId, `${siteUrlInternal}/shipping-label?orderId=${orderId}`)
+                        : '',
+                      answers.documentSource === 'upload' && answers.uploadedFiles && answers.uploadedFiles.length > 0
+                        ? buildUploadedFilesBlockHtml(
+                            answers.uploadedFiles.map(f => ({ name: f?.name })),
+                            `${siteUrlInternal}/admin/orders/${orderId}`
+                          )
+                        : '',
+                      answers.additionalNotes ? buildAdditionalNotesBlockHtml(answers.additionalNotes) : '',
+                    ].filter(Boolean).join('\n');
 
-        ${isStockholmReturn ? `
-        <!-- STOCKHOLM COURIER RETURN ALERT -->
-        <div class="return-alert">
-          <div class="pickup-alert-header">
-            <span class="pickup-alert-icon">⚡</span>
-            <h2 class="return-alert-title">STOCKHOLM COURIER - DELIVERY</h2>
-          </div>
-          <div class="row" style="border:none; padding:4px 0;"><span class="label">Level</span><span class="value">${getStockholmLevel(answers.premiumDelivery)}</span></div>
-          ${answers.returnDeliveryDate ? `<div class="row" style="border:none; padding:4px 0;"><span class="label">Date</span><span class="value">${answers.returnDeliveryDate}</span></div>` : ''}
+                    const rendered = await renderInternalEmail(
+                      'internal-new-order-legalization',
+                      {
+                        orderNumber: orderNumDisplay,
+                        subjectPrefix: '',
+                        alertBlocks,
+                        orderSummaryHtml,
+                        customerInfoHtml,
+                        extraBlocksHtml,
+                      },
+                      'en',
+                      { showTrackingButton: false, showContactSection: false }
+                    );
 
-          <div class="return-address">
-            <div style="font-weight:700; margin-bottom:8px; color:#075985;">📍 Delivery Address:</div>
-            ${returnAddrLine2 ? `<div style="font-weight:700;">${returnAddrLine2}</div>` : ''}
-            ${returnAddrLine1 ? `<div>${returnAddrLine1}</div>` : ''}
-            ${returnAddrLine3 ? `<div>${returnAddrLine3}</div>` : ''}
-            ${returnAddrLine4 ? `<div>${returnAddrLine4}</div>` : ''}
-          </div>
-        </div>
-        ` : ''}
-
-        <div class="section">
-          <div class="row"><span class="label">Date</span><span class="value">${new Date().toLocaleDateString('en-GB')}</span></div>
-          <div class="row"><span class="label">Country</span><span class="value">${allCountries.find(c => c.code === answers.country)?.nameEn || allCountries.find(c => c.code === answers.country)?.name}</span></div>
-          <div class="row"><span class="label">Document Type</span><span class="value">${getAllDocumentTypesDisplay(true)}</span></div>
-          <div class="row"><span class="label">Quantity</span><span class="value">${answers.quantity} pcs</span></div>
-          <div class="row"><span class="label">Services</span><span class="value">${(() => { const SN: Record<string,string> = { apostille:'Apostille', notarization:'Notarization', embassy:'Embassy legalization', ud:'Ministry of Foreign Affairs legalization', translation:'Certified translation', chamber:'Chamber of Commerce legalization' }; return answers.services.map(s => SN[s] || s).join(', '); })()}</span></div>
-          <div class="row"><span class="label">Total Amount</span><span class="value">${pricingResult.totalPrice} SEK</span></div>
-          <div class="row"><span class="label">Document Source</span><span class="value">${answers.documentSource === 'original' ? 'Original documents' : 'Uploaded files'}</span></div>
-          <div class="row"><span class="label">Pickup</span><span class="value" style="${hasPickup ? 'color:#D97706; font-weight:800;' : ''}">${hasPickup ? '✅ YES - BOOK PICKUP' : '❌ No'}</span></div>
-          <div class="row"><span class="label">Return Shipping</span><span class="value">${(() => {
-            if (!answers.returnService) return 'Not selected';
-            if (answers.returnService === 'own-delivery') return 'Own return shipping';
-            if (answers.returnService === 'office-pickup') return 'Office pickup';
-            return returnServices.find(s => s.id === answers.returnService)?.name || answers.returnService;
-          })()}</span></div>
-        </div>
-
-        <div class="section">
-          <div class="row"><span class="label">Customer</span><span class="value">${answers.customerInfo.firstName} ${answers.customerInfo.lastName}</span></div>
-          <div class="row"><span class="label">Email</span><span class="value">${answers.customerInfo.email}</span></div>
-          <div class="row"><span class="label">Phone</span><span class="value">${answers.customerInfo.phone || '-'}</span></div>
-          <div class="row"><span class="label">Address</span><span class="value">${answers.customerInfo.address}, ${answers.customerInfo.postalCode} ${answers.customerInfo.city}</span></div>
-          ${answers.customerNumber ? `<div class="row"><span class="label">Customer Number</span><span class="value">${answers.customerNumber}</span></div>` : ''}
-        ${answers.invoiceReference ? `<div class="row"><span class="label">Invoice Reference</span><span class="value">${answers.invoiceReference}</span></div>` : ''}
-        </div>
-
-        ${answers.documentSource === 'original' && !hasPickup ? `
-        <div class="section">
-          <div class="label" style="margin-bottom:6px;">Incoming postal address (customer sends themselves)</div>
-          <div class="address">
-            DOX Visumpartner AB<br/>
-            Att: Document handling<br/>
-            Box 38<br/>
-            121 25 Stockholm-Globen<br/>
-            Sweden
-          </div>
-          <a class="button" href="${siteUrlInternal}/shipping-label?orderId=${orderId}" target="_blank" rel="noopener">Print shipping label</a>
-          <div class="muted">Always ask customer to mark with Order #${orderId} and send via registered mail.</div>
-        </div>
-        ` : ''}
-
-        ${answers.documentSource === 'upload' && answers.uploadedFiles && answers.uploadedFiles.length > 0 ? `
-        <div class="section" style="background:#ECFDF5; border:2px solid #10B981;">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-            <span style="font-size:24px;">📎</span>
-            <h3 style="margin:0; color:#065F46; font-size:16px; font-weight:700;">UPLOADED FILES (${answers.uploadedFiles.length} pcs)</h3>
-          </div>
-          <div style="background:#fff; border:1px solid #A7F3D0; border-radius:6px; padding:12px;">
-            ${answers.uploadedFiles.map((file, i) => `<div style="padding:4px 0; ${i < answers.uploadedFiles.length - 1 ? 'border-bottom:1px solid #D1FAE5;' : ''}">${i + 1}. ${file?.name || 'File ' + (i + 1)}</div>`).join('')}
-          </div>
-          <a class="button" href="${siteUrlInternal}/admin/orders/${orderId}" target="_blank" rel="noopener" style="margin-top:12px;">📂 View files in admin</a>
-        </div>
-        ` : ''}
-
-        ${answers.additionalNotes ? `<div class="section"><div class="label" style="margin-bottom:6px;">Additional Notes</div><div class="value" style="font-weight:500;">${answers.additionalNotes}</div></div>` : ''}
-
-        <div class="muted">DOX Visumpartner AB • info@doxvl.se • 08-40941900</div>
-      </div>
-    </div>
-  </body>
-</html>
-                    `.trim();
-
-                    // Send a styled HTML email via the customerEmails queue to the business inbox
-                    // This uses the already-deployed sendCustomerConfirmationEmail function which sends HTML as-is
                     await addDoc(collection(db, 'customerEmails'), {
                       name: `Order #${orderId}`,
                       email: 'info@doxvl.se,info@visumpartner.se',
-                      subject: `New Order - ${orderId && orderId.startsWith('SWE') ? orderId.replace(/^SWE/, '#SWE') : `#SWE${orderId}`}`,
-                      message: internalHtml, // HTML body is supported by that function
+                      subject: rendered.rendered ? rendered.subject : `New Order - #${orderNumDisplay}`,
+                      message: rendered.rendered ? rendered.html : `<p>New order #${orderNumDisplay}</p>`,
                       createdAt: Timestamp.now(),
                       status: 'queued'
                     });

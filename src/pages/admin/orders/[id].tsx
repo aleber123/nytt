@@ -1191,6 +1191,17 @@ function AdminOrderDetailPage() {
   // change. The modal lets them edit subject + body for this one send.
   const [pendingEmailConfirm, setPendingEmailConfirm] = useState<EmailConfirmRequest | null>(null);
 
+  // Visa result choice modal — replaces window.confirm() for approved/rejected
+  const [pendingVisaResultChoice, setPendingVisaResultChoice] = useState<{
+    resolve: (choice: 'approved' | 'rejected' | null) => void;
+  } | null>(null);
+
+  const askVisaResultChoice = (): Promise<'approved' | 'rejected' | null> => {
+    return new Promise((resolve) => {
+      setPendingVisaResultChoice({ resolve });
+    });
+  };
+
   /**
    * Helper that wraps an email-send action in the confirm modal.
    * Returns a promise that resolves true (handler clicked Send), false
@@ -2983,8 +2994,9 @@ function AdminOrderDetailPage() {
 
       // visa_result needs special handling (approved vs rejected)
       if (previousStep.id === 'visa_result') {
-        if (typeof window !== 'undefined') {
-          const isApproved = window.confirm('Was the visa APPROVED?\n\nClick OK for Approved, Cancel for Rejected.');
+        const choice = await askVisaResultChoice();
+        if (choice) {
+          const isApproved = choice === 'approved';
           const templateId = isApproved ? 'visa-approved' : 'visa-rejected';
           const legacyGen = () => isApproved ? generateVisaApprovedEmail(visaEmailParams) : generateVisaRejectedEmail(visaEmailParams);
           const generated = await resolveVisaEmailDefaults(templateId, legacyGen);
@@ -8164,6 +8176,53 @@ function AdminOrderDetailPage() {
 
       {/* Email Confirmation Modal — replaces window.confirm() popups for emails */}
       <EmailConfirmModal request={pendingEmailConfirm} />
+
+      {/* Visa Result Choice Modal — approved or rejected */}
+      {pendingVisaResultChoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">📋</span>
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Visa Result</h2>
+              <p className="text-sm text-gray-500 mt-1">Was the visa application approved or rejected?</p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  const r = pendingVisaResultChoice.resolve;
+                  setPendingVisaResultChoice(null);
+                  r('approved');
+                }}
+                className="w-full px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
+              >
+                <span>✅</span> Approved
+              </button>
+              <button
+                onClick={() => {
+                  const r = pendingVisaResultChoice.resolve;
+                  setPendingVisaResultChoice(null);
+                  r('rejected');
+                }}
+                className="w-full px-4 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2"
+              >
+                <span>❌</span> Rejected
+              </button>
+              <button
+                onClick={() => {
+                  const r = pendingVisaResultChoice.resolve;
+                  setPendingVisaResultChoice(null);
+                  r(null);
+                }}
+                className="w-full px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Embassy Price Warning Modal */}
       {showEmbassyPriceWarningModal && (

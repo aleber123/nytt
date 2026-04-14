@@ -101,43 +101,58 @@ exports.sendContactEmail = functions.firestore
       console.warn(`No reCAPTCHA token for contact message ${context.params.messageId}`);
     }
 
-    // Email content (allow custom HTML if provided)
+    // Render via the editable email template (internal-contact-form).
+    // Caller may still override the HTML via messageData.html (legacy path).
+    const sentAt = messageData.createdAt?.toDate
+      ? messageData.createdAt.toDate().toLocaleString('sv-SE')
+      : '';
+
+    let renderedHtml = '';
+    let renderedSubject = '';
+    try {
+      const { renderEmail } = require('./emailRenderer');
+      const result = await renderEmail(
+        'internal-contact-form',
+        {
+          name: messageData.name || '',
+          email: messageData.email || '',
+          phone: messageData.phone || 'Ej angivet',
+          subject: messageData.subject || '',
+          message: messageData.message || '',
+          sentAt,
+        },
+        'sv',
+        { showContactSection: false }
+      );
+      if (result.rendered) {
+        renderedHtml = result.html;
+        renderedSubject = result.subject;
+      }
+    } catch (renderErr) {
+      console.warn('Contact email template render failed — falling back to inline default', renderErr);
+    }
+
     const defaultHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2563eb;">Nytt kontaktmeddelande</h2>
-
           <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #374151;">Kontaktuppgifter:</h3>
             <p><strong>Namn:</strong> ${messageData.name}</p>
             <p><strong>E-post:</strong> ${messageData.email}</p>
             <p><strong>Telefon:</strong> ${messageData.phone || 'Ej angivet'}</p>
             <p><strong>Ämne:</strong> ${messageData.subject}</p>
           </div>
-
           <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #374151;">Meddelande:</h3>
             <p style="white-space: pre-wrap; line-height: 1.6;">${messageData.message || ''}</p>
           </div>
-
-          <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-            <p style="margin: 0; color: #92400e;">
-              <strong>Skickat:</strong> ${messageData.createdAt?.toDate ? messageData.createdAt.toDate().toLocaleString('sv-SE') : ''}
-            </p>
-          </div>
-
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-
-          <p style="color: #6b7280; font-size: 14px;">
-            Detta meddelande skickades från kontaktformuläret på doxvl.se
-          </p>
+          <p style="color: #6b7280; font-size: 14px;">Skickat: ${sentAt}</p>
         </div>
       `;
-    const htmlBody = messageData.html || defaultHtml;
+    const htmlBody = messageData.html || renderedHtml || defaultHtml;
     const textBody = messageData.text || (messageData.message ? String(messageData.message) : '');
     const mailOptions = {
       from: `"DOX Visumpartner" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: 'info@doxvl.se,info@visumpartner.se',
-      subject: messageData.subject || `Nytt kontaktmeddelande från ${messageData.name}`,
+      subject: messageData.subject || renderedSubject || `Nytt kontaktmeddelande från ${messageData.name}`,
       html: htmlBody,
       text: textBody.replace(/<[^>]*>?/gm, '')
     };

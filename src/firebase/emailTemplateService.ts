@@ -1400,6 +1400,164 @@ If you have any questions, please contact us at info@doxvl.se or 070-123 45 67.`
     isActive: true,
     useCustomTemplate: true, // brand-new mail — use the new renderer from day one
   },
+
+  // === INTERNAL NOTIFICATIONS — new order alerts to handlers ===
+  {
+    id: 'internal-new-order-legalization',
+    name: 'Ny order (Legalisering) — intern notis',
+    nameEn: 'New Order (Legalization) — internal notification',
+    description: 'Internt mail som skickas till handläggare när en kund har lagt en legaliseringsbeställning. Sammanfattar order, kund och eventuella pickup-/returlarm.',
+    descriptionEn: 'Internal email sent to handlers when a customer places a legalization order. Summarises the order, the customer and any pickup/return alerts.',
+    category: 'internal',
+    trigger: 'automatic',
+    triggerEvent: 'order.created.legalization',
+    processStep: 3,
+    processGroup: 'Internal',
+    subjectSv: '{{subjectPrefix}}New Order - #{{orderNumber}}',
+    subjectEn: '{{subjectPrefix}}New Order - #{{orderNumber}}',
+    bodySv: `<p>En ny legaliseringsorder har registrerats. Sammanfattning nedan.</p>
+{{alertBlocks}}
+{{orderSummaryHtml}}
+{{customerInfoHtml}}
+{{extraBlocksHtml}}`,
+    bodyEn: `<p>A new legalization order has been registered. Summary below.</p>
+{{alertBlocks}}
+{{orderSummaryHtml}}
+{{customerInfoHtml}}
+{{extraBlocksHtml}}`,
+    variables: [
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000421' },
+      { key: 'subjectPrefix', description: 'Prefix i ämnesraden (t.ex. "⏳ AWAITING DOCS - " eller tomt)', example: '' },
+      { key: 'alertBlocks', description: 'Larmrutor för pickup/retur/väntar på dokument (HTML)', example: '<div>...</div>', isHtml: true },
+      { key: 'orderSummaryHtml', description: 'Ordersammanfattning som HTML-sektion', example: '<div>...</div>', isHtml: true },
+      { key: 'customerInfoHtml', description: 'Kundinformation som HTML-sektion', example: '<div>...</div>', isHtml: true },
+      { key: 'extraBlocksHtml', description: 'Tilläggsblock: postadress, uppladdade filer, anteckningar (HTML)', example: '<div>...</div>', isHtml: true },
+    ],
+    sourceFile: 'src/components/order/steps/Step10ReviewSubmit.tsx',
+    sourceFunction: 'inline internal notification (both flows)',
+    isCustomized: false,
+    isActive: true,
+    useCustomTemplate: true,
+  },
+  {
+    id: 'internal-new-order-visa',
+    name: 'Ny visumorder — intern notis',
+    nameEn: 'New Visa Order — internal notification',
+    description: 'Internt mail som skickas till handläggare när en kund har lagt en visumbeställning.',
+    descriptionEn: 'Internal email sent to handlers when a customer places a visa order.',
+    category: 'internal',
+    trigger: 'automatic',
+    triggerEvent: 'order.created.visa',
+    processStep: 4,
+    processGroup: 'Internal',
+    subjectSv: '🛂 Ny visumbeställning {{orderNumber}}: {{destinationCountry}}',
+    subjectEn: '🛂 New visa order {{orderNumber}}: {{destinationCountry}}',
+    bodySv: `<p>En ny visumorder har registrerats. Granska ordern och kontakta kunden inom 1 arbetsdag.</p>
+{{orderSummaryHtml}}
+{{customerInfoHtml}}`,
+    bodyEn: `<p>A new visa order has been registered. Review the order and contact the customer within 1 business day.</p>
+{{orderSummaryHtml}}
+{{customerInfoHtml}}`,
+    variables: [
+      { key: 'orderNumber', description: 'Ordernummer', example: 'VISA000312' },
+      { key: 'destinationCountry', description: 'Destinationsland', example: 'India' },
+      { key: 'orderSummaryHtml', description: 'Ordersammanfattning som HTML-sektion', example: '<div>...</div>', isHtml: true },
+      { key: 'customerInfoHtml', description: 'Kundinformation som HTML-sektion', example: '<div>...</div>', isHtml: true },
+    ],
+    sourceFile: 'src/components/order/visa/VisaStep10Review.tsx',
+    sourceFunction: 'generateVisaBusinessNotificationEmail',
+    isCustomized: false,
+    isActive: true,
+    useCustomTemplate: true,
+  },
+  {
+    id: 'internal-portal-order',
+    name: 'Portalbeställning — intern notis',
+    nameEn: 'Portal Order — internal notification',
+    description: 'Internt mail som skickas när ett företag lägger en beställning via B2B-portalen.',
+    descriptionEn: 'Internal email sent when a company places an order through the B2B portal.',
+    category: 'internal',
+    trigger: 'automatic',
+    triggerEvent: 'order.created.portal',
+    processStep: 5,
+    processGroup: 'Internal',
+    subjectSv: 'Ny portalbeställning #{{orderNumber}} – {{companyName}} ({{typeLabel}})',
+    subjectEn: 'New portal order #{{orderNumber}} – {{companyName}} ({{typeLabel}})',
+    bodySv: `<p>📋 En ny portalbeställning har registrerats.</p>
+{{orderSummaryHtml}}
+<p style="margin-top:16px; font-size:13px; color:#6b7280;">Beställningen finns i admin under ordrar.</p>`,
+    bodyEn: `<p>📋 A new portal order has been registered.</p>
+{{orderSummaryHtml}}
+<p style="margin-top:16px; font-size:13px; color:#6b7280;">The order is available in admin under orders.</p>`,
+    variables: [
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000421' },
+      { key: 'companyName', description: 'Företagsnamn', example: 'Acme AB' },
+      { key: 'typeLabel', description: 'Ordertyp (Visum/Legalisering)', example: 'Legalisering' },
+      { key: 'orderSummaryHtml', description: 'Fullständig ordersammanfattning som HTML-tabell', example: '<table>...</table>', isHtml: true },
+    ],
+    sourceFile: 'src/pages/api/portal/create-order.ts',
+    sourceFunction: 'portal order notification',
+    isCustomized: false,
+    isActive: true,
+    useCustomTemplate: true,
+  },
+  {
+    id: 'internal-contact-form',
+    name: 'Kontaktformulär — intern notis',
+    nameEn: 'Contact Form — internal notification',
+    description: 'Internt mail som skickas när någon fyller i kontaktformuläret på webbplatsen.',
+    descriptionEn: 'Internal email sent when someone submits the contact form on the website.',
+    category: 'internal',
+    trigger: 'automatic',
+    triggerEvent: 'contact.submitted',
+    processStep: 6,
+    processGroup: 'Internal',
+    subjectSv: 'Nytt kontaktmeddelande: {{subject}}',
+    subjectEn: 'New contact message: {{subject}}',
+    bodySv: `<h2 style="color:#2563eb; margin:0 0 16px;">Nytt kontaktmeddelande</h2>
+<div style="background:#f8fafc; padding:20px; border-radius:8px; margin:20px 0;">
+  <h3 style="margin-top:0; color:#374151;">Kontaktuppgifter</h3>
+  <p><strong>Namn:</strong> {{name}}</p>
+  <p><strong>E-post:</strong> {{email}}</p>
+  <p><strong>Telefon:</strong> {{phone}}</p>
+  <p><strong>Ämne:</strong> {{subject}}</p>
+</div>
+<div style="background:#f8fafc; padding:20px; border-radius:8px; margin:20px 0;">
+  <h3 style="margin-top:0; color:#374151;">Meddelande</h3>
+  <p style="white-space:pre-wrap; line-height:1.6;">{{message}}</p>
+</div>
+<div style="background:#fef3c7; padding:15px; border-radius:8px; margin:20px 0; border-left:4px solid #f59e0b;">
+  <p style="margin:0; color:#92400e;"><strong>Skickat:</strong> {{sentAt}}</p>
+</div>`,
+    bodyEn: `<h2 style="color:#2563eb; margin:0 0 16px;">New contact message</h2>
+<div style="background:#f8fafc; padding:20px; border-radius:8px; margin:20px 0;">
+  <h3 style="margin-top:0; color:#374151;">Contact details</h3>
+  <p><strong>Name:</strong> {{name}}</p>
+  <p><strong>Email:</strong> {{email}}</p>
+  <p><strong>Phone:</strong> {{phone}}</p>
+  <p><strong>Subject:</strong> {{subject}}</p>
+</div>
+<div style="background:#f8fafc; padding:20px; border-radius:8px; margin:20px 0;">
+  <h3 style="margin-top:0; color:#374151;">Message</h3>
+  <p style="white-space:pre-wrap; line-height:1.6;">{{message}}</p>
+</div>
+<div style="background:#fef3c7; padding:15px; border-radius:8px; margin:20px 0; border-left:4px solid #f59e0b;">
+  <p style="margin:0; color:#92400e;"><strong>Sent:</strong> {{sentAt}}</p>
+</div>`,
+    variables: [
+      { key: 'name', description: 'Avsändarens namn', example: 'Erik Eriksson' },
+      { key: 'email', description: 'Avsändarens e-post', example: 'erik@example.com' },
+      { key: 'phone', description: 'Telefonnummer', example: '070-1234567' },
+      { key: 'subject', description: 'Ämnesrad', example: 'Frågor om visum' },
+      { key: 'message', description: 'Meddelandet', example: 'Hej, jag undrar...' },
+      { key: 'sentAt', description: 'Tidpunkt (formaterad)', example: '2026-04-14 09:00' },
+    ],
+    sourceFile: 'functions/index.js',
+    sourceFunction: 'sendContactEmail',
+    isCustomized: false,
+    isActive: true,
+    useCustomTemplate: true,
+  },
 ];
 
 /**

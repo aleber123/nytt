@@ -61,6 +61,27 @@ function MyTasksPage() {
       setMyOrders(assigned);
 
       const reminders = await getRemindersByUser(currentUser.uid);
+      // Auto-reactivate snoozed reminders whose snooze period has passed
+      const now = new Date();
+      const reactivatePromises: Promise<void>[] = [];
+      for (const r of reminders) {
+        if (r.status === 'snoozed' && r.snoozedUntil) {
+          const snoozedUntil = (r.snoozedUntil as any)?.toDate
+            ? (r.snoozedUntil as any).toDate()
+            : new Date(r.snoozedUntil as string);
+          if (snoozedUntil <= now && r.id) {
+            r.status = 'active';
+            const { updateDoc, doc } = await import('firebase/firestore');
+            const { db } = await import('@/firebase/config');
+            reactivatePromises.push(
+              updateDoc(doc(db!, 'reminders', r.id), { status: 'active', snoozedUntil: null })
+            );
+          }
+        }
+      }
+      if (reactivatePromises.length > 0) {
+        await Promise.all(reactivatePromises).catch(() => {});
+      }
       setMyReminders(reminders as OrderReminder[]);
     } catch (e) {
       console.error('Failed to load tasks:', e);
