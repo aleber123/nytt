@@ -337,71 +337,78 @@ export default function PriceTab({
                                         : <span>{Number(base).toLocaleString()} kr</span>
                                       }
                                     </td>
-                                    <td className="px-3 py-2 text-right">
-                                      {item.quantity && item.quantity > 1 ? (
-                                        <input
-                                          type="number"
-                                          className="w-24 border rounded px-2 py-1 text-right"
-                                          value={o.overrideUnitPrice ?? ''}
-                                          placeholder={typeof item.unitPrice === 'number' ? String(item.unitPrice) : ''}
-                                          onChange={(e) => {
-                                            const val = e.target.value === '' ? null : Number(e.target.value);
-                                            const next = [...lineOverrides];
-                                            const effectiveQty = o.overrideQuantity ?? item.quantity;
-                                            const computedTotal = val !== null ? val * effectiveQty : (o.overrideQuantity != null && typeof item.unitPrice === 'number' ? item.unitPrice * o.overrideQuantity : null);
-                                            next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideUnitPrice: val, quantity: item.quantity, overrideQuantity: o.overrideQuantity, overrideAmount: computedTotal };
-                                            setLineOverrides(next);
-                                          }}
-                                        />
-                                      ) : (
-                                        <span className="text-gray-300">—</span>
-                                      )}
-                                    </td>
-                                    <td className="px-3 py-2 text-center">
-                                      {item.quantity && item.quantity > 1 ? (
-                                        <div className="flex items-center justify-center gap-1">
-                                          <span className="text-gray-400 text-xs">×</span>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            className={`w-14 border rounded px-2 py-1 text-center ${
-                                              o.overrideQuantity != null && o.overrideQuantity !== item.quantity ? 'border-blue-400 bg-blue-50 font-semibold text-blue-700' : ''
-                                            }`}
-                                            value={o.overrideQuantity ?? item.quantity}
-                                            onChange={(e) => {
-                                              const val = e.target.value === '' ? null : Number(e.target.value);
-                                              const next = [...lineOverrides];
-                                              const effectiveUnitPrice = o.overrideUnitPrice ?? (typeof item.unitPrice === 'number' ? item.unitPrice : null);
-                                              const computedTotal = effectiveUnitPrice !== null && val !== null ? effectiveUnitPrice * val : null;
-                                              next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideQuantity: val, quantity: item.quantity, overrideUnitPrice: o.overrideUnitPrice, overrideAmount: computedTotal };
-                                              setLineOverrides(next);
-                                            }}
-                                          />
-                                        </div>
-                                      ) : (
-                                        <span className="text-gray-300 text-xs">× 1</span>
-                                      )}
-                                    </td>
-                                    <td className="px-3 py-2 text-right">
-                                      {item.quantity && item.quantity > 1 ? (
-                                        <span className={o.overrideAmount != null ? 'font-semibold text-blue-700' : 'text-gray-400'}>
-                                          {o.overrideAmount != null ? `${Number(o.overrideAmount).toLocaleString()} kr` : '—'}
-                                        </span>
-                                      ) : (
-                                        <input
-                                          type="number"
-                                          className="w-28 border rounded px-2 py-1 text-right"
-                                          value={o.overrideAmount ?? ''}
-                                          placeholder=""
-                                          onChange={(e) => {
-                                            const val = e.target.value === '' ? null : Number(e.target.value);
-                                            const next = [...lineOverrides];
-                                            next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideAmount: val };
-                                            setLineOverrides(next);
-                                          }}
-                                        />
-                                      )}
-                                    </td>
+                                    {/* New Unit Price — editable for every row. Derive a fallback
+                                        unit price from total/qty when the stored item has no
+                                        explicit unitPrice (common on flat service-fee lines). */}
+                                    {(() => {
+                                      const currentQty = (item.quantity && item.quantity > 0) ? item.quantity : 1;
+                                      const derivedUnitPrice = typeof item.unitPrice === 'number'
+                                        ? item.unitPrice
+                                        : Number((base / currentQty).toFixed(2));
+                                      return (
+                                        <>
+                                          <td className="px-3 py-2 text-right">
+                                            <input
+                                              type="number"
+                                              className="w-24 border rounded px-2 py-1 text-right"
+                                              value={o.overrideUnitPrice ?? ''}
+                                              placeholder={String(derivedUnitPrice)}
+                                              onChange={(e) => {
+                                                const val = e.target.value === '' ? null : Number(e.target.value);
+                                                const next = [...lineOverrides];
+                                                const effectiveQty = o.overrideQuantity ?? currentQty;
+                                                const computedTotal = val !== null
+                                                  ? val * effectiveQty
+                                                  : (o.overrideQuantity != null ? derivedUnitPrice * o.overrideQuantity : null);
+                                                next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideUnitPrice: val, quantity: currentQty, overrideQuantity: o.overrideQuantity, overrideAmount: computedTotal };
+                                                setLineOverrides(next);
+                                              }}
+                                            />
+                                          </td>
+                                          <td className="px-3 py-2 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                              <span className="text-gray-400 text-xs">×</span>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                className={`w-14 border rounded px-2 py-1 text-center ${
+                                                  o.overrideQuantity != null && o.overrideQuantity !== currentQty ? 'border-blue-400 bg-blue-50 font-semibold text-blue-700' : ''
+                                                }`}
+                                                value={o.overrideQuantity ?? currentQty}
+                                                onChange={(e) => {
+                                                  const val = e.target.value === '' ? null : Number(e.target.value);
+                                                  const next = [...lineOverrides];
+                                                  const effectiveUnitPrice = o.overrideUnitPrice ?? derivedUnitPrice;
+                                                  const computedTotal = val !== null ? effectiveUnitPrice * val : null;
+                                                  next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideQuantity: val, quantity: currentQty, overrideUnitPrice: o.overrideUnitPrice, overrideAmount: computedTotal };
+                                                  setLineOverrides(next);
+                                                }}
+                                              />
+                                            </div>
+                                          </td>
+                                          <td className="px-3 py-2 text-right">
+                                            {o.overrideAmount != null ? (
+                                              <span className="font-semibold text-blue-700">
+                                                {Number(o.overrideAmount).toLocaleString()} kr
+                                              </span>
+                                            ) : (
+                                              <input
+                                                type="number"
+                                                className="w-28 border rounded px-2 py-1 text-right"
+                                                value={o.overrideAmount ?? ''}
+                                                placeholder={String(Number(base || 0).toLocaleString())}
+                                                onChange={(e) => {
+                                                  const val = e.target.value === '' ? null : Number(e.target.value);
+                                                  const next = [...lineOverrides];
+                                                  next[idx] = { ...(o as any), index: idx, label: o.label, baseAmount: Number(base || 0), overrideAmount: val };
+                                                  setLineOverrides(next);
+                                                }}
+                                              />
+                                            )}
+                                          </td>
+                                        </>
+                                      );
+                                    })()}
                                     <td className="px-3 py-2 text-right">
                                       <input
                                         type="number"

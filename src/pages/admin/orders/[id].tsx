@@ -180,9 +180,16 @@ interface EditOrderInfoSectionProps {
   order: ExtendedOrder;
   onUpdate: (updates: any) => Promise<void>;
   onRegenerateSteps: (updatedOrder: any) => Promise<void>;
+  /**
+   * Called after a successful save when document quantities or services
+   * changed, so the Price tab's pricingBreakdown gets refreshed with the
+   * new quantities. Wired to the same recalc logic as the "Recalculate
+   * Prices" button on the Price tab.
+   */
+  onRecalculatePrices?: () => Promise<void>;
 }
 
-function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderInfoSectionProps) {
+function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps, onRecalculatePrices }: EditOrderInfoSectionProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -310,9 +317,10 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
     
     setSendingEmail(true);
     try {
-      const response = await fetch('/api/order-update-notification/send', {
+      // Use adminFetch so the Firebase ID token is sent — the endpoint
+      // uses verifyAdmin() and returns 401 without it.
+      const response = await adminFetch('/api/order-update-notification/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: order.orderNumber || order.id,
           changes: lastSavedChanges
@@ -353,6 +361,22 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps }: EditOrderI
         }
       };
       await onUpdate(updates);
+
+      // Auto-recalculate prices when document count / services changed so the
+      // Price tab line items stay in sync. Admin doesn't have to click
+      // "Recalculate Prices" manually.
+      const affectsPricing = changes.some(c =>
+        c.field === 'quantity' || c.field === 'documents' || c.field === 'returnService'
+      );
+      if (affectsPricing && onRecalculatePrices) {
+        try {
+          await onRecalculatePrices();
+        } catch (recalcErr) {
+          console.warn('Auto-recalculate after save failed:', recalcErr);
+          // Non-fatal — admin can click "Recalculate Prices" manually.
+        }
+      }
+
       setLastSavedChanges(changes.length > 0 ? changes : null);
       toast.success('Order information updated');
       setEditing(false);
@@ -7065,6 +7089,64 @@ function AdminOrderDetailPage() {
     }
   };
 
+  /**
+   * Recalculate prices for the current order based on its current services,
+   * quantity, and configuration. Refreshes pricingBreakdown + totalPrice in
+   * Firestore, updates local state, and resets lineOverrides.
+   *
+   * Called by:
+   * - Price tab "Recalculate Prices" button
+   * - EditOrderInfoSection handleSave, when document quantity / services /
+   *   return service changes (auto-sync so Price tab stays accurate)
+   */
+  const recalculateOrderPrices = async () => {
+    if (!order) return;
+    const { calculateOrderPrice } = await import('@/firebase/pricingService');
+    let customerPricingData = undefined;
+    const customerEmail = order.customerInfo?.email || '';
+    if (customerEmail) {
+      const matchedCustomer = await getCustomerByEmailDomain(customerEmail);
+      if (matchedCustomer) {
+        customerPricingData = {
+          customPricing: matchedCustomer.customPricing,
+          vatExempt: matchedCustomer.vatExempt,
+          companyName: matchedCustomer.companyName,
+        };
+      }
+    }
+    const pricingResult = await calculateOrderPrice({
+      country: order.country,
+      services: order.services || [],
+      quantity: order.quantity,
+      expedited: order.expedited,
+      returnService: order.returnService,
+      returnServices: [],
+      scannedCopies: order.scannedCopies,
+      pickupService: order.pickupService,
+      pickupMethod: order.pickupMethod as 'dhl' | 'stockholm_courier' | undefined,
+      premiumPickup: order.premiumPickup,
+      premiumDelivery: order.premiumDelivery,
+      customerPricing: customerPricingData,
+    });
+    const orderId = router.query.id as string;
+    await adminUpdateOrder(orderId, {
+      totalPrice: pricingResult.totalPrice,
+      pricingBreakdown: pricingResult.breakdown,
+    });
+    setOrder({
+      ...order,
+      totalPrice: pricingResult.totalPrice,
+      pricingBreakdown: pricingResult.breakdown,
+      adminPrice: undefined,
+    } as any);
+    const initial = pricingResult.breakdown.map((item: any, idx: number) => {
+      const base = typeof item.total === 'number' ? item.total : (typeof item.fee === 'number' ? item.fee : 0);
+      const label = item.description || 'Item';
+      return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
+    });
+    setLineOverrides(initial);
+  };
+
   // Remove a service from the order
   const handleRemoveService = async (serviceToRemove: string) => {
     if (!order) return;
@@ -7878,6 +7960,7 @@ function AdminOrderDetailPage() {
                     getServiceStatus, getServiceStatusColor,
                     addingService, handleAddService, newServiceToAdd, setNewServiceToAdd,
                     setProcessingSteps, toast,
+                    recalculateOrderPrices,
                     adminName: (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string,
                   }} />
                 )}
@@ -7905,49 +7988,7 @@ function AdminOrderDetailPage() {
                     getBreakdownTotal={getBreakdownTotal}
                     getServiceName={getServiceName}
                     adminName={(adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string}
-                    onRecalculate={async () => {
-                      const { calculateOrderPrice } = await import('@/firebase/pricingService');
-                      let customerPricingData = undefined;
-                      const customerEmail = order.customerInfo?.email || '';
-                      if (customerEmail) {
-                        const matchedCustomer = await getCustomerByEmailDomain(customerEmail);
-                        if (matchedCustomer) {
-                          customerPricingData = {
-                            customPricing: matchedCustomer.customPricing,
-                            vatExempt: matchedCustomer.vatExempt,
-                            companyName: matchedCustomer.companyName
-                          };
-                        }
-                      }
-                      const pricingResult = await calculateOrderPrice({
-                        country: order.country,
-                        services: order.services || [],
-                        quantity: order.quantity,
-                        expedited: order.expedited,
-                        returnService: order.returnService,
-                        returnServices: [],
-                        scannedCopies: order.scannedCopies,
-                        pickupService: order.pickupService,
-                        pickupMethod: order.pickupMethod as 'dhl' | 'stockholm_courier' | undefined,
-                        premiumPickup: order.premiumPickup,
-                        premiumDelivery: order.premiumDelivery,
-                        customerPricing: customerPricingData,
-                      });
-                      // Update order with recalculated pricing
-                      const orderId = router.query.id as string;
-                      await adminUpdateOrder(orderId, {
-                        totalPrice: pricingResult.totalPrice,
-                        pricingBreakdown: pricingResult.breakdown,
-                      });
-                      setOrder({ ...order, totalPrice: pricingResult.totalPrice, pricingBreakdown: pricingResult.breakdown, adminPrice: undefined } as any);
-                      // Reset lineOverrides so they reinitialize from fresh breakdown
-                      const initial = pricingResult.breakdown.map((item: any, idx: number) => {
-                        const base = typeof item.total === 'number' ? item.total : (typeof item.fee === 'number' ? item.fee : 0);
-                        const label = item.description || 'Item';
-                        return { index: idx, label, baseAmount: Number(base || 0), overrideAmount: null, vatPercent: null, include: true };
-                      });
-                      setLineOverrides(initial);
-                    }}
+                    onRecalculate={recalculateOrderPrices}
                   />
                 )}
 

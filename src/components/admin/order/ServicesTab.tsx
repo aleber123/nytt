@@ -13,7 +13,7 @@ export default function ServicesTab({ ctx }: ServicesTabProps) {
     EditVisaOrderInfoSection, EditOrderInfoSection,
     router, initializeProcessingSteps, getServiceName, getServiceStatus, getServiceStatusColor,
     addingService, handleAddService, newServiceToAdd, setNewServiceToAdd, setProcessingSteps,
-    toast,
+    toast, recalculateOrderPrices,
   } = ctx;
 
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
@@ -127,6 +127,7 @@ export default function ServicesTab({ ctx }: ServicesTabProps) {
             await onUpdateOrder(orderIdToUpdate, { processingSteps: newSteps });
             setProcessingSteps(newSteps);
           }}
+          onRecalculatePrices={recalculateOrderPrices}
         />
       )}
 
