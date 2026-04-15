@@ -8117,6 +8117,7 @@ function AdminOrderDetailPage() {
                       onShowNewTemplateModal={() => setShowNewTemplateModal(true)}
                       quoteLineItems={quoteItems}
                       quoteTotalAmount={quoteTotal}
+                      onRefreshFromOrder={recalculateOrderPrices}
                     />
                   );
                 })()}

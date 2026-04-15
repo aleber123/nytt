@@ -16,6 +16,9 @@ interface CommunicationTabProps {
   onShowNewTemplateModal: () => void;
   quoteLineItems?: QuoteLineItem[];
   quoteTotalAmount?: number;
+  /** When present, shown as a "refresh quote from order" action if the
+   * breakdown looks stale vs the order's top-level document count. */
+  onRefreshFromOrder?: () => Promise<void>;
 }
 
 function translateDesc(desc: string): string {
@@ -63,12 +66,30 @@ function translateDesc(desc: string): string {
   return desc;
 }
 
-export default function CommunicationTab({ order, onShowDocumentRequestModal, onShowNewTemplateModal, quoteLineItems, quoteTotalAmount }: CommunicationTabProps) {
+export default function CommunicationTab({ order, onShowDocumentRequestModal, onShowNewTemplateModal, quoteLineItems, quoteTotalAmount, onRefreshFromOrder }: CommunicationTabProps) {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteMessage, setQuoteMessage] = useState('');
   const [sendingQuote, setSendingQuote] = useState(false);
+  const [refreshingQuote, setRefreshingQuote] = useState(false);
   const [editableLineItems, setEditableLineItems] = useState<QuoteLineItem[]>([]);
   const [editableTotal, setEditableTotal] = useState(0);
+
+  // Detect stale breakdown: if the sum of line-item quantities across all
+  // "official fee" lines doesn't match the order's top-level document count,
+  // the pricingBreakdown was built before a doc-qty change. Admin can click
+  // "Refresh from order" to rebuild it.
+  const looksStale = (() => {
+    const docCount = (order as any).quantity || 0;
+    if (!docCount || !quoteLineItems || quoteLineItems.length === 0) return false;
+    const officialLineItems = quoteLineItems.filter(i =>
+      /official fee|officiell avgift/i.test(i.description)
+    );
+    if (officialLineItems.length === 0) return false;
+    // Each official-fee line should sum to the doc count. If any single line
+    // has quantity=1 but describes a fee that scales per document, it's stale.
+    const maxOfficialQty = Math.max(...officialLineItems.map(i => i.quantity));
+    return maxOfficialQty < docCount;
+  })();
 
   const quoteStatus = (order as any).quote?.status as string | undefined;
   const quoteSentAt = (order as any).quote?.sentAt as string | undefined;
@@ -268,6 +289,46 @@ export default function CommunicationTab({ order, onShowDocumentRequestModal, on
                 </p>
               </div>
 
+              {/* Staleness warning — the breakdown's line-item quantities
+                  don't match the order's document count. Usually means the
+                  admin changed doc qty on the Services tab before we added
+                  auto-recalc, or a manual override was saved. */}
+              {looksStale && onRefreshFromOrder && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-900">⚠️ Line items may be out of sync</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      The price breakdown's quantities don't match this order's current document count ({(order as any).quantity || 0}).
+                      Click refresh to rebuild the line items from the current order.
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setRefreshingQuote(true);
+                      try {
+                        await onRefreshFromOrder();
+                        // Reinitialize editable items from refreshed props — parent
+                        // will pass updated quoteLineItems on next render.
+                        setTimeout(() => {
+                          const items = (quoteLineItems || []).map(i => ({ ...i }));
+                          setEditableLineItems(items);
+                          setEditableTotal(items.reduce((s, i) => s + i.total, 0));
+                        }, 100);
+                        toast.success('Line items refreshed from order');
+                      } catch (err: any) {
+                        toast.error(`Refresh failed: ${err?.message || 'Unknown error'}`);
+                      } finally {
+                        setRefreshingQuote(false);
+                      }
+                    }}
+                    disabled={refreshingQuote}
+                    className="flex-shrink-0 px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-md hover:bg-amber-700 disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {refreshingQuote ? 'Refreshing…' : '↻ Refresh from order'}
+                  </button>
+                </div>
+              )}
+
               {/* Line items table */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Quote Line Items</label>
@@ -291,7 +352,18 @@ export default function CommunicationTab({ order, onShowDocumentRequestModal, on
                       {editableLineItems.map((item, idx) => (
                         <tr key={idx} className="border-b border-gray-100">
                           <td className="px-3 py-2 text-gray-900 break-words">{translateDesc(item.description)}</td>
-                          <td className="px-3 py-2 text-center text-gray-600">{item.quantity}</td>
+                          <td className="px-3 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-gray-400 text-xs">×</span>
+                              <input
+                                type="number"
+                                min="0"
+                                className="w-14 border rounded px-2 py-1 text-center text-sm"
+                                value={item.quantity}
+                                onChange={(e) => updateLineItem(idx, 'quantity', Number(e.target.value) || 0)}
+                              />
+                            </div>
+                          </td>
                           <td className="px-3 py-2 text-right">
                             <input
                               type="number"
@@ -314,7 +386,7 @@ export default function CommunicationTab({ order, onShowDocumentRequestModal, on
                     </tfoot>
                   </table>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">You can adjust unit prices before sending. The customer will see these prices.</p>
+                <p className="text-xs text-gray-500 mt-1">You can adjust quantity and unit price before sending. Changes only affect this quote — the order itself is unchanged.</p>
               </div>
 
               {/* Message */}
