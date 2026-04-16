@@ -24,6 +24,7 @@ import {
   COMMON_FIELDS,
   FormFieldType,
 } from '@/firebase/visaFormService';
+import { generateFillablePdf } from '@/services/fillablePdfFormGenerator';
 import { exportToJson, importFromJson } from '@/utils/adminExportImport';
 
 export default function VisaFormTemplatesPage() {
@@ -180,6 +181,28 @@ export default function VisaFormTemplatesPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          toast.loading('Generating PDF...', { id: 'pdf-gen' });
+                          const pdfBytes = await generateFillablePdf(t);
+                          const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${t.id || 'visa-form'}-blank.pdf`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          toast.success('PDF form downloaded', { id: 'pdf-gen' });
+                        } catch (err: any) {
+                          toast.error(`PDF generation failed: ${err?.message || 'Unknown'}`, { id: 'pdf-gen' });
+                        }
+                      }}
+                      className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"
+                      title="Download a blank fillable PDF form to send to customers"
+                    >
+                      📄 PDF Form
+                    </button>
                     <button onClick={() => handleEdit(t)} className="px-3 py-1.5 text-sm bg-gray-100 rounded-lg hover:bg-gray-200">
                       ✏️ Edit
                     </button>

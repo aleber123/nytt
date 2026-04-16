@@ -19,6 +19,8 @@ import { buildBrazilVisaDataFromOrder, generateBrazilAutoFillScript, generateBra
 import type { SectionScript } from '@/services/formAutomation/brazilVisaAutofill';
 import { generateDS160CompleteScript, buildDS160DataFromOrder } from '@/services/formAutomation/usaDS160Autofill';
 import { generateMadagascarScripts, getFrenchCountry, type MadagascarVisaData } from '@/services/formAutomation/madagascarVisa';
+import { buildNigeriaVisaDataFromOrder, generateNigeriaAutoFillScript } from '@/services/formAutomation/nigeriaEVisa';
+import { extractPdfFormData } from '@/services/fillablePdfFormGenerator';
 import { toast } from 'react-hot-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateVisaOrder } from '@/firebase/visaOrderService';
@@ -101,6 +103,22 @@ const COUNTRY_CONFIG: Record<string, {
       'On Page 1 (Personal + Passport): click "Copy Page 1 Script", paste in browser console (F12 → Console)',
       'Continue to Page 2, click "Copy Page 2 Script" and paste in console',
       'Review all fields manually before submitting — French autocomplete fields may need confirmation',
+    ],
+  },
+  NG: {
+    label: 'Nigeria',
+    flag: '🇳🇬',
+    websiteUrl: 'https://evisa.immigration.gov.ng/',
+    websiteLabel: 'Nigeria e-Visa Application',
+    color: 'green',
+    hasAutoFill: true,
+    instructions: [
+      'Open the Nigeria e-Visa website and start a new application',
+      'Select traveler and click "Copy Script"',
+      'Paste the script in the browser console (Cmd+Option+J on Mac)',
+      'The script auto-detects the current step and fills it. Navigate to each step and paste again.',
+      'Step 5 (Supporting Documents) must be uploaded manually',
+      'Steps 6-7 (Travel History, Security) default all answers to "No" — verify before submitting',
     ],
   },
   US: {
@@ -524,6 +542,22 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
       } catch {
         toast.error('Failed to copy to clipboard');
       }
+    } else if (countryCode === 'NG') {
+      const mergedData = getMergedData();
+      const data = buildNigeriaVisaDataFromOrder(order, selectedTraveler, mergedData);
+      if (!data) {
+        toast.error('Could not build Nigeria visa data');
+        return;
+      }
+      const script = generateNigeriaAutoFillScript(data);
+      try {
+        await navigator.clipboard.writeText(script);
+        setScriptCopied(true);
+        toast.success('Nigeria e-Visa script copied! Paste in console on evisa.immigration.gov.ng');
+        setTimeout(() => setScriptCopied(false), 5000);
+      } catch {
+        toast.error('Failed to copy to clipboard');
+      }
     } else {
       toast.error(`Auto-fill script not yet available for ${countryCode}`);
     }
@@ -665,6 +699,43 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
           ) : (
             <span className="text-amber-600 font-medium">⚠️ No customer form data — fill in manually below</span>
           )}
+          <label className="ml-3 inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 cursor-pointer border border-purple-200">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+            Upload filled PDF
+            <input
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  toast.loading('Extracting data from PDF...', { id: 'pdf-import' });
+                  const buffer = await file.arrayBuffer();
+                  const data = await extractPdfFormData(new Uint8Array(buffer));
+                  const filledCount = Object.values(data).filter((v: any) => typeof v === 'string' && v.trim()).length;
+                  if (filledCount === 0) {
+                    toast.error('No filled fields found. Make sure the customer saved the PDF after filling it.', { id: 'pdf-import' });
+                    return;
+                  }
+                  // Merge extracted data into the manual fields state
+                  setManualFields(prev => {
+                    const merged = { ...prev };
+                    for (const [key, value] of Object.entries(data)) {
+                      if (typeof value === 'string' && value.trim()) {
+                        merged[key] = value;
+                      }
+                    }
+                    return merged;
+                  });
+                  toast.success(`Imported ${filledCount} fields from PDF — form pre-filled!`, { id: 'pdf-import' });
+                } catch (err: any) {
+                  toast.error(`PDF extraction failed: ${err?.message || 'Unknown error'}`, { id: 'pdf-import' });
+                }
+                e.target.value = '';
+              }}
+            />
+          </label>
         </div>
         {!hasHardcodedFields && (
           <div className="flex items-center gap-2">

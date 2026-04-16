@@ -5,6 +5,7 @@ import SvensklistanButton from './SvensklistanButton';
 import IndiaEVisaButton from './IndiaEVisaButton';
 import AngolaVisaPdfButton from './AngolaVisaPdfButton';
 import BrazilVisaScriptButton from './BrazilVisaScriptButton';
+import NigeriaEVisaButton from './NigeriaEVisaButton';
 import FormDataPrintButton from './FormDataPrintButton';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -263,8 +264,13 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                               const hasBrazil = (order as any).destinationCountryCode === 'BR' ||
                                 (order as any).destinationCountry?.toLowerCase().includes('brazil') ||
                                 (order as any).destinationCountry?.toLowerCase().includes('brasilien') ||
-                                addons.some((a: any) => 
+                                addons.some((a: any) =>
                                   a.name?.toLowerCase().includes('brazil') || a.name?.toLowerCase().includes('brasilien') || a.id?.toLowerCase().includes('brazil')
+                                );
+                              const hasNigeria = (order as any).destinationCountryCode === 'NG' ||
+                                (order as any).destinationCountry?.toLowerCase().includes('nigeria') ||
+                                addons.some((a: any) =>
+                                  a.name?.toLowerCase().includes('nigeria') || a.id?.toLowerCase().includes('nigeria')
                                 );
                               const hasTravelers = (order as any).travelers?.length > 0;
 
@@ -319,6 +325,20 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                           <BrazilVisaScriptButton key={idx} order={order} travelerIndex={idx} />
                                         ))}
                                       </div>
+                                    </div>
+                                  )}
+
+                                  {hasNigeria && hasTravelers && (
+                                    <div className="p-3 rounded-lg border bg-green-50 border-green-200">
+                                      <p className="text-sm font-medium text-green-900 mb-2">🇳🇬 Nigeria e-Visa — copy auto-fill script:</p>
+                                      <div className="space-y-2">
+                                        {(order as any).travelers.map((t: any, idx: number) => (
+                                          <NigeriaEVisaButton key={idx} order={order} travelerIndex={idx} />
+                                        ))}
+                                      </div>
+                                      <p className="text-xs text-green-700 mt-2">
+                                        Click → script copied → paste in console on evisa.immigration.gov.ng. Script auto-detects current step.
+                                      </p>
                                     </div>
                                   )}
                                 </div>
