@@ -9,7 +9,7 @@
  * Uses pdf-lib which has excellent AcroForm support.
  */
 
-import { PDFDocument, PDFFont, PDFPage, PDFTextField, PDFDropdown, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, PDFFont, PDFPage, PDFTextField, PDFDropdown, PDFRadioGroup, rgb, StandardFonts } from 'pdf-lib';
 import type { VisaFormTemplate, FormField } from '@/firebase/visaFormService';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
@@ -250,22 +250,41 @@ function drawFormField(
   // Field box starts right below the label
   const fieldY = y - LABEL_SIZE;
 
-  // Field background + border
-  page.drawRectangle({
-    x,
-    y: fieldY - height,
-    width,
-    height,
-    color: COLORS.fieldBg,
-    borderColor: COLORS.fieldBorder,
-    borderWidth: 0.5,
-  });
-
-  // Use a unique field name (prefix with template id to avoid collisions)
   const fieldName = field.id;
+  const isRadioSelect = field.type === 'select' && field.options && field.options.length <= 3;
 
-  if (field.type === 'select' && field.options && field.options.length > 0) {
-    // Dropdown
+  if (isRadioSelect && field.options) {
+    // Render as radio buttons (inline, no background box)
+    const radioGroup = form.createRadioGroup(fieldName);
+    const optionLabels = field.options.map(o => o.labelEn || o.label);
+    const radioSize = 10;
+    let radioX = x;
+    const radioY = fieldY - radioSize - 2;
+
+    optionLabels.forEach((optLabel, oi) => {
+      // Radio circle
+      radioGroup.addOptionToPage(optLabel, page, {
+        x: radioX,
+        y: radioY,
+        width: radioSize,
+        height: radioSize,
+        borderWidth: 0.5,
+        borderColor: COLORS.fieldBorder,
+        backgroundColor: COLORS.fieldBg,
+      });
+      // Option label text next to the circle
+      page.drawText(optLabel, {
+        x: radioX + radioSize + 4,
+        y: radioY + 2,
+        size: 9,
+        font,
+        color: COLORS.black,
+      });
+      radioX += radioSize + font.widthOfTextAtSize(optLabel, 9) + 20;
+    });
+  } else if (field.type === 'select' && field.options && field.options.length > 3) {
+    // Dropdown for selects with many options (>3)
+    page.drawRectangle({ x, y: fieldY - height, width, height, color: COLORS.fieldBg, borderColor: COLORS.fieldBorder, borderWidth: 0.5 });
     try {
       const dropdown = form.createDropdown(fieldName);
       const optionValues = field.options.map(o => o.labelEn || o.label);
@@ -279,10 +298,10 @@ function drawFormField(
         backgroundColor: rgb(0.98, 0.98, 0.98),
       });
     } catch {
-      // Fallback: text field if dropdown fails (e.g., duplicate name)
       createTextField(form, fieldName + '_text', page, x, fieldY, width, height, field.placeholderEn || field.placeholder || '');
     }
   } else if (field.type === 'textarea') {
+    page.drawRectangle({ x, y: fieldY - height, width, height, color: COLORS.fieldBg, borderColor: COLORS.fieldBorder, borderWidth: 0.5 });
     const textField = form.createTextField(fieldName);
     textField.enableMultiline();
     textField.addToPage(page, {
@@ -295,6 +314,7 @@ function drawFormField(
     });
   } else {
     // Text / date / email / phone — all rendered as text field
+    page.drawRectangle({ x, y: fieldY - height, width, height, color: COLORS.fieldBg, borderColor: COLORS.fieldBorder, borderWidth: 0.5 });
     const placeholder = field.type === 'date'
       ? 'YYYY-MM-DD'
       : (field.placeholderEn || field.placeholder || '');
@@ -358,6 +378,9 @@ export async function extractPdfFormData(
       } else if (field instanceof PDFDropdown) {
         const selected = field.getSelected();
         result[name] = selected.length > 0 ? selected[0] : '';
+      } else if (field instanceof PDFRadioGroup) {
+        const selected = field.getSelected();
+        result[name] = selected || '';
       }
     } catch {
       // Skip unreadable fields
