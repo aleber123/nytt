@@ -196,7 +196,8 @@ export default function VisaFormTemplatesPage() {
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;
-                          a.download = `${t.id || 'visa-form'}-blank.pdf`;
+                          const safeName = (t.nameEn || t.name || t.id || 'visa-form').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+                          a.download = `${safeName}-application-form.pdf`;
                           a.click();
                           URL.revokeObjectURL(url);
                           toast.success('PDF form downloaded', { id: 'pdf-gen' });
