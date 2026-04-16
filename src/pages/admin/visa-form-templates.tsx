@@ -25,6 +25,12 @@ import {
   FormFieldType,
 } from '@/firebase/visaFormService';
 import { generateFillablePdf } from '@/services/fillablePdfFormGenerator';
+import { NIGERIA_EVISA_TEMPLATE } from '@/services/formAutomation/nigeriaVisaFormTemplate';
+
+// Code-defined templates that can be synced to Firestore
+const CODE_TEMPLATES: Record<string, typeof NIGERIA_EVISA_TEMPLATE> = {
+  'nigeria-evisa': NIGERIA_EVISA_TEMPLATE,
+};
 import { exportToJson, importFromJson } from '@/utils/adminExportImport';
 
 export default function VisaFormTemplatesPage() {
@@ -203,6 +209,35 @@ export default function VisaFormTemplatesPage() {
                     >
                       📄 PDF Form
                     </button>
+                    {CODE_TEMPLATES[t.id] && (
+                      <button
+                        onClick={async () => {
+                          const codeTpl = CODE_TEMPLATES[t.id];
+                          if (!codeTpl) return;
+                          const codeFieldCount = codeTpl.fields.length;
+                          const currentFieldCount = t.fields.length;
+                          if (codeFieldCount === currentFieldCount) {
+                            toast.success(`Already up to date (${codeFieldCount} fields)`);
+                            return;
+                          }
+                          if (!confirm(`Sync fields from code? Current: ${currentFieldCount} fields → New: ${codeFieldCount} fields. This updates fields and groups but keeps your template name and settings.`)) return;
+                          try {
+                            await saveFormTemplate(
+                              { ...t, fields: codeTpl.fields, groups: codeTpl.groups, updatedAt: new Date().toISOString(), updatedBy: currentUser?.email || 'admin' },
+                              currentUser?.email || 'admin'
+                            );
+                            loadTemplates();
+                            toast.success(`Synced! ${currentFieldCount} → ${codeFieldCount} fields`);
+                          } catch (err: any) {
+                            toast.error(`Sync failed: ${err?.message || 'Unknown'}`);
+                          }
+                        }}
+                        className="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 border border-amber-200"
+                        title="Update fields and groups from the latest code definition"
+                      >
+                        ↻ Sync fields
+                      </button>
+                    )}
                     <button onClick={() => handleEdit(t)} className="px-3 py-1.5 text-sm bg-gray-100 rounded-lg hover:bg-gray-200">
                       ✏️ Edit
                     </button>

@@ -137,8 +137,9 @@ export async function generateFillablePdf(
     const fields = fieldsByGroup.get(group.id);
     if (!fields || fields.length === 0) continue;
 
-    // Group title
-    if (needsNewPage(cursor, GROUP_GAP + ROW_HEIGHT)) {
+    // Group title — ensure the heading + at least 2 field rows fit on this page
+    const minGroupHeight = GROUP_GAP + 20 + ROW_HEIGHT * 2;
+    if (needsNewPage(cursor, minGroupHeight)) {
       cursor.page = addPage(doc);
       cursor.y = PAGE_H - MARGIN;
     }
@@ -163,7 +164,8 @@ export async function generateFillablePdf(
     });
     cursor.y -= 12;
 
-    // Render fields — try to put 2 per row when both are short text/select
+    // Render fields — try to put 2 per row when both are short text/select.
+    // Keep yes/no + detail pairs together on the same page.
     let i = 0;
     while (i < fields.length) {
       const field = fields[i];
@@ -171,12 +173,31 @@ export async function generateFillablePdf(
       const isWide = field.type === 'textarea';
       const nextIsWide = nextField?.type === 'textarea';
 
-      if (needsNewPage(cursor, ROW_HEIGHT + 10)) {
+      // Check if this is a yes/no question followed by a detail textarea
+      // (e.g., "Have you been refused entry?" + "If yes — details").
+      // If so, reserve space for BOTH so they don't split across pages.
+      const isYesNoWithDetail =
+        field.type === 'select' &&
+        field.options?.length === 2 &&
+        nextField?.type === 'textarea';
+      const pairHeight = isYesNoWithDetail
+        ? ROW_HEIGHT * 2 + FIELD_HEIGHT * 2 + 4  // select row + textarea row
+        : ROW_HEIGHT + 10;
+
+      if (needsNewPage(cursor, pairHeight)) {
         cursor.page = addPage(doc);
         cursor.y = PAGE_H - MARGIN;
       }
 
-      if (!isWide && nextField && !nextIsWide) {
+      if (isYesNoWithDetail) {
+        // Render yes/no select (full width) + detail textarea together
+        drawFormField(doc, form, cursor, field, font, fontBold, MARGIN, CONTENT_W);
+        cursor.y -= ROW_HEIGHT;
+        const detailHeight = FIELD_HEIGHT * 2.5;
+        drawFormField(doc, form, cursor, nextField!, font, fontBold, MARGIN, CONTENT_W, detailHeight);
+        cursor.y -= ROW_HEIGHT + FIELD_HEIGHT * 1.5;
+        i += 2;
+      } else if (!isWide && nextField && !nextIsWide) {
         // Two fields side by side
         drawFormField(doc, form, cursor, field, font, fontBold, MARGIN, CONTENT_W / 2 - 5);
         drawFormField(doc, form, cursor, nextField, font, fontBold, MARGIN + CONTENT_W / 2 + 5, CONTENT_W / 2 - 5);
