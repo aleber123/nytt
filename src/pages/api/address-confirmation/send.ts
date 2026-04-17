@@ -111,12 +111,10 @@ export default async function handler(
       };
     } else {
       // For return address, check if there's a dedicated returnAddress object first
-      // This is used when the return address differs from the customer's address (e.g., traveler's address)
       const ra = order?.returnAddress || {};
-      const hasReturnAddress = ra.street || ra.firstName || ra.lastName;
-      
+      const hasReturnAddress = ra.street && ra.street !== '-';
+
       if (hasReturnAddress) {
-        // Use the dedicated return address (e.g., traveler's address)
         const returnName = `${ra.firstName || ''} ${ra.lastName || ''}`.trim();
         address = {
           street: ra.street || '',
@@ -128,11 +126,13 @@ export default async function handler(
           phone: ra.phone || order?.customerInfo?.phone || ''
         };
       } else {
-        // Fall back to customer info if no dedicated return address
+        // Customer chose "confirm later" or address is empty — use empty address
+        // so the confirmation page lets them fill it in from scratch
+        const hasCiAddress = order?.customerInfo?.address && order?.customerInfo?.address !== '-';
         address = {
-          street: order?.customerInfo?.address || '',
-          postalCode: order?.customerInfo?.postalCode || '',
-          city: order?.customerInfo?.city || '',
+          street: hasCiAddress ? order.customerInfo.address : '',
+          postalCode: hasCiAddress ? (order?.customerInfo?.postalCode || '') : '',
+          city: hasCiAddress ? (order?.customerInfo?.city || '') : '',
           country: order?.customerInfo?.country || 'Sverige',
           companyName: order?.customerInfo?.companyName || '',
           contactName: customerName,
@@ -187,13 +187,23 @@ export default async function handler(
       const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
       const tmpl = await getEmailTemplateAdmin('address-confirmation');
       if (tmpl?.useCustomTemplate) {
-        const addressLine = [
-          address.companyName,
-          address.contactName,
-          address.street,
-          [address.postalCode, address.city].filter(Boolean).join(' '),
-          address.country,
-        ].filter(Boolean).join('<br>');
+        const hasRealAddress = address.street && address.street.trim().length > 0;
+        const addressLine = hasRealAddress
+          ? [
+              address.companyName,
+              address.contactName,
+              address.street,
+              [address.postalCode, address.city].filter(Boolean).join(' '),
+              address.country,
+            ].filter(Boolean).join('<br>')
+          : (isEnglish
+              ? '<em style="color:#92400e;">No address provided yet — please fill in your return address using the link below.</em>'
+              : '<em style="color:#92400e;">Ingen adress angiven ännu — vänligen fyll i din returadress via länken nedan.</em>');
+
+        const customerReference = order?.invoiceReference || order?.customerNumber || '';
+        const customerReferenceBlock = customerReference
+          ? `<p style="margin:8px 0;color:#5f6368;font-size:14px;">${isEnglish ? 'Your reference' : 'Er referens'}: <strong>${customerReference}</strong></p>`
+          : '';
 
         const result = await renderEmailAdmin(
           'address-confirmation',
@@ -202,6 +212,8 @@ export default async function handler(
             orderNumber: String(orderNum),
             address: addressLine,
             addressType: addressTypeText,
+            customerReference,
+            customerReferenceBlock,
             confirmationUrl,
           },
           isEnglish ? 'en' : 'sv',

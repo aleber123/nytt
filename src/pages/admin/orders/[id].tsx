@@ -5721,10 +5721,25 @@ function AdminOrderDetailPage() {
       const { renderEmail } = await import('@/services/emailRenderer');
       const ra = (order as any).returnAddress || {};
       const ci = order.customerInfo || {};
-      const hasReturnAddr = ra.street || ra.firstName;
-      const addr = type === 'return' && hasReturnAddr
-        ? [ra.companyName, `${ra.firstName || ''} ${ra.lastName || ''}`.trim(), ra.street, [ra.postalCode, ra.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>')
-        : [ci.companyName, `${ci.firstName || ''} ${ci.lastName || ''}`.trim(), ci.address, [ci.postalCode, ci.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
+      const hasReturnAddr = ra.street && ra.street !== '-';
+      const hasCiAddr = ci.address && ci.address !== '-';
+
+      // Build address display — or a "not provided" note if empty
+      let addr: string;
+      if (type === 'return' && hasReturnAddr) {
+        addr = [ra.companyName, `${ra.firstName || ''} ${ra.lastName || ''}`.trim(), ra.street, [ra.postalCode, ra.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
+      } else if (hasCiAddr) {
+        addr = [ci.companyName, `${ci.firstName || ''} ${ci.lastName || ''}`.trim(), ci.address, [ci.postalCode, ci.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
+      } else {
+        addr = isEn
+          ? '<em style="color:#92400e;">No address provided yet — please fill in your return address using the link below.</em>'
+          : '<em style="color:#92400e;">Ingen adress angiven ännu — vänligen fyll i din returadress via länken nedan.</em>';
+      }
+
+      const customerRef = (order as any).invoiceReference || (order as any).customerNumber || '';
+      const customerReferenceBlock = customerRef
+        ? `<p style="margin:8px 0;color:#5f6368;font-size:14px;">${isEn ? 'Your reference' : 'Er referens'}: <strong>${customerRef}</strong></p>`
+        : '';
 
       const result = await renderEmail(
         'address-confirmation',
@@ -5733,6 +5748,8 @@ function AdminOrderDetailPage() {
           orderNumber: orderId,
           address: addr,
           addressType: addressTypeText,
+          customerReference: customerRef,
+          customerReferenceBlock,
           confirmationUrl: '[link will be generated when sent]',
         },
         isEn ? 'en' : 'sv',

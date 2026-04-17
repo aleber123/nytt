@@ -1042,7 +1042,8 @@ Let us know if you have any questions.`,
     subjectSv: 'Bekräfta din {{addressType}} — Order #{{orderNumber}}',
     subjectEn: 'Confirm your {{addressType}} — Order #{{orderNumber}}',
     bodySv: `<p>Hej {{customerName}}!</p>
-<p>Vi behöver din bekräftelse av <strong>{{addressType}}</strong> innan vi kan fortsätta med din order.</p>
+<p>Vi behöver din bekräftelse av <strong>{{addressType}}</strong> innan vi kan fortsätta med din order <strong>#{{orderNumber}}</strong>.</p>
+{{customerReferenceBlock}}
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:20px 0;">
   <h3 style="margin:0 0 12px 0;color:#202124;font-size:16px;">📍 Adress</h3>
   <p style="margin:0;color:#202124;line-height:1.6;">{{address}}</p>
@@ -1054,7 +1055,8 @@ Let us know if you have any questions.`,
   <a href="{{confirmationUrl}}" style="display:inline-block;background:#0EB0A6;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:15px;">✓ Bekräfta eller ändra adress</a>
 </div>`,
     bodyEn: `<p>Dear {{customerName}},</p>
-<p>We need you to confirm your <strong>{{addressType}}</strong> before we can proceed with your order.</p>
+<p>We need you to confirm your <strong>{{addressType}}</strong> before we can proceed with your order <strong>#{{orderNumber}}</strong>.</p>
+{{customerReferenceBlock}}
 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:20px 0;">
   <h3 style="margin:0 0 12px 0;color:#202124;font-size:16px;">📍 Address</h3>
   <p style="margin:0;color:#202124;line-height:1.6;">{{address}}</p>
@@ -1070,6 +1072,8 @@ Let us know if you have any questions.`,
       { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
       { key: 'address', description: 'Fullständig adress (HTML, en rad per fält)', example: 'Storgatan 1<br>111 23 Stockholm', isHtml: true },
       { key: 'addressType', description: 'Typ (upphämtningsadress/returadress)', example: 'upphämtningsadress' },
+      { key: 'customerReference', description: 'Kundens referensnummer (fakturareferens)', example: 'L4454' },
+      { key: 'customerReferenceBlock', description: 'Referensblock (HTML, visas bara om ref finns)', example: '<p>Ref: L4454</p>', isHtml: true },
       { key: 'confirmationUrl', description: 'Länk till bekräftelsesidan', example: 'https://doxvl.se/confirm-address/abc123' },
     ],
     sourceFile: 'src/pages/api/address-confirmation/send.ts',
