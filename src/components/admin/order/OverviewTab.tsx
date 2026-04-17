@@ -29,6 +29,8 @@ interface OverviewTabProps {
   onLinkDuplicateOrder: (orderId: string) => Promise<void>;
   applyCustomerHistoryEntry: (entry: any) => void;
   onConfirmReturnAddress?: () => Promise<void>;
+  onSendAddressConfirmation?: (type: 'pickup' | 'return') => Promise<void>;
+  sendingAddressConfirmation?: boolean;
   internalNoteText: string;
   setInternalNoteText: (text: string) => void;
   addInternalNote: () => Promise<void>;
@@ -45,6 +47,7 @@ export default function OverviewTab({
   getProcessingStepCardClasses, stripFlagEmoji, setActiveTab,
   onUnlinkOrder, onLinkDuplicateOrder, applyCustomerHistoryEntry,
   onConfirmReturnAddress,
+  onSendAddressConfirmation, sendingAddressConfirmation,
   internalNoteText, setInternalNoteText, addInternalNote,
   onRequestDocuments, onMarkDocumentsReceived, requestingDocuments,
 }: OverviewTabProps) {
@@ -147,14 +150,25 @@ export default function OverviewTab({
                               Customer chose to confirm return address later. Make sure to request the address before shipping documents back.
                             </p>
                           </div>
-                          {onConfirmReturnAddress && (
-                            <button
-                              onClick={onConfirmReturnAddress}
-                              className="px-3 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap"
-                            >
-                              Mark as confirmed
-                            </button>
-                          )}
+                          <div className="flex flex-col gap-2">
+                            {onSendAddressConfirmation && (
+                              <button
+                                onClick={() => onSendAddressConfirmation('return')}
+                                disabled={sendingAddressConfirmation}
+                                className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap disabled:opacity-50"
+                              >
+                                {sendingAddressConfirmation ? 'Sending...' : (order as any).returnAddressConfirmationSent ? '📧 Send reminder' : '📧 Request address'}
+                              </button>
+                            )}
+                            {onConfirmReturnAddress && (
+                              <button
+                                onClick={onConfirmReturnAddress}
+                                className="px-3 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap"
+                              >
+                                Mark as confirmed
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}

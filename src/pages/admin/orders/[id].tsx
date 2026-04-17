@@ -5697,15 +5697,77 @@ function AdminOrderDetailPage() {
     }
   };
 
-  // Send address confirmation email to customer via API (with clickable confirmation links)
+  // Send address confirmation email to customer via API (with clickable confirmation links).
+  // Shows a preview in the askEmailConfirm modal first so the handler can review/edit.
   const sendAddressConfirmation = async (type: 'pickup' | 'return') => {
     if (!order) return;
-    
+
+    const orderId = order.orderNumber || (router.query.id as string);
+    const customerEmail = order.customerInfo?.email || '';
+    const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
+    const isEn = (order as any).locale === 'en';
+    const addressTypeText = type === 'pickup'
+      ? (isEn ? 'pickup address' : 'upphämtningsadress')
+      : (isEn ? 'return address' : 'returadress');
+
+    // Build a preview of the email using the template renderer (client-side).
+    // The actual confirmation URL is server-generated, so we use a placeholder.
+    let previewSubject = isEn
+      ? `Confirm ${addressTypeText} - Order ${orderId}`
+      : `Bekräfta ${addressTypeText} - Order ${orderId}`;
+    let previewHtml = '';
+
+    try {
+      const { renderEmail } = await import('@/services/emailRenderer');
+      const ra = (order as any).returnAddress || {};
+      const ci = order.customerInfo || {};
+      const hasReturnAddr = ra.street || ra.firstName;
+      const addr = type === 'return' && hasReturnAddr
+        ? [ra.companyName, `${ra.firstName || ''} ${ra.lastName || ''}`.trim(), ra.street, [ra.postalCode, ra.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>')
+        : [ci.companyName, `${ci.firstName || ''} ${ci.lastName || ''}`.trim(), ci.address, [ci.postalCode, ci.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
+
+      const result = await renderEmail(
+        'address-confirmation',
+        {
+          customerName,
+          orderNumber: orderId,
+          address: addr,
+          addressType: addressTypeText,
+          confirmationUrl: '[link will be generated when sent]',
+        },
+        isEn ? 'en' : 'sv',
+        { orderNumber: orderId }
+      );
+      if (result.rendered) {
+        previewSubject = result.subject || previewSubject;
+        previewHtml = result.html;
+      }
+    } catch {
+      // Fall back to simple preview
+    }
+
+    if (!previewHtml) {
+      previewHtml = isEn
+        ? `<p>Hi ${customerName},</p><p>Please confirm your ${addressTypeText} for order ${orderId} by clicking the link in the email.</p>`
+        : `<p>Hej ${customerName},</p><p>Vänligen bekräfta din ${addressTypeText} för order ${orderId} genom att klicka på länken i mailet.</p>`;
+    }
+
+    // Show the preview in the email confirmation modal
+    const ans = await askEmailConfirm({
+      title: type === 'pickup' ? 'Send pickup address request?' : 'Send return address request?',
+      description: `Sends an email to ${customerEmail} with a link where they can confirm/update their ${addressTypeText}.`,
+      recipientEmail: customerEmail,
+      templateId: 'address-confirmation',
+      defaultSubject: previewSubject,
+      defaultBody: previewHtml,
+      bodyIsHtml: true,
+    });
+
+    if (!ans.confirmed) return;
+
+    // Actually send via the API (creates the real token + confirmation URL)
     setSendingAddressConfirmation(true);
     try {
-      const orderId = order.orderNumber || (router.query.id as string);
-      const addressTypeText = type === 'pickup' ? 'pickup address' : 'return address';
-      
       const response = await fetch('/api/address-confirmation/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -5718,9 +5780,7 @@ function AdminOrderDetailPage() {
         throw new Error(data.error || 'Could not send confirmation email');
       }
 
-      toast.success(`Confirmation email for ${addressTypeText} sent to ${order.customerInfo?.email}`);
-      
-      // Refresh order to update confirmation status
+      toast.success(`Confirmation email for ${addressTypeText} sent to ${customerEmail}`);
       await fetchOrder(router.query.id as string);
     } catch (err: any) {
       toast.error(`Error: ${err.message}`);
@@ -7940,6 +8000,8 @@ function AdminOrderDetailPage() {
                     onLinkDuplicateOrder={handleLinkDuplicateOrder}
                     applyCustomerHistoryEntry={applyCustomerHistoryEntry}
                     onConfirmReturnAddress={handleConfirmReturnAddress}
+                    onSendAddressConfirmation={sendAddressConfirmation}
+                    sendingAddressConfirmation={sendingAddressConfirmation}
                     internalNoteText={internalNoteText}
                     setInternalNoteText={setInternalNoteText}
                     addInternalNote={addInternalNote}
