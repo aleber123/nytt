@@ -5800,6 +5800,23 @@ function AdminOrderDetailPage() {
       }
 
       toast.success(`Confirmation email for ${addressTypeText} sent to ${customerEmail}`);
+
+      // Log to internal notes
+      try {
+        const noteDb = getFirebaseDb();
+        const noteOrderId = router.query.id as string;
+        if (noteDb && noteOrderId) {
+          const actor = (adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin') as string;
+          await addDoc(collection(noteDb, 'orders', noteOrderId, 'internalNotes'), {
+            content: `📧 Address request email sent to ${customerEmail} (${addressTypeText})`,
+            createdAt: serverTimestamp(),
+            createdBy: actor,
+            createdByUid: currentUser?.uid || null,
+            readBy: currentUser?.uid ? [currentUser.uid] : [],
+          });
+        }
+      } catch { /* non-blocking */ }
+
       await fetchOrder(router.query.id as string);
     } catch (err: any) {
       toast.error(`Error: ${err.message}`);

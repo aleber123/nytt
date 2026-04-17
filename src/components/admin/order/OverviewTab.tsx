@@ -149,26 +149,21 @@ export default function OverviewTab({
                             <p className="text-sm text-amber-700 mt-0.5">
                               Customer chose to confirm return address later. Make sure to request the address before shipping documents back.
                             </p>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            {onSendAddressConfirmation && (
-                              <button
-                                onClick={() => onSendAddressConfirmation('return')}
-                                disabled={sendingAddressConfirmation}
-                                className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap disabled:opacity-50"
-                              >
-                                {sendingAddressConfirmation ? 'Sending...' : (order as any).returnAddressConfirmationSent ? '📧 Send reminder' : '📧 Request address'}
-                              </button>
-                            )}
-                            {onConfirmReturnAddress && (
-                              <button
-                                onClick={onConfirmReturnAddress}
-                                className="px-3 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap"
-                              >
-                                Mark as confirmed
-                              </button>
+                            {(order as any).returnAddressConfirmationSentAt && (
+                              <p className="text-xs text-amber-600 mt-1">
+                                Request sent: {new Date((order as any).returnAddressConfirmationSentAt).toLocaleDateString('sv-SE')} {new Date((order as any).returnAddressConfirmationSentAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
                             )}
                           </div>
+                          {onSendAddressConfirmation && (
+                            <button
+                              onClick={() => onSendAddressConfirmation('return')}
+                              disabled={sendingAddressConfirmation}
+                              className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap disabled:opacity-50"
+                            >
+                              {sendingAddressConfirmation ? 'Sending...' : (order as any).returnAddressConfirmationSent ? '📧 Send reminder' : '📧 Request address'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
