@@ -1809,28 +1809,33 @@ function AdminOrderDetailPage() {
   // Check for unread supplementary files
   useEffect(() => {
     if (!order || !currentUser?.uid) return;
-    
+
     const supplementaryFiles = (order as any).supplementaryFiles || [];
     const viewedBy = (order as any).supplementaryViewedBy || {};
     const lastViewed = viewedBy[currentUser.uid];
-    
-    if (supplementaryFiles.length === 0) {
-      setUnreadSupplementaryCount(0);
-      return;
+
+    let unreadCount = 0;
+
+    // Count unread supplementary files (uploaded by customer after order creation)
+    if (supplementaryFiles.length > 0) {
+      if (!lastViewed) {
+        unreadCount += supplementaryFiles.length;
+      } else {
+        const lastViewedDate = new Date(lastViewed);
+        unreadCount += supplementaryFiles.filter((file: any) => {
+          if (!file.uploadedAt) return false;
+          return new Date(file.uploadedAt) > lastViewedDate;
+        }).length;
+      }
     }
-    
-    if (!lastViewed) {
-      // Never viewed - all are unread
-      setUnreadSupplementaryCount(supplementaryFiles.length);
-    } else {
-      // Count files uploaded after last view
-      const lastViewedDate = new Date(lastViewed);
-      const unread = supplementaryFiles.filter((file: any) => {
-        if (!file.uploadedAt) return false;
-        return new Date(file.uploadedAt) > lastViewedDate;
-      });
-      setUnreadSupplementaryCount(unread.length);
+
+    // Count customer's own return shipping label as unread if admin hasn't viewed files tab yet
+    const hasReturnLabel = !!(order as any).returnLabelFileName;
+    if (hasReturnLabel && !lastViewed) {
+      unreadCount += 1;
     }
+
+    setUnreadSupplementaryCount(unreadCount);
   }, [order, currentUser?.uid]);
 
   // Load current admin profile
