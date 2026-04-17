@@ -5723,17 +5723,19 @@ function AdminOrderDetailPage() {
       const ci = order.customerInfo || {};
       const hasReturnAddr = ra.street && ra.street !== '-';
       const hasCiAddr = ci.address && ci.address !== '-';
+      const addressMissing = type === 'return' && !hasReturnAddr && !hasCiAddr;
 
-      // Build address display — or a "not provided" note if empty
-      let addr: string;
-      if (type === 'return' && hasReturnAddr) {
-        addr = [ra.companyName, `${ra.firstName || ''} ${ra.lastName || ''}`.trim(), ra.street, [ra.postalCode, ra.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
-      } else if (hasCiAddr) {
-        addr = [ci.companyName, `${ci.firstName || ''} ${ci.lastName || ''}`.trim(), ci.address, [ci.postalCode, ci.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
-      } else {
-        addr = isEn
-          ? '<em style="color:#92400e;">No address provided yet — please fill in your return address using the link below.</em>'
-          : '<em style="color:#92400e;">Ingen adress angiven ännu — vänligen fyll i din returadress via länken nedan.</em>';
+      // Choose template: "address-request" when no address exists, "address-confirmation" when confirming existing
+      const templateId = addressMissing ? 'address-request' : 'address-confirmation';
+
+      // Build address display for the confirmation template
+      let addr = '';
+      if (!addressMissing) {
+        if (type === 'return' && hasReturnAddr) {
+          addr = [ra.companyName, `${ra.firstName || ''} ${ra.lastName || ''}`.trim(), ra.street, [ra.postalCode, ra.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
+        } else {
+          addr = [ci.companyName, `${ci.firstName || ''} ${ci.lastName || ''}`.trim(), ci.address, [ci.postalCode, ci.city].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
+        }
       }
 
       const customerRef = (order as any).invoiceReference || (order as any).customerNumber || '';
@@ -5742,7 +5744,7 @@ function AdminOrderDetailPage() {
         : '';
 
       const result = await renderEmail(
-        'address-confirmation',
+        templateId,
         {
           customerName,
           orderNumber: orderId,

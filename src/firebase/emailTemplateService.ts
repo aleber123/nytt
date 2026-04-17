@@ -1082,6 +1082,54 @@ Let us know if you have any questions.`,
     isActive: true,
   },
   {
+    id: 'address-request',
+    name: 'Begär returadress',
+    nameEn: 'Request Return Address',
+    description: 'Skickas när kund valde "bekräfta adress senare" och vi behöver deras returadress för att kunna skicka tillbaka dokument.',
+    descriptionEn: 'Sent when customer chose "confirm address later" and we need their return address to ship documents back.',
+    category: 'document-handling',
+    trigger: 'manual',
+    triggerEvent: 'admin.requestReturnAddress',
+    processStep: 2,
+    processGroup: 'Dokumenthantering',
+    subjectSv: 'Vi behöver din returadress — Order #{{orderNumber}}',
+    subjectEn: 'We need your return address — Order #{{orderNumber}}',
+    bodySv: `<p>Hej {{customerName}}!</p>
+<p>Vi arbetar med din order <strong>#{{orderNumber}}</strong> och behöver nu din returadress för att kunna skicka tillbaka dina dokument när de är klara.</p>
+{{customerReferenceBlock}}
+<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:20px;margin:20px 0;">
+  <h3 style="margin:0 0 8px 0;color:#92400e;font-size:16px;">📍 Returadress saknas</h3>
+  <p style="margin:0;color:#92400e;font-size:14px;">Vi kan inte skicka tillbaka dina dokument utan en giltig returadress. Vänligen fyll i din adress via knappen nedan.</p>
+</div>
+<div style="text-align:center;margin:24px 0;">
+  <a href="{{confirmationUrl}}" style="display:inline-block;background:#0EB0A6;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:15px;">📍 Fyll i returadress</a>
+</div>
+<p style="color:#5f6368;font-size:13px;">Länken är giltig i 7 dagar. Om du har frågor, kontakta oss.</p>`,
+    bodyEn: `<p>Dear {{customerName}},</p>
+<p>We are processing your order <strong>#{{orderNumber}}</strong> and need your return address so we can ship your documents back when they are ready.</p>
+{{customerReferenceBlock}}
+<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:20px;margin:20px 0;">
+  <h3 style="margin:0 0 8px 0;color:#92400e;font-size:16px;">📍 Return address missing</h3>
+  <p style="margin:0;color:#92400e;font-size:14px;">We cannot return your documents without a valid return address. Please fill in your address using the button below.</p>
+</div>
+<div style="text-align:center;margin:24px 0;">
+  <a href="{{confirmationUrl}}" style="display:inline-block;background:#0EB0A6;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:15px;">📍 Fill in return address</a>
+</div>
+<p style="color:#5f6368;font-size:13px;">The link is valid for 7 days. If you have any questions, please contact us.</p>`,
+    variables: [
+      { key: 'customerName', description: 'Kundens namn', example: 'Erik' },
+      { key: 'orderNumber', description: 'Ordernummer', example: 'SWE000325' },
+      { key: 'customerReference', description: 'Kundens referensnummer', example: 'L4454' },
+      { key: 'customerReferenceBlock', description: 'Referensblock (HTML, visas bara om ref finns)', example: '<p>Ref: L4454</p>', isHtml: true },
+      { key: 'confirmationUrl', description: 'Länk till adressformuläret', example: 'https://doxvl.se/confirm-address/abc123' },
+    ],
+    sourceFile: 'src/pages/api/address-confirmation/send.ts',
+    sourceFunction: 'handler',
+    isCustomized: false,
+    isActive: true,
+    useCustomTemplate: true,
+  },
+  {
     id: 'embassy-price-confirmation',
     name: 'Ambassadavgift-bekräftelse',
     nameEn: 'Embassy Fee Confirmation',

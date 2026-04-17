@@ -185,9 +185,13 @@ export default async function handler(
 
     try {
       const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
-      const tmpl = await getEmailTemplateAdmin('address-confirmation');
+
+      // Choose template: "address-request" when no address, "address-confirmation" when confirming existing
+      const hasRealAddress = address.street && address.street.trim().length > 0;
+      const templateId = hasRealAddress ? 'address-confirmation' : 'address-request';
+
+      const tmpl = await getEmailTemplateAdmin(templateId);
       if (tmpl?.useCustomTemplate) {
-        const hasRealAddress = address.street && address.street.trim().length > 0;
         const addressLine = hasRealAddress
           ? [
               address.companyName,
@@ -196,9 +200,7 @@ export default async function handler(
               [address.postalCode, address.city].filter(Boolean).join(' '),
               address.country,
             ].filter(Boolean).join('<br>')
-          : (isEnglish
-              ? '<em style="color:#92400e;">No address provided yet — please fill in your return address using the link below.</em>'
-              : '<em style="color:#92400e;">Ingen adress angiven ännu — vänligen fyll i din returadress via länken nedan.</em>');
+          : '';
 
         const customerReference = order?.invoiceReference || order?.customerNumber || '';
         const customerReferenceBlock = customerReference
@@ -206,7 +208,7 @@ export default async function handler(
           : '';
 
         const result = await renderEmailAdmin(
-          'address-confirmation',
+          templateId,
           {
             customerName,
             orderNumber: String(orderNum),
