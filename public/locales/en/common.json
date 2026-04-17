@@ -777,6 +777,24 @@
     },
     "countries": {
       "title": "Countries"
+    },
+    "tagline": "Sweden's leading visa & legalisation company",
+    "contact": "Contact",
+    "openingHours": "Opening hours",
+    "monThu": "Mon - Thu | 09:00 - 16:00",
+    "fri": "Fri | 09:00 - 15:00",
+    "satSun": "Sat - Sun Closed",
+    "legalizationByCountry": "Legalisation by country",
+    "visaByCountry": "Visa by country",
+    "nordic": "Nordics",
+    "countryNames": {
+      "AO": "Angola", "EG": "Egypt", "ET": "Ethiopia", "IN": "India",
+      "IQ": "Iraq", "KW": "Kuwait", "LB": "Lebanon", "LY": "Libya",
+      "MZ": "Mozambique", "NG": "Nigeria", "PS": "Palestine", "QA": "Qatar",
+      "SA": "Saudi Arabia", "ES": "Spain", "LK": "Sri Lanka", "SY": "Syria",
+      "TW": "Taiwan", "TH": "Thailand", "AE": "UAE", "VN": "Vietnam",
+      "BR": "Brazil", "KE": "Kenya", "GB": "United Kingdom", "TZ": "Tanzania",
+      "US": "USA", "NO": "Norway", "DK": "Denmark", "FI": "Finland"
     }
   },
   "confirmation": {

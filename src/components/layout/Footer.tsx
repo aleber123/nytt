@@ -10,73 +10,76 @@ const Footer: React.FC = () => {
     const value = t(key);
     return value === key ? fallback : value;
   };
-  
+
   const currentYear = 2026;
-  
+
+  // Helper: translate a country code to localised name via footer.countryNames
+  const cn = (code: string, fallback: string) => safeT(`footer.countryNames.${code}`, fallback);
+
   const footerNavigation = {
     services: [
       { name: safeT('footer.services.apostille', 'Apostille'), href: '/tjanster/apostille' },
-      { name: safeT('footer.services.notarization', 'Notarisering'), href: '/tjanster/notarius-publicus' },
-      { name: safeT('footer.services.embassy', 'Ambassadlegalisering'), href: '/tjanster/ambassadlegalisering' },
-      { name: safeT('footer.services.translation', 'Auktoriserad översättning'), href: '/tjanster/oversattning' },
+      { name: safeT('footer.services.notarization', 'Notarization'), href: '/tjanster/notarius-publicus' },
+      { name: safeT('footer.services.embassy', 'Embassy legalization'), href: '/tjanster/ambassadlegalisering' },
+      { name: safeT('footer.services.translation', 'Authorized translation'), href: '/tjanster/oversattning' },
     ],
     countries: [
-      { name: 'Angola', code: 'AO', href: '/legalisering/angola' },
-      { name: 'Egypten', code: 'EG', href: '/legalisering/egypten' },
-      { name: 'Etiopien', code: 'ET', href: '/legalisering/etiopien' },
-      { name: 'Indien', code: 'IN', href: '/legalisering/indien' },
-      { name: 'Irak', code: 'IQ', href: '/legalisering/irak' },
-      { name: 'Kuwait', code: 'KW', href: '/legalisering/kuwait' },
-      { name: 'Libanon', code: 'LB', href: '/legalisering/libanon' },
-      { name: 'Libyen', code: 'LY', href: '/legalisering/libyen' },
-      { name: 'Moçambique', code: 'MZ', href: '/legalisering/mocambique' },
-      { name: 'Nigeria', code: 'NG', href: '/legalisering/nigeria' },
-      { name: 'Palestina', code: 'PS', href: '/legalisering/palestina' },
-      { name: 'Qatar', code: 'QA', href: '/legalisering/qatar' },
-      { name: 'Saudiarabien', code: 'SA', href: '/legalisering/saudiarabien' },
-      { name: 'Spanien', code: 'ES', href: '/legalisering/spanien' },
-      { name: 'Sri Lanka', code: 'LK', href: '/legalisering/sri-lanka' },
-      { name: 'Syrien', code: 'SY', href: '/legalisering/syrien' },
-      { name: 'Taiwan', code: 'TW', href: '/legalisering/taiwan' },
-      { name: 'Thailand', code: 'TH', href: '/legalisering/thailand' },
-      { name: 'UAE', code: 'AE', href: '/legalisering/uae' },
-      { name: 'Vietnam', code: 'VN', href: '/legalisering/vietnam' },
+      { name: cn('AO', 'Angola'), code: 'AO', href: '/legalisering/angola' },
+      { name: cn('EG', 'Egypt'), code: 'EG', href: '/legalisering/egypten' },
+      { name: cn('ET', 'Ethiopia'), code: 'ET', href: '/legalisering/etiopien' },
+      { name: cn('IN', 'India'), code: 'IN', href: '/legalisering/indien' },
+      { name: cn('IQ', 'Iraq'), code: 'IQ', href: '/legalisering/irak' },
+      { name: cn('KW', 'Kuwait'), code: 'KW', href: '/legalisering/kuwait' },
+      { name: cn('LB', 'Lebanon'), code: 'LB', href: '/legalisering/libanon' },
+      { name: cn('LY', 'Libya'), code: 'LY', href: '/legalisering/libyen' },
+      { name: cn('MZ', 'Mozambique'), code: 'MZ', href: '/legalisering/mocambique' },
+      { name: cn('NG', 'Nigeria'), code: 'NG', href: '/legalisering/nigeria' },
+      { name: cn('PS', 'Palestine'), code: 'PS', href: '/legalisering/palestina' },
+      { name: cn('QA', 'Qatar'), code: 'QA', href: '/legalisering/qatar' },
+      { name: cn('SA', 'Saudi Arabia'), code: 'SA', href: '/legalisering/saudiarabien' },
+      { name: cn('ES', 'Spain'), code: 'ES', href: '/legalisering/spanien' },
+      { name: cn('LK', 'Sri Lanka'), code: 'LK', href: '/legalisering/sri-lanka' },
+      { name: cn('SY', 'Syria'), code: 'SY', href: '/legalisering/syrien' },
+      { name: cn('TW', 'Taiwan'), code: 'TW', href: '/legalisering/taiwan' },
+      { name: cn('TH', 'Thailand'), code: 'TH', href: '/legalisering/thailand' },
+      { name: cn('AE', 'UAE'), code: 'AE', href: '/legalisering/uae' },
+      { name: cn('VN', 'Vietnam'), code: 'VN', href: '/legalisering/vietnam' },
     ],
     visas: [
-      { name: 'Angola', code: 'AO', href: '/visum/angola' },
-      { name: 'Brasilien', code: 'BR', href: '/visum/brasilien' },
-      { name: 'Indien', code: 'IN', href: '/visum/indien' },
-      { name: 'Kenya', code: 'KE', href: '/visum/kenya' },
-      { name: 'Saudiarabien', code: 'SA', href: '/visum/saudiarabien' },
-      { name: 'Sri Lanka', code: 'LK', href: '/visum/sri-lanka' },
-      { name: 'Storbritannien', code: 'GB', href: '/visum/storbritannien' },
-      { name: 'Tanzania', code: 'TZ', href: '/visum/tanzania' },
-      { name: 'Thailand', code: 'TH', href: '/visum/thailand' },
-      { name: 'USA', code: 'US', href: '/visum/usa' },
+      { name: cn('AO', 'Angola'), code: 'AO', href: '/visum/angola' },
+      { name: cn('BR', 'Brazil'), code: 'BR', href: '/visum/brasilien' },
+      { name: cn('IN', 'India'), code: 'IN', href: '/visum/indien' },
+      { name: cn('KE', 'Kenya'), code: 'KE', href: '/visum/kenya' },
+      { name: cn('SA', 'Saudi Arabia'), code: 'SA', href: '/visum/saudiarabien' },
+      { name: cn('LK', 'Sri Lanka'), code: 'LK', href: '/visum/sri-lanka' },
+      { name: cn('GB', 'United Kingdom'), code: 'GB', href: '/visum/storbritannien' },
+      { name: cn('TZ', 'Tanzania'), code: 'TZ', href: '/visum/tanzania' },
+      { name: cn('TH', 'Thailand'), code: 'TH', href: '/visum/thailand' },
+      { name: cn('US', 'USA'), code: 'US', href: '/visum/usa' },
     ],
     nordic: [
-      { name: 'Norge', code: 'NO', href: '/norge' },
-      { name: 'Danmark', code: 'DK', href: '/danmark' },
-      { name: 'Finland', code: 'FI', href: '/finland' },
+      { name: cn('NO', 'Norway'), code: 'NO', href: '/norge' },
+      { name: cn('DK', 'Denmark'), code: 'DK', href: '/danmark' },
+      { name: cn('FI', 'Finland'), code: 'FI', href: '/finland' },
       { name: 'Kuwait (DK)', code: 'KW', href: '/legalisering/kuwait-danmark' },
       { name: 'Kuwait (FI)', code: 'KW', href: '/legalisering/kuwait-finland' },
     ],
     support: [
-      { name: safeT('footer.support.faq', 'Vanliga frågor'), href: '/faq' },
-      { name: safeT('footer.support.contact', 'Kontakta oss'), href: '/kontakt' },
-      { name: safeT('footer.support.pricing', 'Priser'), href: '/priser' },
-      { name: safeT('footer.support.delivery', 'Leveranstider'), href: '/leveranstider' },
+      { name: safeT('footer.support.faq', 'FAQ'), href: '/faq' },
+      { name: safeT('footer.support.contact', 'Contact us'), href: '/kontakt' },
+      { name: safeT('footer.support.pricing', 'Pricing'), href: '/priser' },
+      { name: safeT('footer.support.delivery', 'Delivery times'), href: '/leveranstider' },
     ],
     company: [
-      { name: safeT('footer.company.about', 'Om oss'), href: '/om-oss' },
-      { name: safeT('footer.company.careers', 'Karriär'), href: '/karriar' },
-      { name: safeT('footer.company.blog', 'Blogg'), href: '/blogg' },
+      { name: safeT('footer.company.about', 'About us'), href: '/om-oss' },
+      { name: safeT('footer.company.careers', 'Careers'), href: '/karriar' },
+      { name: safeT('footer.company.blog', 'Blog'), href: '/blogg' },
       { name: safeT('footer.company.press', 'Press'), href: '/press' },
     ],
     legal: [
-      { name: safeT('footer.legal.privacy', 'Integritetspolicy'), href: '/integritetspolicy' },
-      { name: safeT('footer.legal.terms', 'Villkor'), href: '/villkor' },
-      { name: safeT('footer.legal.accessibility', 'Tillgänglighet'), href: '/tillganglighet' },
+      { name: safeT('footer.legal.privacy', 'Privacy policy'), href: '/integritetspolicy' },
+      { name: safeT('footer.legal.terms', 'Terms'), href: '/villkor' },
+      { name: safeT('footer.legal.accessibility', 'Accessibility'), href: '/tillganglighet' },
       { name: safeT('footer.legal.cookies', 'Cookies'), href: '/cookies' },
     ],
   };
@@ -84,7 +87,7 @@ const Footer: React.FC = () => {
   return (
     <footer aria-labelledby="footer-heading" style={{ backgroundColor: 'rgba(46,45,44,1)' }}>
       <h2 id="footer-heading" className="sr-only">
-        {safeT('footer.title', 'Sidfot')}
+        {safeT('footer.title', 'Footer')}
       </h2>
       <div className="container mx-auto px-4 py-12 lg:py-16">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
@@ -99,15 +102,15 @@ const Footer: React.FC = () => {
               />
             </Link>
             <p className="text-base text-gray-200 whitespace-pre-line">
-              Sveriges bästa visum & legaliseringsföretag
+              {safeT('footer.tagline', 'Sweden\'s leading visa & legalisation company')}
               {"\n"}
               &copy; DOX Visumpartner AB.
               {"\n"}
               Box: 38
               {"\n"}
-              Postnummer: 121 25
+              {safeT('footer.postalCode', 'Postnummer')}: 121 25
               {"\n"}
-              Postort: Stockholm-Globen
+              {safeT('footer.city', 'Postort')}: Stockholm-Globen
               {"\n"}
               Bankgiro: 0896-8869
               {"\n"}
@@ -115,15 +118,15 @@ const Footer: React.FC = () => {
               {"\n"}
               Org.nr: 559015-4521
               {"\n\n"}
-              Kontakt
+              {safeT('footer.contact', 'Contact')}
               {"\n"}
-              Öppettider
+              {safeT('footer.openingHours', 'Opening hours')}
               {"\n"}
-              Mån - Tor | 09:00 - 16:00
+              {safeT('footer.monThu', 'Mon - Thu | 09:00 - 16:00')}
               {"\n"}
-              Fre | 09:00 - 15:00
+              {safeT('footer.fri', 'Fri | 09:00 - 15:00')}
               {"\n"}
-              Lör - Sön Stängt
+              {safeT('footer.satSun', 'Sat - Sun Closed')}
             </p>
             <div className="flex space-x-6">
               <a href="https://www.linkedin.com/company/doxvl/posts/?feedView=all" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-300" aria-label="LinkedIn">
@@ -138,7 +141,7 @@ const Footer: React.FC = () => {
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-                  {safeT('footer.services.title', 'Tjänster')}
+                  {safeT('footer.services.title', 'Services')}
                 </h3>
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.services.map((item) => (
@@ -168,7 +171,7 @@ const Footer: React.FC = () => {
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-                  {safeT('footer.company.title', 'Företag')}
+                  {safeT('footer.company.title', 'Company')}
                 </h3>
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.company.map((item) => (
@@ -182,7 +185,7 @@ const Footer: React.FC = () => {
               </div>
               <div className="mt-12 md:mt-0">
                 <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase">
-                  {safeT('footer.legal.title', 'Juridisk information')}
+                  {safeT('footer.legal.title', 'Legal information')}
                 </h3>
                 <ul role="list" className="mt-4 space-y-4">
                   {footerNavigation.legal.map((item) => (
@@ -204,7 +207,7 @@ const Footer: React.FC = () => {
             {/* Legalisering */}
             <div>
               <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase mb-4">
-                Legalisering per land
+                {safeT('footer.legalizationByCountry', 'Legalisation by country')}
               </h3>
               <ul role="list" className="grid grid-cols-2 gap-x-6 gap-y-2">
                 {footerNavigation.countries.map((item) => (
@@ -221,7 +224,7 @@ const Footer: React.FC = () => {
             {/* Visum */}
             <div>
               <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase mb-4">
-                Visum per land
+                {safeT('footer.visaByCountry', 'Visa by country')}
               </h3>
               <ul role="list" className="grid grid-cols-2 gap-x-6 gap-y-2">
                 {footerNavigation.visas.map((item) => (
@@ -238,7 +241,7 @@ const Footer: React.FC = () => {
             {/* Norden */}
             <div>
               <h3 className="text-sm font-semibold text-gray-200 tracking-wider uppercase mb-4">
-                Norden
+                {safeT('footer.nordic', 'Nordics')}
               </h3>
               <ul role="list" className="grid grid-cols-1 gap-y-2">
                 {footerNavigation.nordic.map((item) => (
@@ -255,7 +258,7 @@ const Footer: React.FC = () => {
         </div>
         <div className="mt-12 border-t border-gray-700 pt-8">
           <p className="text-base text-gray-300 xl:text-center">
-            &copy; {currentYear} DOX Visumpartner AB. Alla rättigheter förbehållna.
+            &copy; {currentYear} DOX Visumpartner AB. {safeT('footer.rights', 'All rights reserved.')}
           </p>
         </div>
       </div>

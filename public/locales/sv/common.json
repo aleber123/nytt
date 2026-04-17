@@ -775,6 +775,24 @@
     },
     "countries": {
       "title": "Länder"
+    },
+    "tagline": "Sveriges bästa visum & legaliseringsföretag",
+    "contact": "Kontakt",
+    "openingHours": "Öppettider",
+    "monThu": "Mån - Tor | 09:00 - 16:00",
+    "fri": "Fre | 09:00 - 15:00",
+    "satSun": "Lör - Sön Stängt",
+    "legalizationByCountry": "Legalisering per land",
+    "visaByCountry": "Visum per land",
+    "nordic": "Norden",
+    "countryNames": {
+      "AO": "Angola", "EG": "Egypten", "ET": "Etiopien", "IN": "Indien",
+      "IQ": "Irak", "KW": "Kuwait", "LB": "Libanon", "LY": "Libyen",
+      "MZ": "Moçambique", "NG": "Nigeria", "PS": "Palestina", "QA": "Qatar",
+      "SA": "Saudiarabien", "ES": "Spanien", "LK": "Sri Lanka", "SY": "Syrien",
+      "TW": "Taiwan", "TH": "Thailand", "AE": "UAE", "VN": "Vietnam",
+      "BR": "Brasilien", "KE": "Kenya", "GB": "Storbritannien", "TZ": "Tanzania",
+      "US": "USA", "NO": "Norge", "DK": "Danmark", "FI": "Finland"
     }
   },
   "confirmation": {
