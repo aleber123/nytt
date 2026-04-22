@@ -224,9 +224,39 @@ exports.verifyOrderRecaptcha = functions.firestore
 
 // Helper: actually send a customerEmails document. Used by both the onCreate
 // trigger and the scheduled processor.
+//
+// IMPORTANT: atomically claims the doc (status pending → sending) BEFORE
+// sendMail. If the claim fails, another execution already has the doc —
+// we skip. We also NEVER throw from this function, because Cloud Functions
+// Firestore triggers auto-retry on throw, which previously caused customers
+// to receive duplicate emails when a transient status-update failure
+// happened after sendMail already succeeded.
 async function deliverCustomerEmail(snap) {
   const emailData = snap.data();
   if (!emailData) return null;
+
+  const db = admin.firestore();
+  let claimed = false;
+  try {
+    claimed = await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(snap.ref);
+      const data = fresh.data();
+      if (!data) return false;
+      if (data.status === 'sent' || data.status === 'sending') return false;
+      tx.update(snap.ref, {
+        status: 'sending',
+        sendingStartedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return true;
+    });
+  } catch (claimErr) {
+    console.error('[deliverCustomerEmail] claim transaction failed — skipping to avoid duplicates:', claimErr);
+    return null;
+  }
+  if (!claimed) {
+    console.log(`[deliverCustomerEmail] email ${snap.id} already claimed or sent — skipping`);
+    return null;
+  }
 
   try {
     const mailOptions = {
@@ -241,20 +271,28 @@ async function deliverCustomerEmail(snap) {
     await transporter.sendMail(mailOptions);
     console.log(`Customer email sent to ${emailData.email}`);
 
-    await snap.ref.update({
-      status: 'sent',
-      sentAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    return null;
+    try {
+      await snap.ref.update({
+        status: 'sent',
+        sentAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (updateErr) {
+      // sendMail already succeeded — best-effort status update failure
+      // is acceptable. Absolutely do not throw — retry would re-send.
+      console.error('[deliverCustomerEmail] sendMail ok but status update failed:', updateErr);
+    }
   } catch (error) {
     console.error('Error sending customer email:', error);
-    await snap.ref.update({
-      status: 'error',
-      error: error.message,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    throw error;
+    try {
+      await snap.ref.update({
+        status: 'error',
+        error: error.message,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (_) { /* swallow */ }
+    // Do NOT throw — prevents Cloud Functions auto-retry and duplicates.
   }
+  return null;
 }
 
 // Cloud Function triggered when a new customer email needs to be sent
@@ -336,10 +374,35 @@ exports.sendInvoiceEmail = functions.firestore
   .document('emailQueue/{emailId}')
   .onCreate(async (snap, context) => {
     const emailData = snap.data();
-    
+
     // Skip if already processed
     if (emailData.status === 'sent') return null;
-    
+
+    // Atomically claim the doc — see deliverCustomerEmail for rationale.
+    // Prevents Cloud Functions retry from sending duplicate emails.
+    const db = admin.firestore();
+    let claimed = false;
+    try {
+      claimed = await db.runTransaction(async (tx) => {
+        const fresh = await tx.get(snap.ref);
+        const data = fresh.data();
+        if (!data) return false;
+        if (data.status === 'sent' || data.status === 'sending') return false;
+        tx.update(snap.ref, {
+          status: 'sending',
+          sendingStartedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return true;
+      });
+    } catch (claimErr) {
+      console.error('[sendInvoiceEmail] claim transaction failed — skipping:', claimErr);
+      return null;
+    }
+    if (!claimed) {
+      console.log(`[sendInvoiceEmail] email ${snap.id} already claimed or sent — skipping`);
+      return null;
+    }
+
     try {
       const mailOptions = {
         from: `"DOX Visumpartner" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
@@ -349,26 +412,34 @@ exports.sendInvoiceEmail = functions.firestore
         text: emailData.html.replace(/<[^>]*>?/gm, ''), // Strip HTML for plain text version
         attachments: emailData.attachments || []
       };
-      
+
       // Send email
       await transporter.sendMail(mailOptions);
       console.log(`Invoice email sent to ${emailData.to}`);
-      
-      // Update status
-      await snap.ref.update({
-        status: 'sent',
-        sentAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      
+
+      // Update status. If this fails, don't throw — the email already went
+      // out and a retry would re-send it.
+      try {
+        await snap.ref.update({
+          status: 'sent',
+          sentAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (updateErr) {
+        console.error('[sendInvoiceEmail] sendMail ok but status update failed:', updateErr);
+      }
+
       return null;
     } catch (error) {
       console.error('Error sending invoice email:', error);
-      await snap.ref.update({
-        status: 'error',
-        error: error.message,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      throw error;
+      try {
+        await snap.ref.update({
+          status: 'error',
+          error: error.message,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (_) { /* swallow */ }
+      // Do NOT throw — prevents Cloud Functions auto-retry duplicates.
+      return null;
     }
   });
 

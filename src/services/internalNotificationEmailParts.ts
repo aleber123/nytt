@@ -254,16 +254,20 @@ export interface VisaInternalSummaryParams {
 export function buildVisaInternalSummaryHtml(p: VisaInternalSummaryParams): string {
   const date = new Date().toLocaleDateString('en-GB');
   const hasBreakdown = !!(p.pricingBreakdown?.serviceFee || p.pricingBreakdown?.embassyFee || p.pricingBreakdown?.expressPrice || p.pricingBreakdown?.urgentPrice);
+  const travelerCount = Math.max(1, Number(p.travelerCount) || 1);
+  const multi = travelerCount > 1;
+  const formatLine = (unit: number) => multi
+    ? `${travelerCount} × ${unit.toLocaleString()} kr = ${(unit * travelerCount).toLocaleString()} kr`
+    : `${unit.toLocaleString()} kr`;
   const priceBox = p.totalPrice && p.totalPrice > 0
     ? `
 <div style="background:#ecfdf5;border:2px solid #10b981;border-radius:8px;padding:16px;margin:16px 0;text-align:center;">
   ${hasBreakdown ? `
   <div style="font-size:14px;color:#6b7280;margin-bottom:8px;">
-    <div>Service fee: ${(p.pricingBreakdown?.serviceFee || 0).toLocaleString()} kr</div>
-    <div>Embassy fee: ${(p.pricingBreakdown?.embassyFee || 0).toLocaleString()} kr</div>
-    ${p.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Express fee: +${p.pricingBreakdown.expressPrice.toLocaleString()} kr</div>` : ''}
-    ${p.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Urgent fee: +${p.pricingBreakdown.urgentPrice.toLocaleString()} kr</div>` : ''}
-    ${(p.travelerCount || 0) > 1 ? `<div style="color:#4b5563;font-weight:600;">× ${p.travelerCount} travelers</div>` : ''}
+    <div>Service fee: ${formatLine(p.pricingBreakdown?.serviceFee || 0)}</div>
+    <div>Embassy fee: ${formatLine(p.pricingBreakdown?.embassyFee || 0)}</div>
+    ${p.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Express fee: +${formatLine(p.pricingBreakdown.expressPrice)}</div>` : ''}
+    ${p.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Urgent fee: +${formatLine(p.pricingBreakdown.urgentPrice)}</div>` : ''}
   </div>` : ''}
   <div style="font-size:28px;font-weight:700;color:#065f46;">${p.totalPrice.toLocaleString()} kr</div>
   <div style="color:#6b7280;font-size:13px;">Total price ${p.customerType === 'company' ? '(excl. VAT)' : '(incl. VAT)'}</div>

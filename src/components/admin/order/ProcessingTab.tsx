@@ -7,6 +7,7 @@ import AngolaVisaPdfButton from './AngolaVisaPdfButton';
 import BrazilVisaScriptButton from './BrazilVisaScriptButton';
 import NigeriaEVisaButton from './NigeriaEVisaButton';
 import FormDataPrintButton from './FormDataPrintButton';
+import PriceVerificationStep from './PriceVerificationStep';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // ProcessingTab receives all needed state/functions via a context object
@@ -736,6 +737,16 @@ export default function ProcessingTab({ ctx }: ProcessingTabProps) {
                                 {step.notes}
                               </div>
                             )}
+                            {/* Price verification step — edit lines + send quote */}
+                            {step.id === 'price_verification' && (
+                              <PriceVerificationStep
+                                order={order}
+                                orderId={orderId}
+                                onUpdateOrder={adminUpdateOrder}
+                                setOrder={setOrder}
+                              />
+                            )}
+
                             {/* Documents received description field */}
                             {(step.id === 'document_receipt' || step.id === 'email_documents_received') && (
                               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">

@@ -555,8 +555,8 @@ You can reply to this email or send the documents to info@doxvl.se.`,
     triggerEvent: 'admin.sendDocumentRequest',
     processStep: 3,
     processGroup: 'Dokumenthantering',
-    subjectSv: 'Begäran om komplettering',
-    subjectEn: 'Document request',
+    subjectSv: 'Begäran om komplettering – Order {{orderNumber}}',
+    subjectEn: 'Document request – Order {{orderNumber}}',
     bodySv: 'Vi behöver ytterligare dokument för att kunna handlägga din ansökan.',
     bodyEn: 'We need additional documents to process your application.',
     variables: [
@@ -831,8 +831,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'visa.docsReceived',
     processStep: 4,
     processGroup: 'Handläggning',
-    subjectSv: 'Vi har mottagit dina dokument',
-    subjectEn: 'We have received your documents',
+    subjectSv: 'Vi har mottagit dina dokument – Order {{orderNumber}}',
+    subjectEn: 'We have received your documents – Order {{orderNumber}}',
     bodySv: 'Vi bekräftar att vi mottagit dina dokument. Vårt team granskar nu din ansökan.',
     bodyEn: 'We confirm that we have received your documents. Our team is now reviewing your application.',
     variables: [
@@ -856,8 +856,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'visa.submittedPortal',
     processStep: 5,
     processGroup: 'Handläggning',
-    subjectSv: 'Din visumansökan har skickats in',
-    subjectEn: 'Your visa application has been submitted',
+    subjectSv: 'Din visumansökan har skickats in – Order {{orderNumber}}',
+    subjectEn: 'Your visa application has been submitted – Order {{orderNumber}}',
     bodySv: 'Vi har nu skickat in din visumansökan. Du kommer att få besked så snart vi har ett svar.',
     bodyEn: 'We have now submitted your visa application. You will be notified as soon as we have a response.',
     variables: [
@@ -881,8 +881,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'visa.embassySubmitted',
     processStep: 6,
     processGroup: 'Handläggning',
-    subjectSv: 'Ditt pass har lämnats in till ambassaden',
-    subjectEn: 'Your passport has been submitted to the embassy',
+    subjectSv: 'Ditt pass har lämnats in till ambassaden – Order {{orderNumber}}',
+    subjectEn: 'Your passport has been submitted to the embassy – Order {{orderNumber}}',
     bodySv: 'Vi har lämnat in ditt pass och din ansökan till ambassaden.',
     bodyEn: 'We have submitted your passport and application to the embassy.',
     variables: [
@@ -906,8 +906,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'visa.approved',
     processStep: 7,
     processGroup: 'Resultat',
-    subjectSv: 'Goda nyheter! Ditt visum har godkänts',
-    subjectEn: 'Great news! Your visa has been approved',
+    subjectSv: 'Goda nyheter! Ditt visum har godkänts – Order {{orderNumber}}',
+    subjectEn: 'Great news! Your visa has been approved – Order {{orderNumber}}',
     bodySv: 'Vi har goda nyheter — ditt visum har godkänts!',
     bodyEn: 'We have great news — your visa has been approved!',
     variables: [
@@ -932,8 +932,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'visa.rejected',
     processStep: 7,
     processGroup: 'Resultat',
-    subjectSv: 'Uppdatering om visumansökan',
-    subjectEn: 'Visa application update',
+    subjectSv: 'Uppdatering om visumansökan – Order {{orderNumber}}',
+    subjectEn: 'Visa application update – Order {{orderNumber}}',
     bodySv: 'Vi beklagar att meddela att din visumansökan tyvärr har avslagits.',
     bodyEn: 'We regret to inform you that your visa application has been denied.',
     variables: [
@@ -959,8 +959,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'visa.evisaDelivered',
     processStep: 8,
     processGroup: 'Leverans',
-    subjectSv: 'Ditt e-visum är klart!',
-    subjectEn: 'Your e-visa is ready!',
+    subjectSv: 'Ditt e-visum är klart! – Order {{orderNumber}}',
+    subjectEn: 'Your e-visa is ready! – Order {{orderNumber}}',
     bodySv: 'Ditt e-visum är nu klart och bifogas i detta mail.',
     bodyEn: 'Your e-visa is now ready and attached to this email.',
     variables: [
@@ -984,8 +984,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'visa.returnShipping',
     processStep: 8,
     processGroup: 'Leverans',
-    subjectSv: 'Ditt pass har skickats',
-    subjectEn: 'Your passport has been shipped',
+    subjectSv: 'Ditt pass har skickats – Order {{orderNumber}}',
+    subjectEn: 'Your passport has been shipped – Order {{orderNumber}}',
     bodySv: 'Vi har skickat ditt pass. Här är din spårningsinformation.',
     bodyEn: 'We have shipped your passport. Here is your tracking information.',
     variables: [
@@ -1010,8 +1010,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'admin.sendPickupLabel',
     processStep: 2,
     processGroup: 'Dokumenthantering',
-    subjectSv: 'Upphämtningsinstruktioner',
-    subjectEn: 'Pickup Instructions',
+    subjectSv: 'Upphämtningsinstruktioner – Order {{orderNumber}}',
+    subjectEn: 'Pickup Instructions – Order {{orderNumber}}',
     bodySv: 'Här är din DHL-etikett och instruktioner för upphämtning.',
     bodyEn: 'Here is your DHL label and pickup instructions.',
     variables: [
@@ -1140,8 +1140,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'admin.sendEmbassyPriceConfirmation',
     processStep: 3,
     processGroup: 'Dokumenthantering',
-    subjectSv: 'Bekräfta ambassadavgift',
-    subjectEn: 'Confirm embassy fee',
+    subjectSv: 'Bekräfta ambassadavgift – Order {{orderNumber}}',
+    subjectEn: 'Confirm embassy fee – Order {{orderNumber}}',
     bodySv: 'Vi behöver din bekräftelse av den officiella ambassadavgiften.',
     bodyEn: 'We need your confirmation of the official embassy fee.',
     variables: [
@@ -1166,8 +1166,8 @@ Let us know if you have any questions.`,
     triggerEvent: 'admin.sendQuote',
     processStep: 1,
     processGroup: 'Beställning',
-    subjectSv: 'Offert',
-    subjectEn: 'Price Quote',
+    subjectSv: 'Offert – Order {{orderNumber}}',
+    subjectEn: 'Price Quote – Order {{orderNumber}}',
     bodySv: 'Här är vår offert baserad på dina önskemål.',
     bodyEn: 'Here is our quote based on your requirements.',
     variables: [
@@ -1195,14 +1195,26 @@ Let us know if you have any questions.`,
     triggerEvent: 'admin.sendFiles',
     processStep: 8,
     processGroup: 'Leverans',
-    subjectSv: 'Dokument för din order',
-    subjectEn: 'Documents for your order',
-    bodySv: 'Här är dokumenten för din beställning.',
-    bodyEn: 'Here are the documents for your order.',
+    subjectSv: 'Dokument för din order – Order {{orderNumber}}',
+    subjectEn: 'Documents for your order – Order {{orderNumber}}',
+    bodySv:
+      'Hej {{customerName}},\n\n' +
+      'Vi har förberett följande dokument för din order {{orderNumber}}. ' +
+      'Klicka på Ladda ner-knappen för att spara varje fil.\n\n' +
+      '{{fileList}}\n\n' +
+      '{{customMessage}}\n\n' +
+      'Om du har några frågor, vänligen svara på detta mail eller kontakta oss på info@doxvl.se.',
+    bodyEn:
+      'Hi {{customerName}},\n\n' +
+      'We have prepared the following documents for your order {{orderNumber}}. ' +
+      'Click the Download button to save each file.\n\n' +
+      '{{fileList}}\n\n' +
+      '{{customMessage}}\n\n' +
+      'If you have any questions, please reply to this email or contact us at info@doxvl.se.',
     variables: [
       { key: 'customerName', description: 'Kundens namn', example: 'Erik' },
       { key: 'orderNumber', description: 'Ordernummer', example: 'VISA000451' },
-      { key: 'fileList', description: 'Lista med filer (HTML)', example: '<ul><li>e-visa.pdf</li></ul>' },
+      { key: 'fileList', description: 'Lista med filer (HTML)', example: '<ul><li>e-visa.pdf</li></ul>', isHtml: true } as any,
       { key: 'customMessage', description: 'Meddelande från handläggare', example: 'Bifogat finner du...' },
     ],
     sourceFile: 'src/pages/api/admin/send-files-to-customer.ts',
@@ -1221,10 +1233,32 @@ Let us know if you have any questions.`,
     triggerEvent: 'admin.sendPassword',
     processStep: 8,
     processGroup: 'Leverans',
-    subjectSv: 'Lösenord för ditt dokument',
-    subjectEn: 'Password for your document',
-    bodySv: 'Här är lösenordet för att öppna ditt dokument.',
-    bodyEn: 'Here is the password to open your document.',
+    subjectSv: 'Lösenord för ditt dokument – Order {{orderNumber}}',
+    subjectEn: 'Password for your document – Order {{orderNumber}}',
+    bodySv:
+      '<p>Hej {{customerName}},</p>' +
+      '<p>Här är lösenordet för att öppna ditt dokument för order <strong>{{orderNumber}}</strong>:</p>' +
+      '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:20px 0;">' +
+        '<tr><td style="background:#fef3c7;border:2px dashed #f59e0b;border-radius:10px;padding:20px;text-align:center;">' +
+          '<div style="font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#92400e;font-weight:700;margin-bottom:10px;">🔐 Ditt lösenord</div>' +
+          '<div style="font-size:26px;font-weight:bold;font-family:\'Courier New\',monospace;letter-spacing:2px;color:#1f2937;padding:8px 0;">{{password}}</div>' +
+          '<div style="font-size:12px;color:#92400e;margin-top:8px;font-style:italic;">Används för att öppna PDF-filen — det är inte en länk.</div>' +
+        '</td></tr>' +
+      '</table>' +
+      '<p>Själva filen skickades i ett annat mail med ämne <em>"Dokument för din order – Order {{orderNumber}}"</em>. Kolla inkorgen — och kontrollera skräpposten om du inte hittar det.</p>' +
+      '<p style="color:#6b7280;font-size:13px;">För din säkerhet skickas lösenordet i ett separat mail från själva filen.</p>',
+    bodyEn:
+      '<p>Hi {{customerName}},</p>' +
+      '<p>Here is the password to open your document for order <strong>{{orderNumber}}</strong>:</p>' +
+      '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:20px 0;">' +
+        '<tr><td style="background:#fef3c7;border:2px dashed #f59e0b;border-radius:10px;padding:20px;text-align:center;">' +
+          '<div style="font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#92400e;font-weight:700;margin-bottom:10px;">🔐 Your password</div>' +
+          '<div style="font-size:26px;font-weight:bold;font-family:\'Courier New\',monospace;letter-spacing:2px;color:#1f2937;padding:8px 0;">{{password}}</div>' +
+          '<div style="font-size:12px;color:#92400e;margin-top:8px;font-style:italic;">Use this to open the PDF file — it is not a link.</div>' +
+        '</td></tr>' +
+      '</table>' +
+      '<p>The file was sent in a separate email with subject <em>"Documents for your order – Order {{orderNumber}}"</em>. Check your inbox — and your spam folder if you can\'t find it.</p>' +
+      '<p style="color:#6b7280;font-size:13px;">For your security, the password is sent in a separate email from the file itself.</p>',
     variables: [
       { key: 'customerName', description: 'Kundens namn', example: 'Erik' },
       { key: 'orderNumber', description: 'Ordernummer', example: 'VISA000451' },

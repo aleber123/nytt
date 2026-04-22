@@ -23,6 +23,14 @@ async function loadImageToDataUrl(src: string): Promise<{ dataUrl: string; width
   });
 }
 
+// Remove emoji characters from text before rendering to jsPDF. Helvetica
+// has no emoji glyphs, so surrogate pairs render as garbled byte sequences
+// (e.g. "🔧" → "Ø=Ý'" with spaces between remnants).
+function stripEmoji(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').replace(/[\u2600-\u27BF\uFE0F]/g, '').trim();
+}
+
 function formatDate(timestamp: any): string {
   try {
     let date: Date;
@@ -439,6 +447,11 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
   const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim();
   if (customerName) details.push(['Customer', customerName]);
 
+  const customerRef = (order as any).invoiceReference;
+  if (customerRef && String(customerRef).trim()) {
+    details.push(['Customer reference', String(customerRef).trim()]);
+  }
+
   // Check if this is a visa order
   const isVisaOrder = (order as any).orderType === 'visa';
   
@@ -607,7 +620,8 @@ export async function generateCoverLetterPDF(order: Order, opts?: { autoPrint?: 
     opts.internalNotesList.forEach((n) => {
       if (n.content && n.content.trim()) {
         const by = n.createdBy || '';
-        noteTexts.push(`${by ? by + ': ' : ''}${n.content.trim()}`);
+        const content = stripEmoji(n.content);
+        if (content) noteTexts.push(`${by ? by + ': ' : ''}${content}`);
       }
     });
   }
@@ -1104,6 +1118,8 @@ export async function generateOrderConfirmationPDF(order: Order, internalNotesLi
   if (Array.isArray(internalNotesList) && internalNotesList.length > 0) {
     internalNotesList.forEach((n) => {
       if (n.content && n.content.trim()) {
+        const content = stripEmoji(n.content);
+        if (!content) return;
         const by = n.createdBy || '';
         let dateStr = '';
         try {
@@ -1111,7 +1127,7 @@ export async function generateOrderConfirmationPDF(order: Order, internalNotesLi
           if (d && !isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-GB');
         } catch {}
         const prefix = [dateStr, by].filter(Boolean).join(' - ');
-        allNoteTexts.push(prefix ? `[${prefix}] ${n.content.trim()}` : n.content.trim());
+        allNoteTexts.push(prefix ? `[${prefix}] ${content}` : content);
       }
     });
   }

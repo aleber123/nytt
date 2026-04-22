@@ -52,7 +52,10 @@ export default function EmailConfirmModal({ request }: Props) {
     if (request) {
       setSubject(request.defaultSubject);
       setBody(request.defaultBody);
-      setShowPreview(false);
+      // For HTML emails, default to the rendered preview. Admins shouldn't
+      // have to mentally parse raw HTML to know what the customer will see;
+      // they can still click "Edit" to tweak the source.
+      setShowPreview(!!request.bodyIsHtml);
       setSending(false);
     }
   }, [request]);

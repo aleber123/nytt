@@ -385,13 +385,21 @@ const CONTACT_FIELDS: FormField[] = [
     id: 'contactState',
     label: 'Delstat',
     labelEn: 'State',
-    type: 'text',
+    // Dropdown with the 37 Nigerian states as they appear verbatim in the
+    // official e-visa portal (dumped from evisa.immigration.gov.ng —
+    // note "Fct" is spelled exactly like that, not "FCT" or "Abuja").
+    type: 'select',
     required: true,
     group: 'contact',
     perTraveler: false,
     sortOrder: 34,
-    placeholder: 'T.ex. Lagos, Abuja',
-    placeholderEn: 'E.g. Lagos, Abuja',
+    options: [
+      'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
+      'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu',
+      'Fct', 'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi',
+      'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun',
+      'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
+    ].map(s => ({ value: s, label: s, labelEn: s })),
   },
   {
     id: 'contactEmail',

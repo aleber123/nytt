@@ -216,23 +216,44 @@ export default async function handler(
     if (!response.ok) {
       console.error('DHL Rates API Error:', JSON.stringify(data, null, 2));
       console.error('DHL Rates Request was:', JSON.stringify(ratesRequest, null, 2));
+      // Fall back to HTTP status + a stringified body snippet so the UI has
+      // something actionable when DHL returns an error with no title/detail.
+      const fallback = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''} — ${JSON.stringify(data).slice(0, 300)}`;
       return res.status(response.status).json({
         error: 'DHL API Error',
-        details: data.detail || data.title || data.message || data.additionalDetails?.join(', ') || 'Unknown error',
+        details: data.detail || data.title || data.message || data.additionalDetails?.join(', ') || fallback,
         fullResponse: data
       });
     }
 
     // Extract pricing from response
     const products = data.products || [];
-    
-    // Find the requested product or first available
-    const product = products.find((p: any) => p.productCode === effectiveProductCode) || products[0];
-    
-    if (!product) {
+
+    if (products.length === 0) {
       return res.status(404).json({
         error: 'No rates available',
         details: 'DHL did not return any rates for this shipment'
+      });
+    }
+
+    // Strict match on the requested product. We specifically want
+    // EXPRESS ENVELOPE (X) for documents; silently falling back to whatever
+    // DHL returned (often Domestic Express at 5× envelope price) hides the
+    // fact that envelope wasn't available and quietly overcharges.
+    const product = products.find((p: any) => p.productCode === effectiveProductCode);
+
+    if (!product) {
+      const available = products
+        .map((p: any) => `${p.productCode} (${p.productName || p.localProductName || '?'})`)
+        .join(', ');
+      return res.status(404).json({
+        error: 'Requested DHL product not available',
+        details: `Product ${effectiveProductCode} (EXPRESS ENVELOPE for documents) not offered by DHL for this route. DHL returned: ${available}. Book manually via the DHL website.`,
+        requestedProductCode: effectiveProductCode,
+        availableProducts: products.map((p: any) => ({
+          productCode: p.productCode,
+          productName: p.productName || p.localProductName || null,
+        })),
       });
     }
 
@@ -243,7 +264,28 @@ export default async function handler(
     const priceAmount = priceSEK?.price || product.totalPrice?.[0]?.price || 0;
     const currency = priceSEK?.priceCurrency || product.totalPrice?.[0]?.priceCurrency || 'SEK';
 
-    // Return rate information
+    // Pull out price breakdown (surcharges, fuel, etc.) so the admin can
+    // see why a quote is higher than expected — DHL returns this under
+    // `detailedPriceBreakdown` per currency type.
+    const priceBreakdown = (() => {
+      const dpb = product.detailedPriceBreakdown;
+      if (!Array.isArray(dpb)) return [];
+      const match =
+        dpb.find((b: any) => b.currencyType === 'BILLC') ||
+        dpb.find((b: any) => b.currencyType === 'BASEC') ||
+        dpb[0];
+      if (!match || !Array.isArray(match.breakdown)) return [];
+      return match.breakdown.map((item: any) => ({
+        name: item.name || item.serviceCode || '—',
+        serviceCode: item.serviceCode || null,
+        price: item.price ?? null,
+        priceCurrency: item.priceCurrency || match.priceCurrency || currency,
+        typeCode: item.typeCode || null,
+      }));
+    })();
+
+    // Return rate information. Always expose request + product + breakdown
+    // (not just in sandbox) so admins can analyze unexpected prices.
     return res.status(200).json({
       success: true,
       rate: {
@@ -252,9 +294,22 @@ export default async function handler(
         productCode: product.productCode,
         productName: product.productName || product.localProductName || 'DHL Express',
         deliveryTime: product.deliveryCapabilities?.estimatedDeliveryDateAndTime || null,
+        breakdown: priceBreakdown,
       },
       environment: DHL_CONFIG.useSandbox ? 'sandbox' : 'production',
-      debug: DHL_CONFIG.useSandbox ? { request: ratesRequest, response: data } : undefined
+      request: {
+        shipper: originAddress,
+        receiver: destinationAddress,
+        productCode: effectiveProductCode,
+        packages: ratesRequest.packages,
+        plannedShippingDateAndTime: ratesRequest.plannedShippingDateAndTime,
+      },
+      matchedProduct: product,
+      allProducts: products.map((p: any) => ({
+        productCode: p.productCode,
+        productName: p.productName || p.localProductName || null,
+        totalPrice: p.totalPrice,
+      })),
     });
 
   } catch (error: any) {

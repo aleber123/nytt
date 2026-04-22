@@ -140,6 +140,23 @@ const translatePriceLabel = (label: string, locale: 'en' | 'sv'): string => {
   return translation ? translation[locale] : label;
 };
 
+// Build a public tracking URL from a carrier service code + tracking
+// number. Used so emails still show a clickable tracking link even when
+// admin typed the tracking number manually (i.e. didn't go through the
+// DHL/PostNord booking APIs which set `returnTrackingUrl` automatically).
+function computeTrackingUrl(serviceCode: string | undefined, trackingNumber: string | undefined): string {
+  if (!trackingNumber || !trackingNumber.trim()) return '';
+  const n = trackingNumber.trim();
+  const s = (serviceCode || '').toLowerCase();
+  if (s.includes('postnord')) {
+    return `https://www.postnord.se/vara-verktyg/spara-brev-paket-och-pall?shipmentId=${encodeURIComponent(n)}`;
+  }
+  if (s.includes('dhl') || s === 'retur') {
+    return `https://www.dhl.com/se-sv/home/tracking.html?tracking-id=${encodeURIComponent(n)}`;
+  }
+  return '';
+}
+
 // Helper function to get friendly return service name
 const getReturnServiceName = (serviceCode: string | undefined): string => {
   if (!serviceCode) return 'return';
@@ -187,9 +204,23 @@ interface EditOrderInfoSectionProps {
    * Prices" button on the Price tab.
    */
   onRecalculatePrices?: () => Promise<void>;
+  orderId: string;
+  adminName: string;
 }
 
-function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps, onRecalculatePrices }: EditOrderInfoSectionProps) {
+// Friendly labels used when logging field edits to Notes & Activity
+const FIELD_LABELS: Record<string, string> = {
+  country: 'Country',
+  documents: 'Documents',
+  quantity: 'Quantity',
+  documentSource: 'Document source',
+  companyName: 'Company name',
+  invoiceReference: 'Customer reference',
+  returnService: 'Return service',
+  customerEmail: 'Customer email',
+};
+
+function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps, onRecalculatePrices, orderId, adminName }: EditOrderInfoSectionProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -361,6 +392,31 @@ function EditOrderInfoSection({ order, onUpdate, onRegenerateSteps, onRecalculat
         }
       };
       await onUpdate(updates);
+
+      // Log every field change to Notes & Activity so the edit history
+      // is visible in the Overview tab's activity feed.
+      if (changes.length > 0 && orderId) {
+        try {
+          const db = (await import('@/firebase/config')).db;
+          const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+          if (db) {
+            const lines = changes.map(c => {
+              const label = FIELD_LABELS[c.field] || c.field;
+              return `• ${label}: ${c.oldValue} → ${c.newValue}`;
+            });
+            const header = changes.length === 1 ? '✏️ Order updated' : `✏️ Order updated (${changes.length} changes)`;
+            await addDoc(collection(db, 'orders', orderId, 'internalNotes'), {
+              content: `${header}\n${lines.join('\n')}`,
+              createdAt: serverTimestamp(),
+              createdBy: adminName || 'Admin',
+              readBy: [],
+            });
+          }
+        } catch (logErr) {
+          console.warn('Failed to log order edit to internalNotes:', logErr);
+          // Non-blocking — the save itself succeeded.
+        }
+      }
 
       // Auto-recalculate prices when document count / services changed so the
       // Price tab line items stay in sync. Admin doesn't have to click
@@ -1199,6 +1255,11 @@ function AdminOrderDetailPage() {
     city: '',
     country: 'SE'
   });
+
+  // DHL rate analysis modal — shows what we send + what DHL quotes back,
+  // so admins can audit unexpected prices (e.g. 840 SEK for what should
+  // be a ~200 SEK envelope) instead of just getting a terse toast.
+  const [dhlAnalysis, setDhlAnalysis] = useState<any | null>(null);
   
   // Address confirmation states
   const [sendingAddressConfirmation, setSendingAddressConfirmation] = useState(false);
@@ -1375,6 +1436,8 @@ function AdminOrderDetailPage() {
     // Handle visa orders with object-based pricingBreakdown
     if (order.orderType === 'visa' && order.pricingBreakdown && !Array.isArray(order.pricingBreakdown)) {
       const pb = order.pricingBreakdown as any;
+      const travelerCount = Number((order as any).travelerCount) || 1;
+      const perTravelerKeys = ['serviceFee', 'embassyFee', 'expressPrice', 'urgentPrice'];
       const visaLineItems = [
         { key: 'serviceFee', label: 'Service Fee', amount: pb.serviceFee || 0 },
         { key: 'embassyFee', label: 'Embassy/Government Fee', amount: pb.embassyFee || 0 },
@@ -1383,12 +1446,14 @@ function AdminOrderDetailPage() {
         ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice }] : []),
         ...(pb.urgentPrice ? [{ key: 'urgentPrice', label: 'Urgent Processing', amount: pb.urgentPrice }] : []),
       ].filter(item => item.amount > 0);
-      
+
       const initial = visaLineItems.map((item, idx) => ({
         index: idx,
         label: item.label,
         baseAmount: item.amount,
+        quantity: perTravelerKeys.includes(item.key) ? travelerCount : 1,
         overrideAmount: null,
+        overrideUnitPrice: null,
         vatPercent: null,
         include: true
       }));
@@ -1430,15 +1495,39 @@ function AdminOrderDetailPage() {
       // Handle visa orders with object-based pricingBreakdown
       if (order.orderType === 'visa' && order.pricingBreakdown && !Array.isArray(order.pricingBreakdown)) {
         const pb = order.pricingBreakdown as any;
-        const visaTotal = (pb.serviceFee || 0) + (pb.embassyFee || 0) + (pb.shippingFee || 0) + 
-                         (pb.expeditedFee || 0) + (pb.expressPrice || 0) + (pb.urgentPrice || 0);
-        
+        const travelerCount = Number((order as any).travelerCount) || 1;
+        const perTravelerKeys = ['serviceFee', 'embassyFee', 'expressPrice', 'urgentPrice'];
+        // Rebuild the same ordered list used in PriceTab so we can look up the item key by row index
+        const visaItems = [
+          { key: 'serviceFee', amount: pb.serviceFee || 0, alwaysShow: true },
+          { key: 'embassyFee', amount: pb.embassyFee || 0, alwaysShow: true },
+          ...(pb.shippingFee ? [{ key: 'shippingFee', amount: pb.shippingFee, alwaysShow: false }] : []),
+          ...(pb.expeditedFee ? [{ key: 'expeditedFee', amount: pb.expeditedFee, alwaysShow: false }] : []),
+          ...(pb.expressPrice ? [{ key: 'expressPrice', amount: pb.expressPrice, alwaysShow: false }] : []),
+          ...(pb.urgentPrice ? [{ key: 'urgentPrice', amount: pb.urgentPrice, alwaysShow: false }] : []),
+        ].filter(item => item.alwaysShow || item.amount > 0);
+
+        const visaTotal = visaItems.reduce((sum, item) => {
+          const qty = perTravelerKeys.includes(item.key) ? travelerCount : 1;
+          return sum + (item.amount * qty);
+        }, 0);
+
         // If overrides exist, use them
         if (lineOverrides.length > 0) {
-          const overrideTotal = lineOverrides.reduce((sum, o) => {
+          const overrideTotal = lineOverrides.reduce((sum, o, idx) => {
             if (!o.include) return sum;
-            const val = o.overrideAmount !== undefined && o.overrideAmount !== null ? Number(o.overrideAmount) : Number(o.baseAmount || 0);
-            return sum + (isNaN(val) ? 0 : val);
+            const item = visaItems[idx];
+            const qty = Number(o.quantity) || (item ? (perTravelerKeys.includes(item.key) ? travelerCount : 1) : 1);
+            // New path: overrideUnitPrice × qty
+            if (o.overrideUnitPrice !== undefined && o.overrideUnitPrice !== null) {
+              return sum + (Number(o.overrideUnitPrice) * qty);
+            }
+            // Legacy path: overrideAmount stored as final total
+            if (o.overrideAmount !== undefined && o.overrideAmount !== null) {
+              return sum + Number(o.overrideAmount);
+            }
+            // No override: base × qty
+            return sum + (Number(o.baseAmount || 0) * qty);
           }, 0);
           return overrideTotal;
         }
@@ -2142,6 +2231,16 @@ function AdminOrderDetailPage() {
       status: 'pending'
     });
 
+    // STEP 1b: Price verification - Verify prices are correct (especially
+    // for contract customers). Admin can edit line prices, send quote to
+    // customer, and optionally sync changes back to the customer registry.
+    steps.push({
+      id: 'price_verification',
+      name: '💰 Price verification',
+      description: 'Verify prices are correct, edit if needed, send quote',
+      status: 'pending'
+    });
+
     // STEP 2: Pickup booking - If customer selected pickup service
     if (orderData.pickupService) {
       steps.push({
@@ -2791,7 +2890,13 @@ function AdminOrderDetailPage() {
     let shouldSendOfficePickupReadyEmail = false;
 
     const trackingNumberForEmail = trackingNumber || (order as any).returnTrackingNumber || '';
-    const trackingUrlForEmail = trackingUrl || (order as any).returnTrackingUrl || '';
+    // Fallback: if no URL is stored (admin typed tracking number manually,
+    // no DHL/PostNord booking), derive one from the return service code so
+    // the customer email still contains a clickable tracking link.
+    const trackingUrlForEmail =
+      trackingUrl ||
+      (order as any).returnTrackingUrl ||
+      computeTrackingUrl((order as any).returnService, trackingNumberForEmail);
 
     // Helper for date-only string (YYYY-MM-DD)
     const toDateOnlyString = (value: any): string => {
@@ -2846,6 +2951,13 @@ function AdminOrderDetailPage() {
       customerEmail
     ) {
       const isEn = (order as any).locale === 'en';
+      // Mirror the line the HTML email template actually renders so the
+      // admin can verify the documents description before sending.
+      const docsLine = receivedDocumentsDescription?.trim()
+        ? (isEn
+            ? `\n\nDocuments received: ${receivedDocumentsDescription.trim()}`
+            : `\n\nMottagna dokument: ${receivedDocumentsDescription.trim()}`)
+        : '';
       const ans = await askEmailConfirm({
         title: isEn ? 'Send "Documents received" email?' : 'Skicka "Dokument mottagna"-mail?',
         description: isEn
@@ -2857,8 +2969,8 @@ function AdminOrderDetailPage() {
           ? `Confirmation: We have received your documents – ${order.orderNumber}`
           : `Bekräftelse: Vi har mottagit dina dokument – ${order.orderNumber}`,
         defaultBody: isEn
-          ? `Dear ${order.customerInfo?.firstName || 'customer'},\n\nWe confirm that we have received your documents for order ${order.orderNumber}. We are now starting to process your order and will send updates by email.\n\nLet us know if you have any questions.`
-          : `Hej ${order.customerInfo?.firstName || 'kund'}!\n\nVi bekräftar att vi har mottagit dina dokument för order ${order.orderNumber}. Vi börjar nu handlägga din beställning och kommer att skicka uppdateringar via mail.\n\nHör av dig om du har några frågor.`,
+          ? `Dear ${order.customerInfo?.firstName || 'customer'},\n\nWe confirm that we have received your documents for order ${order.orderNumber}. We are now starting to process your order and will send updates by email.${docsLine}\n\nLet us know if you have any questions.`
+          : `Hej ${order.customerInfo?.firstName || 'kund'}!\n\nVi bekräftar att vi har mottagit dina dokument för order ${order.orderNumber}. Vi börjar nu handlägga din beställning och kommer att skicka uppdateringar via mail.${docsLine}\n\nHör av dig om du har några frågor.`,
       });
       shouldSendDocumentReceiptEmail = ans.confirmed;
     }
@@ -3046,22 +3158,29 @@ function AdminOrderDetailPage() {
         }
       } else if (visaStepEmailMap[previousStep.id]) {
         const hasEVisaFile = !!(orderRef.current as any)?.eVisaFileUrl;
+
+        // Refuse to send the e-visa email at all when no PDF is uploaded —
+        // the template body promises "attached to this email", so sending
+        // without a file creates a broken promise to the customer.
+        if (previousStep.id === 'evisa_delivery' && !hasEVisaFile) {
+          toast.error(
+            'No e-visa PDF uploaded on this order. Upload it in the ' +
+            'processing step first, then mark the step complete to send.',
+            { duration: 6000 }
+          );
+        } else {
         const stepTitles: Record<string, string> = {
           'documents_received': 'Send "Documents received" email?',
           'portal_submission': 'Send "Visa application submitted" email?',
           'embassy_delivery': 'Send "Passport submitted to embassy" email?',
-          'evisa_delivery': hasEVisaFile
-            ? 'Send "E-visa ready" email (with attachment)?'
-            : '⚠️ Send e-visa email WITHOUT attachment?',
+          'evisa_delivery': 'Send "E-visa ready" email (with attachment)?',
           'return_shipping': 'Send "Passport shipped" email?',
         };
         const stepDescriptions: Record<string, string> = {
           'documents_received': 'Confirms to the customer that we have received their visa documents.',
           'portal_submission': 'Notifies the customer that the visa application has been submitted to the portal.',
           'embassy_delivery': 'Notifies the customer that the passport has been submitted to the embassy.',
-          'evisa_delivery': hasEVisaFile
-            ? 'Sends the approved e-visa to the customer as an email attachment.'
-            : 'No e-visa file uploaded. Upload the PDF in the processing step first, or send without attachment.',
+          'evisa_delivery': 'Sends the approved e-visa to the customer as an email attachment.',
           'return_shipping': 'Notifies the customer that the passport with visa has been shipped back.',
         };
         // Map step id to template id (catalog uses kebab-case visa-* ids)
@@ -3085,6 +3204,7 @@ function AdminOrderDetailPage() {
         });
         if (ans.confirmed) {
           visaEmailToSend = { subject: ans.subject, html: ans.body };
+        }
         }
       }
     }
@@ -4792,12 +4912,23 @@ function AdminOrderDetailPage() {
               type: 'visa_status_update'
             };
 
-            // Attach e-visa file if this is an evisa_delivery email and file exists
+            // Attach e-visa file. The email body claims "attached to this
+            // mail", so if the PDF can't be attached (missing upload or
+            // fetch failure) we block the send instead of lying to the
+            // customer — admin must upload the file first and retry.
             const eVisaUrl = (order as any).eVisaFileUrl;
             const eVisaName = (order as any).eVisaFileName;
-            if (previousStep?.id === 'evisa_delivery' && eVisaUrl && eVisaName) {
+            if (previousStep?.id === 'evisa_delivery') {
+              if (!eVisaUrl || !eVisaName) {
+                toast.error(
+                  'Cannot send e-visa email — no e-visa PDF uploaded on this order. ' +
+                  'Upload the PDF first, then mark the step complete again.'
+                );
+                return;
+              }
               try {
                 const response = await fetch(eVisaUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const blob = await response.blob();
                 const buffer = await blob.arrayBuffer();
                 const base64 = btoa(
@@ -4808,8 +4939,12 @@ function AdminOrderDetailPage() {
                   content: base64,
                   encoding: 'base64',
                 }];
-              } catch (attachErr) {
-                toast.error('Could not attach e-visa file, sending email without attachment');
+              } catch (attachErr: any) {
+                toast.error(
+                  `Cannot send e-visa email — failed to fetch the PDF (${attachErr.message || 'unknown error'}). ` +
+                  'Check the file upload and retry.'
+                );
+                return;
               }
             }
 
@@ -4948,11 +5083,18 @@ function AdminOrderDetailPage() {
         }
       }
 
+      // If admin didn't paste a full tracking URL, derive one from the
+      // carrier service code so the customer still gets a clickable link.
+      const finalTrackingUrl =
+        trackingUrl ||
+        computeTrackingUrl((order as any).returnService, trackingNumber);
+
       await adminUpdateOrder(orderId, {
         returnTrackingNumber: trackingNumber,
-        returnTrackingUrl: trackingUrl
+        returnTrackingUrl: finalTrackingUrl
       });
-      setOrder({ ...order, returnTrackingNumber: trackingNumber, returnTrackingUrl: trackingUrl });
+      setOrder({ ...order, returnTrackingNumber: trackingNumber, returnTrackingUrl: finalTrackingUrl });
+      if (finalTrackingUrl && !trackingUrl) setTrackingUrl(finalTrackingUrl);
       toast.success('Tracking information saved');
     } catch (err) {
       toast.error('Could not save tracking information');
@@ -4961,35 +5103,55 @@ function AdminOrderDetailPage() {
     }
   };
 
-  // Save edited DHL address and retry booking
+  // Save edited DHL address and retry booking. `bookDhlShipment` prefers
+  // `returnAddress` over `customerInfo` when it has data, so we must write
+  // the corrected address to the same source that the booking function
+  // will read on retry — otherwise the retry uses the old address.
   const saveDhlAddressAndRetry = async () => {
     if (!order) return;
-    
+
     const lookupId = (order.orderNumber as string) || (router.query.id as string);
     if (!lookupId) return;
 
     try {
-      // Update order with new address
-      await adminUpdateOrder(lookupId, {
-        'customerInfo.postalCode': dhlEditAddress.postalCode,
-        'customerInfo.city': dhlEditAddress.city,
-        'customerInfo.country': dhlEditAddress.country
-      });
+      const ra = (order as any).returnAddress || {};
+      const hasReturnAddress = ra.street || ra.firstName || ra.lastName;
 
-      // Update local state
-      setOrder({
-        ...order,
-        customerInfo: {
-          ...order.customerInfo,
-          postalCode: dhlEditAddress.postalCode,
-          city: dhlEditAddress.city,
-          country: dhlEditAddress.country
-        }
-      } as ExtendedOrder);
+      if (hasReturnAddress) {
+        await adminUpdateOrder(lookupId, {
+          'returnAddress.postalCode': dhlEditAddress.postalCode,
+          'returnAddress.city': dhlEditAddress.city,
+          'returnAddress.country': dhlEditAddress.country,
+        });
+        setOrder({
+          ...order,
+          returnAddress: {
+            ...ra,
+            postalCode: dhlEditAddress.postalCode,
+            city: dhlEditAddress.city,
+            country: dhlEditAddress.country,
+          },
+        } as ExtendedOrder);
+      } else {
+        await adminUpdateOrder(lookupId, {
+          'customerInfo.postalCode': dhlEditAddress.postalCode,
+          'customerInfo.city': dhlEditAddress.city,
+          'customerInfo.country': dhlEditAddress.country,
+        });
+        setOrder({
+          ...order,
+          customerInfo: {
+            ...order.customerInfo,
+            postalCode: dhlEditAddress.postalCode,
+            city: dhlEditAddress.city,
+            country: dhlEditAddress.country,
+          },
+        } as ExtendedOrder);
+      }
 
       setShowDhlAddressModal(false);
       toast.success('Address updated');
-      
+
       // Retry booking with new address
       setTimeout(() => bookDhlShipment(), 500);
     } catch (err: any) {
@@ -5164,19 +5326,32 @@ function AdminOrderDetailPage() {
         // Check price against max limit
         const dhlPrice = ratesData.rate?.price || 0;
         const currency = ratesData.rate?.currency || 'SEK';
-        
+        const productName = ratesData.rate?.productName || '';
+        const productCodeReturned = ratesData.rate?.productCode || '';
+        const productLabel = productName ? `${productName} (${productCodeReturned})` : productCodeReturned;
+
         if (maxPriceEnabled && dhlPrice > maxPrice) {
-          toast.error(
-            `❌ DHL price (${dhlPrice} ${currency}) exceeds max limit (${maxPrice} SEK). Please book manually via DHL website.`,
-            { duration: 8000 }
-          );
+          // Surface full DHL analysis (request + breakdown + all products)
+          // so admin can see exactly why the quote is so high.
+          setDhlAnalysis({
+            reason: 'over_max',
+            price: dhlPrice,
+            currency,
+            productLabel,
+            maxPrice,
+            rate: ratesData.rate,
+            request: ratesData.request,
+            matchedProduct: ratesData.matchedProduct,
+            allProducts: ratesData.allProducts,
+            environment: ratesData.environment,
+          });
           setBookingDhlShipment(false);
           return;
         }
 
         // Show price confirmation
         const confirmBooking = window.confirm(
-          `DHL price: ${dhlPrice} ${currency}\n\nDo you want to book DHL shipping for this order?`
+          `DHL product: ${productLabel || 'unknown'}\nPrice: ${dhlPrice} ${currency}\n\nDo you want to book DHL shipping for this order?`
         );
         if (!confirmBooking) {
           setBookingDhlShipment(false);
@@ -7095,9 +7270,20 @@ function AdminOrderDetailPage() {
       }
 
       toast.success(`${selectedFilesToSend.length} file${selectedFilesToSend.length > 1 ? 's' : ''} sent to customer`);
+
+      // If admin filled in a password, chain the password email right after
+      // the file email so customer receives both in one action. The password
+      // flow has its own preview/confirm dialog. Customers were getting
+      // password without file (or vice versa) because admin had to click two
+      // separate buttons.
+      const pendingPassword = filePassword.trim();
+      if (pendingPassword) {
+        await handleSendPasswordEmail();
+      }
+
       setSelectedFilesToSend([]);
       setFileMessageToCustomer('');
-      
+
       // Refresh order data
       const { getOrderById } = await import('@/services/hybridOrderService');
       const refreshedOrder = await getOrderById(orderId);
@@ -7114,25 +7300,92 @@ function AdminOrderDetailPage() {
   // Send password in separate email
   const handleSendPasswordEmail = async () => {
     if (!filePassword.trim() || !order) return;
-    
+
+    const orderId = router.query.id as string;
+    const fileName = (order as any).adminFiles?.find((f: any) => f.url === selectedFilesToSend[0])?.name || 'the attached file';
+    const customerEmail = order.customerInfo?.email || '';
+    const customerName = `${order.customerInfo?.firstName || ''} ${order.customerInfo?.lastName || ''}`.trim() || 'customer';
+    const isEn = (order as any).locale === 'en';
+    const password = filePassword.trim();
+    const orderNum = String(order.orderNumber || orderId);
+
+    // Render the preview using the same template path the server uses so the
+    // admin sees exactly what the customer will receive.
+    let previewHtml = '';
+    let previewSubject = isEn ? `Password for your document – ${orderNum}` : `Lösenord för ditt dokument – ${orderNum}`;
+    // Deterministic check: does the template body actually have a
+    // {{password}} placeholder? This is more reliable than scanning the
+    // rendered HTML, which can yield false positives if the admin-typed
+    // password happens to match text in the email wrapper (e.g. "DOX").
+    let templateHasPasswordVar = false;
+    try {
+      const { renderEmail } = await import('@/services/emailRenderer');
+      const result = await renderEmail(
+        'send-password',
+        { customerName, orderNumber: orderNum, password },
+        isEn ? 'en' : 'sv',
+        { orderNumber: orderNum, showTrackingButton: false }
+      );
+      if (result.rendered) {
+        previewSubject = result.subject || previewSubject;
+        previewHtml = result.html;
+        const bodyTpl = isEn ? result.template?.bodyEn : result.template?.bodySv;
+        templateHasPasswordVar = !!bodyTpl && /\{\{\s*password\s*\}\}/.test(bodyTpl);
+      }
+    } catch {
+      /* fall through to inline fallback */
+    }
+
+    // If template rendering failed or the template body has no {{password}}
+    // placeholder, fall back to a simple preview that always shows the
+    // password in a styled box. This mirrors the server-side safety net in
+    // /api/admin/send-password-email.
+    if (!previewHtml || !templateHasPasswordVar) {
+      const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      previewHtml = `
+        <div style="font-family:Arial,sans-serif;color:#111;line-height:1.5;">
+          <p>${isEn ? `Hi ${esc(customerName)},` : `Hej ${esc(customerName)},`}</p>
+          <p>${isEn
+            ? `Here is the password to open your document for order <strong>${esc(orderNum)}</strong>:`
+            : `Här är lösenordet för att öppna ditt dokument för order <strong>${esc(orderNum)}</strong>:`}</p>
+          <div style="margin:16px 0;padding:14px 18px;background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;font-family:monospace;font-size:18px;font-weight:bold;letter-spacing:1px;text-align:center;">
+            ${esc(password)}
+          </div>
+          <p style="color:#6b7280;font-size:13px;">${isEn
+            ? 'For your security, the password is sent in a separate email from the file itself.'
+            : 'För din säkerhet skickas lösenordet i ett separat mail från själva filen.'}</p>
+        </div>
+      `;
+    }
+
+    const ans = await askEmailConfirm({
+      title: isEn ? 'Send password email?' : 'Skicka lösenordsmail?',
+      description: isEn
+        ? `Sends the file password in a separate email to ${customerEmail} for security.`
+        : `Skickar filens lösenord i ett separat mail till ${customerEmail} av säkerhetsskäl.`,
+      recipientEmail: customerEmail,
+      templateId: 'send-password',
+      defaultSubject: previewSubject,
+      defaultBody: previewHtml,
+      bodyIsHtml: true,
+    });
+    if (!ans.confirmed) return;
+
     setSendingPassword(true);
     try {
-      const orderId = router.query.id as string;
-      const fileName = (order as any).adminFiles?.find((f: any) => f.url === selectedFilesToSend[0])?.name || 'the attached file';
-      
       const response = await adminFetch('/api/admin/send-password-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          password: filePassword.trim(),
+          password,
           fileName,
           sentBy: adminProfile?.name || currentUser?.displayName || currentUser?.email || 'Admin'
         })
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'Failed to send password');
       }
@@ -8558,6 +8811,125 @@ function AdminOrderDetailPage() {
               >
                 Save & Retry
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DHL Rate Analysis Modal */}
+      {dhlAnalysis && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">DHL quote analysis</h3>
+                  <p className="text-sm text-gray-500">
+                    {dhlAnalysis.reason === 'over_max'
+                      ? `Price ${dhlAnalysis.price} ${dhlAnalysis.currency} exceeds max limit ${dhlAnalysis.maxPrice} SEK`
+                      : 'Review what was sent to DHL and what they quoted.'}
+                  </p>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded font-medium ${
+                  dhlAnalysis.environment === 'sandbox'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-green-100 text-green-800'
+                }`}>
+                  {dhlAnalysis.environment || 'unknown'}
+                </span>
+              </div>
+
+              {/* Quoted product */}
+              <div className="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <div className="text-xs uppercase text-gray-500 font-medium mb-1">Quoted product</div>
+                <div className="font-semibold text-gray-900">{dhlAnalysis.productLabel || '—'}</div>
+                <div className="text-2xl font-bold text-gray-900 mt-1">
+                  {dhlAnalysis.price} {dhlAnalysis.currency}
+                </div>
+              </div>
+
+              {/* Request we sent */}
+              <div className="mb-4">
+                <div className="text-xs uppercase text-gray-500 font-medium mb-1">Request to DHL</div>
+                <div className="text-sm text-gray-800 space-y-1 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div><span className="text-gray-500">Shipper:</span> {dhlAnalysis.request?.shipper?.postalCode} {dhlAnalysis.request?.shipper?.cityName}, {dhlAnalysis.request?.shipper?.countryCode}</div>
+                  <div><span className="text-gray-500">Receiver:</span> {dhlAnalysis.request?.receiver?.postalCode} {dhlAnalysis.request?.receiver?.cityName}, {dhlAnalysis.request?.receiver?.countryCode}</div>
+                  <div><span className="text-gray-500">Product code:</span> <code className="bg-white px-1 rounded border">{dhlAnalysis.request?.productCode}</code></div>
+                  <div><span className="text-gray-500">Package:</span> {dhlAnalysis.request?.packages?.[0]?.weight} kg, {dhlAnalysis.request?.packages?.[0]?.dimensions?.length}×{dhlAnalysis.request?.packages?.[0]?.dimensions?.width}×{dhlAnalysis.request?.packages?.[0]?.dimensions?.height} cm</div>
+                  <div><span className="text-gray-500">Shipping date:</span> {dhlAnalysis.request?.plannedShippingDateAndTime}</div>
+                </div>
+              </div>
+
+              {/* Price breakdown */}
+              {Array.isArray(dhlAnalysis.rate?.breakdown) && dhlAnalysis.rate.breakdown.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-xs uppercase text-gray-500 font-medium mb-1">Price breakdown (from DHL)</div>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-600 text-xs uppercase">
+                        <tr>
+                          <th className="text-left px-3 py-2">Charge</th>
+                          <th className="text-left px-3 py-2">Code</th>
+                          <th className="text-right px-3 py-2">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dhlAnalysis.rate.breakdown.map((b: any, i: number) => (
+                          <tr key={i} className="border-t border-gray-100">
+                            <td className="px-3 py-2 text-gray-900">{b.name || '—'}</td>
+                            <td className="px-3 py-2 text-gray-500 text-xs">{b.serviceCode || '—'}</td>
+                            <td className="px-3 py-2 text-right font-mono">{b.price != null ? `${b.price} ${b.priceCurrency || ''}` : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* All products returned */}
+              {Array.isArray(dhlAnalysis.allProducts) && dhlAnalysis.allProducts.length > 1 && (
+                <div className="mb-4">
+                  <div className="text-xs uppercase text-gray-500 font-medium mb-1">Other products DHL offered</div>
+                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+                    {dhlAnalysis.allProducts.map((p: any, i: number) => {
+                      const tp = Array.isArray(p.totalPrice)
+                        ? p.totalPrice.find((x: any) => x.currencyType === 'BILLC') || p.totalPrice[0]
+                        : null;
+                      return (
+                        <div key={i} className="flex items-center justify-between px-3 py-2 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-900">{p.productName || '—'}</span>
+                            <span className="ml-2 text-xs text-gray-500">({p.productCode})</span>
+                          </div>
+                          <div className="font-mono text-gray-700">
+                            {tp ? `${tp.price} ${tp.priceCurrency}` : '—'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Raw JSON (collapsible) */}
+              <details className="mb-4">
+                <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                  Raw DHL product JSON
+                </summary>
+                <pre className="text-xs bg-gray-900 text-gray-100 p-3 rounded mt-2 overflow-auto max-h-64">
+{JSON.stringify(dhlAnalysis.matchedProduct, null, 2)}
+                </pre>
+              </details>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setDhlAnalysis(null)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

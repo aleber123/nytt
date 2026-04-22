@@ -186,60 +186,65 @@ async function createLineItemsFromOrder(order: Order): Promise<InvoiceLineItem[]
       const pb = order.pricingBreakdown as any;
       const visaProduct = (order as any).visaProduct;
       const destinationCountry = (order as any).destinationCountry || '';
-      
-      // Service Fee
+      const travelerCount = Math.max(1, Number((order as any).travelerCount) || 1);
+
+      // Service Fee — per traveler
       if (pb.serviceFee && pb.serviceFee > 0) {
-        const vatAmount = Math.round(pb.serviceFee * VAT_RATES.STANDARD * 100) / 100;
+        const lineSubtotal = pb.serviceFee * travelerCount;
+        const vatAmount = Math.round(lineSubtotal * VAT_RATES.STANDARD * 100) / 100;
         lineItems.push({
           id: `visa_service_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           description: `Visumtjänst - ${visaProduct?.name || 'Visum'} (${destinationCountry})`,
-          quantity: 1,
+          quantity: travelerCount,
           unitPrice: pb.serviceFee,
-          totalPrice: pb.serviceFee + vatAmount,
+          totalPrice: lineSubtotal + vatAmount,
           vatRate: VAT_RATES.STANDARD,
           vatAmount: vatAmount,
           serviceType: 'visa_service'
         });
       }
-      
-      // Embassy/Government Fee (VAT exempt)
+
+      // Embassy/Government Fee (VAT exempt) — per traveler
       if (pb.embassyFee && pb.embassyFee > 0) {
+        const lineSubtotal = pb.embassyFee * travelerCount;
         lineItems.push({
           id: `visa_embassy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           description: `Ambassadavgift - ${destinationCountry}`,
-          quantity: 1,
+          quantity: travelerCount,
           unitPrice: pb.embassyFee,
-          totalPrice: pb.embassyFee,
+          totalPrice: lineSubtotal,
           vatRate: VAT_RATES.ZERO,
           vatAmount: 0,
           serviceType: 'visa_embassy'
         });
       }
-      
-      // Express processing
+
+      // Express processing — per traveler
       if (pb.expressPrice && pb.expressPrice > 0) {
-        const vatAmount = Math.round(pb.expressPrice * VAT_RATES.STANDARD * 100) / 100;
+        const lineSubtotal = pb.expressPrice * travelerCount;
+        const vatAmount = Math.round(lineSubtotal * VAT_RATES.STANDARD * 100) / 100;
         lineItems.push({
           id: `visa_express_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           description: 'Express-handläggning',
-          quantity: 1,
+          quantity: travelerCount,
           unitPrice: pb.expressPrice,
-          totalPrice: pb.expressPrice + vatAmount,
+          totalPrice: lineSubtotal + vatAmount,
           vatRate: VAT_RATES.STANDARD,
           vatAmount: vatAmount,
           serviceType: 'visa_express'
         });
       }
-      
-      // Urgent processing
+
+      // Urgent processing — per traveler
       if (pb.urgentPrice && pb.urgentPrice > 0) {
-        const vatAmount = Math.round(pb.urgentPrice * VAT_RATES.STANDARD * 100) / 100;
+        const lineSubtotal = pb.urgentPrice * travelerCount;
+        const vatAmount = Math.round(lineSubtotal * VAT_RATES.STANDARD * 100) / 100;
         lineItems.push({
           id: `visa_urgent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           description: 'Brådskande handläggning',
-          quantity: 1,
+          quantity: travelerCount,
           unitPrice: pb.urgentPrice,
-          totalPrice: pb.urgentPrice + vatAmount,
+          totalPrice: lineSubtotal + vatAmount,
           vatRate: VAT_RATES.STANDARD,
           vatAmount: vatAmount,
           serviceType: 'visa_urgent'
@@ -1305,6 +1310,9 @@ function createLineItemsFromAdminPrice(
   const lineItems: InvoiceLineItem[] = [];
   const lineOverrides = adminPrice.lineOverrides || [];
   const pricingBreakdown = order.pricingBreakdown || [];
+  // Visa orders store pricingBreakdown as an object (not array), and lineOverrides.baseAmount is per-traveler;
+  // for other orders, baseAmount is already the line total.
+  const isVisaOrder = (order as any).orderType === 'visa' && order.pricingBreakdown && !Array.isArray(order.pricingBreakdown);
 
   for (let i = 0; i < lineOverrides.length; i++) {
     const override = lineOverrides[i];
@@ -1313,10 +1321,11 @@ function createLineItemsFromAdminPrice(
     // Skip if not included
     if (override.include === false) continue;
 
-    // Get the amount (use override if set, otherwise base amount)
+    // Get the amount (use override if set, otherwise base amount × quantity for visa, else baseAmount)
+    const overrideQty = override.quantity && Number(override.quantity) > 0 ? Number(override.quantity) : 1;
     const amount = override.overrideAmount !== null && override.overrideAmount !== undefined
       ? Number(override.overrideAmount)
-      : Number(override.baseAmount || 0);
+      : (isVisaOrder ? Number(override.baseAmount || 0) * overrideQty : Number(override.baseAmount || 0));
 
     if (amount <= 0) continue;
 
@@ -1347,14 +1356,19 @@ function createLineItemsFromAdminPrice(
     const description = originalItem?.description || override.label || `Line ${i + 1}`;
 
     // Determine correct quantity and unitPrice for the invoice line
-    // If admin set an overrideQuantity or overrideUnitPrice, use those; otherwise use original breakdown values
-    const baseQuantity = originalItem?.quantity && originalItem.quantity > 1 ? originalItem.quantity : 1;
+    // If admin set an overrideQuantity or overrideUnitPrice, use those; otherwise use original breakdown values.
+    // Visa orders don't have array-based originalItem, so fall back to override.quantity.
+    const baseQuantity = originalItem?.quantity && originalItem.quantity > 1
+      ? originalItem.quantity
+      : (override.quantity && Number(override.quantity) > 1 ? Number(override.quantity) : 1);
     const itemQuantity = (override as any).overrideQuantity != null ? Number((override as any).overrideQuantity) : baseQuantity;
     let itemUnitPrice: number;
     if (override.overrideUnitPrice !== null && override.overrideUnitPrice !== undefined) {
       itemUnitPrice = Number(override.overrideUnitPrice);
     } else if (baseQuantity > 1 && originalItem?.unitPrice) {
       itemUnitPrice = originalItem.unitPrice;
+    } else if (isVisaOrder && baseQuantity > 1) {
+      itemUnitPrice = Number(override.baseAmount || 0);
     } else {
       itemUnitPrice = itemQuantity > 1 && amount > 0 ? amount / itemQuantity : amount;
     }
@@ -2161,26 +2175,30 @@ export const convertVisaOrderToInvoice = async (order: any): Promise<Invoice> =>
     const adminPrice = order.adminPrice;
     
     if (adminPrice && Array.isArray(adminPrice.lineOverrides) && adminPrice.lineOverrides.length > 0) {
-      // Use admin price adjustments
+      // Use admin price adjustments — visa baseAmount is per-traveler; multiply by quantity.
       for (const override of adminPrice.lineOverrides) {
         if (override.include === false) continue;
-        
+
+        const lineQty = override.quantity && Number(override.quantity) > 0 ? Number(override.quantity) : 1;
+        const unitPrice = override.overrideUnitPrice !== null && override.overrideUnitPrice !== undefined
+          ? Number(override.overrideUnitPrice)
+          : Number(override.baseAmount || 0);
         const amount = override.overrideAmount !== null && override.overrideAmount !== undefined
           ? Number(override.overrideAmount)
-          : Number(override.baseAmount || 0);
-        
+          : unitPrice * lineQty;
+
         if (amount <= 0) continue;
-        
+
         // Get VAT rate
         let vatRate = applyZeroVAT ? 0 : (override.vatPercent !== null && override.vatPercent !== undefined ? override.vatPercent / 100 : 0.25);
         const vatAmount = Math.round(amount * vatRate * 100) / 100;
         const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
-        
+
         lineItems.push({
           id: `visa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           description: override.label || 'Visa Service',
-          quantity: 1,
-          unitPrice: amount,
+          quantity: lineQty,
+          unitPrice: unitPrice,
           totalPrice: totalPrice,
           vatRate: vatRate,
           vatAmount: vatAmount,
@@ -2191,38 +2209,37 @@ export const convertVisaOrderToInvoice = async (order: any): Promise<Invoice> =>
       // Build from visa order pricing breakdown
       // Split visa product into embassy fee (0% VAT) and service fee (25% VAT)
       // Same logic as legalization invoices
-      
-      // Embassy fee - 0% VAT (official government fee)
+      const travelerCount = Math.max(1, Number((order as any).travelerCount) || 1);
+
+      // Embassy fee - 0% VAT (official government fee) — per traveler
       const embassyFee = order.pricingBreakdown?.embassyFee || 0;
       if (embassyFee > 0) {
-        const vatRate = 0; // Embassy fees are always 0% VAT
-        const vatAmount = 0;
-        const totalPrice = embassyFee;
-        
+        const lineSubtotal = embassyFee * travelerCount;
         lineItems.push({
           id: `embassy_fee_${Date.now()}`,
           description: `Ambassadavgift - ${order.visaProduct?.name || 'Visa'} (${order.destinationCountry || ''})`,
-          quantity: 1,
+          quantity: travelerCount,
           unitPrice: embassyFee,
-          totalPrice: totalPrice,
-          vatRate: vatRate,
-          vatAmount: vatAmount,
+          totalPrice: lineSubtotal,
+          vatRate: 0,
+          vatAmount: 0,
           serviceType: 'embassy_fee',
           officialFee: embassyFee
         });
       }
-      
-      // Service fee - 25% VAT (DOX service fee)
+
+      // Service fee - 25% VAT (DOX service fee) — per traveler
       const serviceFee = order.pricingBreakdown?.serviceFee || 0;
       if (serviceFee > 0) {
+        const lineSubtotal = serviceFee * travelerCount;
         const vatRate = applyZeroVAT ? 0 : 0.25;
-        const vatAmount = Math.round(serviceFee * vatRate * 100) / 100;
-        const totalPrice = Math.round((serviceFee + vatAmount) * 100) / 100;
-        
+        const vatAmount = Math.round(lineSubtotal * vatRate * 100) / 100;
+        const totalPrice = Math.round((lineSubtotal + vatAmount) * 100) / 100;
+
         lineItems.push({
           id: `service_fee_${Date.now()}`,
           description: `DOX Visumpartner serviceavgift - ${order.visaProduct?.name || 'Visa'}`,
-          quantity: 1,
+          quantity: travelerCount,
           unitPrice: serviceFee,
           totalPrice: totalPrice,
           vatRate: vatRate,
@@ -2231,61 +2248,64 @@ export const convertVisaOrderToInvoice = async (order: any): Promise<Invoice> =>
           serviceFee: serviceFee
         });
       }
-      
-      // Fallback: if no breakdown, use total visa product price with 25% VAT
+
+      // Fallback: if no breakdown, use total visa product price with 25% VAT (per traveler)
       if (embassyFee === 0 && serviceFee === 0 && order.visaProduct?.price) {
-        const basePrice = order.visaProduct.price - 
-          (order.pricingBreakdown?.expressPrice || 0) - 
+        const basePrice = order.visaProduct.price -
+          (order.pricingBreakdown?.expressPrice || 0) -
           (order.pricingBreakdown?.urgentPrice || 0);
-        
-        const amount = basePrice > 0 ? basePrice : order.visaProduct.price;
+
+        const unit = basePrice > 0 ? basePrice : order.visaProduct.price;
+        const lineSubtotal = unit * travelerCount;
         const vatRate = applyZeroVAT ? 0 : 0.25;
-        const vatAmount = Math.round(amount * vatRate * 100) / 100;
-        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
-        
+        const vatAmount = Math.round(lineSubtotal * vatRate * 100) / 100;
+        const totalPrice = Math.round((lineSubtotal + vatAmount) * 100) / 100;
+
         lineItems.push({
           id: `visa_product_${Date.now()}`,
           description: `Visa - ${order.visaProduct.name || 'Visa Service'} (${order.destinationCountry || ''})`,
-          quantity: 1,
-          unitPrice: amount,
+          quantity: travelerCount,
+          unitPrice: unit,
           totalPrice: totalPrice,
           vatRate: vatRate,
           vatAmount: vatAmount,
           serviceType: 'visa'
         });
       }
-      
-      // Express fee - 25% VAT (service fee)
+
+      // Express fee - 25% VAT (service fee) — per traveler
       if (order.pricingBreakdown?.expressPrice) {
-        const amount = order.pricingBreakdown.expressPrice;
+        const unit = order.pricingBreakdown.expressPrice;
+        const lineSubtotal = unit * travelerCount;
         const vatRate = applyZeroVAT ? 0 : 0.25;
-        const vatAmount = Math.round(amount * vatRate * 100) / 100;
-        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
-        
+        const vatAmount = Math.round(lineSubtotal * vatRate * 100) / 100;
+        const totalPrice = Math.round((lineSubtotal + vatAmount) * 100) / 100;
+
         lineItems.push({
           id: `express_${Date.now()}`,
           description: 'Expresshantering',
-          quantity: 1,
-          unitPrice: amount,
+          quantity: travelerCount,
+          unitPrice: unit,
           totalPrice: totalPrice,
           vatRate: vatRate,
           vatAmount: vatAmount,
           serviceType: 'express'
         });
       }
-      
-      // Urgent fee - 25% VAT (service fee)
+
+      // Urgent fee - 25% VAT (service fee) — per traveler
       if (order.pricingBreakdown?.urgentPrice) {
-        const amount = order.pricingBreakdown.urgentPrice;
+        const unit = order.pricingBreakdown.urgentPrice;
+        const lineSubtotal = unit * travelerCount;
         const vatRate = applyZeroVAT ? 0 : 0.25;
-        const vatAmount = Math.round(amount * vatRate * 100) / 100;
-        const totalPrice = Math.round((amount + vatAmount) * 100) / 100;
-        
+        const vatAmount = Math.round(lineSubtotal * vatRate * 100) / 100;
+        const totalPrice = Math.round((lineSubtotal + vatAmount) * 100) / 100;
+
         lineItems.push({
           id: `urgent_${Date.now()}`,
           description: 'Brådskande hantering',
-          quantity: 1,
-          unitPrice: amount,
+          quantity: travelerCount,
+          unitPrice: unit,
           totalPrice: totalPrice,
           vatRate: vatRate,
           vatAmount: vatAmount,

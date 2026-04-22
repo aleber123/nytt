@@ -207,10 +207,25 @@ export default async function handler(
     const trackingNumber = dhlData.shipmentTrackingNumber || '';
     // Use DHL Express tracking URL format - works for Swedish customers
     const trackingUrl = dhlData.trackingUrl || `https://www.dhl.com/se-sv/home/tracking/tracking-express.html?submit=1&tracking-id=${trackingNumber}`;
-    
-    // Get the label PDF (base64 encoded)
+
+    // Get the label PDF (base64 encoded). The email body promises
+    // "bifogad i detta mail"; if DHL's response doesn't include a label
+    // document we refuse to send the email rather than lie to the customer.
     const labelDocument = dhlData.documents?.find((d: any) => d.typeCode === 'label');
     const labelBase64 = labelDocument?.content || '';
+
+    if (!labelBase64) {
+      console.error('[dhl-pickup-label] DHL returned shipment but no label PDF', {
+        trackingNumber,
+        documents: dhlData.documents,
+      });
+      return res.status(502).json({
+        error: 'DHL did not return a label PDF',
+        details: 'Shipment was created but no label document was included in the response. Please contact DHL support or retry.',
+        trackingNumber,
+        trackingUrl,
+      });
+    }
 
     // Update order with pickup info using Admin SDK
     // Store the label PDF as base64 for later download
@@ -284,18 +299,20 @@ export default async function handler(
       });
     }
 
+    // labelBase64 is guaranteed non-empty by the guard above, so the
+    // attachment is always present when this email is queued.
     await emailsRef.add({
       name: customerName,
       email: customerEmail,
       phone: order.customerInfo?.phone || '',
       subject: finalSubject,
       message: finalHtml,
-      attachments: labelBase64 ? [{
+      attachments: [{
         filename: `DHL-Label-${order.orderNumber}.pdf`,
         content: labelBase64,
         encoding: 'base64',
-        contentType: 'application/pdf'
-      }] : [],
+        contentType: 'application/pdf',
+      }],
       orderId,
       createdAt: new Date(),
       status: 'unread',

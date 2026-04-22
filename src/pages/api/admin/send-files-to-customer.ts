@@ -80,13 +80,38 @@ export default async function handler(
     let emailHtml = '';
     let renderer: 'new' | 'legacy' = 'legacy';
 
+    let templateHasFileList = false;
     try {
       const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
       const tmpl = await getEmailTemplateAdmin('send-files');
       if (tmpl?.useCustomTemplate) {
-        const fileListHtml = `<ul style="margin:8px 0;padding-left:20px;color:#374151;">
-${filesToSend.map((f: any) => `  <li style="padding:3px 0;">📎 ${f.name}</li>`).join('\n')}
-</ul>`;
+        // Check that the template body actually references the fileList
+        // placeholder — if an admin edited the template and forgot
+        // {{fileList}}, the customer would receive an email with no
+        // download links (earlier pattern bug that also hit the password
+        // email). We fall back to the legacy generator in that case.
+        const bodyTpl = locale === 'en' ? tmpl.bodyEn : tmpl.bodySv;
+        templateHasFileList = !!bodyTpl && /\{\{\s*fileList\s*\}\}/.test(bodyTpl);
+
+        // Build a proper file list with real Download buttons per row.
+        // Use a <table> instead of flex — Outlook and many email clients
+        // strip `display:flex` so flex-based rows render stacked.
+        const downloadLabel = locale === 'en' ? 'Download' : 'Ladda ner';
+        const fileListHtml = filesToSend.map((f: any) => {
+          const sizeKB = Math.round((f.size || 0) / 1024);
+          return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:8px 0;background:#fafafa;border:1px solid #eaecef;border-radius:8px;border-collapse:separate;">
+  <tr>
+    <td style="padding:12px 16px;vertical-align:middle;">
+      <div style="font-weight:600;color:#202124;font-size:14px;">📄 ${f.name}</div>
+      ${sizeKB > 0 ? `<div style="font-size:12px;color:#666;margin-top:2px;">${sizeKB} KB</div>` : ''}
+    </td>
+    <td style="padding:12px 16px;vertical-align:middle;text-align:right;white-space:nowrap;">
+      <a href="${f.url}" style="display:inline-block;background:#0EB0A6;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;white-space:nowrap;">${downloadLabel}</a>
+    </td>
+  </tr>
+</table>`;
+        }).join('\n');
+
         const result = await renderEmailAdmin(
           'send-files',
           {
@@ -106,6 +131,15 @@ ${filesToSend.map((f: any) => `  <li style="padding:3px 0;">📎 ${f.name}</li>`
       }
     } catch (rendererErr) {
       console.warn('[send-files] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    // Safety net: if the rendered email doesn't actually contain the file
+    // list (template body missing {{fileList}}), fall back to the legacy
+    // generator which always renders file rows with download buttons.
+    if (emailHtml && !templateHasFileList) {
+      console.warn('[send-files] custom template body missing {{fileList}} — falling back to generator');
+      emailHtml = '';
+      renderer = 'legacy';
     }
 
     if (!emailHtml) {

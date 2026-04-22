@@ -147,7 +147,12 @@ interface FormFillTabProps {
 export default function FormFillTab({ order, orderId }: FormFillTabProps) {
   const [formData, setFormData] = useState<Record<string, string> | null>(null);
   const [loadingFormData, setLoadingFormData] = useState(true);
-  const [manualFields, setManualFields] = useState<Record<string, string>>({});
+  // Hydrate manualFields from the order so admin edits persist across
+  // session — previously this was empty on every mount, so uploads and
+  // manual typing were lost when leaving the tab.
+  const [manualFields, setManualFields] = useState<Record<string, string>>(
+    () => ((order as any).formFillData as Record<string, string>) || {}
+  );
   const [selectedTraveler, setSelectedTraveler] = useState(0);
   const [scriptCopied, setScriptCopied] = useState(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
@@ -400,7 +405,21 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
 
       const count = Object.keys(fieldsToFill).length;
       if (count > 0) {
-        setManualFields(prev => ({ ...prev, ...fieldsToFill }));
+        // Scope extracted fields to the currently selected traveler so a
+        // passport scanned for traveler 1 does not bleed into traveler 2.
+        const indexedFields: Record<string, string> = {};
+        for (const [k, v] of Object.entries(fieldsToFill)) {
+          indexedFields[`${k}_${selectedTraveler}`] = v;
+        }
+        setManualFields(prev => {
+          const next = { ...prev, ...indexedFields };
+          if (orderId) {
+            updateVisaOrder(orderId, { formFillData: next } as any).catch(err => {
+              console.warn('[FormFillTab] OCR persist failed:', err);
+            });
+          }
+          return next;
+        });
         setOcrStatuses(prev => ({ ...prev, [docId]: { progress: null, result: `\u2705 Extracted ${count} fields` } }));
         toast.success(`${docLabels[docId]} scanned \u2014 ${count} fields auto-filled!`);
       } else {
@@ -428,10 +447,15 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     return merged;
   }, [formData, manualFields]);
 
-  // Get a field value (manual override > form data > traveler/order data)
+  // Get a field value (per-traveler manual override > plain manual override >
+  // per-traveler form data > plain form data > fallback).
+  // Checking the indexed manual key first prevents an OCR/PDF scan for one
+  // traveler from bleeding into another when switching between travelers.
   const getFieldValue = useCallback((fieldId: string, fallback = '') => {
-    if (manualFields[fieldId]?.trim()) return manualFields[fieldId];
     const idx = selectedTraveler;
+    const indexedManual = manualFields[`${fieldId}_${idx}`];
+    if (indexedManual?.trim()) return indexedManual;
+    if (manualFields[fieldId]?.trim()) return manualFields[fieldId];
     if (formData) {
       const indexed = formData[`${fieldId}_${idx}`];
       if (indexed) return indexed;
@@ -441,8 +465,46 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
     return fallback;
   }, [manualFields, formData, selectedTraveler]);
 
+  // Normalize a date string to ISO YYYY-MM-DD. Accepts several common
+  // formats that customers put in the PDF (e.g. 15/03/1990, 1990-03-15,
+  // 15-03-1990). Returns '' for the literal placeholder "YYYY-MM-DD" so
+  // the `<input type="date">` doesn't try to display junk.
+  const normalizeDate = (raw: string): string => {
+    if (!raw) return '';
+    const s = raw.trim();
+    if (!s || /^y{4}-mm-dd$/i.test(s) || /^å{4}-mm-dd$/i.test(s)) return '';
+    // Already ISO
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    // DD/MM/YYYY or DD-MM-YYYY
+    m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    // YYYY/MM/DD
+    m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    return s;
+  };
+
+  // Debounced save of manualFields to Firestore so admin edits survive
+  // navigating away. Without this, `formFillData` stays undefined and the
+  // UI empties on remount.
+  const saveTimerRef = useRef<any>(null);
+  const persistManualFields = useCallback((next: Record<string, string>) => {
+    if (!orderId) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      updateVisaOrder(orderId, { formFillData: next } as any).catch(err => {
+        console.warn('[FormFillTab] failed to persist formFillData:', err);
+      });
+    }, 600);
+  }, [orderId]);
+
   const updateField = (fieldId: string, value: string) => {
-    setManualFields(prev => ({ ...prev, [fieldId]: value }));
+    setManualFields(prev => {
+      const next = { ...prev, [fieldId]: value };
+      persistManualFields(next);
+      return next;
+    });
   };
 
   // Build Madagascar visa data from merged form data + selected traveler
@@ -713,20 +775,39 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
                   toast.loading('Extracting data from PDF...', { id: 'pdf-import' });
                   const buffer = await file.arrayBuffer();
                   const data = await extractPdfFormData(new Uint8Array(buffer));
-                  const filledCount = Object.values(data).filter((v: any) => typeof v === 'string' && v.trim()).length;
+                  // Field IDs ending in "Date" (dateOfBirth, passportExpiryDate,
+                  // arrivalDate, departureDate, ...) are treated as dates and
+                  // normalized so `<input type="date">` accepts them.
+                  const isDateField = (k: string) => /date/i.test(k);
+                  const merged: Record<string, string> = {};
+                  let filledCount = 0;
+                  for (const [key, value] of Object.entries(data)) {
+                    if (typeof value !== 'string') continue;
+                    const v = isDateField(key) ? normalizeDate(value) : value.trim();
+                    if (v) {
+                      merged[key] = v;
+                      filledCount++;
+                    }
+                  }
                   if (filledCount === 0) {
                     toast.error('No filled fields found. Make sure the customer saved the PDF after filling it.', { id: 'pdf-import' });
                     return;
                   }
-                  // Merge extracted data into the manual fields state
+                  // Scope extracted fields to the currently selected traveler
+                  // so a PDF filled for traveler 1 does not bleed into traveler 2.
+                  const indexedMerged: Record<string, string> = {};
+                  for (const [k, v] of Object.entries(merged)) {
+                    indexedMerged[`${k}_${selectedTraveler}`] = v;
+                  }
                   setManualFields(prev => {
-                    const merged = { ...prev };
-                    for (const [key, value] of Object.entries(data)) {
-                      if (typeof value === 'string' && value.trim()) {
-                        merged[key] = value;
-                      }
+                    const next = { ...prev, ...indexedMerged };
+                    // Persist immediately so the import survives navigation.
+                    if (orderId) {
+                      updateVisaOrder(orderId, { formFillData: next } as any).catch(err => {
+                        console.warn('[FormFillTab] PDF import persist failed:', err);
+                      });
                     }
-                    return merged;
+                    return next;
                   });
                   toast.success(`Imported ${filledCount} fields from PDF — form pre-filled!`, { id: 'pdf-import' });
                 } catch (err: any) {
@@ -912,17 +993,21 @@ export default function FormFillTab({ order, orderId }: FormFillTabProps) {
                 <button
                   type="button"
                   onClick={() => {
-                    setManualFields(prev => ({
-                      ...prev,
-                      brazilContactName: 'Jose Laercio Pereira',
-                      brazilContactAddress: 'Base Aérea de Anápolis BR 414 KM 4, Zona Rural Caixa Postal 811',
-                      brazilContactZip: '75024970',
-                      brazilContactCity: 'Anápolis',
-                      brazilContactState: 'GO',
-                      brazilContactRelationship: 'Co-worker',
-                      brazilContactEmail: 'Laercio.pereira@saabgroup.com',
-                      brazilContactPhone: '+55 11 9 8676 4053',
-                    }));
+                    setManualFields(prev => {
+                      const next = {
+                        ...prev,
+                        brazilContactName: 'Jose Laercio Pereira',
+                        brazilContactAddress: 'Base Aérea de Anápolis BR 414 KM 4, Zona Rural Caixa Postal 811',
+                        brazilContactZip: '75024970',
+                        brazilContactCity: 'Anápolis',
+                        brazilContactState: 'GO',
+                        brazilContactRelationship: 'Co-worker',
+                        brazilContactEmail: 'Laercio.pereira@saabgroup.com',
+                        brazilContactPhone: '+55 11 9 8676 4053',
+                      };
+                      persistManualFields(next);
+                      return next;
+                    });
                     toast.success('SAAB contact info filled');
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"

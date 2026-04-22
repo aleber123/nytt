@@ -841,15 +841,25 @@ export const generateVisaBusinessNotificationEmail = (params: VisaEmailParams): 
 
         ${order.totalPrice && order.totalPrice > 0 ? `
         <div class="price-box">
-          ${(order.pricingBreakdown?.serviceFee || order.pricingBreakdown?.embassyFee || order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) ? `
+          ${(order.pricingBreakdown?.serviceFee || order.pricingBreakdown?.embassyFee || order.pricingBreakdown?.expressPrice || order.pricingBreakdown?.urgentPrice) ? (() => {
+            const travelerCount = Math.max(1, Number(order.travelerCount) || 1);
+            const multi = travelerCount > 1;
+            const formatLine = (unit: number) => multi
+              ? `${travelerCount} × ${unit.toLocaleString()} kr = ${(unit * travelerCount).toLocaleString()} kr`
+              : `${unit.toLocaleString()} kr`;
+            const serviceFee = order.pricingBreakdown?.serviceFee || 0;
+            const embassyFee = order.pricingBreakdown?.embassyFee || 0;
+            const expressPrice = order.pricingBreakdown?.expressPrice || 0;
+            const urgentPrice = order.pricingBreakdown?.urgentPrice || 0;
+            return `
           <div style="font-size:14px; color:#6b7280; margin-bottom:8px;">
-            <div>Service fee: ${(order.pricingBreakdown?.serviceFee || 0).toLocaleString()} kr</div>
-            <div>Embassy fee: ${(order.pricingBreakdown?.embassyFee || 0).toLocaleString()} kr</div>
-            ${order.pricingBreakdown?.expressPrice ? `<div style="color:#ea580c;">Express fee: +${order.pricingBreakdown.expressPrice.toLocaleString()} kr</div>` : ''}
-            ${order.pricingBreakdown?.urgentPrice ? `<div style="color:#dc2626;">Urgent fee: +${order.pricingBreakdown.urgentPrice.toLocaleString()} kr</div>` : ''}
-            ${order.travelerCount > 1 ? `<div style="color:#4b5563; font-weight:600;">× ${order.travelerCount} travelers</div>` : ''}
+            <div>Service fee: ${formatLine(serviceFee)}</div>
+            <div>Embassy fee: ${formatLine(embassyFee)}</div>
+            ${expressPrice ? `<div style="color:#ea580c;">Express fee: +${formatLine(expressPrice)}</div>` : ''}
+            ${urgentPrice ? `<div style="color:#dc2626;">Urgent fee: +${formatLine(urgentPrice)}</div>` : ''}
           </div>
-          ` : ''}
+          `;
+          })() : ''}
           <div class="amount">${order.totalPrice?.toLocaleString()} kr</div>
           <div style="color:#6b7280; font-size:13px;">Total price ${order.customerType === 'company' ? '(excl. VAT)' : '(incl. VAT)'}</div>
         </div>

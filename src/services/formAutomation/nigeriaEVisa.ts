@@ -10,7 +10,9 @@
  * The generated script handles this via a special matSelect() helper.
  *
  * Steps 5 (Supporting Documents) must be uploaded manually.
- * Steps 6–7 (Travel History, Security) default all radio buttons to "No".
+ * Steps 6–7 (Travel History, Security) read the customer's Yes/No answers
+ * from the form submission, click the matching radio for each question,
+ * and fill the paired details textarea when the answer is Yes.
  *
  * The form uses standard HTML inputs with `name` attributes inside an
  * Angular app. Fields are targeted via document.querySelector('[name="..."]').
@@ -56,6 +58,30 @@ export interface NigeriaEVisaData {
   contactState: string;        // Nigerian state dropdown
   contactEmail: string;
   contactPostalCode: string;
+
+  // Step 6 — Travel History (Yes/No + details text)
+  previousVisaNigeria: 'Yes' | 'No';
+  previousVisaDetails: string;
+  travelledToNigeria: 'Yes' | 'No';
+  travelledToNigeriaDetails: string;
+  refusedEntryNigeria: 'Yes' | 'No';
+  refusedEntryDetails: string;
+  refusedVisaAnyCountry: 'Yes' | 'No';
+  refusedVisaDetails: string;
+  deportedFromAnyCountry: 'Yes' | 'No';
+  deportedDetails: string;
+  travelledOutsideResidence: 'Yes' | 'No';
+  travelledOutsideDetails: string;
+
+  // Step 7 — Security and Criminal History (Yes/No + details text)
+  criminalConvictions: 'Yes' | 'No';
+  criminalConvictionDetails: string;
+  criminalCharges: 'Yes' | 'No';
+  criminalChargeDetails: string;
+  terroristActivities: 'Yes' | 'No';
+  terroristActivityDetails: string;
+  terroristViews: 'Yes' | 'No';
+  terroristViewDetails: string;
 }
 
 /**
@@ -149,7 +175,38 @@ export function buildNigeriaVisaDataFromOrder(
     contactState: get('contactState') || '',
     contactEmail: get('contactEmail') || customer.email || '',
     contactPostalCode: get('contactPostalCode') || '',
+
+    // Step 6 — Travel History (default to No when not answered)
+    previousVisaNigeria: yesNo(get('previousVisaNigeria')),
+    previousVisaDetails: get('previousVisaDetails') || '',
+    travelledToNigeria: yesNo(get('travelledToNigeria')),
+    travelledToNigeriaDetails: get('travelledToNigeriaDetails') || '',
+    refusedEntryNigeria: yesNo(get('refusedEntryNigeria')),
+    refusedEntryDetails: get('refusedEntryDetails') || '',
+    refusedVisaAnyCountry: yesNo(get('refusedVisaAnyCountry')),
+    refusedVisaDetails: get('refusedVisaDetails') || '',
+    deportedFromAnyCountry: yesNo(get('deportedFromAnyCountry')),
+    deportedDetails: get('deportedDetails') || '',
+    travelledOutsideResidence: yesNo(get('travelledOutsideResidence')),
+    travelledOutsideDetails: get('travelledOutsideDetails') || '',
+
+    // Step 7 — Security and Criminal History (default to No when not answered)
+    criminalConvictions: yesNo(get('criminalConvictions')),
+    criminalConvictionDetails: get('criminalConvictionDetails') || '',
+    criminalCharges: yesNo(get('criminalCharges')),
+    criminalChargeDetails: get('criminalChargeDetails') || '',
+    terroristActivities: yesNo(get('terroristActivities')),
+    terroristActivityDetails: get('terroristActivityDetails') || '',
+    terroristViews: yesNo(get('terroristViews')),
+    terroristViewDetails: get('terroristViewDetails') || '',
   };
+}
+
+/**
+ * Normalize a form value to strict 'Yes' | 'No' (defaults to 'No').
+ */
+function yesNo(value: string | undefined): 'Yes' | 'No' {
+  return (value || '').trim().toLowerCase() === 'yes' ? 'Yes' : 'No';
 }
 
 /**
@@ -168,12 +225,16 @@ export function generateNigeriaAutoFillScript(data: NigeriaEVisaData): string {
 // Applicant: ${data.firstName} ${data.lastName}
 // ============================================================
 
-// Helper: set input value by name and trigger Angular change detection
+// Helper: set input value by name and trigger Angular change detection.
+// Picks the correct prototype setter for <textarea> vs <input> — using
+// HTMLInputElement's setter on a textarea throws "Illegal invocation".
 function setByName(name, value) {
   const el = document.querySelector('[name="' + name + '"]');
   if (!el) { console.warn('⚠️ Field not found:', name); return; }
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
-    || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+  const proto = el.tagName === 'TEXTAREA'
+    ? window.HTMLTextAreaElement.prototype
+    : window.HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
   if (setter) setter.call(el, value);
   else el.value = value;
   el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -215,38 +276,103 @@ function clickRadio(id) {
   console.log('✅ Radio:', id);
 }
 
-// Helper: set Angular Material mat-select (click to open, then select option)
-function setMatSelect(index, optionText) {
-  const selects = document.querySelectorAll('mat-select');
-  const sel = selects[index];
-  if (!sel) { console.warn('⚠️ mat-select[' + index + '] not found'); return; }
-  sel.click();
-  setTimeout(() => {
-    const panel = document.querySelector('.mat-select-panel, .mat-mdc-select-panel');
-    if (!panel) { console.warn('⚠️ Panel not found for mat-select[' + index + ']'); return; }
-    const options = panel.querySelectorAll('mat-option, .mat-option, .mat-mdc-option');
-    let found = false;
+// Helper: pick an Angular Material mat-select option.
+// IMPORTANT: the mat-select host ignores .click() in modern Angular Material —
+// we must click the inner .mat-select-trigger. We also poll for the dropdown
+// panel (with retries) and find it via aria-owns so each mat-select's own
+// panel is targeted (avoids reading a previous, still-closing panel).
+async function matSelectPick(sel, optionText) {
+  if (!sel) { console.warn('⚠️ mat-select missing'); return false; }
+  // Close any stray open panel first
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await new Promise(r => setTimeout(r, 200));
+  const trigger =
+    sel.querySelector('.mat-select-trigger') ||
+    sel.querySelector('.mat-mdc-select-trigger') ||
+    sel.querySelector('[role="combobox"]') ||
+    sel;
+  trigger.click();
+  // Poll for the panel up to 2s
+  const panelId = sel.getAttribute('aria-owns') || sel.getAttribute('aria-controls');
+  const start = Date.now();
+  let panel = null;
+  while (Date.now() - start < 2000) {
+    await new Promise(r => requestAnimationFrame(r));
+    panel = panelId ? document.getElementById(panelId) : null;
+    if (!panel) {
+      const list = document.querySelectorAll('.mat-select-panel, .mat-mdc-select-panel, .cdk-overlay-pane');
+      panel = list[list.length - 1] || null;
+    }
+    if (panel && panel.querySelector('mat-option, .mat-option, .mat-mdc-option, [role="option"]')) break;
+  }
+  if (!panel) { console.warn('⚠️ panel never appeared'); return false; }
+  const options = panel.querySelectorAll('mat-option, .mat-option, .mat-mdc-option, [role="option"]');
+  const wanted = optionText.toLowerCase();
+  let match = null;
+  for (const opt of options) {
+    if (opt.textContent.trim().toLowerCase() === wanted) { match = opt; break; }
+  }
+  if (!match) {
     for (const opt of options) {
-      const txt = opt.textContent.trim();
-      if (txt.toLowerCase() === optionText.toLowerCase() || txt.toLowerCase().includes(optionText.toLowerCase())) {
-        opt.click(); found = true;
-        console.log('✅ mat-select[' + index + '] =', txt);
-        break;
+      if (opt.textContent.trim().toLowerCase().includes(wanted)) { match = opt; break; }
+    }
+  }
+  if (match) {
+    match.click();
+    console.log('✅ mat-select =', match.textContent.trim());
+    return true;
+  }
+  console.warn('⚠️ option not found:', optionText);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  return false;
+}
+
+// Helper: find mat-select by its visible mat-label text. Used for fields
+// where we don't know the index but know the label (e.g. "Country of
+// Departure", "Port of Entry", "State").
+async function setMatSelectByLabel(labelText, optionText) {
+  let targetSel = null;
+  for (const sel of document.querySelectorAll('mat-select')) {
+    const label = sel.closest('mat-form-field')?.querySelector('mat-label')?.textContent?.trim() || '';
+    if (label.toLowerCase().includes(labelText.toLowerCase())) { targetSel = sel; break; }
+  }
+  if (!targetSel) {
+    // Secondary: scan generic labels
+    const labels = document.querySelectorAll('mat-label, label');
+    for (const lbl of labels) {
+      if (lbl.textContent.trim().toLowerCase().includes(labelText.toLowerCase())) {
+        const ff = lbl.closest('mat-form-field') || lbl.parentElement;
+        const sel = ff?.querySelector('mat-select');
+        if (sel) { targetSel = sel; break; }
       }
     }
-    if (!found) console.warn('⚠️ Option not found in mat-select[' + index + ']:', optionText);
-  }, 300);
+  }
+  if (!targetSel) { console.warn('⚠️ mat-select not found for label:', labelText); return false; }
+  console.log('→ matching mat-select for label:', labelText);
+  return matSelectPick(targetSel, optionText);
+}
+
+// Helper: pick mat-select by positional index (Step 1 uses this).
+async function setMatSelectByIndex(index, optionText) {
+  const sel = document.querySelectorAll('mat-select')[index];
+  return matSelectPick(sel, optionText);
 }
 
 // ────────────────────────────────────────────────────────────
 // STEP 1: General Information (run on Step 1 page)
 // ────────────────────────────────────────────────────────────
-function fillStep1() {
+// Nigeria's form is cascading: Class Of Visa only loads after Nationality
+// is selected. We must await each pick and wait ~2.5s for the next dropdown
+// to populate before clicking it.
+async function fillStep1() {
   console.log('\\n📋 Step 1: General Information');
-  setMatSelect(0, '${esc(data.nationality)}');
-  setTimeout(() => setMatSelect(1, '${esc(data.classOfVisa)}'), 500);
-  setTimeout(() => setMatSelect(2, '${esc(data.passportType)}'), 1000);
-  console.log('⏳ Wait 2 seconds then click Continue');
+  await setMatSelectByIndex(0, '${esc(data.nationality)}');
+  console.log('⏳ waiting for Class Of Visa options to load…');
+  await new Promise(r => setTimeout(r, 2500));
+  await setMatSelectByIndex(1, '${esc(data.classOfVisa)}');
+  await new Promise(r => setTimeout(r, 800));
+  await setMatSelectByIndex(2, '${esc(data.passportType)}');
+  console.log('✅ Step 1 done — click Continue');
 }
 
 // ────────────────────────────────────────────────────────────
@@ -273,7 +399,7 @@ function fillStep2() {
 // ────────────────────────────────────────────────────────────
 // STEP 3: Travel Information (run on Step 3 page)
 // ────────────────────────────────────────────────────────────
-function fillStep3() {
+async function fillStep3() {
   console.log('\\n📋 Step 3: Travel Information');
   setByName('journeyPurpose', '${esc(data.purposeOfJourney)}');
   setByName('airlineName', '${esc(data.travelCarrier)}');
@@ -282,61 +408,138 @@ function fillStep3() {
   setByName('expectedArrivalDate', '${esc(data.arrivalDate)}');
   setSelectByName('arrivalChannel', '${esc(data.arrivalChannel)}');
   setByName('durationOfStay', '${esc(data.durationOfStay)}');
-  // Country of Departure and Port of Entry may be mat-selects
-  // Try standard select first, fall back to mat-select
-  try { setSelectByName('countryOfDeparture', '${esc(data.countryOfDeparture)}'); } catch(e) {}
-  try { setSelectByName('portOfEntry', '${esc(data.portOfEntry)}'); } catch(e) {}
-  console.log('✅ Step 3 complete — verify Country of Departure and Port of Entry');
+  // Country of Departure and Port of Entry are mat-selects — look them
+  // up by their mat-label text instead of [name].
+  await setMatSelectByLabel('Country of Departure', '${esc(data.countryOfDeparture)}');
+  await new Promise(r => setTimeout(r, 400));
+  await setMatSelectByLabel('Port of Entry', '${esc(data.portOfEntry)}');
+  console.log('✅ Step 3 complete');
 }
 
 // ────────────────────────────────────────────────────────────
 // STEP 4: Contact/Hotel details in Nigeria (run on Step 4 page)
 // ────────────────────────────────────────────────────────────
-function fillStep4() {
+async function fillStep4() {
   console.log('\\n📋 Step 4: Contact/Hotel details in Nigeria');
   setByName('contactName', '${esc(data.contactName)}');
-  setByName('contactPhone', '${esc(data.contactPhone)}');
+  // Strip any country-code prefix — the form has a fixed "+234" prefix
+  // baked into the phone input, so the visible field only accepts the
+  // local number.
+  const __phone = '${esc(data.contactPhone)}'.replace(/^\\+?234[\\s-]?/, '').replace(/^\\+/, '').trim();
+  setByName('contactPhone', __phone);
   setByName('contactAddress', '${esc(data.contactAddress)}');
   setByName('contactCity', '${esc(data.contactCity)}');
-  try { setSelectByName('contactState', '${esc(data.contactState)}'); } catch(e) {}
+  // State is a mat-select — must use label lookup.
+  await setMatSelectByLabel('State', '${esc(data.contactState)}');
   setByName('contactEmail', '${esc(data.contactEmail)}');
   setByName('contactPostalCode', '${esc(data.contactPostalCode)}');
   console.log('✅ Step 4 complete');
 }
 
 // ────────────────────────────────────────────────────────────
-// STEP 6: Travel History — default all to "No"
+// STEP 6/7 helpers — answer each Yes/No question individually.
+// Matches each mat-radio-group to a known question by nearby text,
+// clicks the right radio (Yes/No), and fills the paired textarea
+// when the answer is Yes.
 // ────────────────────────────────────────────────────────────
-function fillStep6() {
-  console.log('\\n📋 Step 6: Travel History — defaulting all to No');
-  document.querySelectorAll('input[type="radio"]').forEach(r => {
-    if (r.id && r.id.toLowerCase().includes('no') && !r.checked) {
-      r.click();
-      r.dispatchEvent(new Event('change', { bubbles: true }));
+function yesNoQuestions(map) {
+  // Iterate in DOM order so we can locate the textarea that belongs
+  // to each question (it's typically the first textarea after the group).
+  const groups = Array.from(document.querySelectorAll('mat-radio-group, [role="radiogroup"]'));
+  const matched = new Set();
+  for (const group of groups) {
+    // Walk up a few levels to capture the question label text
+    let ctx = group;
+    let text = '';
+    for (let i = 0; i < 5 && ctx; i++) {
+      text = (ctx.textContent || '').trim();
+      if (text.length > 30) break;
+      ctx = ctx.parentElement;
     }
-  });
-  // Fallback: check all "No" radios by value
-  document.querySelectorAll('input[type="radio"][value="No"], input[type="radio"][value="no"]').forEach(r => {
-    if (!r.checked) { r.click(); r.dispatchEvent(new Event('change', { bubbles: true })); }
-  });
-  console.log('✅ Step 6 complete — verify all answers are "No"');
+    const lowerText = text.toLowerCase();
+
+    const match = map.find(q => !matched.has(q) && q.match.some(m => lowerText.includes(m.toLowerCase())));
+    if (!match) continue;
+    matched.add(match);
+
+    // Click the right radio (Yes or No)
+    const wantYes = match.answer === 'Yes';
+    const radios = Array.from(group.querySelectorAll('input[type="radio"], mat-radio-button'));
+    let clicked = false;
+    for (const r of radios) {
+      const input = r.tagName === 'INPUT' ? r : r.querySelector('input[type="radio"]');
+      const rawVal = (input?.value || r.getAttribute?.('value') || r.textContent || r.id || '').toString().trim().toLowerCase();
+      const isYes = rawVal === 'yes' || rawVal === 'y' || rawVal === 'true';
+      const isNo  = rawVal === 'no'  || rawVal === 'n' || rawVal === 'false';
+      if ((wantYes && isYes) || (!wantYes && isNo)) {
+        const target = r.tagName === 'INPUT' ? r : (r.querySelector('label') || r);
+        target.click();
+        if (input) input.dispatchEvent(new Event('change', { bubbles: true }));
+        clicked = true;
+        break;
+      }
+    }
+    if (!clicked) console.warn('⚠️ Could not click', match.answer, 'for:', match.match[0]);
+    else console.log('✅', match.match[0], '→', match.answer);
+
+    // If Yes + details, populate the nearest following textarea
+    if (wantYes && match.details) {
+      let area = null;
+      // Look inside the same container (ctx), then in following siblings
+      const scope = ctx || group.parentElement;
+      if (scope) {
+        area = scope.querySelector('textarea');
+      }
+      if (!area) {
+        let sib = group.nextElementSibling;
+        while (sib && !area) {
+          area = sib.querySelector ? sib.querySelector('textarea') : null;
+          if (sib.tagName === 'TEXTAREA') area = sib;
+          sib = sib.nextElementSibling;
+        }
+      }
+      if (area) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+        if (setter) setter.call(area, match.details); else area.value = match.details;
+        area.dispatchEvent(new Event('input', { bubbles: true }));
+        area.dispatchEvent(new Event('change', { bubbles: true }));
+        area.dispatchEvent(new Event('blur', { bubbles: true }));
+        console.log('   📝 details filled');
+      } else {
+        console.warn('   ⚠️ details textarea not found for:', match.match[0]);
+      }
+    }
+  }
 }
 
 // ────────────────────────────────────────────────────────────
-// STEP 7: Security and Criminal History — default all to "No"
+// STEP 6: Travel History
+// ────────────────────────────────────────────────────────────
+function fillStep6() {
+  console.log('\\n📋 Step 6: Travel History');
+  yesNoQuestions([
+    { match: ['visa for Nigeria, ECOWAS', 'ECOWAS or AU'], answer: '${data.previousVisaNigeria}', details: '${esc(data.previousVisaDetails)}' },
+    { match: ['travelled to Nigeria', 'been to Nigeria'], answer: '${data.travelledToNigeria}', details: '${esc(data.travelledToNigeriaDetails)}' },
+    { match: ['refused entry into Nigeria', 'refused entry to Nigeria'], answer: '${data.refusedEntryNigeria}', details: '${esc(data.refusedEntryDetails)}' },
+    { match: ['refused a visa for any country', 'refused visa'], answer: '${data.refusedVisaAnyCountry}', details: '${esc(data.refusedVisaDetails)}' },
+    { match: ['deported or required to leave', 'deported'], answer: '${data.deportedFromAnyCountry}', details: '${esc(data.deportedDetails)}' },
+    { match: ['travelled outside your country of residence', 'outside your country of residence'], answer: '${data.travelledOutsideResidence}', details: '${esc(data.travelledOutsideDetails)}' },
+  ]);
+  console.log('✅ Step 6 complete — verify each answer matches the customer submission');
+}
+
+// ────────────────────────────────────────────────────────────
+// STEP 7: Security and Criminal History
 // ────────────────────────────────────────────────────────────
 function fillStep7() {
-  console.log('\\n📋 Step 7: Security — defaulting all to No');
-  document.querySelectorAll('input[type="radio"]').forEach(r => {
-    if (r.id && r.id.toLowerCase().includes('no') && !r.checked) {
-      r.click();
-      r.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  });
-  document.querySelectorAll('input[type="radio"][value="No"], input[type="radio"][value="no"]').forEach(r => {
-    if (!r.checked) { r.click(); r.dispatchEvent(new Event('change', { bubbles: true })); }
-  });
-  console.log('✅ Step 7 complete — verify all answers are "No"');
+  console.log('\\n📋 Step 7: Security');
+  yesNoQuestions([
+    { match: ['criminal convictions', 'conviction in any country'], answer: '${data.criminalConvictions}', details: '${esc(data.criminalConvictionDetails)}' },
+    { match: ['charged with a criminal offence', 'not yet tried'], answer: '${data.criminalCharges}', details: '${esc(data.criminalChargeDetails)}' },
+    { match: ['involved in, supported, or encouraged terrorist', 'supported, or encouraged terrorist'], answer: '${data.terroristActivities}', details: '${esc(data.terroristActivityDetails)}' },
+    { match: ['justify or promote terrorist violence', 'expressed views'], answer: '${data.terroristViews}', details: '${esc(data.terroristViewDetails)}' },
+  ]);
+  console.log('✅ Step 7 complete — verify each answer matches the customer submission');
 }
 
 // ============================================================
@@ -350,12 +553,12 @@ function fillStep7() {
 // fillStep7();  // ← Run on Step 7 (Security — all "No")
 
 // Auto-detect current step and fill:
-(function autoFill() {
+(async function autoFill() {
   const heading = document.body.innerText.substring(0, 2000);
-  if (heading.includes('Step 1') || heading.includes('General Information')) { fillStep1(); }
+  if (heading.includes('Step 1') || heading.includes('General Information')) { await fillStep1(); }
   else if (heading.includes('Step 2') || heading.includes('Biodata')) { fillStep2(); }
-  else if (heading.includes('Step 3') || heading.includes('Travel Information')) { fillStep3(); }
-  else if (heading.includes('Step 4') || heading.includes('Contact')) { fillStep4(); }
+  else if (heading.includes('Step 3') || heading.includes('Travel Information')) { await fillStep3(); }
+  else if (heading.includes('Step 4') || heading.includes('Contact')) { await fillStep4(); }
   else if (heading.includes('Step 6') || heading.includes('Travel History')) { fillStep6(); }
   else if (heading.includes('Step 7') || heading.includes('Security')) { fillStep7(); }
   else { console.log('🔍 Could not detect step — call fillStep1() through fillStep7() manually'); }

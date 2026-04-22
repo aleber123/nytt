@@ -217,7 +217,9 @@ export default function PriceTab({
                                 <th className="px-3 py-2 text-left">Include</th>
                                 <th className="px-3 py-2 text-left">Description</th>
                                 <th className="px-3 py-2 text-right">Base Amount</th>
-                                <th className="px-3 py-2 text-right">Override Price</th>
+                                <th className="px-3 py-2 text-right">New Unit Price</th>
+                                <th className="px-3 py-2 text-center">Qty</th>
+                                <th className="px-3 py-2 text-right">New Total</th>
                                 <th className="px-3 py-2 text-right">VAT %</th>
                               </tr>
                             ) : (
@@ -237,6 +239,8 @@ export default function PriceTab({
                             {order?.orderType === 'visa' && order?.pricingBreakdown && !Array.isArray(order.pricingBreakdown) ? (
                               (() => {
                                 const pb = order.pricingBreakdown as any;
+                                const travelerCount = Number((order as any).travelerCount) || 1;
+                                const perTravelerKeys = ['serviceFee', 'embassyFee', 'expressPrice', 'urgentPrice'];
                                 // Always show serviceFee and embassyFee (even if 0), only filter optional fees
                                 const visaLineItems = [
                                   { key: 'serviceFee', label: 'DOX Visumpartner Service Fee', amount: pb.serviceFee || 0, alwaysShow: true },
@@ -246,11 +250,18 @@ export default function PriceTab({
                                   ...(pb.expressPrice ? [{ key: 'expressPrice', label: 'Express Processing', amount: pb.expressPrice, alwaysShow: false }] : []),
                                   ...(pb.urgentPrice ? [{ key: 'urgentPrice', label: 'Urgent Processing', amount: pb.urgentPrice, alwaysShow: false }] : []),
                                 ].filter(item => item.alwaysShow || item.amount > 0);
-                                
+
                                 return visaLineItems.length > 0 ? visaLineItems.map((item, idx) => {
                                   // Default VAT: 25% for service fees, 0% for embassy fees
                                   const defaultVat = item.key === 'embassyFee' ? 0 : 25;
-                                  const o = lineOverrides[idx] || { index: idx, label: item.label, baseAmount: item.amount, include: true, vatPercent: defaultVat };
+                                  const qty = perTravelerKeys.includes(item.key) ? travelerCount : 1;
+                                  const o = lineOverrides[idx] || { index: idx, label: item.label, baseAmount: item.amount, quantity: qty, include: true, vatPercent: defaultVat };
+                                  // Legacy fallback: if only overrideAmount was saved (pre-qty), treat it as per-unit
+                                  const effectiveUnitOverride = o.overrideUnitPrice ?? (qty === 1 ? (o.overrideAmount ?? null) : null);
+                                  const unitPrice = item.amount;
+                                  const effectiveUnit = effectiveUnitOverride ?? unitPrice;
+                                  const lineTotal = effectiveUnit * qty;
+                                  const isOverridden = effectiveUnitOverride !== null;
                                   return (
                                     <tr key={item.key} className="border-t">
                                       <td className="px-3 py-2">
@@ -259,26 +270,39 @@ export default function PriceTab({
                                           checked={o.include !== false}
                                           onChange={(e) => {
                                             const next = [...lineOverrides];
-                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, include: e.target.checked };
+                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, quantity: qty, include: e.target.checked };
                                             setLineOverrides(next);
                                           }}
                                         />
                                       </td>
                                       <td className="px-3 py-2">{item.label}</td>
-                                      <td className="px-3 py-2 text-right">{item.amount.toFixed(2)} kr</td>
+                                      <td className="px-3 py-2 text-right">
+                                        {qty > 1 ? (
+                                          <span className="text-gray-500">{qty} × {unitPrice.toFixed(0)} = <strong>{Number(unitPrice * qty).toLocaleString()}</strong> kr</span>
+                                        ) : (
+                                          <span>{unitPrice.toFixed(2)} kr</span>
+                                        )}
+                                      </td>
                                       <td className="px-3 py-2 text-right">
                                         <input
                                           type="number"
-                                          className="w-28 border border-blue-300 rounded px-2 py-1 text-right bg-blue-50 focus:ring-2 focus:ring-blue-500"
-                                          value={o.overrideAmount ?? ''}
-                                          placeholder={item.amount.toFixed(0)}
+                                          className="w-24 border border-blue-300 rounded px-2 py-1 text-right bg-blue-50 focus:ring-2 focus:ring-blue-500"
+                                          value={o.overrideUnitPrice ?? ''}
+                                          placeholder={unitPrice.toFixed(0)}
                                           onChange={(e) => {
                                             const val = e.target.value === '' ? null : Number(e.target.value);
                                             const next = [...lineOverrides];
-                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, overrideAmount: val };
+                                            const computedTotal = val !== null ? val * qty : null;
+                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, quantity: qty, overrideUnitPrice: val, overrideAmount: computedTotal };
                                             setLineOverrides(next);
                                           }}
                                         />
+                                      </td>
+                                      <td className="px-3 py-2 text-center text-gray-600">{qty}</td>
+                                      <td className="px-3 py-2 text-right">
+                                        <span className={isOverridden ? 'font-semibold text-blue-700' : 'text-gray-700'}>
+                                          {Number(lineTotal).toLocaleString()} kr
+                                        </span>
                                       </td>
                                       <td className="px-3 py-2 text-right">
                                         <input
@@ -289,7 +313,7 @@ export default function PriceTab({
                                           onChange={(e) => {
                                             const val = e.target.value === '' ? null : Number(e.target.value);
                                             const next = [...lineOverrides];
-                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, vatPercent: val };
+                                            next[idx] = { ...o, index: idx, label: item.label, baseAmount: item.amount, quantity: qty, vatPercent: val };
                                             setLineOverrides(next);
                                           }}
                                         />
@@ -298,7 +322,7 @@ export default function PriceTab({
                                   );
                                 }) : (
                                   <tr>
-                                    <td colSpan={5} className="px-3 py-4 text-center text-gray-500">No line items</td>
+                                    <td colSpan={7} className="px-3 py-4 text-center text-gray-500">No line items</td>
                                   </tr>
                                 );
                               })()

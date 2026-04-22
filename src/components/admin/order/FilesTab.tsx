@@ -231,7 +231,7 @@ function AdminFilesSection(props: {
   onSendPasswordEmail: () => Promise<void>;
   adminFileInputRef: React.RefObject<HTMLInputElement>;
 }) {
-  const { order, adminFiles, adminUploadFiles, setAdminUploadFiles, uploadingAdminFiles, onAdminFileUpload, selectedFilesToSend, setSelectedFilesToSend, sendingFilesToCustomer, onSendFilesToCustomer, fileMessageToCustomer, setFileMessageToCustomer, filePassword, setFilePassword, sendingPassword, onSendPasswordEmail, adminFileInputRef } = props;
+  const { order, adminFiles, adminUploadFiles, setAdminUploadFiles, uploadingAdminFiles, onAdminFileUpload, selectedFilesToSend, setSelectedFilesToSend, sendingFilesToCustomer, onSendFilesToCustomer, fileMessageToCustomer, setFileMessageToCustomer, filePassword, setFilePassword, adminFileInputRef } = props;
 
   return (
     <div className="border-t border-gray-200 pt-6">
@@ -319,8 +319,6 @@ function AdminFilesSection(props: {
               setFileMessageToCustomer={setFileMessageToCustomer}
               filePassword={filePassword}
               setFilePassword={setFilePassword}
-              sendingPassword={sendingPassword}
-              onSendPasswordEmail={onSendPasswordEmail}
             />
           )}
         </div>
@@ -334,10 +332,9 @@ function SendFileModal(props: {
   setSelectedFilesToSend: (u: string[]) => void; sendingFilesToCustomer: boolean;
   onSendFilesToCustomer: () => Promise<void>; fileMessageToCustomer: string;
   setFileMessageToCustomer: (m: string) => void; filePassword: string;
-  setFilePassword: (p: string) => void; sendingPassword: boolean;
-  onSendPasswordEmail: () => Promise<void>;
+  setFilePassword: (p: string) => void;
 }) {
-  const { order, adminFiles, selectedFilesToSend, setSelectedFilesToSend, sendingFilesToCustomer, onSendFilesToCustomer, fileMessageToCustomer, setFileMessageToCustomer, filePassword, setFilePassword, sendingPassword, onSendPasswordEmail } = props;
+  const { order, adminFiles, selectedFilesToSend, setSelectedFilesToSend, sendingFilesToCustomer, onSendFilesToCustomer, fileMessageToCustomer, setFileMessageToCustomer, filePassword, setFilePassword } = props;
   const selectedFile = adminFiles.find((f: any) => f.url === selectedFilesToSend[0]);
 
   return (
@@ -358,14 +355,17 @@ function SendFileModal(props: {
           <textarea value={fileMessageToCustomer} onChange={(e) => setFileMessageToCustomer(e.target.value)} placeholder="e.g., Here is your approved visa document..." className="w-full border border-gray-300 rounded-lg p-3 text-sm" rows={3} />
         </div>
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <label className="block text-sm font-medium text-amber-800 mb-2">🔐 File Password (send separately for security)</label>
-          <div className="flex gap-2">
-            <input type="text" value={filePassword} onChange={(e) => setFilePassword(e.target.value)} placeholder="Enter password if file is encrypted..." className="flex-1 border border-amber-300 rounded-lg p-2 text-sm" />
-            <button onClick={onSendPasswordEmail} disabled={!filePassword.trim() || sendingPassword} className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 text-sm font-medium whitespace-nowrap">
-              {sendingPassword ? 'Sending...' : 'Send Password'}
-            </button>
-          </div>
-          <p className="text-xs text-amber-600 mt-2">The password will be sent in a separate email for security.</p>
+          <label className="block text-sm font-medium text-amber-800 mb-2">🔐 File Password (optional)</label>
+          <input
+            type="text"
+            value={filePassword}
+            onChange={(e) => setFilePassword(e.target.value)}
+            placeholder="Enter password if file is encrypted..."
+            className="w-full border border-amber-300 rounded-lg p-2 text-sm"
+          />
+          <p className="text-xs text-amber-600 mt-2">
+            If filled, the password is sent to the customer in a separate email right after the file — you'll get a preview of both.
+          </p>
         </div>
         <div className="flex space-x-3">
           <button onClick={() => { setSelectedFilesToSend([]); setFilePassword(''); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>

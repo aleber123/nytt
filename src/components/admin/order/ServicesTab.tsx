@@ -128,6 +128,8 @@ export default function ServicesTab({ ctx }: ServicesTabProps) {
             setProcessingSteps(newSteps);
           }}
           onRecalculatePrices={recalculateOrderPrices}
+          orderId={router.query.id as string}
+          adminName={ctx.adminName || 'Admin'}
         />
       )}
 

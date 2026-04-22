@@ -68,10 +68,13 @@ export default async function handler(
     let emailHtml = '';
     let renderer: 'new' | 'legacy' = 'legacy';
 
+    let templateHasPasswordVar = false;
     try {
       const { getEmailTemplateAdmin, renderEmailAdmin } = await import('@/services/emailRendererAdmin');
       const tmpl = await getEmailTemplateAdmin('send-password');
       if (tmpl?.useCustomTemplate) {
+        const bodyTpl = locale === 'en' ? tmpl.bodyEn : tmpl.bodySv;
+        templateHasPasswordVar = !!bodyTpl && /\{\{\s*password\s*\}\}/.test(bodyTpl);
         const result = await renderEmailAdmin(
           'send-password',
           {
@@ -80,7 +83,7 @@ export default async function handler(
             password,
           },
           locale === 'en' ? 'en' : 'sv',
-          { orderNumber: String(orderNumber) }
+          { orderNumber: String(orderNumber), showTrackingButton: false }
         );
         if (result.rendered) {
           subject = result.subject || subject;
@@ -90,6 +93,17 @@ export default async function handler(
       }
     } catch (rendererErr) {
       console.warn('[send-password] new renderer failed, falling back to legacy', rendererErr);
+    }
+
+    // Safety net: if the custom template body is missing the {{password}}
+    // placeholder, the customer would get an email with no password in it.
+    // Fall back to the generator which always renders the password box.
+    // Checking the template body directly is more reliable than scanning the
+    // rendered HTML (false positives when password text collides with wrapper).
+    if (emailHtml && !templateHasPasswordVar) {
+      console.warn('[send-password] custom template body missing {{password}} — falling back to generator');
+      emailHtml = '';
+      renderer = 'legacy';
     }
 
     if (!emailHtml) {
